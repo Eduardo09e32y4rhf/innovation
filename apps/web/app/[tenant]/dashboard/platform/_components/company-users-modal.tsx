@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Edit3, Plus, Trash2, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
-import { useMutation, useQuery } from '@/app/hooks/use-data';
+import { useMutation, useQuery } from './use-platform-query';
 import { api, type AppUser, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';

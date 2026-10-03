@@ -1,7 +1,7 @@
 'use client';
 
 import { Activity, AlertTriangle, Building2, Shield, Users } from 'lucide-react';
-import { useQuery } from '@/app/hooks/use-data';
+import { useQuery } from './use-platform-query';
 import { api, type PlatformStats as PlatformStatsData } from '@/app/lib/api';
 
 const STAT_ITEMS: { label: string; key: keyof PlatformStatsData; icon: typeof Building2 }[] = [

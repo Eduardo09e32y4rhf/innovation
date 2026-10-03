@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/app/components/ui/button';
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -233,7 +235,7 @@ function calcMonthlyTotals(days: CalendarDay[]) {
       }
       continue;
     }
-    
+
     totalWorked += a.totalWorked ?? 0;
     totalBalance += a.dailyBalance ?? 0;
     const ot50 = a.overtime50Minutes ?? 0;
@@ -383,13 +385,13 @@ export default function EscalaPage() {
           ...(canApprove ? [{ key: 'equipe', label: 'Escala de Equipe', icon: <Users size={14}/> }] : []),
           { key: 'trocas', label: 'Trocas',          icon: <ArrowLeftRight size={14}/> },
         ] as { key: Tab; label: string; icon: React.ReactNode }[]).map(({ key, label, icon }) => (
-          <button
+          <Button variant="ghost" type="button"
             key={key}
             onClick={() => router.push(`?tab=${key}`)}
             className={tab === key ? 'tab-item-active' : 'tab-item'}
           >
             {icon}<span className="hidden sm:inline">{label}</span>
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -471,7 +473,7 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
   return (
     <div ref={ref} className="relative">
       {/* Trigger */}
-      <button
+      <Button variant="ghost" type="button"
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200 shadow-sm hover:ring-slate-300 transition-all duration-200 text-left"
       >
@@ -486,7 +488,7 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
               <p className="text-sm font-semibold text-slate-900 truncate">
                 {selected.registration ? String(selected.registration).padStart(4, '0') : 'S/N'} - {selected.name?.toUpperCase()}
               </p>
-              <p className="text-[11px] text-slate-500 truncate">{selected.department} · {selected.position}</p>
+              <p className="text-xs text-slate-500 truncate">{selected.department} · {selected.position}</p>
             </div>
           </>
         ) : (
@@ -496,22 +498,22 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-slate-900">Minha Escala</p>
-              <p className="text-[11px] text-slate-500">Visualizando seus próprios dados</p>
+              <p className="text-xs text-slate-500">Visualizando seus próprios dados</p>
             </div>
           </>
         )}
         <div className="flex items-center gap-2 shrink-0">
           {selected && (
-            <button
+            <Button aria-label="Fechar" variant="ghost" type="button"
               onClick={(e) => { e.stopPropagation(); onSelect(''); setSearch(''); }}
               className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
             >
               <X size={12} />
-            </button>
+            </Button>
           )}
           <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         </div>
-      </button>
+      </Button>
 
       {/* Dropdown */}
       {open && (
@@ -519,7 +521,7 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
           {/* Search */}
           <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100">
             <Search size={14} className="text-slate-400 shrink-0" />
-            <input
+            <input aria-label="Buscar funcion?rio"
               autoFocus
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -527,15 +529,15 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
               className="flex-1 bg-transparent text-sm text-slate-900 placeholder-slate-400 outline-none"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="text-slate-400 hover:text-slate-600">
+              <Button aria-label="Fechar" variant="ghost" type="button" onClick={() => setSearch('')} className="text-slate-400 hover:text-slate-600">
                 <X size={12} />
-              </button>
+              </Button>
             )}
           </div>
 
           {/* Opção: Minha Escala */}
           <div className="max-h-72 overflow-y-auto">
-            <button
+            <Button variant="ghost" type="button"
               onClick={() => { onSelect(''); setOpen(false); setSearch(''); }}
               className={`flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-100 ${!selectedId ? 'bg-slate-50' : ''}`}
             >
@@ -544,10 +546,10 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
               </div>
               <div className="flex-1 text-left">
                 <p className="text-sm font-semibold text-slate-900">Minha Escala</p>
-                <p className="text-[11px] text-slate-500">Seus próprios dados</p>
+                <p className="text-xs text-slate-500">Seus próprios dados</p>
               </div>
               {!selectedId && <Check size={14} className="text-slate-700 shrink-0" />}
-            </button>
+            </Button>
 
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-8 text-slate-400">
@@ -556,7 +558,7 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
               </div>
             ) : (
               filtered.slice(0, 50).map((e) => (
-                <button
+                <Button variant="ghost" type="button"
                   key={e.id}
                   onClick={() => { onSelect(e.id); setOpen(false); setSearch(''); }}
                   className={`flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors ${selectedId === e.id ? 'bg-slate-50' : ''}`}
@@ -570,12 +572,12 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
                     <p className="text-sm font-semibold text-slate-900 truncate">
                       {e.registration ? String(e.registration).padStart(4, '0') : 'S/N'} - {e.name?.toUpperCase()}
                     </p>
-                    <p className="text-[11px] text-slate-500 truncate">{e.department} · {e.position}</p>
+                    <p className="text-xs text-slate-500 truncate">{e.department} · {e.position}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {selectedId === e.id && <Check size={14} className="text-slate-700" />}
                   </div>
-                </button>
+                </Button>
               ))
             )}
           </div>
@@ -590,7 +592,7 @@ function EmployeeCombobox({ employees, selectedId, onSelect }: {
 function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, selectedDay, onSelectDay, targetEmployeeId, canWrite, onRefresh, targetEmployee }: any) {
   const apiDays: CalendarDay[] = calendarData?.days || [];
   const schedule = calendarData?.schedule;
-  
+
   // Preencher os dias do mês
   const numDays = new Date(year, month, 0).getDate();
   const days: CalendarDay[] = [];
@@ -632,7 +634,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
               {schedule.lunchStartTime ? ` · Almoço: ${schedule.lunchStartTime}–${schedule.lunchReturnTime ?? '?'}` : ''}
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200 flex items-center gap-1">
+          <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200 flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
             ATIVA
           </span>
@@ -700,21 +702,21 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
 
       {/* Navegação de mês */}
       <div className="flex items-center justify-between">
-        <button
+        <Button aria-label="M?s anterior" variant="ghost" type="button"
           onClick={onPrev}
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:ring-slate-300 transition-all shadow-sm"
+          className="flex items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:ring-slate-300 transition-all shadow-sm"
         >
           <ChevronLeft size={16}/>
-        </button>
+        </Button>
         <h2 className="text-base font-bold text-slate-900 tracking-tight">
           {MONTH_NAMES[month - 1]} <span className="text-slate-400 font-normal">{year}</span>
         </h2>
-        <button
+        <Button aria-label="Pr?ximo m?s" variant="ghost" type="button"
           onClick={onNext}
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:ring-slate-300 transition-all shadow-sm"
+          className="flex items-center justify-center rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 hover:text-slate-900 hover:ring-slate-300 transition-all shadow-sm"
         >
           <ChevronRight size={16}/>
-        </button>
+        </Button>
       </div>
 
       {/* Legenda dinâmica */}
@@ -741,7 +743,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
         <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
           <div className="mb-3 grid grid-cols-7 gap-1.5">
             {WEEK_LABELS.map((d) => (
-              <div key={d} className="text-center text-[10px] font-bold uppercase tracking-wider text-slate-500 py-1">{d}</div>
+              <div key={d} className="text-center text-xs font-bold r text-slate-500 py-1">{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1.5">
@@ -769,7 +771,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
             {WEEK_LABELS.map((d, i) => (
               <div
                 key={d}
-                className={`text-center text-[10px] font-bold uppercase tracking-wider py-1 rounded-lg ${
+                className={`text-center text-xs font-bold r py-1 rounded-lg ${
                   i === 0 || i === 6 ? 'text-slate-400' : 'text-slate-600'
                 }`}
               >
@@ -790,7 +792,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
               const isWeekend = day.dayOfWeek === 0 || day.dayOfWeek === 6;
 
               return (
-                <button
+                <Button variant="ghost" type="button"
                   key={day.date}
                   onClick={() => onSelectDay(isSelected ? null : day)}
                   className={`relative flex flex-col items-center rounded-xl border-2 transition-all duration-200 min-h-[80px] py-2 px-1 group select-none ${
@@ -803,7 +805,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
                   {/* Número do dia */}
                   <span className={`text-[13px] font-bold leading-none ${
                     isToday
-                      ? 'flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white text-[11px]'
+                      ? 'flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white text-xs'
                       : isWeekend
                         ? `${meta.textColor} opacity-70`
                         : meta.textColor
@@ -814,15 +816,15 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
                   {/* Conteúdo central do dia */}
                   {day.scheduled.entry && day.scheduled.exit ? (
                     <div className="flex flex-col items-center justify-center mt-1.5 gap-1">
-                      <span className={`text-[10px] font-bold ${meta.textColor} leading-none`}>
+                      <span className={`text-xs font-bold ${meta.textColor} leading-none`}>
                         {day.scheduled.entry.slice(0,5)}
                       </span>
-                      <span className={`text-[10px] font-bold ${meta.textColor} leading-none`}>
+                      <span className={`text-xs font-bold ${meta.textColor} leading-none`}>
                         {day.scheduled.exit.slice(0,5)}
                       </span>
                     </div>
                   ) : resolved !== 'SEM_ESCALA' ? (
-                    <span className={`text-[9px] mt-3 font-bold uppercase tracking-wider ${meta.textColor} opacity-80 leading-none text-center`}>
+                    <span className={`text-xs mt-3 font-bold r ${meta.textColor} opacity-80 leading-none text-center`}>
                       {meta.label}
                     </span>
                   ) : (
@@ -838,7 +840,7 @@ function MinhaEscalaTab({ loading, calendarData, year, month, onPrev, onNext, se
                   <span className={`absolute inset-0 rounded-xl transition-opacity duration-200 ${
                     isSelected ? 'opacity-0' : 'opacity-0 group-hover:opacity-100 bg-brand/5'
                   }`} />
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -866,11 +868,11 @@ function SummaryCard({ label, value, sub, color, bg, icon }: { label: string; va
   return (
     <div className={`flex flex-col gap-2.5 rounded-2xl p-4 ring-1 ${bg} transition-transform hover:scale-[1.02] duration-200`}>
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+        <p className="text-xs font-bold r text-slate-500">{label}</p>
         {icon}
       </div>
       <p className={`text-2xl font-bold ${color} leading-none`}>{value}</p>
-      <p className="text-[10px] text-slate-600 leading-tight">{sub}</p>
+      <p className="text-xs text-slate-600 leading-tight">{sub}</p>
     </div>
   );
 }
@@ -978,12 +980,12 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
       <div className={`h-1.5 w-full ${meta.color}`} style={{ background: meta.bg }} />
 
       <div className="p-5 relative">
-        <button
+        <Button aria-label="Fechar" variant="ghost" type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+          className="absolute top-4 right-4 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors"
         >
           <X size={14}/>
-        </button>
+        </Button>
 
         {/* Cabeçalho */}
         <div className="flex items-center gap-3 mb-5 pr-10">
@@ -1010,29 +1012,29 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
           {/* PREVISTO */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+              <p className="text-xs font-bold r text-slate-600 flex items-center gap-1.5">
                 <CalendarClock size={12}/> Previsto (Escala)
               </p>
               {canWrite && !isEditing && (
-                <button
+                <Button variant="ghost" type="button"
                   onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-1 rounded-full bg-slate-100 hover:bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:text-indigo-700 transition-colors ring-1 ring-slate-200 hover:ring-indigo-200"
+                  className="flex items-center gap-1 rounded-full bg-slate-100 hover:bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-indigo-700 transition-colors ring-1 ring-slate-200 hover:ring-indigo-200"
                 >
                   <Pencil size={10}/> Editar horário
-                </button>
+                </Button>
               )}
             </div>
 
             {isEditing ? (
               <div className="flex flex-col gap-3 rounded-2xl bg-indigo-50 p-4 ring-1 ring-indigo-200">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Ajuste individual — {new Date(day.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</p>
+                <p className="text-xs font-bold r text-indigo-600">Ajuste individual — {new Date(day.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { label: 'Entrada', val: altEntry, set: setAltEntry },
                     { label: 'Saída', val: altExit, set: setAltExit },
                   ].map(({ label, val, set }) => (
                     <div key={label} className="flex flex-col gap-1">
-                      <label className="text-[10px] text-indigo-600 font-semibold">{label}</label>
+                      <label className="text-xs text-indigo-600 font-semibold">{label}</label>
                       <input
                         type="time"
                         value={val}
@@ -1043,20 +1045,20 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
                   ))}
                 </div>
                 <div className="flex justify-end gap-2 mt-1">
-                  <button
+                  <Button variant="ghost" type="button"
                     onClick={() => setIsEditing(false)}
                     className="rounded-xl px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900 transition-colors"
                   >
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button variant="ghost" type="button"
                     onClick={handleAjuste}
                     disabled={loading}
                     className="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 text-xs font-bold text-white disabled:opacity-50 transition-colors shadow-sm"
                   >
                     {loading ? <Loader2 size={12} className="animate-spin"/> : <Check size={12}/>}
                     Salvar Ajuste
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -1066,7 +1068,7 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
                 <TimeDetailRow label="Fim almoço"    value={day.scheduled.lunchReturn?.slice(0,5) ?? '--:--'} />
                 <TimeDetailRow label="Saída"         value={day.scheduled.exit?.slice(0,5) ?? '--:--'} />
                 {day.exception?.exceptionType === 'AJUSTE_ESCALA' && (
-                  <div className="mt-1 pt-2 border-t border-indigo-100 flex items-center gap-1.5 text-[10px] text-indigo-600 font-semibold">
+                  <div className="mt-1 pt-2 border-t border-indigo-100 flex items-center gap-1.5 text-xs text-indigo-600 font-semibold">
                     <Zap size={10}/> Horário ajustado manualmente
                   </div>
                 )}
@@ -1075,39 +1077,39 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
 
             {/* Ajuste Mensal — botão para RH */}
             {canWrite && !isEditing && (
-              <button
+              <Button variant="ghost" type="button"
                 onClick={() => setShowMonthlyAdj(true)}
                 className="flex items-center gap-2 rounded-2xl bg-slate-50 hover:bg-slate-100 px-4 py-2.5 ring-1 ring-slate-200 hover:ring-slate-300 transition-all text-xs font-semibold text-slate-600 hover:text-slate-900"
               >
                 <CalendarDays size={13}/> Ajuste do mês inteiro
                 <ArrowRight size={11} className="ml-auto text-slate-400"/>
-              </button>
+              </Button>
             )}
           </div>
 
           {/* REALIZADO */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+              <p className="text-xs font-bold r text-slate-600 flex items-center gap-1.5">
                 <Clock size={12}/> Realizado (Ponto)
               </p>
               {canWrite && !isEditingPonto && (
-                <button
+                <Button variant="ghost" type="button"
                   onClick={() => setIsEditingPonto(true)}
-                  className="flex items-center gap-1 rounded-full bg-slate-100 hover:bg-teal-50 px-2.5 py-1 text-[10px] font-semibold text-slate-600 hover:text-teal-700 transition-colors ring-1 ring-slate-200 hover:ring-teal-200"
+                  className="flex items-center gap-1 rounded-full bg-slate-100 hover:bg-teal-50 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-teal-700 transition-colors ring-1 ring-slate-200 hover:ring-teal-200"
                 >
                   <Pencil size={10}/> Lançar Ajuste
-                </button>
+                </Button>
               )}
             </div>
 
             {isEditingPonto && (
               <div className="flex flex-col gap-3 rounded-2xl bg-teal-50 p-4 ring-1 ring-teal-200 animate-in slide-in-from-top-2 mb-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">Ajuste de Ponto</p>
+                <p className="text-xs font-bold r text-teal-700">Ajuste de Ponto</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1 sm:col-span-2">
-                    <label className="text-[10px] text-teal-700 font-semibold">Motivo do Ajuste</label>
-                    <select
+                    <label htmlFor="calendario-field-1109" className="text-xs text-teal-700 font-semibold">Motivo do Ajuste</label>
+                    <select id="calendario-field-1109"
                       value={pontoReason}
                       onChange={(e) => setPontoReason(e.target.value)}
                       className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-teal-200 focus:outline-none focus:ring-teal-400"
@@ -1118,26 +1120,26 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
                   {!selReason?.fullDay && (
                     <>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-teal-700 font-semibold">Entrada</label>
+                        <label className="text-xs text-teal-700 font-semibold">Entrada</label>
                         <input type="time" value={pontoEntry} onChange={e=>setPontoEntry(e.target.value)} className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-teal-200 focus:outline-none" />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-teal-700 font-semibold">Saída</label>
+                        <label className="text-xs text-teal-700 font-semibold">Saída</label>
                         <input type="time" value={pontoExit} onChange={e=>setPontoExit(e.target.value)} className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-teal-200 focus:outline-none" />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-teal-700 font-semibold">Início Almoço</label>
+                        <label className="text-xs text-teal-700 font-semibold">Início Almoço</label>
                         <input type="time" value={pontoLunchS} onChange={e=>setPontoLunchS(e.target.value)} className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-teal-200 focus:outline-none" />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-teal-700 font-semibold">Fim Almoço</label>
+                        <label className="text-xs text-teal-700 font-semibold">Fim Almoço</label>
                         <input type="time" value={pontoLunchR} onChange={e=>setPontoLunchR(e.target.value)} className="rounded-xl bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-teal-200 focus:outline-none" />
                       </div>
                     </>
                   )}
                   <div className="flex flex-col gap-1 sm:col-span-2">
-                    <label className="text-[10px] text-teal-700 font-semibold">Observação (Opcional)</label>
-                    <input
+                    <label className="text-xs text-teal-700 font-semibold">Observação (Opcional)</label>
+                    <input aria-label="Detalhes adicionais do ajuste..."
                       type="text"
                       value={pontoDetail}
                       onChange={(e) => setPontoDetail(e.target.value)}
@@ -1147,10 +1149,10 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-2">
-                  <button onClick={() => setIsEditingPonto(false)} className="rounded-xl px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900">Cancelar</button>
-                  <button onClick={handleAjustePonto} disabled={loading} className="flex items-center gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 px-4 py-1.5 text-xs font-bold text-white disabled:opacity-50 shadow-sm">
+                  <Button variant="ghost" type="button" onClick={() => setIsEditingPonto(false)} className="rounded-xl px-3 py-1.5 text-xs text-slate-500 hover:text-slate-900">Cancelar</Button>
+                  <Button variant="ghost" type="button" onClick={handleAjustePonto} disabled={loading} className="flex items-center gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 px-4 py-1.5 text-xs font-bold text-white disabled:opacity-50 shadow-sm">
                     {loading ? <Loader2 size={12} className="animate-spin"/> : <Check size={12}/>} Salvar Ajuste
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -1183,7 +1185,7 @@ function DayDetailPanel({ day, onClose, canWrite, targetEmployeeId, refresh, cur
         {/* Ocorrências */}
         {a && (
           <div className="mt-5 flex flex-col gap-3">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+            <p className="text-xs font-bold r text-slate-600 flex items-center gap-1.5">
               <AlertTriangle size={12}/> Ocorrências
             </p>
             <div className="flex flex-wrap gap-2">
@@ -1358,7 +1360,7 @@ function ModalAjusteMensal({ employeeId, currentMonth, onClose, onSuccess }: {
           <label className="text-xs font-semibold text-slate-600">Tipo de ajuste</label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {TYPES.map((t) => (
-              <button
+              <Button variant="ghost" type="button"
                 key={t.value}
                 onClick={() => setType(t.value)}
                 className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold ring-1 transition-all ${
@@ -1368,14 +1370,14 @@ function ModalAjusteMensal({ employeeId, currentMonth, onClose, onSuccess }: {
                 }`}
               >
                 <span>{t.icon}</span> {t.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold text-slate-600">Observação (opcional)</label>
-          <textarea
+          <textarea aria-label="Descreva o motivo do ajuste..."
             value={observation}
             onChange={(e) => setObservation(e.target.value)}
             rows={3}
@@ -1387,15 +1389,15 @@ function ModalAjusteMensal({ employeeId, currentMonth, onClose, onSuccess }: {
         {error && <p className="text-xs text-red-700 bg-red-50 px-3 py-2 rounded-xl ring-1 ring-red-200">{error}</p>}
 
         <div className="flex gap-2 justify-end pt-1">
-          <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
-          <button
+          <Button variant="ghost" type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</Button>
+          <Button variant="ghost" type="button"
             onClick={submit}
             disabled={loading}
             className="flex items-center gap-2 rounded-xl bg-brand hover:bg-slate-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors shadow-sm"
           >
             {loading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>}
             Aplicar Ajuste
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
@@ -1431,36 +1433,36 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <button
+          <Button aria-label="M?s anterior" variant="ghost" type="button"
             onClick={onPrev}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm"
+            className="flex items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm"
           >
             <ChevronLeft size={16}/>
-          </button>
-          <h2 className="text-base font-black text-slate-900 uppercase tracking-wider">
+          </Button>
+          <h2 className="text-base font-semibold text-slate-900 r">
             {MONTH_NAMES[month-1]} <span className="text-brand font-bold">{year}</span>
           </h2>
-          <button
+          <Button aria-label="Pr?ximo m?s" variant="ghost" type="button"
             onClick={onNext}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm"
+            className="flex items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm"
           >
             <ChevronRight size={16}/>
-          </button>
+          </Button>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button variant="outline" type="button"
             onClick={onRefresh}
-            className="btn-outline flex items-center gap-1.5 border-brand/30 text-brand hover:bg-brand/5 shadow-sm"
+            className=" flex items-center gap-1.5 border-brand/30 text-brand hover:bg-brand/5 shadow-sm"
           >
             <RefreshCw size={14}/> Atualizar
-          </button>
+          </Button>
           {canWrite && (
-            <button
+            <Button variant="ghost" type="button"
               onClick={onLancar}
               className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-slate-700 px-4 py-2 text-xs font-bold text-white transition-all shadow-sm"
             >
               <Plus size={13}/> Lançar Escala
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -1476,8 +1478,8 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
           {withSchedule.length > 0 && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Com Escala</p>
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+                <p className="text-xs font-bold r text-slate-700">Com Escala</p>
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">
                   {withSchedule.length}
                 </span>
               </div>
@@ -1495,8 +1497,8 @@ function EscalaEquipeTab({ loading, teamData, schedules, canWrite, year, month, 
           {withoutSchedule.length > 0 && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Sem Escala</p>
-                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-amber-200">
+                <p className="text-xs font-bold r text-slate-500">Sem Escala</p>
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200">
                   {withoutSchedule.length}
                 </span>
               </div>
@@ -1531,7 +1533,7 @@ function EmployeeTeamCard({ employee, schedule, hasSchedule, onSelect }: {
   const reg = employee.registration ? `#${String(employee.registration).padStart(4, '0')}` : 'S/N';
 
   return (
-    <button
+    <Button variant="ghost" type="button"
       onClick={onSelect}
       className="group flex items-center gap-4 w-full text-left rounded-2xl bg-white p-4 ring-1 ring-slate-200 hover:ring-brand/50 hover:shadow-[0_4px_20px_-4px_rgba(138,5,190,0.15)] transition-all duration-300 relative overflow-hidden"
     >
@@ -1540,22 +1542,22 @@ function EmployeeTeamCard({ employee, schedule, hasSchedule, onSelect }: {
 
       {/* Avatar */}
       <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white text-sm font-black shadow-md group-hover:scale-110 transition-transform bg-gradient-to-br from-brand to-[#5e0382] ml-2"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white text-sm font-semibold shadow-md group-hover:scale-110 transition-transform bg-gradient-to-br from-brand to-[#5e0382] ml-2"
       >
         {getInitials(employee.name || '')}
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-        <p className="text-sm font-black text-slate-900 truncate flex items-center gap-2">
+        <p className="text-sm font-semibold text-slate-900 truncate flex items-center gap-2">
           {employee.registration && (
-            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-mono tracking-widest border border-slate-200 group-hover:border-brand/30 group-hover:text-brand transition-colors">
+            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-xs font-mono st border border-slate-200 group-hover:border-brand/30 group-hover:text-brand transition-colors">
               {String(employee.registration).padStart(4, '0')}
             </span>
           )}
           {employee.name?.toUpperCase()}
         </p>
-        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">
+        <p className="text-xs font-bold text-slate-500 r truncate">
           {employee.department} • {employee.position}
         </p>
       </div>
@@ -1568,7 +1570,7 @@ function EmployeeTeamCard({ employee, schedule, hasSchedule, onSelect }: {
         </div>
       ) : (
         <div className="shrink-0">
-          <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-[10px] font-bold text-amber-700 ring-1 ring-amber-200">
+          <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-200">
             <AlertCircle size={10}/> Sem escala
           </span>
         </div>
@@ -1577,14 +1579,14 @@ function EmployeeTeamCard({ employee, schedule, hasSchedule, onSelect }: {
       {/* Badge Ativa + Chevron */}
       <div className="flex items-center gap-2 shrink-0">
         {hasSchedule && (
-          <span className="hidden sm:flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+          <span className="hidden sm:flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
             ATIVA
           </span>
         )}
         <ChevronRight size={14} className="text-slate-300 group-hover:text-slate-600 transition-colors" />
       </div>
-    </button>
+    </Button>
   );
 }
 
@@ -1606,18 +1608,18 @@ function TrocarEscalaTab({ loading, swaps, canApprove, onNovatroca, onApprove, o
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button variant="ghost" type="button"
             onClick={onRefresh}
             className="flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:ring-slate-300 transition-all shadow-sm"
           >
             <RefreshCw size={12}/> Atualizar
-          </button>
-          <button
+          </Button>
+          <Button variant="ghost" type="button"
             onClick={onNovatroca}
             className="flex items-center gap-1.5 rounded-xl bg-brand hover:bg-slate-700 px-4 py-2 text-xs font-bold text-white transition-all shadow-sm"
           >
             <Plus size={13}/> Nova Solicitação
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1629,13 +1631,13 @@ function TrocarEscalaTab({ loading, swaps, canApprove, onNovatroca, onApprove, o
         <>
           {pending.length > 0 && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Aguardando Aprovação</p>
+              <p className="text-xs font-bold r text-amber-700">Aguardando Aprovação</p>
               {pending.map((s: any) => <SwapCard key={s.id} swap={s} canApprove={canApprove} onApprove={onApprove} onCancel={onCancel}/>)}
             </div>
           )}
           {others.length > 0 && (
             <div className="flex flex-col gap-3">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Histórico</p>
+              <p className="text-xs font-bold r text-slate-500">Histórico</p>
               {others.map((s: any) => <SwapCard key={s.id} swap={s} canApprove={false} onApprove={onApprove} onCancel={onCancel}/>)}
             </div>
           )}
@@ -1659,7 +1661,7 @@ function SwapCard({ swap, canApprove, onApprove, onCancel }: any) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             <p className="text-sm font-bold text-slate-900 truncate">{swap.requester?.name?.toUpperCase() ?? 'USUÁRIO'}</p>
-            <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${SWAP_STATUS_BADGE[swap.status]}`}>
+            <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${SWAP_STATUS_BADGE[swap.status]}`}>
               {SWAP_STATUS_LABEL[swap.status]}
             </span>
           </div>
@@ -1674,19 +1676,19 @@ function SwapCard({ swap, canApprove, onApprove, onCancel }: any) {
         {swap.status === 'PENDING' && (
           <div className="flex gap-2 shrink-0">
             {canApprove && (
-              <button
+              <Button variant="ghost" type="button"
                 onClick={() => onApprove(swap)}
                 className="flex items-center gap-1 rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors ring-1 ring-emerald-200"
               >
                 <Check size={12}/> Revisar
-              </button>
+              </Button>
             )}
-            <button
+            <Button variant="ghost" type="button"
               onClick={() => onCancel(swap.id)}
               className="flex items-center gap-1 rounded-xl bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors ring-1 ring-red-200"
             >
               <X size={12}/> Cancelar
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -1735,8 +1737,8 @@ function ModalSolicitarTroca({ onClose, onSuccess, canApprove, allEmployees }: {
         </div>
         {canApprove && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-600">Em nome de (Opcional)</label>
-            <select
+            <label htmlFor="calendario-field-1738" className="text-xs font-semibold text-slate-600">Em nome de (Opcional)</label>
+            <select id="calendario-field-1738"
               value={targetEmployeeId}
               onChange={(e) => setTargetEmployeeId(e.target.value)}
               className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"
@@ -1751,8 +1753,8 @@ function ModalSolicitarTroca({ onClose, onSuccess, canApprove, allEmployees }: {
           </div>
         )}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-slate-600">Trocar com colaborador (Opcional)</label>
-          <select
+          <label htmlFor="calendario-field-1754" className="text-xs font-semibold text-slate-600">Trocar com colaborador (Opcional)</label>
+          <select id="calendario-field-1754"
             value={swapWithId}
             onChange={(e) => setSwapWithId(e.target.value)}
             className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"
@@ -1779,7 +1781,7 @@ function ModalSolicitarTroca({ onClose, onSuccess, canApprove, allEmployees }: {
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold text-slate-600">Justificativa (opcional)</label>
-          <textarea
+          <textarea aria-label="Descreva o motivo da troca..."
             value={justification}
             onChange={(e) => setJustification(e.target.value)}
             rows={3}
@@ -1789,14 +1791,14 @@ function ModalSolicitarTroca({ onClose, onSuccess, canApprove, allEmployees }: {
         </div>
         {error && <p className="text-xs text-red-700 bg-red-50 px-3 py-2 rounded-xl ring-1 ring-red-200">{error}</p>}
         <div className="flex gap-2 justify-end pt-1">
-          <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
-          <button
+          <Button variant="ghost" type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</Button>
+          <Button variant="ghost" type="button"
             onClick={submit}
             disabled={loading}
             className="flex items-center gap-2 rounded-xl bg-brand hover:bg-slate-700 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors shadow-sm"
           >
             {loading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>} Enviar
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
@@ -1836,7 +1838,7 @@ function ModalAprovarTroca({ swap, onClose, onSuccess }: { swap: any; onClose: (
         </div>
         <div className="grid grid-cols-2 gap-2">
           {(['APPROVED', 'REJECTED'] as const).map((opt) => (
-            <button
+            <Button variant="ghost" type="button"
               key={opt}
               onClick={() => setAction(opt)}
               className={`flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold transition-all ring-1 ${
@@ -1849,13 +1851,13 @@ function ModalAprovarTroca({ swap, onClose, onSuccess }: { swap: any; onClose: (
             >
               {opt === 'APPROVED' ? <CheckCircle2 size={16}/> : <XCircle size={16}/>}
               {opt === 'APPROVED' ? 'Aprovar' : 'Rejeitar'}
-            </button>
+            </Button>
           ))}
         </div>
         {action === 'REJECTED' && (
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-slate-600">Motivo *</label>
-            <textarea
+            <textarea aria-label="Explique o motivo..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={2}
@@ -1866,8 +1868,8 @@ function ModalAprovarTroca({ swap, onClose, onSuccess }: { swap: any; onClose: (
         )}
         {error && <p className="text-xs text-red-700 bg-red-50 px-3 py-2 rounded-xl ring-1 ring-red-200">{error}</p>}
         <div className="flex gap-2 justify-end pt-1">
-          <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
-          <button
+          <Button variant="ghost" type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</Button>
+          <Button variant="ghost" type="button"
             onClick={submit}
             disabled={loading}
             className={`flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 transition-colors shadow-sm ${
@@ -1876,7 +1878,7 @@ function ModalAprovarTroca({ swap, onClose, onSuccess }: { swap: any; onClose: (
           >
             {loading ? <Loader2 size={14} className="animate-spin"/> : action === 'APPROVED' ? <Check size={14}/> : <X size={14}/>}
             {action === 'APPROVED' ? 'Confirmar Aprovação' : 'Confirmar Rejeição'}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
@@ -1947,7 +1949,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
       {/* Tabs */}
       <div className="flex gap-1 rounded-2xl bg-slate-100 p-1.5 mb-6">
         {(['assign', 'create'] as const).map((m) => (
-          <button
+          <Button variant="ghost" type="button"
             key={m}
             onClick={() => setMode(m)}
             className={`flex-1 rounded-xl py-2.5 text-xs font-bold transition-all ${
@@ -1955,7 +1957,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
             }`}
           >
             {m === 'assign' ? 'Atribuir Existente' : 'Criar Nova Escala'}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -1967,15 +1969,15 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
               {selectedEmployeeObjects.map(e => (
                 <span
                   key={e.id}
-                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 text-white shadow-sm bg-brand"
+                  className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 text-white shadow-sm bg-brand"
                 >
                   {getInitials(e.name || '')} {e.name?.split(' ')[0]}
-                  <button
+                  <Button aria-label="Fechar" variant="ghost" type="button"
                     onClick={() => toggleEmployee(e.id)}
                     className="flex h-4 w-4 items-center justify-center rounded-full bg-white/20 hover:bg-white/40 transition-colors"
                   >
                     <X size={9} />
-                  </button>
+                  </Button>
                 </span>
               ))}
             </div>
@@ -1986,44 +1988,44 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
               <label className="text-xs font-semibold text-slate-600">
                 Funcionários
                 {selectedEmployees.length > 0 && (
-                  <span className="ml-2 rounded-full bg-brand text-white px-2 py-0.5 text-[10px] font-bold">
+                  <span className="ml-2 rounded-full bg-brand text-white px-2 py-0.5 text-xs font-bold">
                     {selectedEmployees.length} selecionado{selectedEmployees.length !== 1 ? 's' : ''}
                   </span>
                 )}
               </label>
               {/* Botões de ação em grupo */}
               <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
-                <button
+                <Button variant="ghost" type="button"
                   onClick={() => selectAction('none')}
-                  className={`rounded-lg px-2 py-1 text-[10px] font-bold transition-all ${
+                  className={`rounded-lg px-2 py-1 text-xs font-bold transition-all ${
                     selectedEmployees.length === 0 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   Nenhum
-                </button>
-                <button
+                </Button>
+                <Button variant="ghost" type="button"
                   onClick={() => selectAction('filtered')}
-                  className={`rounded-lg px-2 py-1 text-[10px] font-bold transition-all ${
+                  className={`rounded-lg px-2 py-1 text-xs font-bold transition-all ${
                     allFilteredSelected && employeeSearch ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   Filtrados
-                </button>
-                <button
+                </Button>
+                <Button variant="ghost" type="button"
                   onClick={() => selectAction('all')}
-                  className={`rounded-lg px-2 py-1 text-[10px] font-bold transition-all ${
+                  className={`rounded-lg px-2 py-1 text-xs font-bold transition-all ${
                     selectedEmployees.length === employees.length && employees.length > 0 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   Todos
-                </button>
+                </Button>
               </div>
             </div>
 
             {/* Busca */}
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
+              <input aria-label="Buscar funcion?rio"
                 value={employeeSearch}
                 onChange={(e) => setEmployeeSearch(e.target.value)}
                 placeholder="Buscar por nome ou matrícula..."
@@ -2043,7 +2045,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
                   const isSelected = selectedEmployees.includes(e.id);
                   const reg = e.registration ? `#${String(e.registration).padStart(4, '0')}` : 'S/N';
                   return (
-                    <button
+                    <Button variant="ghost" type="button"
                       key={e.id}
                       onClick={() => toggleEmployee(e.id)}
                       className={`flex items-center gap-3 w-full px-4 py-3 text-left transition-colors ${
@@ -2069,9 +2071,9 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
                         <p className={`text-sm truncate ${isSelected ? 'font-bold text-slate-900' : 'font-medium text-slate-800'}`}>
                           {e.registration ? String(e.registration).padStart(4, '0') : 'S/N'} - {e.name?.toUpperCase()}
                         </p>
-                        <p className="text-[10px] text-slate-500 truncate">{e.department?.toUpperCase() || 'SEM DEPTO'}</p>
+                        <p className="text-xs text-slate-500 truncate">{e.department?.toUpperCase() || 'SEM DEPTO'}</p>
                       </div>
-                    </button>
+                    </Button>
                   );
                 })
               )}
@@ -2080,8 +2082,8 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
 
           {/* Escala */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-slate-600">Escala</label>
-            <select
+            <label htmlFor="calendario-field-2083" className="text-xs font-semibold text-slate-600">Escala</label>
+            <select id="calendario-field-2083"
               value={selectedSchedule}
               onChange={(e) => setSelectedSchedule(e.target.value)}
               className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"
@@ -2109,7 +2111,7 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-slate-600">Nome</label>
-              <input
+              <input aria-label="Ex: Administrativo 8h"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="Ex: Administrativo 8h"
@@ -2117,8 +2119,8 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-600">Tipo</label>
-              <select
+              <label htmlFor="calendario-field-2120" className="text-xs font-semibold text-slate-600">Tipo</label>
+              <select id="calendario-field-2120"
                 value={newType}
                 onChange={(e) => setNewType(e.target.value)}
                 className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-900 ring-1 ring-slate-200 focus:outline-none"
@@ -2152,15 +2154,15 @@ function ModalLancarEscala({ schedules, onClose, onSuccess }: { schedules: any[]
 
       {error && <p className="text-xs text-red-700 bg-red-50 px-3 py-2 rounded-xl ring-1 ring-red-200 mt-3">{error}</p>}
       <div className="flex gap-2 justify-end mt-6">
-        <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</button>
-        <button
+        <Button variant="ghost" type="button" onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-slate-500 hover:text-slate-900 transition-colors">Cancelar</Button>
+        <Button variant="ghost" type="button"
           onClick={mode === 'assign' ? submitAssign : submitCreate}
           disabled={loading}
           className="flex items-center gap-2 rounded-xl bg-brand hover:bg-slate-700 px-5 py-2 text-sm font-bold text-white disabled:opacity-50 transition-colors shadow-sm"
         >
           {loading ? <Loader2 size={14} className="animate-spin"/> : <Check size={14}/>}
           {mode === 'assign' ? `Atribuir${selectedEmployees.length > 0 ? ` (${selectedEmployees.length})` : ''}` : 'Criar Escala'}
-        </button>
+        </Button>
       </div>
     </Modal>
   );
@@ -2174,12 +2176,12 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
       <div className={`relative flex flex-col rounded-2xl bg-white ring-1 ring-slate-200 shadow-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-md'} animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300`}>
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="text-base font-bold text-slate-900">{title}</h2>
-          <button
+          <Button aria-label="Fechar" variant="ghost" type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+            className="flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-colors"
           >
             <X size={16}/>
-          </button>
+          </Button>
         </div>
         <div className="p-6 overflow-y-auto max-h-[80vh]">{children}</div>
       </div>

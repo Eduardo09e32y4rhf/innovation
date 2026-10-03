@@ -1,5 +1,8 @@
 'use client';
 
+import { Button } from '@/app/components/ui/button';
+import recordStyles from '../_components/operational-ui.module.css';
+
 import { useState } from 'react';
 import { FileText, Download, Plus, X, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -11,7 +14,7 @@ import { toast } from 'sonner';
 
 export default function DocumentosPage() {
   const { user } = useAuth();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [generateForm, setGenerateForm] = useState({
     month: new Date().getMonth() + 1,
@@ -69,24 +72,24 @@ export default function DocumentosPage() {
           <p className="page-subtitle">Acesse espelhos e PDFs de fechamento de ponto</p>
         </div>
         {isAuthorized && (
-          <button 
-            className="btn-nubank flex items-center gap-2"
+          <Button variant="primary" type="button"
+            className=" flex items-center gap-2"
             onClick={() => setIsModalOpen(true)}
           >
             <Plus className="w-4 h-4" /> Gerar Fechamento Coletivo
-          </button>
+          </Button>
         )}
       </div>
 
-      <div className="card-flat overflow-hidden">
+      <div className="card-v2 p-4 overflow-hidden">
         {documents.length === 0 ? (
           <div className="p-8">
             <EmptyState message="Não há fechamentos ou relatórios gerados ainda." />
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[10px] tracking-wider border-b border-slate-200">
+            <div className={recordStyles.records}><table className="w-full text-sm text-left">
+              <thead className="bg-slate-50 text-slate-500 font-bold text-xs r border-b border-slate-200">
                 <tr>
                   <th className="px-6 py-4">Documento</th>
                   <th className="px-6 py-4">Status</th>
@@ -99,31 +102,31 @@ export default function DocumentosPage() {
               <tbody className="divide-y divide-slate-100">
                 {documents.map((doc: any) => (
                   <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
+                    <td data-label="Documento" className="px-6 py-4 font-bold text-slate-900 flex items-center gap-2">
                       <FileText size={16} className="text-[#8A05BE]" />
                       Relatório de Fechamento
                     </td>
-                    <td className="px-6 py-4">
+                    <td data-label="Status" className="px-6 py-4">
                       <span className="badge badge-inactive">
                         {doc.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{doc.employeeName || 'Coletivo'}</td>
-                    <td className="px-6 py-4 font-medium text-slate-700">{String(doc.month).padStart(2, '0')}/{doc.year}</td>
-                    <td className="px-6 py-4 text-slate-500">{new Date(doc.createdAt).toLocaleDateString('pt-BR')}</td>
-                    <td className="px-6 py-4 text-right">
-                      <button 
-                        className="btn-icon text-[#8A05BE]"
+                    <td data-label="Colaborador" className="px-6 py-4 text-slate-600">{doc.employeeName || 'Coletivo'}</td>
+                    <td data-label="Competência" className="px-6 py-4 font-medium text-slate-700">{String(doc.month).padStart(2, '0')}/{doc.year}</td>
+                    <td data-label="Data de Criação" className="px-6 py-4 text-slate-500">{new Date(doc.createdAt).toLocaleDateString('pt-BR')}</td>
+                    <td data-label="Ação" className="px-6 py-4 text-right">
+                      <Button aria-label="Baixar PDF" variant="ghost" type="button"
+                        className=" text-[#8A05BE]"
                         title="Baixar PDF"
                         onClick={() => handleDownload(doc)}
                       >
                         <Download className="w-5 h-5" />
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
         )}
       </div>
@@ -140,12 +143,12 @@ export default function DocumentosPage() {
             >
               <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <h3 className="font-bold text-slate-900">Gerar Fechamento Coletivo</h3>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <Button aria-label="Fechar" variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                   <X className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
               <form onSubmit={handleGenerate} className="p-6 space-y-4">
-                
+
                 <div className="bg-blue-50 text-blue-800 text-sm p-4 rounded-xl flex gap-3 items-start mb-4">
                   <AlertCircle size={16} className="mt-0.5 shrink-0" />
                   <p>Isso irá consolidar o espelho de ponto de <strong>todos</strong> os colaboradores ativos para o mês e ano selecionados.</p>
@@ -153,11 +156,11 @@ export default function DocumentosPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Mês</label>
-                    <select 
+                    <label htmlFor="documentos-field-156" className="block text-xs font-bold text-slate-700 mb-1 r">Mês</label>
+                    <select id="documentos-field-156"
                       required
-                      className="form-control w-full" 
-                      value={generateForm.month} 
+                      className="input-v2 w-full"
+                      value={generateForm.month}
                       onChange={e => setGenerateForm(p => ({...p, month: +e.target.value}))}
                     >
                       {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
@@ -166,11 +169,11 @@ export default function DocumentosPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Ano</label>
-                    <select 
+                    <label htmlFor="documentos-field-169" className="block text-xs font-bold text-slate-700 mb-1 r">Ano</label>
+                    <select id="documentos-field-169"
                       required
-                      className="form-control w-full" 
-                      value={generateForm.year} 
+                      className="input-v2 w-full"
+                      value={generateForm.year}
                       onChange={e => setGenerateForm(p => ({...p, year: +e.target.value}))}
                     >
                       {[2024, 2025, 2026].map(y => (
@@ -181,14 +184,14 @@ export default function DocumentosPage() {
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
-                  <button type="button" className="btn-outline" onClick={() => setIsModalOpen(false)}>Cancelar</button>
-                  <button 
-                    type="submit" 
-                    className={`btn-nubank ${generateMutation.loading ? 'opacity-50' : ''}`}
+                  <Button variant="outline" type="button" className="" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                  <Button variant="primary"
+                    type="submit"
+                    className={` ${generateMutation.loading ? 'opacity-50' : ''}`}
                     disabled={generateMutation.loading}
                   >
                     {generateMutation.loading ? 'Gerando...' : 'Confirmar'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>

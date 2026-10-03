@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useMutation, useQuery } from '@/app/hooks/use-data';
+import { useMutation, useQuery } from '../_components/use-platform-query';
 import { api, type PlatformCompany } from '@/app/lib/api';
 import { formatDate } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
@@ -22,9 +22,9 @@ export default function CompaniesPage() {
   const tenant = String(params?.tenant || user?.companyId || 'empresa');
   const currentRole = user?.profile?.toUpperCase();
   const isSuperAdmin = currentRole === 'DEV';
-  
+
   const stats = useQuery(() => api.platform.stats(), []);
-  
+
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -41,7 +41,7 @@ export default function CompaniesPage() {
 
   const companies = useQuery(() => api.platform.listCompanies({ page, limit, search: debouncedSearch }), [page, limit, debouncedSearch]);
   const plans = useQuery(() => api.platform.listPlans(), []);
-  
+
   const [editingCompany, setEditingCompany] = useState<PlatformCompany | null>(null);
 
   const toggleActive = useMutation(
@@ -187,7 +187,7 @@ export default function CompaniesPage() {
                       </td>
                       <td className="p-4 pr-5 text-right">
                         <div className="flex justify-end">
-                          <CompanyActionMenu 
+                          <CompanyActionMenu
                             company={c}
                             tenant={tenant}
                             isSuperAdmin={isSuperAdmin}
@@ -217,7 +217,7 @@ export default function CompaniesPage() {
               </tbody>
             </table>
           </div>
-          
+
           {/* Pagination Controls */}
           {companies.data && companies.data.total > 0 && (
             <div className="flex items-center justify-between border-t border-slate-100 p-4 bg-slate-50 rounded-b-2xl">

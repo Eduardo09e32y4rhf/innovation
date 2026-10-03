@@ -1,899 +1,239 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Check, Plus, X, Calendar, Clock, AlertCircle, FileText, Download, History, RefreshCw, AlertTriangle, Timer, ThumbsDown } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CalendarDays, Check, Download, Plus, RefreshCw, Search } from 'lucide-react';
+import { Button, ConfirmDialog, Modal, PageHeader } from '@/app/components/ui';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { API_URL, api, type CreateVacationInput, type Employee, type VacationStatus } from '@/app/lib/api';
+import { API_URL, api, type CreateVacationInput, type Employee } from '@/app/lib/api';
 import { readAuthSession } from '@/app/lib/auth-session';
-import { VACATION_STATUS_LABEL, formatPeriod, formatDate, ROLE_LABEL } from '@/app/lib/format';
+import { VACATION_STATUS_LABEL, formatDate, formatPeriod } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { hasPermission } from '@/app/lib/permissions';
+import { acquisitionWindow, availableDays, diffDays, processVacationDecisions, type VacationEntitlement, type VacationRow } from './vacation-data';
 
-const MAX_VACATION_DAYS = 30;
-
-// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ ELIGIBILITY HELPERS ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
-
-function monthDiff(start: Date, end: Date): number {
-  return (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) +
-    (end.getDate() >= start.getDate() ? 0 : -1);
-}
-
-interface EligibilityInfo {
-  monthsSinceAdmission: number;
-  isEligible: boolean;           // Completou 12 meses
-  remainingDays: number;         // Dias restantes para completar 12 meses
-  remainingMonths: number;
-  remainingYearsText: string;
-  eligibilityDate: string;
-  admissionDateStr: string;
-  // PerÃƒÆ’Ã‚Â­odo Concessivo: quanto falta para 1a e 11 meses (prazo fatal)
-  concessivePeriodMonths: number;  // Total de meses desde admissÃƒÆ’Ã‚Â£o
-  concessiveDeadlineText: string;  // Quanto tempo falta para o prazo fatal
-  isConcessiveUrgent: boolean;     // Janela de alerta no fim do prazo concessivo
-  isConcessiveWarning: boolean;    // Passou de 9m20d no perÃƒÆ’Ã‚Â­odo concessivo (alerta RH)
-  mustTakeAll: boolean;            // Regra operacional antiga removida
-  canSellDays: boolean;            // Pode vender atÃƒÆ’Ã‚Â© 10 dias (Abono PecuniÃƒÆ’Ã‚Â¡rio)
-  canFraction: boolean;            // Pode fracionar em parcelas
-  isCritical: boolean;             // Passou de 10 meses no perÃƒÆ’Ã‚Â­odo concessivo
-}
-
-function calcEligibility(admissionDateStr: string): EligibilityInfo | null {
-  try {
-    const now = new Date();
-    const admission = new Date(admissionDateStr);
-    if (Number.isNaN(admission.getTime())) return null;
-
-    // Meses desde a admissÃƒÆ’Ã‚Â£o
-    const totalMonths = monthDiff(admission, now);
-
-    // Data de elegibilidade (1 ano)
-    const eligibilityDate = new Date(admission);
-    eligibilityDate.setFullYear(eligibilityDate.getFullYear() + 1);
-
-    // Tempo restante para completar 12 meses
-    const remainingMs = Math.max(0, eligibilityDate.getTime() - now.getTime());
-    const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
-    const years = Math.floor(remainingDays / 365);
-    const remainingMonths = Math.floor((remainingDays % 365) / 30);
-    const days = remainingDays - (years * 365) - (remainingMonths * 30);
-    let remainingYearsText = '';
-    if (years > 0) remainingYearsText += `${years} ano(s), `;
-    remainingYearsText += `${remainingMonths} mes(es) e ${days} dia(s)`;
-
-    const isEligible = totalMonths >= 12;
-
-    // PerÃƒÆ’Ã‚Â­odo Concessivo: comeÃƒÆ’Ã‚Â§a quando o funcionÃƒÆ’Ã‚Â¡rio completa 12 meses
-    // Prazo concessivo mÃƒÆ’Ã‚Â¡ximo: 12 meses apos o periodo aquisitivo
-    const concessiveMonths = isEligible ? totalMonths - 12 : 0; // meses dentro do perÃƒÆ’Ã‚Â­odo concessivo
-    
-    // Calcular o prazo fatal: 23 meses desde admissÃƒÆ’Ã‚Â£o (1a11m)
-    const fatalDeadline = new Date(admission);
-    fatalDeadline.setMonth(fatalDeadline.getMonth() + 23);
-    const msToFatal = Math.max(0, fatalDeadline.getTime() - now.getTime());
-    const daysToFatal = Math.ceil(msToFatal / 86400000);
-    const concessiveDeadlineText = daysToFatal === 0 
-      ? 'PRAZO ESGOTADO!' 
-      : `${Math.floor(daysToFatal / 30)} mes(es) e ${daysToFatal % 30} dia(s) para o vencimento`;
-
-    // Regras operacionais:
-    // - concessiveMonths >= 11: alerta de prazo
-    // - concessiveMonths >= 10: alerta critico para RH
-    // - concessiveMonths >= 9 e 20 dias: alerta para RH
-    const nowDayOfMonth = now.getDate();
-    const isConcessiveUrgent  = isEligible && concessiveMonths >= 11; // 1a e 11m
-    const isCritical          = isEligible && concessiveMonths >= 10; // 1a e 10m
-    const isConcessiveWarning = isEligible && (concessiveMonths >= 9 && (concessiveMonths > 9 || nowDayOfMonth >= 20));
-
-    // Mantem as opcoes legais ativas; o alerta nao bloqueia fracionamento.
-    const mustTakeAll = false;
-    const canSellDays = isEligible;
-    const canFraction = isEligible;
-
-    return {
-      monthsSinceAdmission: totalMonths,
-      isEligible,
-      remainingDays,
-      remainingMonths,
-      remainingYearsText,
-      eligibilityDate: eligibilityDate.toISOString().slice(0, 10),
-      admissionDateStr: admission.toISOString().slice(0, 10),
-      concessivePeriodMonths: concessiveMonths,
-      concessiveDeadlineText,
-      isConcessiveUrgent,
-      isConcessiveWarning,
-      mustTakeAll,
-      canSellDays,
-      canFraction,
-      isCritical,
-    };
-  } catch {
-    return null;
-  }
-}
+type Tab = 'active' | 'rejected' | 'history' | 'alerts';
+type Decision = { ids: string[]; status: 'APPROVED' | 'REJECTED' };
+const tabs: { value: Tab; label: string }[] = [{ value: 'active', label: 'Ativas' }, { value: 'rejected', label: 'Recusadas' }, { value: 'history', label: 'Histórico' }, { value: 'alerts', label: 'Avisos' }];
 
 export default function VacationsPage() {
   const { user } = useAuth();
-  const canApprove = hasPermission(user, 'vacations.approve');
+  const profile = user?.profile?.toUpperCase() ?? '';
+  const canApprove = ['ADMIN', 'RH', 'DEV'].includes(profile) && hasPermission(user, 'vacations.approve');
   const canRequest = canApprove || hasPermission(user, 'vacations.request_own') || hasPermission(user, 'vacations.request_team');
-  const isGestor = !hasPermission(user, 'users.manage_employees') && hasPermission(user, 'vacations.request_team');
-
-  const vacations = useQuery(() => api.vacations.list(), []);
+  const vacations = useQuery(() => api.vacations.list(), [], { pollMs: 30000 });
   const employees = useQuery(() => api.employees.list(), []);
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'active' | 'rejected' | 'history' | 'alerts'>('active');
+  const [tab, setTab] = useState<Tab>('active');
+  const [search, setSearch] = useState('');
+  const [employeeFilter, setEmployeeFilter] = useState('');
+  const [month, setMonth] = useState('');
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [decision, setDecision] = useState<Decision | null>(null);
+  const [busy, setBusy] = useState(false);
+  const decisionLock = useRef(false);
+  const [results, setResults] = useState<Awaited<ReturnType<typeof processVacationDecisions>>>([]);
   const [receiptDownloadingId, setReceiptDownloadingId] = useState<string | null>(null);
-  const [receiptError, setReceiptError] = useState<string | null>(null);
-
-  const updateStatus = useMutation(
-    ({ id, status }: { id: string; status: VacationStatus }) => api.vacations.updateStatus(id, status),
-    { onSuccess: () => vacations.refetch() },
-  );
-
-  const rows = vacations.data ?? [];
+  const [receiptError, setReceiptError] = useState('');
+  const rows = (vacations.data ?? []) as VacationRow[];
 
   useEffect(() => {
-    const id = window.setInterval(() => vacations.refetch(), 30000);
-    return () => window.clearInterval(id);
-  }, [vacations]);
+    const readView = () => {
+      const params = new URLSearchParams(window.location.search);
+      const candidate = params.get('tab');
+      setTab(tabs.some(item => item.value === candidate) && (candidate !== 'alerts' || canApprove) ? candidate as Tab : 'active');
+      setEmployeeFilter(params.get('employeeId') ?? '');
+      setMonth(/^\d{4}-\d{2}$/.test(params.get('month') ?? '') ? params.get('month') : '');
+    };
+    readView(); window.addEventListener('popstate', readView);
+    return () => window.removeEventListener('popstate', readView);
+  }, [canApprove]);
+  useEffect(() => {
+    setOpen(false); setDecision(null); setSelectedRows([]); setResults([]); setReceiptError('');
+  }, [user?.id, user?.companyId]);
+  useEffect(() => {
+    if (!vacations.data) return;
+    setSelectedRows(previous => previous.filter(id => vacations.data.some(row => row.id === id && row.status === 'PENDING')));
+  }, [vacations.data]);
 
-  // Separate tabs: active (pending+approved), rejected, history (cancelled+completed)
-  const activeRows = rows.filter(r => r.status === 'PENDING');
-  const rejectedRows = rows.filter(r => r.status === 'REJECTED');
-  const historyRows = rows.filter(r => r.status === 'CANCELLED' || r.status === 'COMPLETED' || r.status === 'APPROVED');
+  function changeTab(value: Tab) {
+    setTab(value);
+    const url = new URL(window.location.href); url.searchParams.set('tab', value);
+    window.history.replaceState(null, '', url.pathname + url.search);
+  }
+  const filteredRows = rows.filter(row => {
+    const term = search.trim().toLocaleLowerCase('pt-BR');
+    const matchesSearch = !term || normalizeDisplayName(row.employee?.name ?? '').toLocaleLowerCase('pt-BR').includes(term) || row.acquisitionPeriod.includes(term);
+    const matchesMonth = !month || (row.startDate.slice(0, 7) <= month && row.endDate.slice(0, 7) >= month);
+    return matchesSearch && matchesMonth && (!employeeFilter || row.employeeId === employeeFilter);
+  });
+  const activeRows = filteredRows.filter(row => row.status === 'PENDING');
+  const rejectedRows = filteredRows.filter(row => row.status === 'REJECTED');
+  const historyRows = filteredRows.filter(row => ['APPROVED', 'COMPLETED', 'CANCELLED'].includes(row.status));
+  const displayRows = (tab === 'active' ? activeRows : tab === 'rejected' ? rejectedRows : historyRows).slice().sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const visibleSelection = activeRows.filter(row => selectedRows.includes(row.id)).map(row => row.id);
+  const allSelected = activeRows.length > 0 && visibleSelection.length === activeRows.length;
+  function toggle(id: string) { setSelectedRows(previous => previous.includes(id) ? previous.filter(value => value !== id) : [...previous, id]); }
+  function selectAll() { setSelectedRows(previous => allSelected ? previous.filter(id => !activeRows.some(row => row.id === id)) : [...new Set([...previous, ...activeRows.map(row => row.id)])]); }
 
-  const pendingCount = rows.filter(row => row.status === 'PENDING').length;
-  const approvedCount = rows.filter(row => row.status === 'APPROVED').length;
-  const rejectedCount = rows.filter(row => row.status === 'REJECTED').length;
-  const completedCount = rows.filter(row => row.status === 'COMPLETED').length;
+  const alertItems = useMemo(() => {
+    const byId = new Map<string, { employee: Employee; entitlement: VacationEntitlement }>();
+    for (const row of filteredRows) {
+      if (!row.entitlement || !row.employee) continue;
+      const daysUntilDeadline = Math.ceil((Date.parse(row.entitlement.concessionEnd) - Date.now()) / 86400000);
+      if (daysUntilDeadline <= 90 && availableDays(row.entitlement) > 0) byId.set(row.entitlement.id, { employee: row.employee, entitlement: row.entitlement });
+    }
+    return [...byId.values()].sort((a, b) => a.entitlement.concessionEnd.localeCompare(b.entitlement.concessionEnd));
+  }, [vacations.data, search, employeeFilter, month]);
 
-  // Calculate used vacation days per employee
-  const vacationDaysByEmployee = useMemo(() => {
-    const map = new Map<string, number>();
-    rows
-      .filter(r => r.status === 'APPROVED' || r.status === 'COMPLETED')
-      .forEach(r => {
-        map.set(r.employeeId, (map.get(r.employeeId) || 0) + r.daysUsed);
+  async function saveDecision() {
+    if (!decision || decisionLock.current) return;
+    decisionLock.current = true; setBusy(true);
+    const actor = readAuthSession().token;
+    try {
+      // Reconcilia a seleção com o servidor antes de decidir; nenhum sucesso é repetido.
+      const freshRows = await api.vacations.list();
+      const outcome = await processVacationDecisions(decision.ids, freshRows, async id => {
+        if (readAuthSession().token !== actor) throw new Error('O contexto da sessão mudou. Atualize a lista.');
+        return api.vacations.updateStatus(id, decision.status);
       });
-    return map;
-  }, [rows]);
-
-  // Detect period conflicts
-  const activePeriods = useMemo(() => {
-    return activeRows.map(r => ({
-      employeeId: r.employeeId,
-      startDate: new Date(r.startDate),
-      endDate: new Date(r.endDate),
-      id: r.id,
-    }));
-  }, [activeRows]);
-
-  function hasConflict(employeeId: string, startDate: string, endDate: string): { conflict: boolean; withName?: string } {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const conflict = activePeriods.find(p => 
-      p.employeeId !== employeeId &&
-      start <= p.endDate && end >= p.startDate
-    );
-    if (conflict) {
-      const emp = rows.find(r => r.id === conflict.id)?.employee;
-      return { conflict: true, withName: emp?.name };
-    }
-    return { conflict: false };
+      setResults(outcome);
+      setSelectedRows(previous => previous.filter(id => !outcome.some(result => result.id === id && result.success)));
+      setDecision(null); vacations.refetch();
+    } catch (error) {
+      setResults(decision.ids.map(id => ({ id, success: false, message: error instanceof Error ? error.message : 'Não foi possível atualizar a lista.' })));
+      setDecision(null);
+    } finally { setBusy(false); decisionLock.current = false; }
   }
 
-  function handleSelectAll() {
-    if (selectedRows.length === activeRows.length) {
-      setSelectedRows([]);
-    } else {
-      setSelectedRows(activeRows.map(r => r.id));
-    }
-  }
-
-  function handleSelect(id: string) {
-    setSelectedRows(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
-  }
-
-  async function handleBulkApprove() {
-    for (const id of selectedRows) {
-      await updateStatus.mutate({ id, status: 'APPROVED' }).catch(() => {});
-    }
-    setSelectedRows([]);
-  }
-
-  async function handleDownloadReceipt(row: typeof rows[0]) {
-    setReceiptDownloadingId(row.id);
-    setReceiptError(null);
+  async function downloadReceipt(row: VacationRow) {
+    if (receiptDownloadingId) return;
+    setReceiptDownloadingId(row.id); setReceiptError('');
     try {
       const token = readAuthSession().token;
-      const response = await fetch(`${API_URL}/vacations/${row.id}/receipt.pdf`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.message || `Nao foi possivel emitir o recibo (erro ${response.status}).`);
-      }
-      const disposition = response.headers.get('content-disposition') || '';
-      const encodedFilename = disposition.match(/filename="([^"]+)"/i)?.[1];
-      const filename = encodedFilename
-        ? decodeURIComponent(encodedFilename)
-        : `recibo-ferias-${row.id}.pdf`;
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+      const response = await fetch(API_URL + '/vacations/' + encodeURIComponent(row.id) + '/receipt.pdf', { headers: { Authorization: 'Bearer ' + token } });
+      if (!response.ok) { const body = await response.json().catch(() => null); throw new Error(body?.message || 'Não foi possível emitir o recibo oficial.'); }
+      const filename = (response.headers.get('content-disposition') ?? '').match(/filename="([^"]+)"/i)?.[1];
       const url = URL.createObjectURL(await response.blob());
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      setReceiptError(error instanceof Error ? error.message : 'Nao foi possivel emitir o recibo oficial.');
-    } finally {
-      setReceiptDownloadingId(null);
-    }
+      try { const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename ? decodeURIComponent(filename) : 'recibo-ferias-' + row.id + '.pdf'; anchor.click(); }
+      finally { URL.revokeObjectURL(url); }
+    } catch (error) { setReceiptError(error instanceof Error ? error.message : 'Não foi possível emitir o recibo.'); }
+    finally { setReceiptDownloadingId(null); }
   }
-
-  
-  const alertEmployees = useMemo(() => {
-    if (!employees.data) return [];
-    return employees.data.map(emp => {
-      if (!emp.admissionDate) return null;
-      const el = calcEligibility(emp.admissionDate);
-      // Mostrar alerta a partir de 9 meses e 20 dias do perÃƒÆ’Ã‚Â­odo concessivo (conforme CLT)
-      if (!el || !el.isConcessiveWarning) return null;
-      const usedDays = vacationDaysByEmployee.get(emp.id) || 0;
-      const totalEarned = Math.floor(el.monthsSinceAdmission / 12) * 30;
-      const remainingDaysTotal = Math.max(0, totalEarned - usedDays);
-      if (remainingDaysTotal > 0) {
-        return { ...emp, remainingDaysTotal, el };
-      }
-      return null;
-    }).filter(Boolean);
-  }, [employees.data, vacationDaysByEmployee]);
-
-  const displayRows = tab === 'active' ? activeRows : tab === 'rejected' ? rejectedRows : historyRows;
-
-  return (
-    <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
-      <div className="flex flex-col gap-5">        <header className="flex flex-col gap-4 pb-1 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0">
-            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.22em] text-brand-600">BenefÃƒÂ­cios</p>
-            <h1 className="text-[clamp(1.75rem,1.5rem+1.4vw,2.25rem)] font-black tracking-tight text-fg">
-              {isGestor ? 'FÃƒÂ©rias da equipe' : 'SolicitaÃƒÂ§ÃƒÂµes'}
-            </h1>
-            <p className="mt-2 text-sm font-medium text-fg-mut">Gerenciamento e aprovaÃƒÂ§ÃƒÂ£o de fÃƒÂ©rias</p>
-          </div>
-          {canRequest && (
-            <button onClick={() => setOpen(true)} className="btn-v2-primary shrink-0">
-              <Plus size={15} /> Nova solicitaÃƒÂ§ÃƒÂ£o
-            </button>
-          )}
-        </header>
-      {/* Stats Cards */}
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <StatCard label="Pendentes" value={pendingCount} icon={Clock} color="amber" />
-        <StatCard label="Aprovadas" value={approvedCount} icon={Check} color="emerald" />
-        <StatCard label="ConcluÃƒÆ’Ã‚Â­das" value={completedCount} icon={RefreshCw} color="brand" />
-        <StatCard label="Rejeitadas" value={rejectedCount} icon={X} color="rose" />
-      </section>
-
-      {updateStatus.error && (
-        <p className="rounded-v2-md border border-rose-200 bg-rose-50 px-5 py-3 text-xs text-rose-700">{updateStatus.error}</p>
-      )}
-
-      {/* Tabs */}
-      {!vacations.loading && !vacations.error && (rows.length > 0 || canApprove || canRequest) && (
-        <div className="card-v2 flex flex-col items-start gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 max-w-full gap-1 overflow-x-auto no-scrollbar" role="tablist" aria-label="Vacation views">
-            <button onClick={() => setTab('active')} className={tab === 'active' ? 'rounded-v2-md bg-brand-600 px-3 py-2 text-xs font-bold text-white' : 'rounded-v2-md px-3 py-2 text-xs font-bold text-fg-mut hover:bg-bg-sub'}>Ativas ({activeRows.length})</button>
-            <button onClick={() => setTab('rejected')} className={tab === 'rejected' ? 'rounded-v2-md bg-brand-600 px-3 py-2 text-xs font-bold text-white' : 'rounded-v2-md px-3 py-2 text-xs font-bold text-fg-mut hover:bg-bg-sub'}>Recusadas ({rejectedRows.length})</button>
-            <button onClick={() => setTab('history')} className={tab === 'history' ? 'rounded-v2-md bg-brand-600 px-3 py-2 text-xs font-bold text-white' : 'rounded-v2-md px-3 py-2 text-xs font-bold text-fg-mut hover:bg-bg-sub'}>HistÃƒÆ’Ã‚Â³rico ({historyRows.length})</button>
-            {canApprove && (
-              <button onClick={() => setTab('alerts')} className={tab === 'alerts' ? 'rounded-v2-md bg-brand-600 px-3 py-2 text-xs font-bold text-white' : 'rounded-v2-md px-3 py-2 text-xs font-bold text-fg-mut hover:bg-bg-sub'}>
-                <AlertTriangle size={13} strokeWidth={3} /> Avisos ({alertEmployees.length})
-              </button>
-            )}
-          </div>
-          {/* Bulk actions */}
-          {canApprove && tab === 'active' && selectedRows.length > 0 && (
-            <div className="flex shrink-0 gap-2">
-              <button onClick={handleBulkApprove} className="btn-v2 h-9 rounded-v2-md bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700">
-                <Check size={13} strokeWidth={2.5} />
-                Aprovar {selectedRows.length} selecionada(s)
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === 'alerts' ? (
-        <section className="overflow-hidden rounded-v2-xl border border-amber-200/60 bg-bg-elev shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
-          <div className="border-b border-amber-100 bg-amber-50/50 px-5 py-4">
-            <h3 className="text-sm font-black text-amber-900">Avisos de FÃƒÆ’Ã‚Â©rias ObrigatÃƒÆ’Ã‚Â³rias (CLT)</h3>
-            <p className="mt-1 text-xs text-amber-700">FuncionÃƒÆ’Ã‚Â¡rios com perÃƒÆ’Ã‚Â­odo concessivo avanÃƒÆ’Ã‚Â§ado. A CLT exige que as fÃƒÆ’Ã‚Â©rias sejam concedidas atÃƒÆ’Ã‚Â© 11 meses apÃƒÆ’Ã‚Â³s o perÃƒÆ’Ã‚Â­odo aquisitivo ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â apÃƒÆ’Ã‚Â³s isso, a empresa paga em dobro.</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left">
-              <thead>
-                <tr className="bg-bg-elev text-[10px] font-black uppercase tracking-[0.14em] text-fg-mut border-b border-border/60">
-                  <th className="px-6 py-4">FuncionÃƒÆ’Ã‚Â¡rio</th>
-                  <th className="px-6 py-4">AdmissÃƒÆ’Ã‚Â£o</th>
-                  <th className="px-6 py-4">Meses de Casa</th>
-                  <th className="px-6 py-4">Prazo Concessivo</th>
-                  <th className="px-6 py-4 text-right">Saldo Restante</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {alertEmployees.length === 0 && (
-                  <tr><td colSpan={5} className="p-8 text-center text-sm font-semibold text-fg-sub">Nenhum alerta de fÃƒÆ’Ã‚Â©rias pendentes. Todos os funcionÃƒÆ’Ã‚Â¡rios estÃƒÆ’Ã‚Â£o dentro do prazo.</td></tr>
-                )}
-                {alertEmployees.map((emp: any) => {
-                  const { el } = emp;
-                  const isUrgent = el.isConcessiveUrgent;
-                  const isCritical = el.isCritical;
-                  const bgClass = isUrgent
-                    ? 'bg-gradient-to-br from-rose-500 to-red-600'
-                    : isCritical
-                    ? 'bg-gradient-to-br from-orange-500 to-amber-600'
-                    : 'bg-gradient-to-br from-amber-500 to-orange-500';
-                  return (
-                    <tr key={emp.id} className="group transition-all duration-200 hover:bg-bg-sub/40">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-v2-md text-sm font-black text-white shadow-sm ${bgClass}`}>
-                            {emp.name?.charAt(0).toUpperCase() || '?'}
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-fg">{normalizeDisplayName(emp.name) ?? 'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â'}</p>
-                            {isUrgent && (
-                              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-0.5">
-                                <AlertTriangle size={10} strokeWidth={2.5} />
-                                URGENTE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â prazo concessivo em fase final
-                              </p>
-                            )}
-                            {!isUrgent && isCritical && (
-                              <p className="text-[10px] font-bold text-orange-600 flex items-center gap-1 mt-0.5">
-                                <AlertTriangle size={10} strokeWidth={2.5} />
-                                10Ãƒâ€šÃ‚Âº mÃƒÆ’Ã‚Âªs ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â NotificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o obrigatÃƒÆ’Ã‚Â³ria (CLT)
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-xs font-semibold text-fg-mut">{formatDate(emp.admissionDate)}</td>
-                      <td className="px-6 py-4 text-xs font-semibold text-fg-mut">{el.monthsSinceAdmission} meses</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black ${
-                          isUrgent ? 'bg-rose-100 text-rose-800 border border-rose-200' :
-                          isCritical ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                          'bg-amber-100 text-amber-800 border border-amber-200'
-                        }`}>
-                          {el.concessiveDeadlineText}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className={`inline-flex items-center justify-center rounded-[8px] px-3 py-1.5 text-xs font-black shadow-sm ${isUrgent ? 'bg-rose-100 text-rose-800 border border-rose-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
-                          {emp.remainingDaysTotal} dias
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : vacations.loading ? (
-        <LoadingState label="Carregando solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes..." />
-      ) : vacations.error ? (
-        <ErrorState message={vacations.error} onRetry={vacations.refetch} />
-      ) : rows.length === 0 ? (
-        <EmptyState message="Nenhuma solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o de fÃƒÆ’Ã‚Â©rias registrada." />
-      ) : (
-        <section className="overflow-hidden rounded-v2-xl border border-border/60 bg-bg-elev shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left">
-              <thead>
-                <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.14em] text-fg-mut">
-                  {canApprove && tab === 'active' && <th className="w-10 px-4 py-4"><input type="checkbox" checked={activeRows.length > 0 && selectedRows.length === activeRows.length} onChange={handleSelectAll} disabled={activeRows.length === 0} aria-label="Selecionar fÃ©rias pendentes" className="h-4 w-4 rounded border-border text-brand-600 focus:ring-brand-500 disabled:opacity-40" /></th>}
-                  <th className="px-6 py-4">FuncionÃƒÆ’Ã‚Â¡rio</th>
-                  <th className="px-6 py-4">PerÃƒÆ’Ã‚Â­odo</th>
-                  <th className="px-6 py-4">Dias</th>
-                  <th className="px-6 py-4">Saldo</th>
-                  <th className="px-6 py-4">PerÃƒÆ’Ã‚Â­odo Aquisitivo</th>
-                  <th className="px-6 py-4">Status</th>
-                  {canApprove && tab === 'active' && <th className="px-6 py-4 text-right">AprovaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o</th>}
-                  {tab === 'history' && <th className="px-6 py-4 text-right">Recibo</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {displayRows.map((row) => {
-                  const statusColors: Record<string, string> = {
-                    PENDING: 'bg-amber-50 text-amber-700 border-amber-200/60',
-                    APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
-                    REJECTED: 'bg-rose-50 text-rose-700 border-rose-200/60',
-                    CANCELLED: 'bg-bg-sub text-fg-mut border-border/60',
-                    COMPLETED: 'bg-teal-50 text-teal-700 border-teal-200/60',
-                  };
-                  const statusClass = statusColors[row.status] || 'bg-bg-sub text-fg-mut border-border/60';
-                  
-                  // Balance calculation
-                  const usedDays = vacationDaysByEmployee.get(row.employeeId) || 0;
-                  const remaining = MAX_VACATION_DAYS - usedDays;
-                  const conflict = tab === 'active' && row.status === 'PENDING' ? hasConflict(row.employeeId, row.startDate, row.endDate) : { conflict: false };
-
-                  return (
-                    <tr key={row.id} className={`group transition-all duration-200 hover:bg-bg-sub/40 ${conflict.conflict ? 'bg-rose-50/30' : ''}`}>
-                      {canApprove && tab === 'active' && (
-                        <td className="px-4 py-4">
-                          <input 
-                            type="checkbox" 
-                            checked={selectedRows.includes(row.id)} 
-                            onChange={() => handleSelect(row.id)} 
-                            className="h-4 w-4 rounded border-slate-300 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
-                            disabled={row.status !== 'PENDING'}
-                          />
-                        </td>
-                      )}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-sm font-black text-white shadow-[var(--shadow-sm)]">
-                            {row.employee?.name?.charAt(0).toUpperCase() || '?'}
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-fg">{normalizeDisplayName(row.employee?.name) ?? 'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â'}</p>
-                            {conflict.conflict && (
-                              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-1">
-                                <AlertTriangle size={10} strokeWidth={2.5} />
-                                Conflito: {conflict.withName}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar size={14} className="text-fg-sub" />
-                          <span className="text-sm font-semibold text-fg-mut">{formatPeriod(row.startDate, row.endDate)}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center rounded-[8px] border border-border bg-bg-elev px-3 py-1.5 text-xs font-black text-fg">
-                          {row.daysUsed}d
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-200">
-                            <div 
-                              className={`h-full rounded-full transition-all ${remaining >= 0 ? 'bg-[var(--color-brand)]' : 'bg-rose-500'}`}
-                              style={{ width: `${Math.min((usedDays / MAX_VACATION_DAYS) * 100, 100)}%` }}
-                            />
-                          </div>
-                          <span className={`text-xs font-black ${remaining >= 0 ? 'text-[var(--color-brand-700)]' : 'text-rose-700'}`}>
-                            {remaining}d restantes
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-fg-mut">{row.acquisitionPeriod}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center rounded-[8px] border px-3 py-1.5 text-[11px] font-black ${statusClass}`}>
-                          <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
-                            row.status === 'PENDING' ? 'bg-amber-500' : 
-                            row.status === 'APPROVED' || row.status === 'COMPLETED' ? 'bg-emerald-500' : 
-                            'bg-rose-500'
-                          }`} />
-                          {VACATION_STATUS_LABEL[row.status] ?? row.status}
-                        </span>
-                      </td>
-                      {canApprove && tab === 'active' && (
-                        <td className="px-6 py-4">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => updateStatus.mutate({ id: row.id, status: 'APPROVED' }).catch(() => {})}
-                              className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-sm)] bg-emerald-600 px-4 text-[11px] font-black text-white shadow-sm transition-all hover:bg-emerald-700 disabled:opacity-40"
-                            >
-                              <Check size={13} strokeWidth={2.5} />
-                              Aprovar
-                            </button>
-                            <button
-                              onClick={() => updateStatus.mutate({ id: row.id, status: 'REJECTED' }).catch(() => {})}
-                              className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-sm)] bg-rose-600 px-4 text-[11px] font-black text-white shadow-sm transition-all hover:bg-rose-700 disabled:opacity-40"
-                            >
-                              <X size={13} strokeWidth={2.5} />
-                              Rejeitar
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                      {tab === 'history' && (
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => handleDownloadReceipt(row)}
-                            disabled={receiptDownloadingId === row.id}
-                            className="btn-outline-premium inline-flex h-9 items-center gap-1.5 rounded-[8px] px-3 text-[11px] font-black transition-all hover:-translate-y-0.5"
-                          >
-                            {receiptDownloadingId === row.id
-                              ? <RefreshCw size={12} className="animate-spin" />
-                              : <FileText size={12} strokeWidth={2.5} />}
-                            {receiptDownloadingId === row.id ? 'Emitindo...' : 'Recibo oficial'}
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {open && (
-        <NewVacationModal
-          employees={employees.data ?? []}
-          existingVacations={rows}
-          onClose={() => setOpen(false)}
-          onDone={() => {
-            setOpen(false);
-            vacations.refetch();
-          }}
-        />
-      )}
-
-      {receiptError && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-md rounded-v2-lg border border-rose-200 bg-bg-elev p-4 shadow-xl">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="mt-0.5 shrink-0 text-rose-600" size={18} />
-            <div>
-              <p className="text-xs font-black text-fg">Recibo nao emitido</p>
-              <p className="mt-1 text-xs font-semibold text-rose-700">{receiptError}</p>
-            </div>
-            <button onClick={() => setReceiptError(null)} className="text-fg-sub hover:text-fg-mut">
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-      )}
+  function rowActions(row: VacationRow) {
+    return <div className="flex flex-wrap gap-2">
+      {row.status === 'PENDING' && canApprove && <>
+        <Button type="button" variant="outline" disabled={busy} onClick={() => setDecision({ ids: [row.id], status: 'APPROVED' })}><Check size={18} aria-hidden="true" /> Aprovar</Button>
+        <Button type="button" variant="ghost" disabled={busy} onClick={() => setDecision({ ids: [row.id], status: 'REJECTED' })}>Rejeitar</Button>
+      </>}
+      {['APPROVED', 'COMPLETED'].includes(row.status) && <Button type="button" variant="outline" disabled={!!receiptDownloadingId} aria-busy={receiptDownloadingId === row.id} onClick={() => downloadReceipt(row)}><Download size={18} aria-hidden="true" />{receiptDownloadingId === row.id ? 'Emitindo…' : 'Recibo oficial'}</Button>}
+    </div>;
+  }
+  return <div className="mx-auto w-full max-w-[1600px] space-y-5 p-4 sm:p-6">
+    <PageHeader title="Férias" subtitle={profile === 'FUNCIONARIO' ? 'Acompanhe suas solicitações e períodos de descanso.' : 'Acompanhe as solicitações da equipe e os períodos aquisitivos.'} actions={<>
+      <Button type="button" variant="outline" disabled={vacations.loading} onClick={() => { vacations.refetch(); employees.refetch(); }}><RefreshCw size={18} aria-hidden="true" /> Atualizar</Button>
+      {canRequest && <Button type="button" onClick={() => setOpen(true)}><Plus size={18} aria-hidden="true" /> Nova solicitação</Button>}
+    </>} />
+    <section aria-label="Solicitações nos filtros atuais" className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[['Pendentes', 'PENDING'], ['Aprovadas', 'APPROVED'], ['Concluídas', 'COMPLETED'], ['Recusadas', 'REJECTED']].map(([label, value]) => <article key={value} className="card-v2 p-4"><p className="text-sm text-fg-sub">{label}</p><p className="mt-2 text-2xl font-semibold tabular-nums">{vacations.data ? filteredRows.filter(row => row.status === value).length : '—'}</p></article>)}</section>
+    <section className="card-v2 p-4" aria-label="Filtros de férias">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="space-y-1 text-sm font-medium">Buscar por funcionário ou período<input className="input-v2 mt-1 text-base sm:text-sm" value={search} onChange={e => setSearch(e.target.value)} placeholder="Nome ou período aquisitivo" /></label>
+        <label className="space-y-1 text-sm font-medium">Funcionário<select className="input-v2 mt-1 text-base sm:text-sm" value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)}><option value="">Todos no escopo autorizado</option>{(employees.data ?? []).map(employee => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee)}</option>)}</select></label>
+        <label className="space-y-1 text-sm font-medium">Mês do descanso<input type="month" className="input-v2 mt-1 text-base sm:text-sm" value={month} onChange={e => setMonth(e.target.value)} /></label>
       </div>
-    </div>
-  );
+      {(search || employeeFilter || month) && <Button type="button" variant="ghost" className="mt-3" onClick={() => { setSearch(''); setEmployeeFilter(''); setMonth(''); const url = new URL(window.location.href); url.searchParams.delete('employeeId'); url.searchParams.delete('month'); window.history.replaceState(null, '', url.pathname + url.search); }}>Limpar filtros</Button>}
+    </section>
+    <nav aria-label="Visões de férias" className="flex flex-wrap gap-2">{tabs.filter(item => item.value !== 'alerts' || canApprove).map(item => <Button type="button" key={item.value} variant={tab === item.value ? 'primary' : 'outline'} aria-pressed={tab === item.value} onClick={() => changeTab(item.value)}>{item.label} ({vacations.data ? item.value === 'active' ? activeRows.length : item.value === 'rejected' ? rejectedRows.length : item.value === 'history' ? historyRows.length : alertItems.length : '—'})</Button>)}</nav>
+    {vacations.error && <ErrorState message={vacations.error} onRetry={vacations.refetch} />}
+    {results.length > 0 && <section aria-label="Resultado das decisões" aria-live="polite" className="card-v2 space-y-2 p-4"><h2 className="font-semibold">{results.filter(result => result.success).length} de {results.length} decisões salvas</h2>{results.map(result => <p key={result.id} className={result.success ? 'text-sm text-emerald-800' : 'text-sm text-rose-800'}>{normalizeDisplayName(rows.find(row => row.id === result.id)?.employee?.name ?? 'Solicitação')} · {result.message}</p>)}</section>}
+    {receiptError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><p>{receiptError}</p><Button type="button" variant="ghost" onClick={() => setReceiptError('')}>Fechar aviso</Button></div>}
+    {canApprove && tab === 'active' && activeRows.length > 0 && <div className="card-v2 flex flex-wrap items-center justify-between gap-3 p-4">
+      <label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" className="h-5 w-5 accent-purple-700" checked={allSelected} disabled={busy} onChange={selectAll} /> Selecionar todas as {activeRows.length} pendentes visíveis</label>
+      <Button type="button" disabled={visibleSelection.length === 0 || busy} onClick={() => setDecision({ ids: visibleSelection, status: 'APPROVED' })}>Aprovar selecionadas ({visibleSelection.length})</Button>
+    </div>}
+    {vacations.loading && !vacations.data ? <LoadingState label="Carregando solicitações…" /> : !vacations.data ? null : tab === 'alerts' ? <section className="card-v2 space-y-4 p-4"><h2 className="font-semibold">Prazos e saldo dos ciclos registrados</h2><p className="text-sm text-fg-sub">Avisos usam os períodos e saldos retornados pelo servidor. Funcionários sem um ciclo registrado precisam de consulta no formulário; esta lista não comprova ausência de pendências.</p>{alertItems.length === 0 ? <EmptyState message="Nenhum ciclo registrado com saldo e prazo próximo nos filtros atuais." /> : alertItems.map(item => <article key={item.entitlement.id} className="rounded-lg border border-amber-200 bg-amber-50 p-4"><h3 className="font-semibold text-amber-950">{normalizeDisplayName(item.employee.name)}</h3><p className="mt-1 text-sm text-amber-900">Admissão: {formatDate(item.employee.admissionDate)} · Período: {formatPeriod(item.entitlement.acquisitionStart, item.entitlement.acquisitionEnd)}</p><p className="mt-1 text-sm text-amber-900">Prazo concessivo: {formatDate(item.entitlement.concessionEnd)} · Saldo disponível: {availableDays(item.entitlement)} dias</p>{canRequest && <Button type="button" variant="outline" className="mt-3" onClick={() => { setEmployeeFilter(item.employee.id); setOpen(true); }}>Solicitar para este funcionário</Button>}</article>)}</section> : displayRows.length === 0 ? <EmptyState message={rows.length === 0 ? 'Nenhuma solicitação de férias registrada.' : 'Nenhuma solicitação nesta visão e nos filtros atuais.'} /> : <>
+      <div className="space-y-3 md:hidden">{displayRows.map(row => <article key={row.id} className="card-v2 space-y-4 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-2"><h2 className="break-words font-semibold">{normalizeDisplayName(row.employee?.name ?? 'Funcionário')}</h2><StatusBadge row={row} /></div>
+        <p className="text-sm">{formatPeriod(row.startDate, row.endDate)} · {row.daysUsed} dias</p>
+        <dl className="grid gap-2 text-sm"><div><dt className="text-fg-sub">Período aquisitivo</dt><dd>{row.acquisitionPeriod}</dd></div>{!!row.soldDays && <div><dt className="text-fg-sub">Abono</dt><dd>{row.soldDays} dias</dd></div>}{row.observation && <div><dt className="text-fg-sub">Observação</dt><dd className="break-words">{row.observation}</dd></div>}</dl>
+        {canApprove && tab === 'active' && <label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" checked={selectedRows.includes(row.id)} onChange={() => toggle(row.id)} disabled={busy} className="h-5 w-5 accent-purple-700" /> Selecionar solicitação</label>}
+        {rowActions(row)}
+      </article>)}</div>
+      <section className="card-v2 hidden md:block"><div role="region" aria-label="Tabela de solicitações de férias" tabIndex={0} className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm">
+        <caption className="sr-only">Solicitações de férias no escopo autorizado</caption>
+        <thead className="border-b border-border bg-bg-sub text-fg-sub"><tr>{canApprove && tab === 'active' && <th scope="col" className="px-4 py-3">Selecionar</th>}{['Funcionário', 'Período aquisitivo', 'Descanso', 'Dias / abono', 'Status', 'Observação', 'Ações'].map(label => <th scope="col" className="px-4 py-3 font-medium" key={label}>{label}</th>)}</tr></thead>
+        <tbody>{displayRows.map(row => <tr key={row.id} className="border-b border-border last:border-0">
+          {canApprove && tab === 'active' && <td className="px-4 py-4"><label className="flex min-h-11 min-w-11 items-center justify-center"><span className="sr-only">Selecionar férias de {row.employee?.name}, {formatPeriod(row.startDate, row.endDate)}</span><input type="checkbox" checked={selectedRows.includes(row.id)} disabled={busy} onChange={() => toggle(row.id)} className="h-5 w-5 accent-purple-700" /></label></td>}
+          <th scope="row" className="px-4 py-4 font-semibold">{normalizeDisplayName(row.employee?.name ?? 'Funcionário')}</th><td className="px-4 py-4">{row.acquisitionPeriod}</td><td className="px-4 py-4">{formatPeriod(row.startDate, row.endDate)}</td><td className="px-4 py-4">{row.daysUsed} dias{row.soldDays ? ' / ' + row.soldDays + ' vendidos' : ''}</td><td className="px-4 py-4"><StatusBadge row={row} /></td><td className="max-w-xs break-words px-4 py-4">{row.observation || '—'}</td><td className="px-4 py-4">{rowActions(row)}</td>
+        </tr>)}</tbody>
+      </table></div></section>
+    </>}
+    {open && <NewVacationModal key={user?.companyId} employees={employees.data ?? []} employeeError={employees.error} employeeLoading={employees.loading} onRetryEmployees={employees.refetch} existingVacations={rows} initialEmployeeId={employeeFilter} onClose={() => setOpen(false)} onDone={() => { setOpen(false); vacations.refetch(); }} />}
+    <ConfirmDialog isOpen={!!decision} onClose={() => !busy && setDecision(null)} title={decision?.status === 'REJECTED' ? 'Rejeitar solicitação' : 'Aprovar férias'} description={decision ? decision.ids.map(id => { const row = rows.find(item => item.id === id); return normalizeDisplayName(row?.employee?.name ?? 'Funcionário') + ': ' + formatPeriod(row?.startDate, row?.endDate); }).join('; ') : ''} confirmText={decision?.status === 'REJECTED' ? 'Rejeitar solicitação' : 'Aprovar ' + (decision?.ids.length ?? 0) + ' solicitação(ões)'} variant={decision?.status === 'REJECTED' ? 'danger' : 'primary'} isLoading={busy} onConfirm={saveDecision} />
+  </div>;
 }
 
-// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ STAT CARD ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+function StatusBadge({ row }: { row: VacationRow }) { return <span className="inline-flex rounded-full bg-bg-sub px-2.5 py-1 text-xs font-medium">{VACATION_STATUS_LABEL[row.status] ?? row.status}</span>; }
+function employeeOptionLabel(employee: Employee) { return normalizeDisplayName(employee.name) + ' · ' + (employee.registration || employee.id.slice(0, 8).toUpperCase()); }
 
-function StatCard({ label, value, icon: Icon, color }: { label: string; value: number; icon: React.ElementType; color: string }) {
-  const colorMap: Record<string, string> = {
-    amber: 'text-amber-600',
-    emerald: 'text-emerald-600',
-    brand: 'text-brand-600',
-    rose: 'text-rose-600',
-  };
-  return (
-    <div className="card-v2 relative overflow-hidden p-4 transition hover:-translate-y-0.5 hover:shadow-v2-md">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-fg-mut">{label}</p>
-          <p className="mt-2 text-3xl font-black tracking-tight text-fg tabular-nums">{value}</p>
-        </div>
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-v2-md bg-bg-sub ${colorMap[color] || 'text-brand-600'}`}>
-          <Icon size={16} strokeWidth={2.4} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ PERIOD CONFLICT CHECK ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
-
-function diffDays(start: string, end: string): number {
-  if (!start || !end) return 0;
-  const ms = new Date(end).getTime() - new Date(start).getTime();
-  if (Number.isNaN(ms) || ms < 0) return 0;
-  return Math.floor(ms / 86400000) + 1;
-}
-
-function NewVacationModal({
-  employees, existingVacations, onClose, onDone,
-}: {
-  employees: Employee[];
-  existingVacations: { employeeId: string; startDate: string; endDate: string; status: string }[];
-  onClose: () => void;
-  onDone: () => void;
-}) {
-  const [form, setForm] = useState({
-    employeeId: '',
-    acquisitionPeriod: `${new Date().getFullYear() - 1}/${new Date().getFullYear()}`,
-    startDate: '',
-    endDate: '',
-  });
+function NewVacationModal({ employees, existingVacations, initialEmployeeId, employeeError, employeeLoading, onRetryEmployees, onClose, onDone }: { employees: Employee[]; existingVacations: VacationRow[]; initialEmployeeId: string; employeeError?: string | null; employeeLoading: boolean; onRetryEmployees: () => void; onClose: () => void; onDone: () => void }) {
+  const [form, setForm] = useState({ employeeId: initialEmployeeId, acquisitionPeriod: (new Date().getFullYear() - 1) + '/' + new Date().getFullYear(), startDate: '', endDate: '' });
   const [observation, setObservation] = useState('');
-
-  const days = diffDays(form.startDate, form.endDate);
-  const daysUsed = existingVacations
-    .filter(v => v.employeeId === form.employeeId && (v.status === 'APPROVED' || v.status === 'COMPLETED'))
-    .reduce((sum, v) => sum + diffDays(v.startDate, v.endDate), 0);
-  const remainingDays = MAX_VACATION_DAYS - daysUsed;
-  const exceedsBalance = days > remainingDays;
-
-  // Regra CLT: mÃƒÆ’Ã‚Â¡ximo 30 dias por solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
-  const exceedsMaxPeriod = days > 30;
-
-  // Regra CLT: antecedÃƒÆ’Ã‚Âªncia mÃƒÆ’Ã‚Â­nima de 45 dias
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const startDateObj = form.startDate ? new Date(form.startDate + 'T00:00:00') : null;
-  const daysUntilStart = startDateObj ? Math.floor((startDateObj.getTime() - today.getTime()) / 86400000) : 0;
-  const tooClose = form.startDate ? daysUntilStart < 45 : false;
-
-  // Check conflict with existing active periods
-  const conflict = existingVacations.find(v => 
-    v.employeeId === form.employeeId && 
-    v.status !== 'REJECTED' && v.status !== 'CANCELLED' &&
-    new Date(form.startDate) <= new Date(v.endDate) && new Date(form.endDate) >= new Date(v.startDate)
-  );
-  const conflictMessage = conflict ? `Conflito: ${formatPeriod(conflict.startDate, conflict.endDate)} jÃƒÆ’Ã‚Â¡ registrado.` : null;
-
-  // Eligibility check: 12 months from admission
-  const selectedEmployee = employees.find(e => e.id === form.employeeId);
-  const eligibility = selectedEmployee?.admissionDate ? calcEligibility(selectedEmployee.admissionDate) : null;
-  
-  // Abono pecuniÃƒÆ’Ã‚Â¡rio (venda de 10 dias) - sÃƒÆ’Ã‚Â³ antes do 11Ãƒâ€šÃ‚Âº mÃƒÆ’Ã‚Âªs concessivo
   const [sellDays, setSellDays] = useState(false);
-  const effectiveDays = sellDays ? days + 10 : days; // Conta os dias vendidos no total consumido
+  const [discard, setDiscard] = useState(false);
+  const [entitlements, setEntitlements] = useState<VacationEntitlement[] | null>(null);
+  const [entitlementError, setEntitlementError] = useState('');
+  const [retry, setRetry] = useState(0);
+  const [entitlementLoading, setEntitlementLoading] = useState(false);
+  const selectedEmployee = employees.find(employee => employee.id === form.employeeId);
+  const days = diffDays(form.startDate, form.endDate);
+  const window = selectedEmployee?.admissionDate && form.startDate ? acquisitionWindow(selectedEmployee.admissionDate, form.startDate) : null;
+  const entitlement = window ? entitlements?.find(item => item.acquisitionStart.slice(0, 10) === window.from) : null;
+  const balance = entitlement ? availableDays(entitlement) : null;
+  const soldDays = sellDays ? 10 : 0;
+  const overlap = existingVacations.find(row => row.employeeId === form.employeeId && ['PENDING', 'APPROVED'].includes(row.status) && form.startDate <= row.endDate.slice(0, 10) && form.endDate >= row.startDate.slice(0, 10));
+  const currentEligibility = selectedEmployee?.admissionDate ? acquisitionWindow(selectedEmployee.admissionDate, new Date().toISOString().slice(0, 10)) : null;
+  const valid = !!selectedEmployee && !!currentEligibility && !!window && /^\d{4}\/\d{4}$/.test(form.acquisitionPeriod) && days >= 5 && days <= 30 && !overlap && (balance === null || days + soldDays <= balance) && (!sellDays || !entitlement || soldDays <= Math.floor(entitlement.entitledDays / 3)) && !employeeError && !entitlementLoading;
+  const create = useMutation(() => {
+    const payload: CreateVacationInput & { soldDays: number } = { employeeId: form.employeeId, acquisitionPeriod: form.acquisitionPeriod, startDate: form.startDate + 'T12:00:00.000Z', endDate: form.endDate + 'T12:00:00.000Z', daysUsed: days, soldDays, observation: observation || undefined };
+    return api.vacations.create(payload);
+  }, { onSuccess: onDone });
 
-  // Calcular min date: hoje + 45 dias
-  const minStartDate = new Date(today);
-  minStartDate.setDate(minStartDate.getDate() + 45);
-  const minStartDateStr = minStartDate.toISOString().slice(0, 10);
-
-  const create = useMutation(
-    () => {
-      const payload: CreateVacationInput = {
-        employeeId: form.employeeId,
-        acquisitionPeriod: form.acquisitionPeriod,
-        // Enviar como YYYY-MM-DDTHH:mm:ss sem UTC para nÃƒÆ’Ã‚Â£o mudar o dia
-        startDate: form.startDate + 'T12:00:00.000Z',
-        endDate: form.endDate + 'T12:00:00.000Z',
-        daysUsed: days,
-        observation: [observation, sellDays ? 'Abono pecuniÃƒÆ’Ã‚Â¡rio (venda de 10 dias) solicitado.' : ''].filter(Boolean).join(' ') || undefined,
-      };
-      return api.vacations.create(payload);
-    },
-    { onSuccess: onDone },
-  );
-
-  const valid = form.employeeId && form.startDate && form.endDate && days > 0 
-    && !exceedsBalance && !exceedsMaxPeriod && !conflictMessage && !tooClose
-    && (eligibility?.isEligible ?? true);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-v2-xl border border-border/60 bg-bg-elev p-6 shadow-2xl">
-        <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-base font-black text-fg">Nova solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o de fÃƒÆ’Ã‚Â©rias</h3>
-          <button onClick={onClose} className="text-fg-sub hover:text-fg-mut transition-colors"><X size={18} /></button>
-        </div>
-
-        {create.error && (
-          <p className="mb-4 rounded-v2-md border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-700">{create.error}</p>
-        )}
-
-        <div className="space-y-4">
-          <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-fg-mut">
-            <span>FuncionÃƒÆ’Ã‚Â¡rio</span>
-            <select
-              value={form.employeeId}
-              onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))}
-              className="h-11 w-full rounded-v2-md border border-border bg-bg-elev px-4 text-sm font-semibold text-fg shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
-            >
-              <option value="">Selecione...</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>{employeeOptionLabel(emp)}</option>
-              ))}
-            </select>
-          </label>
-
-          {form.employeeId && eligibility && !eligibility.isEligible && (
-            <div className="rounded-v2-md border border-amber-200 bg-amber-50 px-4 py-3">
-              <div className="flex items-start gap-2">
-                <Timer size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-amber-800">
-                    NÃƒÆ’Ã‚Â£o elegÃƒÆ’Ã‚Â­vel para fÃƒÆ’Ã‚Â©rias ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Contador regressivo
-                  </p>
-                  <p className="mt-1 text-[11px] font-semibold text-amber-700">
-                    AdmissÃƒÆ’Ã‚Â£o em {formatDate(eligibility.admissionDateStr)} Ãƒâ€šÃ‚Â· {eligibility.monthsSinceAdmission} meses de casa
-                  </p>
-                  <p className="mt-1 text-[11px] font-black text-amber-800">
-                    ElegÃƒÆ’Ã‚Â­vel a partir de {formatDate(eligibility.eligibilityDate)} Ãƒâ€šÃ‚Â· Faltam {eligibility.remainingYearsText}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {form.employeeId && eligibility && eligibility.isEligible && (
-            <div className={`rounded-v2-md border px-4 py-3 ${
-              eligibility.isConcessiveUrgent
-                ? 'border-rose-200 bg-rose-50'
-                : eligibility.isCritical
-                ? 'border-orange-200 bg-orange-50'
-                : 'border-emerald-200 bg-emerald-50'
-            }`}>
-              <div className="flex items-start gap-2">
-                {eligibility.isConcessiveUrgent ? (
-                  <AlertTriangle size={16} className="text-rose-600 shrink-0 mt-0.5" />
-                ) : (
-                  <Check size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-                )}
-                <div>
-                  <p className={`text-xs font-bold ${
-                    eligibility.isConcessiveUrgent ? 'text-rose-800' : eligibility.isCritical ? 'text-orange-800' : 'text-emerald-800'
-                  }`}>
-                    {eligibility.isConcessiveUrgent
-                      ? 'ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â URGENTE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â prazo concessivo em fase final'
-                      : eligibility.isCritical
-                      ? 'Alerta: 10Ãƒâ€šÃ‚Âº mÃƒÆ’Ã‚Âªs ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â notificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o obrigatÃƒÆ’Ã‚Â³ria emitida ao RH'
-                      : 'ElegÃƒÆ’Ã‚Â­vel para fÃƒÆ’Ã‚Â©rias'}
-                  </p>
-                  <p className={`mt-1 text-[11px] font-semibold ${
-                    eligibility.isConcessiveUrgent ? 'text-rose-700' : eligibility.isCritical ? 'text-orange-700' : 'text-emerald-700'
-                  }`}>
-                    AdmissÃƒÆ’Ã‚Â£o em {formatDate(eligibility.admissionDateStr)} Ãƒâ€šÃ‚Â· {eligibility.monthsSinceAdmission} meses de casa
-                  </p>
-                  {eligibility.isEligible && (
-                    <p className="mt-0.5 text-[11px] font-black text-fg-mut">
-                      PerÃƒÆ’Ã‚Â­odo concessivo: {eligibility.concessiveDeadlineText}
-                    </p>
-                  )}
-                  {eligibility.mustTakeAll && (
-                    <p className="mt-1 text-[11px] font-black text-rose-800">O prazo estÃƒÆ’Ã‚Â¡ no fim, mas o fracionamento continua sujeito ÃƒÆ’Ã‚Â  aprovaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do RH.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {form.employeeId && (
-            <div className="rounded-v2-md border border-teal-200/60 bg-gradient-to-br from-teal-50 to-cyan-50 p-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-fg-mut">Saldo de dias</p>
-                <p className={`text-sm font-black ${remainingDays >= 0 ? 'text-teal-700' : 'text-rose-700'}`}>
-                  {daysUsed} usados / {remainingDays} restantes
-                </p>
-              </div>
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                <div 
-                  className={`h-full rounded-full ${remainingDays >= 0 ? 'bg-teal-500' : 'bg-rose-500'}`}
-                  style={{ width: `${Math.min((daysUsed / MAX_VACATION_DAYS) * 100, 100)}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-fg-mut">
-            <span>PerÃƒÆ’Ã‚Â­odo aquisitivo</span>
-            <input
-              value={form.acquisitionPeriod}
-              onChange={(e) => setForm((f) => ({ ...f, acquisitionPeriod: e.target.value }))}
-              className="h-11 w-full rounded-v2-md border border-border bg-bg-elev px-4 text-sm font-semibold text-fg shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
-            />
-          </label>
-
-          <div className="grid grid-cols-2 gap-3">
-            <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-fg-mut">
-              <span>InÃƒÆ’Ã‚Â­cio</span>
-              <input
-                type="date"
-                min={minStartDateStr}
-                value={form.startDate}
-                onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-                className="h-11 w-full rounded-v2-md border border-border bg-bg-elev px-4 text-sm font-semibold text-fg shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
-              />
-            </label>
-            <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-fg-mut">
-              <span>Fim</span>
-              <input
-                type="date"
-                min={form.startDate || minStartDateStr}
-                max={form.startDate ? (() => { const d = new Date(form.startDate + 'T00:00:00'); d.setDate(d.getDate() + 29); return d.toISOString().slice(0, 10); })() : undefined}
-                value={form.endDate}
-                onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-                className="h-11 w-full rounded-v2-md border border-border bg-bg-elev px-4 text-sm font-semibold text-fg shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
-              />
-            </label>
-          </div>
-          <p className="text-[10px] font-semibold text-fg-sub">* MÃƒÆ’Ã‚Â­nimo 45 dias de antecedÃƒÆ’Ã‚Âªncia (CLT) Ãƒâ€šÃ‚Â· MÃƒÆ’Ã‚Â¡ximo 30 dias por solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o</p>
-
-          {tooClose && form.startDate && (
-            <div className="rounded-v2-md border border-rose-200 bg-rose-50 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={14} className="text-rose-600 shrink-0" />
-                <p className="text-xs font-semibold text-rose-700">AntecedÃƒÆ’Ã‚Âªncia insuficiente: a CLT exige mÃƒÆ’Ã‚Â­nimo 45 dias. Faltam {45 - daysUntilStart} dias para atingir o prazo mÃƒÆ’Ã‚Â­nimo.</p>
-              </div>
-            </div>
-          )}
-
-          {exceedsMaxPeriod && (
-            <div className="rounded-v2-md border border-rose-200 bg-rose-50 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={14} className="text-rose-600 shrink-0" />
-                <p className="text-xs font-semibold text-rose-700">PerÃƒÆ’Ã‚Â­odo excede o limite mÃƒÆ’Ã‚Â¡ximo de 30 dias por solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o (CLT).</p>
-              </div>
-            </div>
-          )}
-
-          {conflictMessage && (
-            <div className="rounded-v2-md border border-rose-200 bg-rose-50 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={14} className="text-rose-600 shrink-0" />
-                <p className="text-xs font-semibold text-rose-700">{conflictMessage}</p>
-              </div>
-            </div>
-          )}
-
-          {exceedsBalance && (
-            <div className="rounded-v2-md border border-rose-200 bg-rose-50 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={14} className="text-rose-600 shrink-0" />
-                <p className="text-xs font-semibold text-rose-700">Saldo insuficiente: {days} dias solicitados, apenas {remainingDays} disponÃƒÆ’Ã‚Â­veis.</p>
-              </div>
-            </div>
-          )}
-
-          <div className="rounded-v2-md border border-teal-200/60 bg-gradient-to-br from-teal-50 to-cyan-50 p-4">
-            <p className="text-xs font-semibold text-fg-mut">Total de dias</p>
-            <p className="mt-1 text-lg font-black text-teal-700">{days} {days === 1 ? 'dia' : 'dias'}</p>
-          </div>
-
-          {/* Abono PecuniÃƒÆ’Ã‚Â¡rio: segue a regra legal e depende da elegibilidade */}
-          {eligibility?.canSellDays && days > 0 && (
-            <label className="flex items-center gap-3 rounded-v2-md border border-indigo-200 bg-indigo-50 px-4 py-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={sellDays}
-                onChange={e => setSellDays(e.target.checked)}
-                className="h-4 w-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <div>
-                <p className="text-xs font-bold text-indigo-800">Solicitar Abono PecuniÃƒÆ’Ã‚Â¡rio (Venda de 10 dias)</p>
-                <p className="text-[10px] font-semibold text-indigo-600 mt-0.5">O funcionÃƒÆ’Ã‚Â¡rio recebe 10 dias de fÃƒÆ’Ã‚Â©rias convertidos em pÃƒÆ’Ã‚Â©cunia (valor em dinheiro), conforme CLT Art. 143.</p>
-              </div>
-            </label>
-          )}
-
-          <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-fg-mut">
-            <span>ObservaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o (opcional)</span>
-            <input
-              value={observation}
-              onChange={(e) => setObservation(e.target.value)}
-              placeholder="Motivo ou informaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o complementar"
-              className="h-11 w-full rounded-v2-md border border-border bg-bg-elev px-4 text-sm font-semibold text-fg shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
-            />
-          </label>
-        </div>
-
-        <div className="mt-6 flex justify-end gap-3">
-          <button onClick={onClose} className="btn-outline-premium h-10 rounded-v2-md px-5 text-xs font-black">Cancelar</button>
-          <button
-            onClick={() => valid && create.mutate().catch(() => {})}
-            disabled={!valid || create.loading}
-            className="crystal-button h-10 rounded-v2-md bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/30 active:translate-y-0 disabled:opacity-60"
-          >
-            {create.loading ? 'Enviando...' : 'Solicitar'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ PDF UTILITIES ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
-
-function employeeOptionLabel(employee: Employee) {
-  const registration = employee.registration || employee.id.slice(0, 8).toUpperCase();
-  return `${normalizeDisplayName(employee.name)} - ${registration}`;
+  useEffect(() => {
+    if (!form.employeeId) { setEntitlements(null); return; }
+    const controller = new AbortController();
+    setEntitlements(null); setEntitlementLoading(true); setEntitlementError('');
+    const token = readAuthSession().token;
+    fetch(API_URL + '/vacations/employee/' + encodeURIComponent(form.employeeId) + '/entitlements', { signal: controller.signal, headers: { Authorization: 'Bearer ' + (token ?? '') } })
+      .then(async response => { if (!response.ok) throw new Error('Não foi possível consultar os ciclos e saldos.'); return response.json(); })
+      .then(data => { if (!controller.signal.aborted) setEntitlements(data); })
+      .catch(error => { if (!controller.signal.aborted) setEntitlementError(error.message); })
+      .finally(() => { if (!controller.signal.aborted) setEntitlementLoading(false); });
+    return () => controller.abort();
+  }, [form.employeeId, retry]);
+  useEffect(() => { if (window) setForm(previous => ({ ...previous, acquisitionPeriod: window.label })); }, [window?.label]);
+  function close() { if (create.loading) return; if (form.startDate || form.endDate || observation || sellDays || form.employeeId !== initialEmployeeId) setDiscard(true); else onClose(); }
+  if (discard) return <ConfirmDialog isOpen onClose={() => setDiscard(false)} onConfirm={onClose} title="Descartar solicitação?" description="As datas e observações preenchidas ainda não foram enviadas." confirmText="Descartar preenchimento" cancelText="Continuar preenchendo" />;
+  return <Modal isOpen onClose={close} title="Nova solicitação de férias" description="Escolha o funcionário, o período e as datas. Campos com * são obrigatórios." maxWidth="max-w-2xl" footer={<><Button type="button" variant="outline" disabled={create.loading} onClick={close}>Cancelar</Button><Button type="submit" form="vacation-request" disabled={!valid} isLoading={create.loading}>Solicitar férias</Button></>}>
+    <form id="vacation-request" className="space-y-4" onSubmit={event => { event.preventDefault(); if (valid && !create.loading) create.mutate().catch(() => {}); }}>
+      {create.error && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{create.error}</p>}
+      {employeeError && <ErrorState message={employeeError} onRetry={onRetryEmployees} />}
+      <label className="block space-y-1 text-sm font-medium">Funcionário *<select required className="input-v2 text-base" value={form.employeeId} disabled={employeeLoading} onChange={event => { setSellDays(false); setForm(previous => ({ ...previous, employeeId: event.target.value })); }}><option value="">{employeeLoading ? 'Carregando funcionários…' : 'Selecione o funcionário'}</option>{employees.map(employee => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee)}</option>)}</select></label>
+      {selectedEmployee && <p className="rounded-lg border border-border bg-bg-sub p-3 text-sm">{currentEligibility ? 'Tempo mínimo de admissão cumprido.' : 'O funcionário ainda não completou o período de admissão exigido pelo serviço.'} Admissão: {formatDate(selectedEmployee.admissionDate)}.</p>}
+      <div className="grid gap-3 sm:grid-cols-2"><label className="space-y-1 text-sm font-medium">Início *<input type="date" required className="input-v2 text-base" value={form.startDate} onChange={event => setForm(previous => ({ ...previous, startDate: event.target.value }))} /></label><label className="space-y-1 text-sm font-medium">Fim *<input type="date" required min={form.startDate || undefined} className="input-v2 text-base" value={form.endDate} onChange={event => setForm(previous => ({ ...previous, endDate: event.target.value }))} /></label></div>
+      <label className="block space-y-1 text-sm font-medium">Período aquisitivo *<input required pattern="\d{4}/\d{4}" className="input-v2 text-base" value={form.acquisitionPeriod} onChange={event => setForm(previous => ({ ...previous, acquisitionPeriod: event.target.value }))} aria-describedby="vacation-period-help" /></label>
+      <p id="vacation-period-help" className="text-sm text-fg-sub">Formato AAAA/AAAA. O servidor confirma o ciclo aplicável ao início informado.</p>
+      <div aria-live="polite" className="rounded-lg border border-border bg-bg-sub p-4"><p className="font-semibold">{days} dias de descanso{sellDays ? ' + 10 dias de abono' : ''}</p><p className="mt-1 text-sm text-fg-sub">{entitlementLoading ? 'Consultando saldo…' : balance !== null ? 'Saldo disponível neste ciclo: ' + balance + ' dias. Já usados: ' + entitlement.usedDays + '; vendidos: ' + entitlement.soldDays + '; reservados: ' + entitlement.reservedDays + '.' : 'Saldo ainda não confirmado para este ciclo. O serviço valida o direito, faltas e reservas ao enviar.'}</p>{entitlement && <p className="mt-1 text-sm">Prazo concessivo: {formatDate(entitlement.concessionEnd)}</p>}</div>
+      {entitlementError && <div role="alert" className="space-y-2 text-sm text-amber-900"><p>{entitlementError} O saldo será validado no envio.</p><Button type="button" variant="outline" onClick={() => setRetry(value => value + 1)}>Consultar saldo novamente</Button></div>}
+      {days > 0 && (days < 5 || days > 30) && <p role="alert" className="text-sm text-rose-800">Informe um período de 5 a 30 dias, conforme a validação atual do serviço.</p>}
+      {overlap && form.startDate && form.endDate && <p role="alert" className="text-sm text-rose-800">Já existe uma solicitação pendente ou aprovada em {formatPeriod(overlap.startDate, overlap.endDate)}.</p>}
+      {balance !== null && days + soldDays > balance && <p role="alert" className="text-sm text-rose-800">Dias de descanso e abono excedem o saldo deste ciclo.</p>}
+      <label className="flex min-h-11 items-start gap-3 rounded-lg border border-border p-3 text-sm"><input type="checkbox" className="mt-1 h-5 w-5 shrink-0 accent-purple-700" checked={sellDays} disabled={!currentEligibility} onChange={event => setSellDays(event.target.checked)} /><span><span className="font-medium">Solicitar abono pecuniário de 10 dias</span><span className="mt-1 block text-fg-sub">Os dias vendidos consomem saldo. A elegibilidade e o limite de abono são confirmados pelo servidor.</span></span></label>
+      {sellDays && entitlement && soldDays > Math.floor(entitlement.entitledDays / 3) && <p role="alert" className="text-sm text-rose-800">O direito deste ciclo não permite vender 10 dias. Desmarque o abono para continuar.</p>}
+      <label className="block space-y-1 text-sm font-medium">Observação (opcional)<textarea className="input-v2 min-h-24 text-base" value={observation} onChange={event => setObservation(event.target.value)} placeholder="Motivo ou informação complementar" /></label>
+      <p className="text-sm text-fg-sub">Fracionamento, saldo, conflitos e concessão dependem da validação do servidor. A solicitação só é registrada após confirmação do envio.</p>
+    </form>
+  </Modal>;
 }

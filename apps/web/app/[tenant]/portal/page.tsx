@@ -1,50 +1,21 @@
-﻿'use client';
+'use client';
 
-import { useAuth } from '@/app/contexts/AuthContext';
 import Link from 'next/link';
-import { FileText, Clock, Sun, FileCheck } from 'lucide-react';
 import { useParams } from 'next/navigation';
-
+import { useAuth } from '@/app/contexts/AuthContext';
+import { PageHeader } from '@/app/components/ui/page-header';
 export default function PortalHomePage() {
   const { user } = useAuth();
-  const params = useParams<{ tenant: string }>();
-  const tenant = params?.tenant ?? '';
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-black text-slate-900">Olá, {user?.name || 'Colaborador'}! 👋</h2>
-        <p className="mt-1 text-slate-500 font-medium">Bem-vindo ao seu portal de autoatendimento.</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <PortalCard href={`/${tenant}/portal/holerites`} icon={FileText} title="Holerites" description="Baixe seus recibos de pagamento" color="bg-blue-50 text-blue-600" />
-        <PortalCard href={`/${tenant}/portal/ponto`} icon={Clock} title="Meu Ponto" description="Espelho de ponto e banco de horas" color="bg-teal-50 text-teal-600" />
-        <PortalCard href={`/${tenant}/portal/ferias`} icon={Sun} title="Férias" description="Saldo e solicitações" color="bg-amber-50 text-amber-600" />
-        <PortalCard href={`/${tenant}/portal/documentos`} icon={FileCheck} title="Documentos" description="Admissão e informes" color="bg-violet-50 text-violet-600" />
-      </div>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-6">
-        <h3 className="text-lg font-black text-slate-900">Comunicados Recentes</h3>
-        <div className="mt-4 flex flex-col gap-3">
-          <div className="rounded-xl bg-slate-50 p-4">
-            <h4 className="text-sm font-bold text-slate-900">Bem-vindo ao novo Portal!</h4>
-            <p className="mt-1 text-xs font-medium text-slate-500">Agora você pode acessar seus holerites e informações de RH tudo em um só lugar.</p>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function PortalCard({ href, icon: Icon, title, description, color }: { href: string; icon: any; title: string; description: string; color: string }) {
-  return (
-    <Link href={href} className="group rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:border-violet-300 hover:shadow-md">
-      <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${color}`}>
-        <Icon size={24} />
-      </div>
-      <h3 className="mt-4 text-sm font-black text-slate-900 group-hover:text-violet-700">{title}</h3>
-      <p className="mt-1 text-xs font-medium text-slate-500">{description}</p>
-    </Link>
-  );
+  const { tenant = '' } = useParams<{ tenant: string }>();
+  const base = '/' + encodeURIComponent(tenant) + '/portal';
+  return <div className="space-y-5">
+    <PageHeader title={'Olá, ' + (user?.name || 'funcionário')} subtitle="Acesse suas informações e os serviços do RH." />
+    <div className="grid gap-4 sm:grid-cols-2">{[
+      ['/ponto', 'Meu ponto', 'Acesse o registro e a consulta de ponto no módulo disponível.'],
+      ['/ferias', 'Férias', 'Consulte a disponibilidade das informações pessoais de férias.'],
+      ['/holerites', 'Holerites', 'Consulte a disponibilidade dos recibos publicados.'],
+      ['/documentos', 'Documentos', 'Consulte a disponibilidade de documentos para você.'],
+    ].map(([suffix, title, description]) => <Link key={suffix} href={base + suffix} className="card-v2 space-y-2 p-5 hover:border-brand focus-visible:ring-2 focus-visible:ring-brand"><h2 className="font-semibold">{title}</h2><p className="text-sm leading-6 text-fg-mut">{description}</p><span className="inline-block text-sm font-medium text-brand">Acessar</span></Link>)}</div>
+    <section className="card-v2 space-y-2 p-5"><h2 className="font-semibold">Informações do portal</h2><p className="text-sm leading-6 text-fg-mut">Férias, holerites e documentos pessoais dependem da integração e da publicação pelo RH. As páginas indicam a disponibilidade atual.</p></section>
+  </div>;
 }

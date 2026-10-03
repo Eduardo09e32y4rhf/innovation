@@ -1,5 +1,8 @@
 'use client';
 
+import { Button } from '@/app/components/ui/button';
+import recordStyles from '../_components/operational-ui.module.css';
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
@@ -13,10 +16,10 @@ export default function EquipeEscalasPage() {
   const { tenant } = useParams() as { tenant: string };
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
+
   // States
   const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().substring(0, 7));
-  
+
   // Modal States
   const [isNewScheduleModalOpen, setIsNewScheduleModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -63,7 +66,7 @@ export default function EquipeEscalasPage() {
 
   const createScheduleMutation = useMutation(
     (data: any) => editingSchedule ? api.schedules.update(editingSchedule.id, data) : api.schedules.create(data),
-    { 
+    {
       onSuccess: () => {
         queryClient.invalidateQueries();
         setIsNewScheduleModalOpen(false);
@@ -74,7 +77,7 @@ export default function EquipeEscalasPage() {
 
   const assignMutation = useMutation(
     (data: any) => api.schedules.assign(data),
-    { 
+    {
       onSuccess: () => {
         queryClient.invalidateQueries();
         setIsAssignModalOpen(false);
@@ -103,8 +106,8 @@ export default function EquipeEscalasPage() {
   const toggleWorkDay = (day: string) => {
     setNewScheduleForm(prev => ({
       ...prev,
-      workDays: prev.workDays.includes(day) 
-        ? prev.workDays.filter(d => d !== day) 
+      workDays: prev.workDays.includes(day)
+        ? prev.workDays.filter(d => d !== day)
         : [...prev.workDays, day]
     }));
   };
@@ -116,17 +119,17 @@ export default function EquipeEscalasPage() {
           <h1 className="page-title">Equipe e Escalas</h1>
           <p className="page-subtitle">Gerencie os modelos de escala e atribuições da equipe</p>
         </div>
-        <button 
+        <Button variant="primary" type="button"
           onClick={() => {
             setEditingSchedule(null);
             setNewScheduleForm({ name: '', description: '', workDays: [], entryTime: '', exitTime: '' });
             setIsNewScheduleModalOpen(true);
           }}
-          className="btn-nubank flex items-center gap-2 mt-4 md:mt-0"
+          className=" flex items-center gap-2 mt-4 md:mt-0"
         >
           <Plus size={18} />
           <span>Nova Escala</span>
-        </button>
+        </Button>
       </div>
 
       <section className="content-section">
@@ -138,18 +141,18 @@ export default function EquipeEscalasPage() {
             {schedules.map((schedule: any) => {
               if (!schedule) return null;
               return (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                key={schedule.id} 
-                className="card-flat flex flex-col justify-between"
+                key={schedule.id}
+                className="card-v2 p-4 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold text-lg">{schedule.name}</h3>
                     <div className="flex gap-1">
-                      <button 
-                        className="btn-icon text-gray-500 hover:text-brand" 
+                      <Button aria-label="Editar" variant="ghost" type="button"
+                        className=" text-gray-500 hover:text-brand"
                         title="Editar"
                         onClick={() => {
                           setEditingSchedule(schedule);
@@ -164,18 +167,18 @@ export default function EquipeEscalasPage() {
                         }}
                       >
                         <Edit size={14} />
-                      </button>
-                      <button 
-                        className="btn-icon text-gray-500 hover:text-red-500" 
+                      </Button>
+                      <Button aria-label="Arquivar" variant="ghost" type="button"
+                        className=" text-gray-500 hover:text-red-500"
                         title="Arquivar"
                         onClick={() => archiveMutation.mutate(schedule.id)}
                       >
                         <Archive size={16} />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 mb-4">{schedule.description || 'Sem descrição'}</p>
-                  
+
                   <div className="flex flex-col gap-2 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <Calendar size={14} className="text-brand" />
@@ -197,9 +200,9 @@ export default function EquipeEscalasPage() {
         <div className="flex flex-col md:flex-row justify-between md:items-center mb-4">
           <h2 className="section-title">Atribuições da Equipe</h2>
           <div className="flex gap-2 mt-2 md:mt-0">
-            <input 
-              type="month" 
-              className="form-control max-w-[200px]" 
+            <input aria-label="Compet?ncia"
+              type="month"
+              className="input-v2 max-w-[200px]"
               value={currentMonth}
               onChange={(e) => setCurrentMonth(e.target.value)}
             />
@@ -207,7 +210,7 @@ export default function EquipeEscalasPage() {
         </div>
 
         <div className="data-table-wrap">
-          <table className="data-table w-full text-left">
+          <div className={recordStyles.records}><table className="data-table w-full text-left">
             <thead>
               <tr>
                 <th>Funcionário</th>
@@ -227,15 +230,15 @@ export default function EquipeEscalasPage() {
                   if (!assignment) return null;
                   return (
                   <tr key={assignment.id || assignment.employee?.id}>
-                    <td className="font-medium">{assignment.employee?.name}</td>
-                    <td>{assignment.schedule?.name || <span className="italic text-gray-400">Sem escala</span>}</td>
-                    <td className="text-sm text-gray-600">
-                      {assignment.startDate ? String(assignment.startDate).substring(0, 10).split('-').reverse().join('/') : '-'} 
+                    <td data-label="Funcionário" className="font-medium">{assignment.employee?.name}</td>
+                    <td data-label="Escala Atual">{assignment.schedule?.name || <span className="italic text-gray-400">Sem escala</span>}</td>
+                    <td data-label="Vigência" className="text-sm text-gray-600">
+                      {assignment.startDate ? String(assignment.startDate).substring(0, 10).split('-').reverse().join('/') : '-'}
                       {assignment.endDate ? ` a ${String(assignment.endDate).substring(0, 10).split('-').reverse().join('/')}` : ' (Indeterminado)'}
                     </td>
-                    <td>
+                    <td data-label="Status">
                       <span className={`badge ${
-                        assignment.status === 'ACTIVE' ? 'badge-active' : 
+                        assignment.status === 'ACTIVE' ? 'badge-active' :
                         assignment.status === 'PENDING' ? 'badge-warn' : 'badge-inactive'
                       }`}>
                         {assignment.status === 'ACTIVE' ? 'Ativo' : assignment.status === 'PENDING' ? 'Pendente' : 'Expirado'}
@@ -246,8 +249,8 @@ export default function EquipeEscalasPage() {
                         </span>
                       )}
                     </td>
-                    <td>
-                      <button 
+                    <td data-label="Ações">
+                      <Button variant="ghost" type="button"
                         onClick={() => {
                           setSelectedEmployeeForAssign(assignment.employee);
                           setIsAssignModalOpen(true);
@@ -255,14 +258,14 @@ export default function EquipeEscalasPage() {
                         className="text-brand hover:underline text-sm font-medium"
                       >
                         Atribuir Escala
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 )
                 })
               )}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </section>
 
@@ -278,17 +281,17 @@ export default function EquipeEscalasPage() {
             >
               <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <h3 className="font-semibold text-gray-800">{editingSchedule ? 'Editar Escala' : 'Novo Modelo de Escala'}</h3>
-                <button onClick={() => { setIsNewScheduleModalOpen(false); setEditingSchedule(null); }} className="text-gray-400 hover:text-gray-600">
+                <Button aria-label="Fechar" variant="ghost" type="button" onClick={() => { setIsNewScheduleModalOpen(false); setEditingSchedule(null); }} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
               <form onSubmit={handleCreateSchedule} className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Modelo</label>
-                  <input 
-                    required 
-                    type="text" 
-                    className="form-control w-full" 
+                  <input aria-label="Ex: Comercial 5x2"
+                    required
+                    type="text"
+                    className="input-v2 w-full"
                     placeholder="Ex: Comercial 5x2"
                     value={newScheduleForm.name}
                     onChange={e => setNewScheduleForm(prev => ({ ...prev, name: e.target.value }))}
@@ -296,9 +299,9 @@ export default function EquipeEscalasPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                  <input 
-                    type="text" 
-                    className="form-control w-full" 
+                  <input aria-label="Breve descrição da jornada"
+                    type="text"
+                    className="input-v2 w-full"
                     placeholder="Breve descrição da jornada"
                     value={newScheduleForm.description}
                     onChange={e => setNewScheduleForm(prev => ({ ...prev, description: e.target.value }))}
@@ -308,38 +311,38 @@ export default function EquipeEscalasPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Dias de Trabalho</label>
                   <div className="flex gap-2 flex-wrap">
                     {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map(day => (
-                      <button
+                      <Button variant="ghost"
                         key={day}
                         type="button"
                         onClick={() => toggleWorkDay(day)}
                         className={`px-3 py-1 text-sm rounded-full border transition-colors ${
-                          newScheduleForm.workDays.includes(day) 
-                            ? 'bg-brand text-white border-brand' 
+                          newScheduleForm.workDays.includes(day)
+                            ? 'bg-brand text-white border-brand'
                             : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                         }`}
                       >
                         {day}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Entrada</label>
-                    <input 
-                      required 
-                      type="time" 
-                      className="form-control w-full"
+                    <input
+                      required
+                      type="time"
+                      className="input-v2 w-full"
                       value={newScheduleForm.entryTime}
                       onChange={e => setNewScheduleForm(prev => ({ ...prev, entryTime: e.target.value }))}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Saída</label>
-                    <input 
-                      required 
-                      type="time" 
-                      className="form-control w-full"
+                    <input
+                      required
+                      type="time"
+                      className="input-v2 w-full"
                       value={newScheduleForm.exitTime}
                       onChange={e => setNewScheduleForm(prev => ({ ...prev, exitTime: e.target.value }))}
                     />
@@ -347,14 +350,14 @@ export default function EquipeEscalasPage() {
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3 border-t mt-6">
-                  <button type="button" className="btn-outline" onClick={() => { setIsNewScheduleModalOpen(false); setEditingSchedule(null); }}>Cancelar</button>
-                  <button 
-                    type="submit" 
-                    className={`btn-nubank ${createScheduleMutation.loading ? 'opacity-50' : ''}`}
+                  <Button variant="outline" type="button" className="" onClick={() => { setIsNewScheduleModalOpen(false); setEditingSchedule(null); }}>Cancelar</Button>
+                  <Button variant="primary"
+                    type="submit"
+                    className={` ${createScheduleMutation.loading ? 'opacity-50' : ''}`}
                     disabled={createScheduleMutation.loading}
                   >
                     {createScheduleMutation.loading ? 'Salvando...' : 'Salvar Modelo'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>
@@ -374,11 +377,11 @@ export default function EquipeEscalasPage() {
             >
               <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <h3 className="font-semibold text-gray-800">Atribuir Escala - {selectedEmployeeForAssign?.name}</h3>
-                <button onClick={() => setIsAssignModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <Button aria-label="Fechar" variant="ghost" type="button" onClick={() => setIsAssignModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
-              
+
               <div className="p-4 bg-blue-50 border-b border-blue-100 text-sm text-blue-800 flex items-start gap-2">
                 <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" />
                 <p>
@@ -388,10 +391,10 @@ export default function EquipeEscalasPage() {
 
               <form onSubmit={handleAssign} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Modelo de Escala</label>
-                  <select 
-                    required 
-                    className="form-control w-full"
+                  <label htmlFor="equipe-field-391" className="block text-sm font-medium text-gray-700 mb-1">Modelo de Escala</label>
+                  <select id="equipe-field-391"
+                    required
+                    className="input-v2 w-full"
                     value={assignForm.scheduleId}
                     onChange={e => setAssignForm(prev => ({ ...prev, scheduleId: e.target.value }))}
                   >
@@ -403,23 +406,23 @@ export default function EquipeEscalasPage() {
                     )})}
                   </select>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Início da Vigência</label>
-                    <input 
-                      required 
-                      type="date" 
-                      className="form-control w-full"
+                    <input
+                      required
+                      type="date"
+                      className="input-v2 w-full"
                       value={assignForm.startDate}
                       onChange={e => setAssignForm(prev => ({ ...prev, startDate: e.target.value }))}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Fim (Opcional)</label>
-                    <input 
-                      type="date" 
-                      className="form-control w-full"
+                    <input
+                      type="date"
+                      className="input-v2 w-full"
                       value={assignForm.endDate}
                       onChange={e => setAssignForm(prev => ({ ...prev, endDate: e.target.value }))}
                     />
@@ -427,10 +430,10 @@ export default function EquipeEscalasPage() {
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3 border-t mt-6">
-                  <button type="button" className="btn-outline" onClick={() => setIsAssignModalOpen(false)}>Cancelar</button>
-                  <button type="submit" className="btn-nubank" disabled={assignMutation.loading}>
+                  <Button variant="outline" type="button" className="" onClick={() => setIsAssignModalOpen(false)}>Cancelar</Button>
+                  <Button variant="primary" type="submit" className="" disabled={assignMutation.loading}>
                     {assignMutation.loading ? 'Processando...' : 'Confirmar Atribuição'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>

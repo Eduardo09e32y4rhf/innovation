@@ -1,12 +1,14 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams , useParams } from 'next/navigation';
 import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type ContractType, type CreateEmployeeInput, type DailyWorkload, type Employee, type EmployeeStatus, type WorkScale } from '@/app/lib/api';
-import { PageHeader } from '@/app/components/platform-ui';
+import { Button, ConfirmDialog, PageHeader } from '@/app/components/ui';
+import { ErrorState, LoadingState } from '@/app/components/data-states';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { normalizeDisplayName, maskCPF, maskCNPJ, maskCEP } from '@/app/lib/text';
 
 const STATUS_OPTIONS: { value: EmployeeStatus; label: string }[] = [
@@ -153,11 +155,12 @@ const PARENTESCO_OPTIONS = [
   { value: 'Outro', label: 'Outro' },
 ];
 
-const TABS = ['Dados pessoais', 'Documentos', 'Endereco', 'Dados profissionais', 'Jornada', 'Dados bancários', 'Dependentes', 'Contrato e acesso'] as const;
+const TABS = ['Dados pessoais', 'Documentos', 'Endereço', 'Dados profissionais', 'Jornada', 'Dados bancários', 'Dependentes', 'Contrato e acesso'] as const;
 
 type TabName = (typeof TABS)[number];
 
 interface Dependent {
+  key?: string;
   nome: string;
   cpf: string;
   dataNascimento: string;
@@ -203,18 +206,34 @@ function EmployeeForm() {
   const tenant = routeParams?.tenant as string;
   const editId = searchParams.get('id');
   const isEdit = Boolean(editId);
-  const employeesQuery = useQuery(() => api.employees.list(), []);
+  const { user } = useAuth();
+  const canEdit = ['DEV', 'ADMIN', 'RH'].includes(user?.profile?.toUpperCase() ?? '');
+  const employeesQuery = useQuery(() => api.employees.list(), [], { enabled: canEdit });
 
   const [form, setForm] = useState<EmployeeFormState>(EMPTY);
   const [activeTab, setActiveTab] = useState<TabName>('Dados pessoais');
   const [loadingEmployee, setLoadingEmployee] = useState(isEdit);
   const [dependentsList, setDependentsList] = useState<Dependent[]>([]);
+  const [loadError, setLoadError] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [lookupStatus, setLookupStatus] = useState({ cep: '', cnpj: '' });
+  const [issues, setIssues] = useState<{ tab: TabName; label: string; message: string }[]>([]);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const baseline = useRef(JSON.stringify([EMPTY, []]));
+  const formRef = useRef<HTMLFormElement>(null);
+  const cepRequest = useRef(0);
+  const cnpjRequest = useRef(0);
+  const dirty = JSON.stringify([form, dependentsList]) !== baseline.current;
+  const destination = `/${tenant}/dashboard/employees`;
 
   async function fetchCnpj(cnpj: string) {
     const cleanCnpj = cnpj.replace(/\D/g, '');
     if (cleanCnpj.length !== 14) return;
+    const request = ++cnpjRequest.current;
+    setLookupStatus(previous => ({ ...previous, cnpj: 'Consultando CNPJ…' }));
     try {
       const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
+      if (request !== cnpjRequest.current) return;
       if (res.ok) {
         const data = await res.json();
         setForm((prev) => ({
@@ -222,20 +241,24 @@ function EmployeeForm() {
           legalName: data.razao_social || prev.legalName,
           tradeName: data.nome_fantasia || prev.tradeName,
         }));
+        setLookupStatus(previous => ({ ...previous, cnpj: 'CNPJ consultado. Confira os dados preenchidos.' }));
+      } else {
+        throw new Error('CNPJ não encontrado. Preencha os dados manualmente.');
       }
     } catch {
-      // Ignore API errors
+      if (request === cnpjRequest.current) setLookupStatus(previous => ({ ...previous, cnpj: 'Não foi possível consultar o CNPJ. Preencha os dados manualmente.' }));
     }
   }
 
   useEffect(() => {
-    if (!editId) return;
+    setLoadError(''); setLoadingEmployee(isEdit); setIssues([]);
+    if (!editId || !canEdit) return;
     let active = true;
     api.employees
       .get(editId)
       .then((emp) => {
         if (!active) return;
-        setForm({
+        const loadedForm: EmployeeFormState = {
           name: emp.name,
           cpf: emp.cpf,
           email: emp.email,
@@ -274,7 +297,7 @@ function EmployeeForm() {
           managerId: emp.managerId ?? '',
           admissionDate: dateInput(emp.admissionDate),
           terminationDate: dateInput(emp.terminationDate),
-          salary: emp.salary ? Number(emp.salary) : undefined,
+          salary: emp.salary != null ? Number(emp.salary) : undefined,
           status: emp.status,
           contractType: emp.contractType ?? 'CLT',
           cnpj: emp.cnpj ?? '',
@@ -295,20 +318,36 @@ function EmployeeForm() {
           dependents: emp.dependents ?? '',
           accessEnabled: emp.userId ? 'YES' : 'NO',
           accessProfile: (emp.user?.role === 'ADMIN' || emp.user?.role === 'RH' || emp.user?.role === 'GESTOR' || emp.user?.role === 'CONSULTA' || emp.user?.role === 'FUNCIONARIO') ? emp.user.role : 'FUNCIONARIO',
-        });
+        };
+        setForm(loadedForm);
+        let loadedDependents: Dependent[] = [];
         if (emp.dependents) {
           try {
             const parsed = JSON.parse(emp.dependents);
-            if (Array.isArray(parsed)) setDependentsList(parsed);
+            if (Array.isArray(parsed)) loadedDependents = parsed.map((dependent, index) => ({ ...dependent, key: dependent.key ?? `loaded-${index}` }));
           } catch { /* ignore */ }
         }
+        setDependentsList(loadedDependents);
+        baseline.current = JSON.stringify([loadedForm, loadedDependents]);
       })
-      .catch(() => {})
+      .catch(error => { if (active) setLoadError(error instanceof Error ? error.message : 'Não foi possível carregar o funcionário.'); })
       .finally(() => active && setLoadingEmployee(false));
     return () => {
       active = false;
     };
-  }, [editId]);
+  }, [editId, canEdit, loadAttempt, user?.companyId]);
+
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ''; } };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  function leave() { if (save.loading) return; if (dirty) setLeaveOpen(true); else router.push(destination); }
+  function focusIssue(issue: { tab: TabName; label: string }) {
+    setActiveTab(issue.tab);
+    window.setTimeout(() => formRef.current?.querySelector<HTMLInputElement>(`[data-field="${issue.label}"]`)?.focus(), 0);
+  }
 
   const managerOptions = useMemo(() => {
     return (employeesQuery.data ?? []).filter((employee) => {
@@ -324,24 +363,31 @@ function EmployeeForm() {
     const masked = maskCEP(val);
     set('cep', masked);
     const raw = masked.replace(/\D/g, '');
+    const request = ++cepRequest.current;
+    setLookupStatus(previous => ({ ...previous, cep: '' }));
     if (raw.length === 8) {
+      setLookupStatus(previous => ({ ...previous, cep: 'Consultando CEP…' }));
       try {
         const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
         const data = await res.json();
+        if (request !== cepRequest.current) return;
         if (!data.erro) {
           set('street', data.logradouro || '');
           set('neighborhood', data.bairro || '');
           set('city', data.localidade || '');
           set('state', data.uf || '');
+          setLookupStatus(previous => ({ ...previous, cep: 'Endereço preenchido. Confira número e complemento.' }));
+        } else {
+          throw new Error('CEP não encontrado.');
         }
-      } catch (e) {}
+      } catch { if (request === cepRequest.current) setLookupStatus(previous => ({ ...previous, cep: 'Não foi possível consultar o CEP. Preencha o endereço manualmente.' })); }
     }
   };
 
   const save = useMutation(
     (payload: CreateEmployeeInput) =>
       isEdit && editId ? api.employees.update(editId, payload) : api.employees.create(payload),
-    { onSuccess: () => router.push(`/${tenant}/dashboard/employees`) },
+    { onSuccess: () => { baseline.current = JSON.stringify([form, dependentsList]); router.push(destination); } },
   );
 
   function set<K extends keyof EmployeeFormState>(key: K, value: EmployeeFormState[K]) {
@@ -349,7 +395,7 @@ function EmployeeForm() {
   }
 
   function addDependent() {
-    setDependentsList((prev) => [...prev, { nome: '', cpf: '', dataNascimento: '', parentesco: 'Filho' }]);
+    setDependentsList((prev) => [...prev, { key: crypto.randomUUID(), nome: '', cpf: '', dataNascimento: '', parentesco: 'Filho' }]);
   }
 
   function removeDependent(index: number) {
@@ -361,6 +407,14 @@ function EmployeeForm() {
   }
 
   async function handleSubmit() {
+    if (save.loading || !canEdit || loadError) return;
+    const invalid: typeof issues = [];
+    if (!form.name.trim()) invalid.push({ tab: 'Dados pessoais', label: 'Nome completo', message: 'Informe o nome completo.' });
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) invalid.push({ tab: 'Dados pessoais', label: 'E-mail', message: 'Informe um e-mail válido.' });
+    if (!form.admissionDate) invalid.push({ tab: 'Dados profissionais', label: 'Data de admissão', message: 'Informe a data de admissão.' });
+    if (form.salary != null && (!Number.isFinite(Number(form.salary)) || Number(form.salary) < 0)) invalid.push({ tab: 'Contrato e acesso', label: 'Salário (R$)', message: 'Informe um salário válido, maior ou igual a zero.' });
+    setIssues(invalid);
+    if (invalid.length) { focusIssue(invalid[0]); return; }
     const payload: CreateEmployeeInput = compactPayload({
       name: form.name,
       cpf: form.cpf,
@@ -400,7 +454,7 @@ function EmployeeForm() {
       managerId: form.managerId,
       admissionDate: isoDate(form.admissionDate) ?? '',
       terminationDate: form.status === 'TERMINATED' ? isoDate(form.terminationDate) : undefined,
-      salary: form.salary ? Number(form.salary) : undefined,
+      salary: form.salary != null ? Number(form.salary) : undefined,
       status: form.status,
       contractType: form.contractType,
       cnpj: (form.contractType === 'PJ' || form.contractType === 'TERCEIRIZADO') ? form.cnpj : undefined,
@@ -418,7 +472,7 @@ function EmployeeForm() {
       bankAgency: form.bankAgency,
       bankAccount: form.bankAccount,
       bankAccountType: form.bankAccountType,
-      dependents: dependentsList.length > 0 ? JSON.stringify(dependentsList) : undefined,
+      dependents: JSON.stringify(dependentsList.map(({ key, ...dependent }) => dependent)),
       accessEnabled: form.accessEnabled,
       accessProfile: form.accessProfile,
     });
@@ -429,49 +483,53 @@ function EmployeeForm() {
     }
   }
 
-  if (loadingEmployee) {
-    return <div className="mx-auto w-full py-16 text-center text-sm text-slate-500">Carregando funcionário...</div>;
-  }
+  if (!canEdit) return <div className="p-4 sm:p-6"><PageHeader title="Funcionários" subtitle="Este perfil não permite cadastrar ou editar funcionários." /><Link className="btn btn-outline btn-md" href={destination}>Voltar para Funcionários</Link></div>;
+  if (loadingEmployee) return <LoadingState label="Carregando funcionário…" />;
+  if (loadError) return <div className="p-4 sm:p-6"><ErrorState message={loadError} onRetry={() => setLoadAttempt(attempt => attempt + 1)} /><Link href={destination} className="btn btn-outline btn-md">Voltar para Funcionários</Link></div>;
 
   return (
-    <div className="app-page">
-      <div className="app-page-content flex flex-col gap-6">
+    <div className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6">
         <PageHeader
-          title={isEdit ? 'Editar colaborador' : 'Novo colaborador'}
-          subtitle="Preencha os dados cadastrais do funcionário"
-          action={
-            <Link href={`/${tenant}/dashboard/employees`} className="btn btn-outline">
-              <ArrowLeft size={15} /> Voltar
-            </Link>
+          title={isEdit ? 'Editar funcionário' : 'Novo funcionário'}
+          subtitle="Cadastro completo em oito seções. Campos com * são obrigatórios."
+          actions={
+            <Button type="button" variant="outline" onClick={leave} disabled={save.loading}>
+              <ArrowLeft size={18} aria-hidden="true" /> Voltar
+            </Button>
           }
         />
 
       {save.error && (
-        <p className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700">{save.error}</p>
+        <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{save.error}</p>
       )}
+      {issues.length > 0 && <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><p className="font-semibold">Revise os campos antes de salvar:</p><ul>{issues.map(issue => <li key={issue.label}><button type="button" onClick={() => focusIssue(issue)} className="min-h-11 text-left underline">{issue.tab}: {issue.message}</button></li>)}</ul></div>}
 
       {form.status === 'ONBOARDING' && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-xs font-black text-amber-950">Colaborador em admissão</p>
-          <p className="mt-1 text-[11px] font-semibold leading-5 text-amber-800">
+          <p className="text-sm font-semibold text-amber-950">Funcionário em admissão</p>
+          <p className="mt-1 text-sm leading-5 text-amber-800">
             Complete CPF, RG, PIS, departamento, salário e jornada. A ativação e o acesso ao sistema serão liberados somente após o ASO admissional concluído com resultado Apto.
           </p>
         </div>
       )}
 
-      <section className="ops-card rounded-[8px] border border-slate-200 bg-white p-4">
-        <div className="mb-4 flex flex-wrap gap-2 pb-1">
+      <form ref={formRef} noValidate onSubmit={event => { event.preventDefault(); handleSubmit(); }} className="card-v2 p-4 sm:p-6">
+        <label className="mb-4 block space-y-1 text-sm font-medium sm:hidden">Seção do cadastro<select value={activeTab} onChange={event => setActiveTab(event.target.value as TabName)} className="input-v2 text-base">{TABS.map((tab, index) => <option key={tab} value={tab}>{index + 1}. {tab}</option>)}</select></label>
+        <nav className="mb-5 hidden flex-wrap gap-2 border-b border-border pb-4 sm:flex" aria-label="Seções do cadastro">
           {TABS.map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`h-8 shrink-0 rounded-[6px] px-3 text-[11px] font-black ${activeTab === tab ? 'bg-slate-950 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+              aria-pressed={activeTab === tab}
+              className={`btn btn-md ${activeTab === tab ? 'btn-primary' : 'btn-outline'}`}
             >
               {tab}
             </button>
           ))}
-        </div>
+        </nav>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-semibold text-fg">{activeTab}</h2><span className="text-sm text-fg-sub">Seção {TABS.indexOf(activeTab) + 1} de 8{dirty ? ' · Alterações pendentes' : ''}</span></div>
+        <fieldset disabled={save.loading} className="min-w-0">
 
         {/* ── DADOS PESSOAIS ── */}
         {activeTab === 'Dados pessoais' && (
@@ -480,7 +538,6 @@ function EmployeeForm() {
             <Field label="CPF" value={form.cpf ?? ''} onChange={(v) => set('cpf', maskCPF(v))} placeholder="000.000.000-00" />
             <Field label="Data de nascimento" type="date" value={form.birthDate ?? ''} onChange={(v) => set('birthDate', v)} />
             <Field label="E-mail" type="email" value={form.email ?? ''} onChange={(v) => set('email', v)} />
-            <Field label="Data de admissão" type="date" value={form.admissionDate ?? ''} onChange={(v) => set('admissionDate', v)} />
             <Field label="Telefone" value={form.phone ?? ''} onChange={(v) => set('phone', v)} placeholder="+55 11 90000-0000" />
             <Field label="Telefone Secundário" value={form.secondaryPhone ?? ''} onChange={(v) => set('secondaryPhone', v)} placeholder="+55 11 90000-0000" />
             <Field label="Matrícula" value={form.registration ?? ''} onChange={(v) => set('registration', v)} placeholder="EMP-0001" />
@@ -532,18 +589,19 @@ function EmployeeForm() {
         )}
 
         {/* ── ENDEREÇO ── */}
-        {activeTab === 'Endereco' && (
+        {activeTab === 'Endereço' && (
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="CEP" value={form.cep ?? ''} onChange={handleCepChange} placeholder="00000-000" />
             <Field label="Logradouro" value={form.street ?? ''} onChange={(v) => set('street', v)} />
-            <Field label="Numero" value={form.streetNumber ?? ''} onChange={(v) => set('streetNumber', v)} />
+            {lookupStatus.cep && <p role="status" className="text-sm text-fg-sub sm:col-span-2">{lookupStatus.cep}</p>}
+            <Field label="Número" value={form.streetNumber ?? ''} onChange={(v) => set('streetNumber', v)} />
             <Field label="Complemento" value={form.addressComplement ?? ''} onChange={(v) => set('addressComplement', v)} />
             <Field label="Bairro" value={form.neighborhood ?? ''} onChange={(v) => set('neighborhood', v)} />
             <Field label="Cidade" value={form.city ?? ''} onChange={(v) => set('city', v)} />
             <Field label="Estado" value={form.state ?? ''} onChange={(v) => set('state', v)} />
             <label className="space-y-1 text-xs font-medium text-slate-600 sm:col-span-2">
-              <span>Observacoes cadastrais</span>
-              <textarea value={form.observations ?? ''} onChange={(e) => set('observations', e.target.value)} className="form-control min-h-[80px]" />
+              <span>Observações cadastrais</span>
+              <textarea value={form.observations ?? ''} onChange={(e) => set('observations', e.target.value)} className="input-v2 min-h-24 text-base sm:text-sm" />
             </label>
           </div>
         )}
@@ -593,31 +651,33 @@ function EmployeeForm() {
               </p>
             )}
             {dependentsList.map((dep, index) => (
-              <div key={index} className="relative rounded-[8px] border border-slate-200 bg-slate-50 p-4">
-                <button
+              <div key={dep.key ?? index} className="relative rounded-xl border border-border bg-bg-sub p-4">
+                <Button
                   type="button"
                   onClick={() => removeDependent(index)}
-                  className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-[6px] border border-rose-200 bg-white text-rose-500 hover:bg-rose-50"
+                  variant="ghost"
+                  aria-label={`Remover dependente ${index + 1}${dep.nome ? ': ' + dep.nome : ''}`}
+                  className="absolute right-3 top-1 text-rose-700"
                 >
-                  <Trash2 size={13} />
-                </button>
+                  <Trash2 size={18} aria-hidden="true" />
+                </Button>
                 <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Dependente {index + 1}</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Nome" value={dep.nome} onChange={(v) => updateDependent(index, 'nome', v)} />
-                  <Field label="CPF" value={dep.cpf} onChange={(v) => updateDependent(index, 'cpf', v)} placeholder="000.000.000-00" />
+                  <Field label="CPF" value={dep.cpf} onChange={(v) => updateDependent(index, 'cpf', maskCPF(v))} placeholder="000.000.000-00" />
                   <Field label="Data de Nascimento" type="date" value={dep.dataNascimento} onChange={(v) => updateDependent(index, 'dataNascimento', v)} />
                   <Select label="Parentesco" value={dep.parentesco} onChange={(v) => updateDependent(index, 'parentesco', v)} options={PARENTESCO_OPTIONS} />
                 </div>
               </div>
             ))}
-            <button
+            <Button
               type="button"
               onClick={addDependent}
-              className="inline-flex h-9 items-center gap-2 rounded-[6px] border border-dashed border-teal-400 bg-teal-50 px-4 text-xs font-bold text-teal-700 hover:bg-teal-100"
+              variant="outline"
             >
-              <Plus size={14} />
+              <Plus size={18} aria-hidden="true" />
               Adicionar dependente
-            </button>
+            </Button>
           </div>
         )}
 
@@ -632,12 +692,15 @@ function EmployeeForm() {
                 value={form.cnpj ?? ''}
                 onChange={(v) => {
                   const masked = maskCNPJ(v);
+                  ++cnpjRequest.current;
+                  setLookupStatus(previous => ({ ...previous, cnpj: '' }));
                   set('cnpj', masked);
                   if (masked.replace(/\D/g, '').length === 14) fetchCnpj(masked);
                 }}
                 placeholder="00.000.000/0000-00"
               />
             )}
+            {lookupStatus.cnpj && <p role="status" className="text-sm text-fg-sub sm:col-span-2">{lookupStatus.cnpj}</p>}
             {form.contractType === 'PJ' && (
               <>
                 <Field label="Razão social" value={form.legalName ?? ''} onChange={(v) => set('legalName', v)} />
@@ -646,44 +709,40 @@ function EmployeeForm() {
             )}
             <Select label="Permitir acesso ao painel" value={form.accessEnabled} onChange={(v) => set('accessEnabled', v as 'NO' | 'YES')} options={[{ value: 'NO', label: 'Não' }, { value: 'YES', label: 'Sim' }]} />
             <Select label="Perfil de acesso" value={form.accessProfile} onChange={(v) => set('accessProfile', v as EmployeeFormState['accessProfile'])} options={[{ value: 'FUNCIONARIO', label: 'Funcionário' }, { value: 'GESTOR', label: 'Gestor' }, { value: 'RH', label: 'RH' }, { value: 'ADMIN', label: 'Administrador' }, { value: 'CONSULTA', label: 'Consulta' }]} />
-            <p className="sm:col-span-2 rounded-[6px] border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-500">
-              O acesso ao painel será ligado ao módulo de usuários. Este cadastro já deixa os dados do colaborador prontos para vínculo.
+            <p className="sm:col-span-2 rounded-lg border border-border bg-bg-sub p-3 text-sm text-fg-sub">
+              O vínculo e a liberação de acesso são processados pelo servidor ao salvar e dependem da situação cadastral. Selecionar Sim ainda não confirma acesso criado.
             </p>
           </div>
         )}
 
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Link href={`/${tenant}/dashboard/employees`} className="btn btn-outline">Cancelar</Link>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={save.loading}
-            className="btn btn-primary"
-          >
-            <Save size={14} />
-            {save.loading ? 'Salvando...' : 'Salvar colaborador'}
-          </button>
+        </fieldset>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+          <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={TABS.indexOf(activeTab) === 0 || save.loading} onClick={() => setActiveTab(TABS[TABS.indexOf(activeTab) - 1])}>Seção anterior</Button><Button type="button" variant="outline" disabled={TABS.indexOf(activeTab) === 7 || save.loading} onClick={() => setActiveTab(TABS[TABS.indexOf(activeTab) + 1])}>Próxima seção</Button></div>
+          <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={save.loading} onClick={leave}>Cancelar</Button><Button type="submit" isLoading={save.loading}><Save size={18} aria-hidden="true" />{isEdit ? 'Salvar alterações' : 'Salvar funcionário'}</Button></div>
         </div>
-      </section>
-      </div>
+      </form>
+      <ConfirmDialog isOpen={leaveOpen} onClose={() => setLeaveOpen(false)} onConfirm={() => router.push(destination)} title="Descartar alterações?" description="Os dados preenchidos ainda não foram salvos." confirmText="Descartar e voltar" cancelText="Continuar preenchendo" />
     </div>
   );
 }
 
 function Field({ label, value, onChange, type = 'text', placeholder, required }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string; required?: boolean }) {
+  const id = useId();
   return (
-    <label className="space-y-1 text-xs font-medium text-slate-600">
+    <label htmlFor={id} className="space-y-1 text-sm font-medium text-fg">
       <span>{label}{required && <span className="text-rose-500"> *</span>}</span>
-      <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="form-control" />
+      <input id={id} data-field={label} required={required} type={type} value={value} placeholder={placeholder} step={type === 'number' ? '0.01' : undefined} min={type === 'number' ? '0' : undefined} onChange={(e) => onChange(e.target.value)} className="input-v2 text-base sm:text-sm" />
     </label>
   );
 }
 
 function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: { value: string; label: string }[] }) {
+  const id = useId();
   return (
-    <label className="space-y-1 text-xs font-medium text-slate-600">
+    <label htmlFor={id} className="space-y-1 text-sm font-medium text-fg">
       <span>{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="form-control">
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className="input-v2 text-base sm:text-sm">
+        {value && !options.some(option => option.value === value) && <option value={value}>{value}</option>}
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>
@@ -692,10 +751,11 @@ function Select({ label, value, onChange, options }: { label: string; value: str
 
 function ManagerSelect({ employees, value, onChange, loading }: { employees: Employee[]; value: string; onChange: (value: string) => void; loading: boolean }) {
   return (
-    <label className="space-y-1 text-xs font-medium text-slate-600">
+    <label className="space-y-1 text-sm font-medium text-fg">
       <span>Gestor</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="form-control">
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="input-v2 text-base sm:text-sm">
         <option value="">{loading ? 'Carregando gestores...' : 'Sem gestor definido'}</option>
+        {value && !employees.some(employee => employee.id === value) && <option value={value}>Gestor vinculado ao cadastro</option>}
         {employees.map((employee) => <option key={employee.id} value={employee.id}>{normalizeDisplayName(employee.name)}</option>)}
       </select>
     </label>

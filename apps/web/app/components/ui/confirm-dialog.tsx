@@ -25,38 +25,43 @@ export function ConfirmDialog({
   variant = 'danger',
   isLoading = false
 }: ConfirmDialogProps) {
-  
+  const [pending, setPending] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const running = React.useRef(false);
+  React.useEffect(() => { if (isOpen) setError(null); }, [isOpen]);
+  const busy = isLoading || pending;
   const handleConfirm = async () => {
-    await onConfirm()
+    if (running.current || busy) return;
+    running.current = true;
+    setPending(true);
+    setError(null);
+    try { await onConfirm(); }
+    catch { setError('Não foi possível concluir. Tente novamente.'); }
+    finally { running.current = false; setPending(false); }
   }
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={isLoading ? () => {} : onClose}
+      onClose={busy ? () => {} : onClose}
+      title={title}
+      description={description}
       maxWidth="max-w-md"
     >
-      <div className="flex flex-col gap-2 pt-2">
-        <h2 className="text-xl font-bold tracking-tight text-zinc-900">{title}</h2>
-        {description && (
-          <p className="text-sm text-zinc-500 leading-relaxed">
-            {description}
-          </p>
-        )}
-      </div>
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
       <div className="mt-8 flex justify-end gap-3">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={onClose}
-          disabled={isLoading}
+          disabled={busy}
         >
           {cancelText}
         </Button>
-        <Button 
-          variant={variant} 
+        <Button
+          variant={variant}
           onClick={handleConfirm}
-          isLoading={isLoading}
+          isLoading={busy}
         >
           {confirmText}
         </Button>

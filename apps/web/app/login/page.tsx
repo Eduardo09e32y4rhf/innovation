@@ -1,145 +1,74 @@
 'use client';
 
-import { AuthLayout } from '@/app/components/auth/AuthLayout';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
+import { Button } from '@/app/components/ui/button';
+import { PageHeader } from '@/app/components/ui/page-header';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, logout, isAuthenticated, company, user } = useAuth();
-  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [didSubmit, setDidSubmit] = useState(false);
-
-  useEffect(() => {
-    // Se o usuário navegou até /login manualmente sem ter submetido o formulário, limpamos sessões antigas
-    if (!didSubmit && isAuthenticated) {
-      logout();
+  const [error, setError] = useState('');
+  const pending = useRef(false);
+  const slug = company?.slug || company?.id || user?.companyId;
+  const role = (user?.profile ?? user?.role ?? '').toUpperCase();
+  const mustPay = role !== 'DEV' && (user?.companyStatus === 'SUSPENDED' || user?.companyStatus === 'CANCELLED' || user?.billingStatus === 'CANCELED' || user?.billingStatus === 'PENDING_PAYMENT');
+  function destination() {
+    if (!slug) return '/login';
+    if (mustPay) return '/' + encodeURIComponent(slug) + '/fatura-pendente?autoCheckout=1';
+    const base = '/' + encodeURIComponent(slug);
+    const requested = new URLSearchParams(window.location.search).get('next') || new URLSearchParams(window.location.search).get('returnTo');
+    if (requested && !requested.includes('\\') && !/[\u0000-\u001f]/.test(requested)) {
+      try {
+        const url = new URL(requested, window.location.origin);
+        if (url.origin === window.location.origin && [base + '/dashboard', base + '/portal'].some(path => url.pathname === path || url.pathname.startsWith(path + '/')))
+          return url.pathname + url.search + url.hash;
+      } catch { /* Use the session destination. */ }
     }
+    return base + '/dashboard';
+  }
+  useEffect(() => {
+    if (didSubmit && isAuthenticated && company) router.replace(destination());
+    // The session decides the tenant and billing destination.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    // Só redirecionamos se o usuário tiver preenchido o form e clicado em "Acessar Plataforma"
-    if (didSubmit && isAuthenticated && company) {
-      const slug = (company as any).slug || company.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || company.id;
-      const isDev = user?.profile?.toUpperCase() === 'DEV' || user?.role?.toUpperCase() === 'DEV';
-      const mustPay =
-        !isDev &&
-        (user?.companyStatus === 'SUSPENDED' ||
-          user?.companyStatus === 'CANCELLED' ||
-          user?.billingStatus === 'CANCELED' ||
-          user?.billingStatus === 'PENDING_PAYMENT');
-      
-      router.push(mustPay ? `/${slug}/fatura-pendente?autoCheckout=1` : `/${slug}/dashboard`);
-    }
   }, [didSubmit, isAuthenticated, company, user, router]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error('Por favor, preencha o e-mail e a senha.');
-      return;
-    }
-
-    setLoading(true);
-    setDidSubmit(true);
-    try {
-      await login(email, password);
-      // O useEffect lidará com o redirecionamento assim que isAuthenticated for true
-    } catch (error: any) {
-      setDidSubmit(false);
-      toast.error(error.message || 'E-mail ou senha incorretos.');
-      setLoading(false);
-    }
-  };
-
-  return (
-    <AuthLayout 
-      title="Entrar na Plataforma" 
-      subtitle="Digite suas credenciais corporativas abaixo."
-      logoSize="lg"
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div>
-          <label className="block text-sm font-medium text-[var(--auth-text-secondary)] mb-1">E-mail corporativo</label>
-          <input 
-            type="email" 
-            placeholder="voce@empresa.com.br"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={loading}
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-[var(--auth-text-primary)] placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent-purple)] transition-all"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-[var(--auth-text-secondary)] mb-1">Senha</label>
-          <div className="relative">
-            <input 
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-[var(--auth-text-primary)] placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[var(--auth-accent-purple)] transition-all pr-12"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              disabled={loading}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors focus:outline-none"
-            >
-              {showPassword ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              )}
-            </button>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between mt-1 mb-4">
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--auth-text-secondary)]">
-            <input type="checkbox" className="rounded border-white/20 bg-white/10 text-[var(--auth-accent-purple)] focus:ring-[var(--auth-accent-purple)]" />
-            Lembrar-me
-          </label>
-          <Link href="/esqueci-senha" className="text-sm font-medium text-[var(--auth-accent-cyan)] hover:text-white transition-colors">
-            Esqueci a senha
-          </Link>
-        </div>
-
-        <button 
-          type="submit" 
-          disabled={loading}
-          className="w-full py-3 px-4 rounded-xl font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
-          style={{ background: 'linear-gradient(to right, var(--auth-accent-purple), var(--auth-accent-violet))' }}
-        >
-          {loading ? 'Entrando...' : 'Acessar Plataforma →'}
-        </button>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-[var(--auth-text-secondary)]">
-            Ainda não tem uma conta?{' '}
-            <Link href="/cadastro" className="font-medium text-[var(--auth-accent-cyan)] hover:text-white transition-colors">
-              Criar agora
-            </Link>
-          </p>
-          <p className="text-sm text-[var(--auth-text-secondary)] mt-2">
-            <Link href="/" className="hover:text-white transition-colors">
-              ← Voltar para o site
-            </Link>
-          </p>
-        </div>
-      </form>
-    </AuthLayout>
-  );
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (pending.current) return;
+    pending.current = true; setLoading(true); setError('');
+    try { setDidSubmit(true); await login(email.trim(), password); }
+    catch (cause) { setDidSubmit(false); setError(cause instanceof Error ? cause.message : 'Não foi possível entrar. Verifique os dados e tente novamente.'); }
+    finally { pending.current = false; setLoading(false); }
+  }
+  return <main className="flex min-h-screen items-center justify-center bg-bg px-4 py-8 text-fg">
+    <div className="card-v2 w-full max-w-md space-y-5 p-5 sm:p-8">
+      <Link className="text-lg font-semibold text-brand" href="/">Innovation RH</Link>
+      <PageHeader title="Entrar na Plataforma" subtitle="Informe seu e-mail e sua senha para acessar." />
+      {isAuthenticated && !didSubmit ? <section className="space-y-3"><p className="text-sm">Sessão ativa de {user?.name}.</p>
+        <Button type="button" className="w-full" onClick={() => router.replace(destination())}>Continuar sessão</Button>
+        <Button type="button" variant="outline" className="w-full" onClick={() => { logout(); setPassword(''); }}>Entrar com outra conta</Button></section>
+        : <form onSubmit={submit} className="space-y-4">
+          <label className="block space-y-1.5"><span className="text-sm font-medium">E-mail corporativo</span><input type="email" name="email" autoComplete="username" required disabled={loading} className="input-v2 min-h-11 text-base sm:text-sm" placeholder="voce@empresa.com.br" value={email} onChange={e => setEmail(e.target.value)} /></label>
+          <div><label htmlFor="login-password" className="mb-1.5 block text-sm font-medium">Senha</label><div className="relative">
+            <input id="login-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required disabled={loading} className="input-v2 min-h-11 pr-14 text-base sm:text-sm" value={password} onChange={e => setPassword(e.target.value)} />
+            <Button type="button" variant="icon" disabled={loading} aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={showPassword} aria-controls="login-password" className="absolute right-0 top-0 h-11 w-11" onClick={() => setShowPassword(current => !current)}>{showPassword ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}</Button>
+          </div></div>
+          <div className="space-y-2"><label className="flex min-h-11 items-center gap-2 text-sm text-fg-mut"><input type="checkbox" disabled aria-describedby="remember-help" className="h-5 w-5" />Lembrar-me</label>
+            <p id="remember-help" className="text-xs text-fg-mut">A duração da sessão segue a política atual da plataforma. Esta opção está indisponível.</p>
+            <Link href="/esqueci-senha" className="btn btn-ghost">Esqueci a senha</Link></div>
+          {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
+          <Button type="submit" isLoading={loading} className="w-full">Acessar plataforma</Button>
+        </form>}
+      <p className="text-sm text-fg-mut">Ainda não tem uma conta? <Link className="underline" href="/cadastro">Criar agora</Link></p>
+      <Link className="btn btn-ghost" href="/">Voltar para o site</Link>
+    </div>
+  </main>;
 }

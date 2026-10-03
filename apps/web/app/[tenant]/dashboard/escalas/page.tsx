@@ -15,11 +15,11 @@ import { LoadingState, ErrorState, EmptyState } from '@/app/components/data-stat
 import { cn } from '@/app/lib/cn';
 
 const PIPELINE_STEPS = [
-  { key: 'OPEN',      label: 'ApuraÃƒÂ§ÃƒÂ£o'   },
+  { key: 'OPEN',      label: 'ApuraÒ§Ò£o'   },
   { key: 'DRAFT',     label: 'Rascunho'   },
   { key: 'TREATMENT', label: 'Tratamento' },
-  { key: 'IN_REVIEW', label: 'RevisÃƒÂ£o'    },
-  { key: 'APPROVED',  label: 'AprovaÃƒÂ§ÃƒÂ£o'  },
+  { key: 'IN_REVIEW', label: 'RevisÒ£o'    },
+  { key: 'APPROVED',  label: 'AprovaÒ§Ò£o'  },
   { key: 'CLOSED',    label: 'Fechado'    },
 ];
 
@@ -69,9 +69,9 @@ export default function EscalasOverviewPage() {
       .map((o: any) => ({
         id: `occ-${o.id}`,
         type: 'occurrence',
-        title: 'OcorrÃƒÂªncia pendente',
-        description: o.reason || 'NÃƒÂ£o informado',
-        responsible: o.employeeName || 'NÃƒÂ£o informado',
+        title: 'OcorrÒªncia pendente',
+        description: o.reason || 'NÒ£o informado',
+        responsible: o.employeeName || 'NÒ£o informado',
         time: o.date || today,
         icon: AlertCircle,
         accent: 'warning' as const,
@@ -81,8 +81,8 @@ export default function EscalasOverviewPage() {
       id: `swap-${s.id}`,
       type: 'swap',
       title: 'Troca de escala',
-      description: 'Aguardando aprovaÃƒÂ§ÃƒÂ£o do gestor',
-      responsible: s.requesterName || 'NÃƒÂ£o informado',
+      description: 'Aguardando aprovaÒ§Ò£o do gestor',
+      responsible: s.requesterName || 'NÒ£o informado',
       time: s.createdAt?.split('T')[0] || today,
       icon: RefreshCw,
       accent: 'info' as const,
@@ -92,8 +92,8 @@ export default function EscalasOverviewPage() {
       id: `track-${pt.id}`,
       type: 'track',
       title: 'Ponto pendente',
-      description: 'Requer aprovaÃƒÂ§ÃƒÂ£o',
-      responsible: pt.employeeName || 'NÃƒÂ£o informado',
+      description: 'Requer aprovaÒ§Ò£o',
+      responsible: pt.employeeName || 'NÒ£o informado',
       time: pt.date || today,
       icon: UserCheck,
       accent: 'brand' as const,
@@ -104,17 +104,17 @@ export default function EscalasOverviewPage() {
       .slice(0, 5);
   }, [occurrences, swaps, pendingTracks, tenant, today]);
 
-  let ctaText = 'Ver CalendÃƒÂ¡rio';
+  let ctaText = 'Ver CalendÒ¡rio';
   let ctaLink = `/${tenant}/dashboard/escalas/calendario`;
   if (role === 'FUNCIONARIO') ctaText = 'Bater Ponto', ctaLink = `/${tenant}/dashboard/escalas/ponto`;
-  else if (role === 'GESTOR') ctaText = 'Aprovar PendÃƒÂªncias', ctaLink = `/${tenant}/dashboard/escalas/ocorrencias`;
+  else if (role === 'GESTOR') ctaText = 'Aprovar PendÒªncias', ctaLink = `/${tenant}/dashboard/escalas/ocorrencias`;
   else if (['ADMIN', 'RH', 'DEV'].includes(role)) ctaText = 'Preparar Fechamento', ctaLink = `/${tenant}/dashboard/escalas/fechamento`;
 
   let currentStepIndex = PIPELINE_STEPS.findIndex((s) => s.key === stats.closingStatus);
   if (currentStepIndex === -1) currentStepIndex = 0;
 
-  if (isLoading) return <LoadingState label="Carregando visÃƒÂ£o geral..." />;
-  if (isError)   return <ErrorState message="Erro ao carregar dados da visÃƒÂ£o geral." />;
+  if (isLoading) return <LoadingState label="Carregando visÒ£o geral..." />;
+  if (isError)   return <ErrorState message="Erro ao carregar dados da visÒ£o geral." />;
 
   return (
     <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)] flex flex-col gap-5">
@@ -125,7 +125,7 @@ export default function EscalasOverviewPage() {
         className="card-v2 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <p className="text-sm font-medium text-fg-mut">
-          Acompanhe em tempo real o status da jornada e as pendÃƒÂªncias da competÃƒÂªncia{' '}
+          Acompanhe em tempo real o status da jornada e as pendÒªncias da competÒªncia{' '}
           <span className="font-black text-fg">{currentMonth}</span>.
         </p>
         <button
@@ -141,13 +141,13 @@ export default function EscalasOverviewPage() {
       <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <KpiTile delay={0.02} title="Colaboradores"   value={stats.totalEmployees}       icon={Users}      accent="info"    hint="Total ativos na escala" />
         <KpiTile delay={0.06} title="Presentes hoje"  value={stats.presentTodayCount}    icon={UserCheck}  accent="success" hint="Com registro hoje" />
-        <KpiTile delay={0.10} title="AusÃƒÂªncias"       value={stats.absencesCount}        icon={UserMinus}  accent="danger"  hint="Sem registro hoje" />
-        <KpiTile delay={0.14} title="OcorrÃƒÂªncias"     value={stats.pendingOccurrences}   icon={AlertCircle} accent="warning" hint="Aguardando tratamento" />
-        <KpiTile delay={0.18} title="Trocas"          value={stats.pendingSwaps}         icon={RefreshCw}  accent="info"    hint="Aguardando aprovaÃƒÂ§ÃƒÂ£o" />
-        <KpiTile delay={0.22} title="CompetÃƒÂªncia"     value={PIPELINE_STEPS[currentStepIndex]?.label || 'Aberta'} icon={FileText} accent="brand" hint="Status do fechamento" small />
+        <KpiTile delay={0.10} title="AusÒªncias"       value={stats.absencesCount}        icon={UserMinus}  accent="danger"  hint="Sem registro hoje" />
+        <KpiTile delay={0.14} title="OcorrÒªncias"     value={stats.pendingOccurrences}   icon={AlertCircle} accent="warning" hint="Aguardando tratamento" />
+        <KpiTile delay={0.18} title="Trocas"          value={stats.pendingSwaps}         icon={RefreshCw}  accent="info"    hint="Aguardando aprovaÒ§Ò£o" />
+        <KpiTile delay={0.22} title="CompetÒªncia"     value={PIPELINE_STEPS[currentStepIndex]?.label || 'Aberta'} icon={FileText} accent="brand" hint="Status do fechamento" small />
       </section>
 
-      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Pipeline + Lista de atenÃƒÂ§ÃƒÂ£o Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Pipeline + Lista de atenÒ§Ò£o Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Pipeline */}
         <motion.div
@@ -197,7 +197,7 @@ export default function EscalasOverviewPage() {
           </div>
         </motion.div>
 
-        {/* Lista de atenÃƒÂ§ÃƒÂ£o */}
+        {/* Lista de atenÒ§Ò£o */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -206,7 +206,7 @@ export default function EscalasOverviewPage() {
         >
           <div className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
             <h3 className="text-sm font-black tracking-tight text-fg">
-              Lista de atenÃƒÂ§ÃƒÂ£o
+              Lista de atenÒ§Ò£o
             </h3>
             <Link
               href={`/${tenant}/dashboard/escalas/ocorrencias`}
@@ -219,7 +219,7 @@ export default function EscalasOverviewPage() {
           <div className="flex-1 overflow-y-auto">
             {attentionItems.length === 0 ? (
               <div className="p-8">
-                <EmptyState message="Nenhuma pendÃƒÂªncia crÃƒÂ­tica requer sua atenÃƒÂ§ÃƒÂ£o no momento." />
+                <EmptyState message="Nenhuma pendÒªncia crÒ­tica requer sua atenÒ§Ò£o no momento." />
               </div>
             ) : (
               <ul className="divide-y divide-border/50">
@@ -264,9 +264,9 @@ export default function EscalasOverviewPage() {
   );
 }
 
-/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+/* â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢
    COMPONENTES INTERNOS
-   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
+   â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢â⬢ */
 
 function KpiTile({
   title, value, icon: Icon, accent = 'brand', hint, delay = 0, small = false,

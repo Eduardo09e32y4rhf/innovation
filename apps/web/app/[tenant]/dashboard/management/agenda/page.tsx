@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/app/components/ui/button';
+
 import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery, useMutation } from '@/app/hooks/use-data';
@@ -90,19 +92,19 @@ export default function AgendaPage() {
 
   useEffect(() => {
     if (!canView || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
-    
+
     const events = [...(columns.TODAY || []), ...(columns.OVERDUE || [])];
     const pendingEvents = events.filter((e: any) => e.status === 'PENDENTE' && e.startDateTime);
-    
+
     const checkAndNotify = () => {
       const notified = JSON.parse(window.localStorage.getItem('agenda-notified') || '{}');
       const now = new Date().getTime();
       let changed = false;
-      
+
       pendingEvents.forEach((evt: any) => {
         const startTime = new Date(evt.startDateTime).getTime();
         const diffMinutes = (startTime - now) / 60000;
-        
+
         const notify = (keySuffix: string, title: string, body: string) => {
           const key = `${evt.id}-${keySuffix}`;
           if (!notified[key]) {
@@ -117,7 +119,7 @@ export default function AgendaPage() {
         else if (diffMinutes <= 0 && diffMinutes > -1) notify('0m', 'Compromisso agora', evt.title);
         else if (diffMinutes <= -5 && diffMinutes > -6) notify('late', 'Compromisso atrasado', evt.title);
       });
-      
+
       if (changed) window.localStorage.setItem('agenda-notified', JSON.stringify(notified));
     };
 
@@ -132,15 +134,15 @@ export default function AgendaPage() {
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="stat-card">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Agenda em aberto</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">
+        <div className="card-v2 p-4">
+          <p className="text-xs font-semibold r text-slate-500">Agenda em aberto</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-950">
             {(columns.OVERDUE?.length || 0) + (columns.TODAY?.length || 0) + (columns.THIS_WEEK?.length || 0) + (columns.UPCOMING?.length || 0)}
           </p>
         </div>
-        <div className="stat-card">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Compromissos concluídos</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">{columns.COMPLETED?.length || 0}</p>
+        <div className="card-v2 p-4">
+          <p className="text-xs font-semibold r text-slate-500">Compromissos concluídos</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-950">{columns.COMPLETED?.length || 0}</p>
         </div>
       </div>
 
@@ -208,7 +210,7 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
   const monthName = currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-  
+
   const allEvents = Object.values(columns).flat().filter((ev: any) => {
     if (filterStatus && ev.status !== filterStatus) return false;
     if (filterType && ev.eventType !== filterType) return false;
@@ -220,28 +222,28 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         {canManage && (
-          <button onClick={() => onOpenForm(undefined)} disabled={saving} className="btn-primary inline-flex h-10 items-center gap-2 px-4 text-xs">
+          <Button variant="primary" type="button" onClick={() => onOpenForm(undefined)} disabled={saving} className=" inline-flex items-center gap-2 px-4 text-xs">
             + NOVO COMPROMISSO
-          </button>
+          </Button>
         )}
         <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
-          <button onClick={() => setViewMode('calendar')} className={`rounded-lg px-4 py-2 text-[10px] font-black uppercase transition-colors ${viewMode === 'calendar' ? 'bg-white shadow-sm text-[var(--color-brand)]' : 'text-slate-500 hover:text-slate-700'}`}>
+          <Button variant="ghost" type="button" onClick={() => setViewMode('calendar')} className={`rounded-lg px-4 py-2 text-xs font-semibold transition-colors ${viewMode === 'calendar' ? 'bg-white shadow-sm text-[var(--color-brand)]' : 'text-slate-500 hover:text-slate-700'}`}>
             CALENDÁRIO
-          </button>
-          <button onClick={() => setViewMode('kanban')} className={`rounded-lg px-4 py-2 text-[10px] font-black uppercase transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm text-[var(--color-brand)]' : 'text-slate-500 hover:text-slate-700'}`}>
+          </Button>
+          <Button variant="ghost" type="button" onClick={() => setViewMode('kanban')} className={`rounded-lg px-4 py-2 text-xs font-semibold transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm text-[var(--color-brand)]' : 'text-slate-500 hover:text-slate-700'}`}>
             KANBAN
-          </button>
+          </Button>
         </div>
       </div>
-      
+
       <div className="flex flex-wrap gap-2">
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="form-control">
+        <select aria-label="Filtrar por status" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-v2">
           <option value="">TODOS STATUS</option>{EVENT_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
-        <select value={filterType} onChange={e => setFilterType(e.target.value)} className="form-control">
+        <select aria-label="Filtrar por tipo" value={filterType} onChange={e => setFilterType(e.target.value)} className="input-v2">
           <option value="">TODOS TIPOS</option>{EVENT_TYPES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
-        <select value={filterEmp} onChange={e => setFilterEmp(e.target.value)} className="form-control">
+        <select aria-label="Filtrar por funcion?rio" value={filterEmp} onChange={e => setFilterEmp(e.target.value)} className="input-v2">
           <option value="">TODOS FUNCIONÁRIOS</option>{employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
         </select>
       </div>
@@ -249,18 +251,18 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
       {viewMode === 'calendar' ? (
         <div className="surface">
           <div className="flex items-center justify-between border-b border-slate-100 p-4">
-            <h4 className="text-sm font-black text-slate-900 capitalize">{monthName}</h4>
+            <h4 className="text-sm font-semibold text-slate-900 capitalize">{monthName}</h4>
             <div className="flex gap-2">
-              <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="btn-outline h-8 w-8 !p-0 flex items-center justify-center">
+              <Button variant="outline" type="button" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className=" !p-0 flex items-center justify-center">
                 &lt;
-              </button>
-              <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="btn-outline h-8 w-8 !p-0 flex items-center justify-center">
+              </Button>
+              <Button variant="outline" type="button" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className=" !p-0 flex items-center justify-center">
                 &gt;
-              </button>
+              </Button>
             </div>
           </div>
           <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
-            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => <div key={d} className="px-2 py-3 text-center text-[10px] font-black uppercase text-slate-500">{d}</div>)}
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => <div key={d} className="px-2 py-3 text-center text-xs font-semibold text-slate-500">{d}</div>)}
           </div>
           <div className="grid grid-cols-7 auto-rows-fr">
             {Array.from({ length: firstDayOfMonth }).map((_, i) => (
@@ -272,10 +274,10 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
               const dayEvents = allEvents.filter(e => e.startDateTime && e.startDateTime.startsWith(dateStr));
               return (
                 <div key={day} onClick={() => onOpenForm({ startDateTime: `${dateStr}T09:00:00Z` } as any)} className="group relative min-h-[100px] border-b border-r border-slate-100 p-2 hover:bg-slate-50 cursor-pointer">
-                  <span className={`text-[11px] font-black ${day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() ? 'flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand)] text-white' : 'text-slate-600'}`}>{day}</span>
+                  <span className={`text-xs font-semibold ${day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() ? 'flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand)] text-white' : 'text-slate-600'}`}>{day}</span>
                   <div className="mt-1 flex flex-col gap-1">
                     {dayEvents.map(e => (
-                      <div key={e.id} onClick={(ev) => { ev.stopPropagation(); onOpenForm(e); }} className={`truncate rounded px-1.5 py-1 text-[9px] font-bold text-white shadow-sm ${e.status === 'CONCLUIDO' ? 'bg-emerald-500' : 'bg-[var(--color-brand)]'}`}>
+                      <div key={e.id} onClick={(ev) => { ev.stopPropagation(); onOpenForm(e); }} className={`truncate rounded px-1.5 py-1 text-xs font-bold text-white shadow-sm ${e.status === 'CONCLUIDO' ? 'bg-emerald-500' : 'bg-[var(--color-brand)]'}`}>
                         {e.title}
                       </div>
                     ))}
@@ -297,28 +299,28 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
             return (
               <div key={key} className="min-h-[200px] rounded-[16px] border border-slate-200 bg-slate-50 p-2 shadow-inner">
                 <div className="mb-3 flex items-center justify-between px-2">
-                  <p className="text-[11px] font-black uppercase tracking-wider text-slate-700">{colLabels[key]}</p>
-                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-black text-slate-700">{items.length}</span>
+                  <p className="text-xs font-semibold r text-slate-700">{colLabels[key]}</p>
+                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">{items.length}</span>
                 </div>
                 <div className="space-y-3">
                   {items.length === 0 && <p className="px-1 py-4 text-center text-xs font-semibold text-slate-400">Nenhum evento</p>}
                   {items.map((ev: any) => (
                     <div key={ev.id} className="surface flex flex-col gap-2 p-3">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-black text-slate-950">{ev.title}</p>
-                        <span className={`inline-flex rounded-[5px] border px-1.5 py-0.5 text-[9px] font-black ${getStatusBadge(ev.status).cls}`}>{getStatusBadge(ev.status).label}</span>
+                        <p className="text-xs font-semibold text-slate-950">{ev.title}</p>
+                        <span className={`inline-flex rounded-[5px] border px-1.5 py-0.5 text-xs font-semibold ${getStatusBadge(ev.status).cls}`}>{getStatusBadge(ev.status).label}</span>
                       </div>
-                      <p className="text-[11px] font-bold text-slate-700">{fmtDateTime(ev.startDateTime)}</p>
-                      <div className="space-y-1 text-[10px] font-semibold text-slate-600 bg-slate-50 p-2 rounded-lg">
-                        <p><span className="text-slate-400 uppercase">Func:</span> {empName(ev.employeeId)}</p>
-                        <p><span className="text-slate-400 uppercase">Tipo:</span> {ev.eventType}</p>
+                      <p className="text-xs font-bold text-slate-700">{fmtDateTime(ev.startDateTime)}</p>
+                      <div className="space-y-1 text-xs font-semibold text-slate-600 bg-slate-50 p-2 rounded-lg">
+                        <p><span className="text-slate-400 ">Func:</span> {empName(ev.employeeId)}</p>
+                        <p><span className="text-slate-400 ">Tipo:</span> {ev.eventType}</p>
                       </div>
                       <div className="mt-1 flex flex-wrap gap-2">
-                        <button onClick={() => onOpenForm(ev)} disabled={saving} className="btn-outline h-7 px-2 text-[10px] font-bold">Editar</button>
+                        <Button variant="outline" type="button" onClick={() => onOpenForm(ev)} disabled={saving} className=" px-2 text-xs font-bold">Editar</Button>
                         {ev.status !== 'CONCLUIDO' && canManage && (
-                          <button onClick={() => onSave({ status: 'CONCLUIDO' }, ev.id)} disabled={saving} className="btn-primary h-7 px-2 text-[10px] flex items-center gap-1"><Check size={12}/> Concluir</button>
+                          <Button variant="primary" type="button" onClick={() => onSave({ status: 'CONCLUIDO' }, ev.id)} disabled={saving} className=" px-2 text-xs flex items-center gap-1"><Check size={12}/> Concluir</Button>
                         )}
-                        {canManage && <button onClick={() => onDelete(ev.id)} disabled={saving} className="btn-danger h-7 px-2 text-[10px] flex items-center gap-1"><XCircle size={12}/></button>}
+                        {canManage && <Button variant="danger" type="button" onClick={() => onDelete(ev.id)} disabled={saving} className=" px-2 text-xs flex items-center gap-1"><XCircle size={12}/></Button>}
                       </div>
                     </div>
                   ))}
@@ -373,58 +375,58 @@ function EventModal({ event, employees, onClose, onSave, saving }: {
   };
 
   return (
-    <Drawer 
-      isOpen={true} 
-      onClose={onClose} 
+    <Drawer
+      isOpen={true}
+      onClose={onClose}
       title={event ? 'Editar Compromisso' : 'Novo Compromisso'}
       maxWidth="max-w-xl"
     >
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="form-group sm:col-span-2">
             <span className="text-sm font-semibold text-zinc-700">Título *</span>
-            <input value={title} onChange={e => setTitle(e.target.value)} className="form-control" />
+            <input value={title} onChange={e => setTitle(e.target.value)} className="input-v2" />
           </label>
           <label className="form-group">
             <span className="text-sm font-semibold text-zinc-700">Tipo *</span>
-            <select value={eventType} onChange={e => setEventType(e.target.value as EventType)} className="form-control">
+            <select value={eventType} onChange={e => setEventType(e.target.value as EventType)} className="input-v2">
               {EVENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </label>
           <label className="form-group">
             <span className="text-sm font-semibold text-zinc-700">Status *</span>
-            <select value={status} onChange={e => setStatus(e.target.value as EventStatus)} className="form-control">
+            <select value={status} onChange={e => setStatus(e.target.value as EventStatus)} className="input-v2">
               {EVENT_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </label>
           <label className="form-group">
             <span className="text-sm font-semibold text-zinc-700">Prioridade *</span>
-            <select value={priority} onChange={e => setPriority(e.target.value as EventPriority)} className="form-control">
+            <select value={priority} onChange={e => setPriority(e.target.value as EventPriority)} className="input-v2">
               {EVENT_PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
           </label>
           <label className="form-group">
             <span className="text-sm font-semibold text-zinc-700">Início *</span>
-            <input type="datetime-local" value={start} onChange={e => setStart(e.target.value)} className="form-control" />
+            <input type="datetime-local" value={start} onChange={e => setStart(e.target.value)} className="input-v2" />
           </label>
           <label className="form-group">
             <span className="text-sm font-semibold text-zinc-700">Fim</span>
-            <input type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} className="form-control" />
+            <input type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} className="input-v2" />
           </label>
           <label className="form-group sm:col-span-2">
             <span className="text-sm font-semibold text-zinc-700">Funcionário Vinculado</span>
-            <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="form-control">
+            <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="input-v2">
               <option value="">Nenhum...</option>
               {employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
             </select>
           </label>
           <label className="form-group sm:col-span-2">
             <span className="text-sm font-semibold text-zinc-700">Descrição</span>
-            <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} className="form-textarea resize-none" />
+            <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} className="input-v2 resize-none" />
           </label>
         </div>
         <div className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-6">
-          <button onClick={onClose} className="btn btn-outline px-6">Cancelar</button>
-          <button onClick={save} disabled={!ok || saving} className="btn btn-primary px-6 disabled:opacity-60">{saving ? 'Salvando...' : 'Salvar Compromisso'}</button>
+          <Button variant="outline" type="button" onClick={onClose} className=" px-6">Cancelar</Button>
+          <Button variant="primary" type="button" onClick={save} disabled={!ok || saving} className=" px-6 disabled:opacity-60">{saving ? 'Salvando...' : 'Salvar Compromisso'}</Button>
         </div>
     </Drawer>
   );

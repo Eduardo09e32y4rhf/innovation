@@ -1,174 +1,74 @@
 import { ROLE_LABEL } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { UserActionsMenu } from './user-actions-menu';
+import { userAccessPolicy } from './access-policy';
 import type { AppUser } from '@/app/lib/api';
 
 interface UsersTableProps {
-  rows: AppUser[];
-  currentRole?: string;
-  showCompanyColumn?: boolean;
+  rows: AppUser[]; currentRole?: string; currentUserId?: string; showCompanyColumn?: boolean;
   canManageRow: (currentRole?: string, targetRole?: string) => boolean;
-  onEdit: (user: AppUser) => void;
-  onResetPassword: (user: AppUser) => void;
-  onToggleBlock: (user: AppUser) => void;
-  onDownloadTerm: (user: AppUser) => void;
-  onHistory: (user: AppUser) => void;
-  onDelete: (user: AppUser) => void;
+  onEdit: (user: AppUser) => void; onResetPassword: (user: AppUser) => void;
+  onToggleBlock: (user: AppUser) => void; onDownloadTerm: (user: AppUser) => void;
+  onHistory: (user: AppUser) => void; onDelete: (user: AppUser) => void;
 }
-
-function getInitials(name?: string, email?: string) {
-  const source = (name?.trim() || email?.split('@')[0] || 'US').trim();
-  const parts = source.split(/\s+/).filter(Boolean);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+function lastAccess(value?: string | null) {
+  return value ? new Date(value).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'Nunca acessou';
 }
-
-function formatLastActive(dateString?: string | null) {
-  if (!dateString) return 'Nunca acessou';
-  
-  const date = new Date(dateString);
-  const now = new Date();
-  
-  const isToday =
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear();
-    
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const isYesterday =
-    date.getDate() === yesterday.getDate() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getFullYear() === yesterday.getFullYear();
-
-  const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-  if (isToday) return `Hoje, ${time}`;
-  if (isYesterday) return `Ontem, ${time}`;
-
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-
-  return `${day}/${month}/${year}, ${time}`;
+function UserStatus({ user }: { user: AppUser }) {
+  return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${user.isActive === false ? 'bg-rose-50 text-rose-700' : user.forcePasswordChange ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-700'}`}>
+    {user.isActive === false ? 'Bloqueado' : user.forcePasswordChange ? 'Troca pendente' : 'Ativo'}
+  </span>;
 }
-
-export function UsersTable({
-  rows,
-  currentRole,
-  showCompanyColumn = false,
-  canManageRow,
-  onEdit,
-  onResetPassword,
-  onToggleBlock,
-  onDownloadTerm,
-  onHistory,
-  onDelete,
-}: UsersTableProps) {
-  return (
-    <div className="card-v2 overflow-hidden">
-      <div className="overflow-x-auto p-5">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b border-border text-[11px] font-medium text-fg-mut">
-              <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Usuário</th>
-              {showCompanyColumn && (
-                <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Empresa</th>
-              )}
-              <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Perfil</th>
-              <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Status</th>
-              <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Último acesso</th>
-              <th className="pb-3 font-semibold uppercase tracking-wider">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((user) => {
-              const allowed = canManageRow(currentRole, user.role);
-              const initials = getInitials(user.name, user.email);
-              const isBlocked = user.isActive === false;
-              const isPending = user.forcePasswordChange;
-
-              let statusStyles = 'border-emerald-200 bg-emerald-50 text-emerald-700';
-              let statusText = 'Ativo';
-
-              if (isBlocked) {
-                statusStyles = 'border-rose-200 bg-rose-50 text-rose-700';
-                statusText = 'Bloqueado';
-              } else if (isPending) {
-                statusStyles = 'border-amber-200 bg-amber-50 text-amber-700';
-                statusText = 'Troca pendente';
-              }
-
-              return (
-                <tr
-                  key={user.id}
-                  className="group cursor-pointer border-b border-border/70 text-xs transition-colors hover:bg-bg-sub last:border-0"
-                  onClick={(e) => {
-                    // Prevenir clique na linha se o clique for nos botões de ação
-                    if ((e.target as HTMLElement).closest('button')) return;
-                    onEdit(user);
-                  }}
-                >
-                  <td className="py-3 pr-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-bg-sub text-[11px] font-black text-fg-mut">
-                        {initials}
-                      </div>
-                      <div>
-                        <p className="font-bold text-fg">
-                          {normalizeDisplayName(user.name)}
-                        </p>
-                        <p className="text-[11px] text-fg-mut">
-                          {user.employee?.registration
-                            ? `Matrícula ${user.employee.registration}`
-                            : 'Sem funcionário vinculado'}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {showCompanyColumn && (
-                    <td className="py-3 pr-4 font-medium text-fg-mut">
-                      {user.company?.name ?? '-'}
-                    </td>
-                  )}
-
-                  <td className="py-3 pr-4">
-                    <span className="chip inline-flex px-2 py-1 text-[10px] font-black uppercase">
-                      {ROLE_LABEL[user.role] ?? user.role}
-                    </span>
-                  </td>
-
-                  <td className="py-3 pr-4">
-                    <span
-                      className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-black uppercase ${statusStyles}`}
-                    >
-                      {statusText}
-                    </span>
-                  </td>
-
-                  <td className="py-3 pr-4 font-medium text-fg-mut">
-                    {formatLastActive(user.lastActiveAt)}
-                  </td>
-
-                  <td className="py-3">
-                    <UserActionsMenu
-                      user={user}
-                      canManage={allowed}
-                      onEdit={onEdit}
-                      onResetPassword={onResetPassword}
-                      onToggleBlock={onToggleBlock}
-                      onDownloadTerm={onDownloadTerm}
-                      onHistory={onHistory}
-                      onDelete={onDelete}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
+export function UsersTable({ rows, currentRole, currentUserId, showCompanyColumn = false, canManageRow,
+  onEdit, onResetPassword, onToggleBlock, onDownloadTerm, onHistory, onDelete }: UsersTableProps) {
+  function actions(user: AppUser) {
+    const policy = userAccessPolicy(currentRole, currentUserId, user);
+    return <UserActionsMenu user={user} canManage={policy.edit && canManageRow(currentRole, user.role)} canRead={policy.read}
+      canReset={policy.reset} canBlock={policy.block} canDelete={policy.delete} canDownload={policy.download}
+      onEdit={onEdit} onResetPassword={onResetPassword} onToggleBlock={onToggleBlock}
+      onDownloadTerm={onDownloadTerm} onHistory={onHistory} onDelete={onDelete} />;
+  }
+  function identity(user: AppUser) {
+    const policy = userAccessPolicy(currentRole, currentUserId, user);
+    return <div className="min-w-0">
+      <button type="button" disabled={!policy.read} onClick={() => onEdit(user)}
+        className="min-h-11 text-left text-sm font-semibold text-fg underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2">
+        {normalizeDisplayName(user.name)}
+      </button>
+      <p className="break-all text-sm text-fg-mut">{user.email}</p>
+      <p className="mt-1 text-xs text-fg-mut">{user.employee ? `${user.employee.name} · Matrícula ${user.employee.registration || 'não informada'}` : 'Sem funcionário vinculado'}</p>
+    </div>;
+  }
+  return <>
+    <ul className="grid gap-3 lg:hidden" aria-label="Usuários encontrados">
+      {rows.map(user => <li key={user.id} className="card-v2 min-w-0 space-y-4 p-4">
+        {identity(user)}
+        <div className="flex flex-wrap items-center gap-2"><span className="text-sm text-fg">{ROLE_LABEL[user.role] ?? user.role}</span><UserStatus user={user} /></div>
+        <dl className="space-y-2 text-sm text-fg-mut">
+          {showCompanyColumn && <div><dt className="font-medium">Empresa</dt><dd className="break-words">{user.company?.name ?? 'Não informada'}</dd></div>}
+          <div><dt className="font-medium">Último acesso</dt><dd>{lastAccess(user.lastActiveAt)}</dd></div>
+        </dl>
+        {actions(user)}
+      </li>)}
+    </ul>
+    <div className="card-v2 hidden lg:block">
+      <div role="region" aria-label="Tabela de usuários" tabIndex={0} className="overflow-x-auto p-4">
+        <table className="w-full min-w-[900px] text-left text-sm">
+          <caption className="sr-only">Usuários, perfis, situação e ações permitidas</caption>
+          <thead><tr className="border-b border-border text-fg-mut">
+            <th scope="col" className="px-3 py-3 font-medium">Usuário e vínculo</th>
+            {showCompanyColumn && <th scope="col" className="px-3 py-3 font-medium">Empresa</th>}
+            <th scope="col" className="px-3 py-3 font-medium">Perfil</th><th scope="col" className="px-3 py-3 font-medium">Situação</th>
+            <th scope="col" className="px-3 py-3 font-medium">Último acesso</th><th scope="col" className="px-3 py-3 font-medium">Ações</th>
+          </tr></thead>
+          <tbody>{rows.map(user => <tr key={user.id} className="border-b border-border last:border-0">
+            <td className="px-3 py-4">{identity(user)}</td>
+            {showCompanyColumn && <td className="px-3 py-4">{user.company?.name ?? 'Não informada'}</td>}
+            <td className="px-3 py-4">{ROLE_LABEL[user.role] ?? user.role}</td><td className="px-3 py-4"><UserStatus user={user} /></td>
+            <td className="px-3 py-4">{lastAccess(user.lastActiveAt)}</td><td className="px-3 py-4">{actions(user)}</td>
+          </tr>)}</tbody>
         </table>
       </div>
     </div>
-  );
+  </>;
 }

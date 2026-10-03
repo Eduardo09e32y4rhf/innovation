@@ -1,0 +1,38 @@
+.surface {
+  min-width: 0;
+  color: var(--fg, #101828);
+  font-size: 14px;
+}
+
+.surface :global(.page-header) { margin-bottom: 20px; }
+.surface :global(.page-title) { font-size: clamp(22px, 2vw, 28px); font-weight: 600; }
+.surface :is(h2, h3, h4) { font-weight: 600; }
+.surface :is(input, select, textarea) { max-width: 100%; min-width: 0; }
+.surface :is(button, a):focus-visible { outline: 3px solid #8b00c5; outline-offset: 3px; }
+.surface :global(.tab-bar) { display: flex; flex-wrap: wrap; gap: 8px; }
+.surface :global(.tab-item), .surface :global(.tab-item-active) { min-height: 44px; }
+.surface :global(.card-stat-label) { font-size: 13px; text-transform: none; letter-spacing: normal; }
+.surface :global(.card-stat-value) { font-size: 28px; font-weight: 600; }
+.surface table { width: 100%; }
+.surface th { font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: normal; }
+.surface td { font-size: 14px; }
+.surface :global(.modal) { max-height: calc(100dvh - 32px); overflow-y: auto; }
+.surface :global(.drawer) { max-height: 100dvh; }
+
+@media (max-width: 767px) {
+  .surface :global(.input-v2) { font-size: 16px; min-height: 44px; }
+  .surface :global(.page-actions) { width: 100%; flex-wrap: wrap; }
+  .surface :global(.page-actions) > * { flex: 1 1 auto; }
+  .records table, .records tbody, .records tr, .records td { display: block; min-width: 0; width: 100%; }
+  .records thead { display: none; }
+  .records tr { padding: 16px; border-bottom: 1px solid #dce2ec; }
+  .records td { padding: 6px 0; text-align: left; white-space: normal; }
+  .records td::before { content: attr(data-label); display: block; font-size: 12px; font-weight: 600; color: #475467; margin-bottom: 4px; }
+  .records td > :global(.absolute) { display: none; }
+  .records td :global(.whitespace-nowrap) { white-space: normal; flex-wrap: wrap; }
+  .records td :global(.items-end) { align-items: stretch; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

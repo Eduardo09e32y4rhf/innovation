@@ -280,6 +280,10 @@ export async function getPublicJob(companyId: string, jobId: string): Promise<Pu
     throw new CareersApiError(404, 'Esta vaga não está disponível para candidaturas.');
   }
 
+  if (job.companyId !== companyId && job.company?.slug !== companyId) {
+    throw new CareersApiError(404, 'Esta vaga não pertence à empresa informada.');
+  }
+
   return job;
 }
 

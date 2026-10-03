@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/app/components/ui/button';
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
@@ -27,7 +29,7 @@ export default function OcorrenciasPage() {
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, any>>({});
-  
+
   const [form, setForm] = useState({
     employeeId: user?.id || '',
     type: 'MEDICAL_CERTIFICATE',
@@ -49,13 +51,13 @@ export default function OcorrenciasPage() {
     () => isAdminOrRhOrGestor ? api.timeOccurrences.list() : api.timeOccurrences.listByEmployee(user?.id || ''),
     ['occurrences', tenant]
   );
-  
+
   const rawOccurrences = (occurrencesData || []) as any[];
   const occurrences = rawOccurrences.map(o => optimisticUpdates[o.id] ? { ...o, ...optimisticUpdates[o.id] } : o);
 
   const approveMutation = useMutation(
     (id: string) => api.timeOccurrences.approve(id),
-    { 
+    {
       onSuccess: (_, id) => {
         setOptimisticUpdates(prev => ({ ...prev, [id]: { status: 'APPROVED' } }));
         refetch();
@@ -65,7 +67,7 @@ export default function OcorrenciasPage() {
 
   const rejectMutation = useMutation(
     (id: string) => api.timeOccurrences.reject(id),
-    { 
+    {
       onSuccess: (_, id) => {
         setOptimisticUpdates(prev => ({ ...prev, [id]: { status: 'REJECTED' } }));
         refetch();
@@ -110,55 +112,55 @@ export default function OcorrenciasPage() {
           <h1 className="page-title">Ocorrências</h1>
           <p className="page-subtitle">Gerenciamento de justificativas, atestados e ajustes</p>
         </div>
-        <button 
+        <Button variant="primary" type="button"
           onClick={() => setIsModalOpen(true)}
-          className="btn-nubank flex items-center gap-2 mt-4 md:mt-0"
+          className=" flex items-center gap-2 mt-4 md:mt-0"
         >
           <Plus size={18} />
           <span>Nova Ocorrência</span>
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="card-stat border-l-4 border-yellow-400">
+        <div className="card-v2 p-4 border-l-4 border-yellow-400">
           <p className="card-stat-label">Total Pendentes</p>
           <p className="card-stat-value text-yellow-600">{stats.pending}</p>
         </div>
-        <div className="card-stat border-l-4 border-green-500">
+        <div className="card-v2 p-4 border-l-4 border-green-500">
           <p className="card-stat-label">Aprovadas no Mês</p>
           <p className="card-stat-value text-green-600">{stats.approved}</p>
         </div>
-        <div className="card-stat border-l-4 border-red-500">
+        <div className="card-v2 p-4 border-l-4 border-red-500">
           <p className="card-stat-label">Recusadas no Mês</p>
           <p className="card-stat-value text-red-600">{stats.rejected}</p>
         </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2">
-        <button 
-          onClick={() => setFilter('ALL')} 
+        <Button variant="ghost" type="button"
+          onClick={() => setFilter('ALL')}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'ALL' ? 'bg-brand text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
         >
           Todas
-        </button>
-        <button 
-          onClick={() => setFilter('PENDING')} 
+        </Button>
+        <Button variant="ghost" type="button"
+          onClick={() => setFilter('PENDING')}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'PENDING' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
         >
           Pendentes
-        </button>
-        <button 
-          onClick={() => setFilter('APPROVED')} 
+        </Button>
+        <Button variant="ghost" type="button"
+          onClick={() => setFilter('APPROVED')}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'APPROVED' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
         >
           Aprovadas
-        </button>
-        <button 
-          onClick={() => setFilter('REJECTED')} 
+        </Button>
+        <Button variant="ghost" type="button"
+          onClick={() => setFilter('REJECTED')}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === 'REJECTED' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
         >
           Recusadas
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-3">
@@ -169,13 +171,13 @@ export default function OcorrenciasPage() {
             </motion.div>
           ) : (
             filteredOccurrences.map((occ: any) => (
-              <motion.div 
+              <motion.div
                 key={occ.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="card-flat flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4"
-                style={{ 
+                className="card-v2 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4"
+                style={{
                   borderLeftColor: occ.status === 'APPROVED' ? '#22c55e' : occ.status === 'REJECTED' ? '#ef4444' : '#eab308'
                 }}
               >
@@ -183,14 +185,14 @@ export default function OcorrenciasPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-semibold text-gray-900">{TYPE_LABELS[occ.type] || occ.type}</span>
                     <span className={`badge ${
-                      occ.status === 'APPROVED' ? 'badge-active' : 
+                      occ.status === 'APPROVED' ? 'badge-active' :
                       occ.status === 'REJECTED' ? 'badge-alert' : 'badge-warn'
                     }`}>
                       {occ.status === 'APPROVED' ? 'Aprovada' : occ.status === 'REJECTED' ? 'Recusada' : 'Pendente'}
                     </span>
                   </div>
                   <div className="text-sm text-gray-600 mb-2">
-                    <span className="font-medium text-gray-800">{occ.employee?.name}</span> • {new Date(occ.date).toLocaleDateString('pt-BR')} 
+                    <span className="font-medium text-gray-800">{occ.employee?.name}</span> • {new Date(occ.date).toLocaleDateString('pt-BR')}
                     {occ.durationMinutes ? ` • ${formatMinutes(occ.durationMinutes)} (Parcial)` : ' • Dia Integral'}
                   </div>
                   <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded border border-gray-100">
@@ -200,20 +202,20 @@ export default function OcorrenciasPage() {
 
                 {isAdminOrRhOrGestor && occ.status === 'PENDING' && (
                   <div className="flex gap-2 shrink-0">
-                    <button 
+                    <Button variant="outline" type="button"
                       onClick={() => approveMutation.mutate(occ.id)}
                       disabled={approveMutation.loading}
-                      className={`btn-outline text-green-600 border-green-600 hover:bg-green-50 flex items-center gap-1 px-3 py-1.5 ${approveMutation.loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      className={` text-green-600 border-green-600 hover:bg-green-50 flex items-center gap-1 px-3 py-1.5 ${approveMutation.loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <CheckCircle size={16} /> Aprovar
-                    </button>
-                    <button 
+                    </Button>
+                    <Button variant="outline" type="button"
                       onClick={() => rejectMutation.mutate(occ.id)}
                       disabled={rejectMutation.loading}
-                      className={`btn-outline text-red-600 border-red-600 hover:bg-red-50 flex items-center gap-1 px-3 py-1.5 ${rejectMutation.loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      className={` text-red-600 border-red-600 hover:bg-red-50 flex items-center gap-1 px-3 py-1.5 ${rejectMutation.loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <XCircle size={16} /> Recusar
-                    </button>
+                    </Button>
                   </div>
                 )}
               </motion.div>
@@ -234,17 +236,17 @@ export default function OcorrenciasPage() {
             >
               <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
                 <h3 className="font-semibold text-gray-800">Lançar Nova Ocorrência</h3>
-                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <Button aria-label="Fechar" variant="ghost" type="button" onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 {isAdminOrRhOrGestor && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Colaborador</label>
-                    <select 
-                      required 
-                      className="form-control w-full"
+                    <label htmlFor="ocorrencias-field-244" className="block text-sm font-medium text-gray-700 mb-1">Colaborador</label>
+                    <select id="ocorrencias-field-244"
+                      required
+                      className="input-v2 w-full"
                       value={form.employeeId}
                       onChange={e => setForm(prev => ({ ...prev, employeeId: e.target.value }))}
                     >
@@ -255,23 +257,23 @@ export default function OcorrenciasPage() {
                     </select>
                   </div>
                 )}
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Data da Ocorrência</label>
-                    <input 
-                      required 
-                      type="date" 
-                      className="form-control w-full"
+                    <input
+                      required
+                      type="date"
+                      className="input-v2 w-full"
                       value={form.date}
                       onChange={e => setForm(prev => ({ ...prev, date: e.target.value }))}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Ocorrência</label>
-                    <select 
-                      required 
-                      className="form-control w-full"
+                    <label htmlFor="ocorrencias-field-271" className="block text-sm font-medium text-gray-700 mb-1">Tipo de Ocorrência</label>
+                    <select id="ocorrencias-field-271"
+                      required
+                      className="input-v2 w-full"
                       value={form.type}
                       onChange={e => setForm(prev => ({ ...prev, type: e.target.value }))}
                     >
@@ -284,8 +286,8 @@ export default function OcorrenciasPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     id="isPartial"
                     className="rounded border-gray-300 text-brand"
                     checked={form.isPartial}
@@ -299,10 +301,10 @@ export default function OcorrenciasPage() {
                 {form.isPartial && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Duração (em minutos)</label>
-                    <input 
-                      required 
-                      type="number" 
-                      className="form-control w-full"
+                    <input aria-label="Ex: 180 para 3 horas"
+                      required
+                      type="number"
+                      className="input-v2 w-full"
                       placeholder="Ex: 180 para 3 horas"
                       value={form.durationMinutes}
                       onChange={e => setForm(prev => ({ ...prev, durationMinutes: e.target.value }))}
@@ -313,10 +315,10 @@ export default function OcorrenciasPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Justificativa / Motivo</label>
-                  <textarea 
-                    required 
+                  <textarea aria-label="Descreva o motivo da ocorrência ou atestado..."
+                    required
                     rows={3}
-                    className="form-control w-full"
+                    className="input-v2 w-full"
                     placeholder="Descreva o motivo da ocorrência ou atestado..."
                     value={form.reason}
                     onChange={e => setForm(prev => ({ ...prev, reason: e.target.value }))}
@@ -324,10 +326,10 @@ export default function OcorrenciasPage() {
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3 border-t mt-6">
-                  <button type="button" className="btn-outline" onClick={() => setIsModalOpen(false)}>Cancelar</button>
-                  <button type="submit" className="btn-nubank" disabled={createMutation.loading}>
+                  <Button variant="outline" type="button" className="" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                  <Button variant="primary" type="submit" className="" disabled={createMutation.loading}>
                     {createMutation.loading ? 'Enviando...' : 'Registrar Ocorrência'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </motion.div>

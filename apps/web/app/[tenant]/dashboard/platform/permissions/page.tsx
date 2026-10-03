@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Check, Filter, RotateCcw, Save, Search, ShieldCheck, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
-import { useMutation, useQuery } from '@/app/hooks/use-data';
+import { useMutation, useQuery } from '../_components/use-platform-query';
 import { request } from '@/app/lib/api';
 
 type GlobalRole = 'DEV' | 'ADMIN' | 'COMERCIAL' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';

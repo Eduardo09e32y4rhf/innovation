@@ -52,7 +52,7 @@ export function DashboardTopbar({
   return (
     <header className="sticky top-0 z-30 mb-4 pt-3">
       <div className="glass flex h-[64px] items-center gap-2 rounded-v2-2xl px-2 shadow-v2-sm sm:px-3">
-        {/* BotÃ£o mobile */}
+        {/* Botão mobile */}
         <button
           type="button"
           aria-label="Abrir menu"
@@ -73,17 +73,17 @@ export function DashboardTopbar({
           <input
             type="search"
             aria-label="Buscar"
-            placeholder="Buscar pessoas, escalas, fÃ©rias..."
+            placeholder="Buscar pessoas, escalas, férias..."
             className="input-v2 h-10 !pl-10 !text-[12px] !font-semibold !bg-bg-sub/60 focus:!bg-bg-elev"
           />
         </div>
 
-        {/* AÃ§Ãµes da direita */}
+        {/* Ações da direita */}
         <div className="ml-auto flex items-center gap-2">
-          {/* NotificaÃ§Ãµes */}
+          {/* Notificações */}
           <button
             type="button"
-            aria-label="NotificaÃ§Ãµes"
+            aria-label="Notificações"
             onClick={() => goTo('/dashboard/notifications')}
             className="relative flex h-10 w-10 items-center justify-center rounded-v2-md border border-border bg-bg-elev text-fg-mut transition hover:border-brand-300 hover:text-brand-600"
           >
@@ -132,7 +132,7 @@ export function DashboardTopbar({
                 >
                   <div className="border-b border-border/60 px-3 py-3">
                     <p className="truncate text-sm font-black text-fg">
-                      {user?.name || 'UsuÃ¡rio'}
+                      {user?.name || 'Usuário'}
                     </p>
                     <p className="truncate text-xs text-fg-mut">
                       {user?.email}
@@ -146,7 +146,7 @@ export function DashboardTopbar({
                     className="flex w-full items-center gap-2 rounded-v2-md px-3 py-2.5 text-left text-[13px] font-bold text-fg-mut transition hover:bg-brand-500/8 hover:text-brand-700"
                   >
                     <Settings2 size={16} />
-                    ConfiguraÃ§Ãµes
+                    Configurações
                   </button>
 
                   <button

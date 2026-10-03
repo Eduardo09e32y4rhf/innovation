@@ -104,8 +104,8 @@ export class PlatformService {
     const result: any = { ...company, usersCount: company._count.users, employeesCount: company._count.employees };
     if (actor && actor.role !== 'DEV') {
       result.internalNotes = undefined;
-      result.asaasCustomerId = result.asaasCustomerId ? 'ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢' : null;
-      result.asaasSubscriptionId = result.asaasSubscriptionId ? 'ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢ÃÂ¢ââ€šÂ¬ÂÂ¢' : null;
+      result.asaasCustomerId = result.asaasCustomerId ? '�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢' : null;
+      result.asaasSubscriptionId = result.asaasSubscriptionId ? '�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢' : null;
     }
     return result;
   }
@@ -206,8 +206,8 @@ export class PlatformService {
     const { name, document, plan, billingStatus, trialEndsAt, activeModules, ...rest } = dto;
 
     // Auto-suspend on PAST_DUE, auto-activate on ACTIVE billing
-    const autoStatus = billingStatus === 'PAST_DUE' ? 'SUSPENDED' 
-                     : billingStatus === 'ACTIVE' ? 'ACTIVE' 
+    const autoStatus = billingStatus === 'PAST_DUE' ? 'SUSPENDED'
+                     : billingStatus === 'ACTIVE' ? 'ACTIVE'
                      : undefined;
     const autoSuspensionReason = billingStatus === 'PAST_DUE' ? 'inadimplencia'
                                : billingStatus === 'ACTIVE' ? null
@@ -228,7 +228,7 @@ export class PlatformService {
       ...(status === 'CANCELLED' && !dto.suspensionReason ? { suspensionReason: 'solicitacao_voluntaria' } : {}),
       ...(autoSuspensionReason !== undefined && !status ? { suspensionReason: autoSuspensionReason } : {}),
     };
-    
+
     // Notificar admin(s) da empresa sobre inadimplÃÆ’ÂÂªncia caso mude para PAST_DUE
     if (billingStatus === 'PAST_DUE' && company.billingStatus !== 'PAST_DUE') {
       await this.notificationsService.createAdminNotice(id, actor.sub, {

@@ -11,15 +11,22 @@ import { ProposalGate } from './_components/proposal-gate';
 import { SidebarV2 } from './_components/shell-v2/sidebar';
 import { TopbarV2 } from './_components/shell-v2/topbar';
 import { MobileBottomNav } from './_components/shell-v2/mobile-bottom-nav';
+import { WorkspaceProvider } from './_components/shell-v2/workspace-context';
+import { WorkspaceRouteGate } from './_components/shell-v2/route-gate';
+import type { SidebarMode } from './_components/shell-v2/sidebar';
+import { resolveUserRole } from '@/app/lib/user-role';
+import { readParsedAuthSession } from '@/app/lib/auth-session';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarMode, setSidebarMode] = useState<SidebarMode>('auto');
+  const [assisted, setAssisted] = useState(false);
 
-  const isAdmin = user?.profile?.toUpperCase() === 'ADMIN' || user?.role?.toUpperCase() === 'ADMIN';
-  const isDev = user?.profile?.toUpperCase() === 'DEV' || user?.role?.toUpperCase() === 'DEV';
+  const isAdmin = resolveUserRole(user) === 'ADMIN';
+  const isDev = resolveUserRole(user) === 'DEV';
   const billingBlocked =
     !isDev &&
     (user?.companyStatus === 'SUSPENDED' ||
@@ -36,37 +43,56 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // Fecha o menu mobile ao navegar
   useEffect(() => { setMobileMenuOpen(false); }, [pathname]);
+  useEffect(() => {
+    setAssisted(readParsedAuthSession().isIsolatedTab);
+    try {
+      const stored = localStorage.getItem('workspace.sidebar');
+      if (stored === 'compact' || stored === 'expanded') setSidebarMode(stored);
+    } catch { /* Storage can be disabled. */ }
+  }, []);
+
+  const toggleMenu = () => {
+    if (!window.matchMedia('(min-width: 1024px)').matches) { setMobileMenuOpen(true); return; }
+    const expanded = sidebarMode === 'expanded' || (sidebarMode === 'auto' && window.matchMedia('(min-width: 1440px)').matches);
+    const next = expanded ? 'compact' : 'expanded';
+    setSidebarMode(next);
+    try { localStorage.setItem('workspace.sidebar', next); } catch { /* Keep the current session preference. */ }
+  };
 
   return (
     <ProtectedRoute>
       <PasswordChangeGate>
-        <div className="min-h-dvh bg-bg flex">
+        <WorkspaceProvider>
+        <a className="skip-link btn btn-primary" href="#workspace-content">Ir para o conteúdo</a>
+        <div className="workspace-shell bg-bg">
           <Suspense fallback={<div className="hidden lg:block lg:w-[var(--sidebar-w,264px)]" />}>
-            <SidebarV2 open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+            <SidebarV2 open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} mode={sidebarMode} />
           </Suspense>
 
-          <main className="min-w-0 flex-1 flex flex-col pb-20 lg:pb-0">
+          <div className="workspace-body flex flex-col">
+            {assisted && <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-50 px-4 py-2 text-sm text-amber-950"><span>Acesso assistido: você está na empresa do cliente.</span><button type="button" className="btn btn-outline" onClick={() => { logout(); router.replace('/login'); }}>Encerrar acesso assistido</button></div>}
             {billingBlocked && (
               <div className="bg-danger text-white text-center py-2 px-4 text-sm font-bold">
-                Sua fatura estÃ¡ vencida. Regularize o pagamento para evitar o bloqueio da plataforma.
+                Sua fatura está vencida. Regularize o pagamento para evitar o bloqueio da plataforma.
               </div>
             )}
 
-            <div className="px-3 sm:px-4 lg:pr-4">
-              <TopbarV2 onMenu={() => setMobileMenuOpen(true)} />
-            </div>
+            <TopbarV2 onMenu={toggleMenu} />
 
             <PrivacyConsentGate>
               <PendingNotificationsGate>
                 <ProposalGate>
-                  <div className="min-w-0 flex-1">{children}</div>
+                  <main id="workspace-content" className="workspace-content flex-1" tabIndex={-1}>
+                    <WorkspaceRouteGate>{children}</WorkspaceRouteGate>
+                  </main>
                 </ProposalGate>
               </PendingNotificationsGate>
             </PrivacyConsentGate>
-          </main>
+          </div>
 
           <MobileBottomNav onMenu={() => setMobileMenuOpen(true)} />
         </div>
+        </WorkspaceProvider>
       </PasswordChangeGate>
     </ProtectedRoute>
   );

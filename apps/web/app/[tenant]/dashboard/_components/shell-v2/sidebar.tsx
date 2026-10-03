@@ -1,155 +1,58 @@
 'use client';
 
-import { Suspense } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { X } from 'lucide-react';
-import { useAuth } from '@/app/contexts/AuthContext';
-import { useQuery } from '@/app/hooks/use-data';
-import { api } from '@/app/lib/api';
-import { hasPermission } from '@/app/lib/permissions';
-import { ROLE_LABEL } from '@/app/lib/format';
-import { normalizeDisplayName } from '@/app/lib/text';
-import { cn } from '@/app/lib/cn';
-import { NAV_ITEMS, isNavActive, type NavItem } from './nav-config';
+import { X, RefreshCw } from 'lucide-react';
+import { UserMenu } from '@/app/components/ui/user-menu';
+import { useOverlay } from '@/app/components/ui/use-overlay';
+import { useWorkspace } from './workspace-context';
+import { isNavActive, tenantRoute, type NavGroup } from './nav-config';
 
-function canSeeItem(item: NavItem, user: any) {
-  if (item.label === 'UsuÃ¡rios' && !hasPermission(user, 'users.manage_employees')) return false;
-  if (item.label === 'GestÃ£o' && !hasPermission(user, 'platform.manage') && !hasPermission(user, 'users.view_team')) return false;
-  if (item.label === 'FuncionÃ¡rios' && !hasPermission(user, 'users.manage_employees') && !hasPermission(user, 'users.view_team')) return false;
-  if (item.label === 'Plataforma' && !hasPermission(user, 'platform.manage')) return false;
-  return !item.roles?.length || item.roles.includes(String(user?.profile || '').toUpperCase());
-}
-
-export function SidebarV2({ open, onClose }: { open: boolean; onClose: () => void }) {
+export type SidebarMode = 'auto' | 'compact' | 'expanded';
+export function SidebarV2({ open, onClose, mode = 'auto' }: { open: boolean; onClose: () => void; mode?: SidebarMode }) {
   const pathname = usePathname();
   const params = useParams();
   const tenant = String(params?.tenant ?? '');
-  const { user } = useAuth();
-  const profile = String(user?.profile ?? '').toUpperCase();
-  const company = useQuery(() => api.companies.me(), []);
-  const activeModules = company.data?.activeModules || ['employees', 'time-track', 'vacations', 'management'];
-
-  const items = NAV_ITEMS
-    .filter((item) => canSeeItem(item, user))
-    .filter((item) => !item.moduleKey || activeModules.includes(item.moduleKey));
-
-  return (
-    <>
-      {/* Overlay mobile */}
-      {open && (
-        <button
-          aria-label="Fechar menu"
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col',
-          'w-[min(86vw,300px)] lg:w-[var(--sidebar-w,264px)]',
-          'transition-transform duration-300 ease-out',
-          open ? 'translate-x-0' : '-translate-x-[110%] lg:translate-x-0',
-          // Desktop flutuante: sticky + margem + glass + radius grande
-          'lg:sticky lg:top-3 lg:left-3 lg:m-3 lg:h-[calc(100dvh-1.5rem)]',
-          'lg:rounded-v2-3xl glass shadow-v2-lg',
-          // Mobile: full-screen com fundo sÃ³lido
-          'bg-bg-elev lg:bg-transparent',
-        )}
-      >
-        {/* Brand */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-4">
-          <Link
-            href={`/${tenant}/dashboard`}
-            className="flex items-center gap-2.5 min-w-0"
-            onClick={onClose}
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-v2-md bg-brand-600 text-white text-sm font-black shadow-v2-sm">
-              {company.data?.logoUrl ? (
-                <img src={company.data.logoUrl} alt="Logo" className="h-full w-full object-contain bg-white" />
-              ) : 'IR'}
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-fg">
-                {normalizeDisplayName(company.data?.name) || 'Innovation RH'}
-              </span>
-              <span className="block truncate text-[10px] font-bold uppercase tracking-[0.16em] text-fg-sub">
-                People Platform
-              </span>
-            </span>
-          </Link>
-          <button
-            onClick={onClose}
-            className="rounded-full p-2 text-fg-mut hover:bg-bg-sub hover:text-fg lg:hidden"
-            aria-label="Fechar"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Nav */}
-        <div className="px-3 pb-1">
-          <p className="px-3 text-[10px] font-black uppercase tracking-[0.18em] text-fg-sub">
-            Menu principal
-          </p>
-        </div>
-        <nav className="flex-1 overflow-y-auto px-3 pb-4 no-scrollbar">
-          <ul className="space-y-1">
-            <Suspense fallback={null}>
-              {items.map((item) => {
-                const Icon = item.icon;
-                const active = isNavActive(pathname ?? '', tenant, item);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={`/${tenant}${item.href}`}
-                      onClick={onClose}
-                      className={cn(
-                        'group flex h-11 items-center gap-3 rounded-v2-md px-3.5 text-[13px] font-bold transition-all',
-                        active
-                          ? 'bg-brand-600 text-white shadow-v2-sm'
-                          : 'text-fg-mut hover:bg-brand-500/8 hover:text-brand-700 dark:hover:text-white',
-                      )}
-                    >
-                      <Icon size={18} strokeWidth={active ? 2.6 : 2.1} className="shrink-0" />
-                      <span className="truncate">{item.label}</span>
-                      {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />}
-                    </Link>
-                  </li>
-                );
-              })}
-            </Suspense>
-          </ul>
-        </nav>
-
-        {/* Footer: user card */}
-        <div className="border-t border-border/60 p-3">
-          <UserChip name={user?.name} email={user?.email} profile={profile} />
-        </div>
-      </aside>
-    </>
-  );
-}
-
-function UserChip({ name, email, profile }: { name?: string; email?: string; profile?: string }) {
-  const initials = (name || email || 'US')
-    .split(/\s+/).filter(Boolean).slice(0, 2)
-    .map((p) => p[0]).join('').toUpperCase();
-
-  return (
-    <div className="flex items-center gap-3 rounded-v2-md p-2 transition-colors hover:bg-bg-sub">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-[11px] font-black text-white shadow-v2-sm">
-        {initials}
+  const { company, items, error, retry } = useWorkspace();
+  const [mobile, setMobile] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
+  useEffect(() => { setLogoFailed(false); }, [company?.logoUrl]);
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1023px)');
+    const update = () => setMobile(media.matches);
+    update(); media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+  const ref = useOverlay<HTMLElement>(open && mobile, onClose);
+  const groups: NavGroup[] = ['Trabalho', 'Administração', 'Operação global'];
+  return <>
+    {open && <button type="button" tabIndex={-1} aria-label="Fechar menu" onClick={onClose} className="fixed inset-0 z-50 bg-slate-950/40 lg:hidden" />}
+    <aside ref={ref} tabIndex={-1} aria-label="Menu principal" aria-hidden={mobile && !open ? true : undefined}
+      role={mobile && open ? 'dialog' : undefined} aria-modal={mobile && open ? true : undefined}
+      className={'workspace-sidebar flex flex-col workspace-sidebar-' + mode + (open ? ' workspace-sidebar-open' : '')}>
+      <div className="flex min-h-20 items-center gap-1 px-4">
+        <Link href={tenantRoute(tenant, '/dashboard')} onClick={onClose} className="workspace-brand flex min-h-11 min-w-0 flex-1 items-center gap-3" aria-label="Innovation RH — Dashboard">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand text-sm font-semibold text-white">
+            {company?.logoUrl && !logoFailed ? <img src={company.logoUrl} width={40} height={40} alt="" className="h-full w-full bg-white object-contain" onError={() => setLogoFailed(true)} /> : 'IR'}
+          </span>
+          <span className="workspace-brand-copy min-w-0"><span className="block text-sm font-semibold text-fg">Innovation RH</span><span className="block truncate text-xs text-fg-mut" title={company?.name}>{company?.name || 'Área de trabalho'}</span></span>
+        </Link>
+        <button type="button" aria-label="Fechar menu principal" className="btn-icon shrink-0 lg:hidden" onClick={onClose}><X size={18} aria-hidden="true" /></button>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[12px] font-black text-fg">
-          {normalizeDisplayName(name) || email || 'UsuÃ¡rio'}
-        </p>
-        <p className="truncate text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
-          {ROLE_LABEL[profile || ''] ?? profile ?? 'Perfil'}
-        </p>
-      </div>
-    </div>
-  );
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4" aria-label="Navegação principal">
+        {groups.map((group) => {
+          const destinations = items.filter((item) => item.group === group);
+          if (!destinations.length) return null;
+          return <div key={group}><p className="workspace-nav-group">{group}</p><ul className="space-y-1">
+            {destinations.map((item) => <li key={item.id}><Link href={tenantRoute(tenant, item.href)} onClick={onClose} className="workspace-sidebar-link" title={item.label} aria-label={item.label} aria-current={isNavActive(pathname, tenant, item) ? 'page' : undefined}>
+              <item.icon size={20} className="shrink-0" aria-hidden="true" /><span className="workspace-nav-label">{item.label}</span>
+            </Link></li>)}
+          </ul></div>;
+        })}
+      </nav>
+      {error && <div className="px-3 pb-2"><button type="button" className="btn-v2-ghost w-full" onClick={retry} title="Recarregar dados da empresa"><RefreshCw size={18} aria-hidden="true" /><span className="workspace-nav-label">Recarregar empresa</span></button></div>}
+      <div className="border-t border-border p-3"><UserMenu showName placement="top" /></div>
+    </aside>
+  </>;
 }

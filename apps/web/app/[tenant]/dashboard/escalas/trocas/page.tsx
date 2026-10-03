@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/app/components/ui/button';
+
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Check, X, Clock, AlertCircle, ArrowRight, XCircle } from 'lucide-react';
@@ -51,16 +53,16 @@ export default function TrocasPage() {
           <p className="page-subtitle">Gerencie solicitações de troca de turno e exceções de escala</p>
         </div>
         {!isAdminOrGestor && (
-          <button onClick={() => setShowRequestForm(!showRequestForm)} className="btn-nubank flex items-center gap-2">
+          <Button variant="primary" type="button" onClick={() => setShowRequestForm(!showRequestForm)} className=" flex items-center gap-2">
             <Calendar className="w-4 h-4" />
             Solicitar Troca
-          </button>
+          </Button>
         )}
       </div>
 
       <div className="flex gap-2">
         {['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].map((status) => (
-          <button
+          <Button variant="ghost" type="button"
             key={status}
             onClick={() => setFilter(status)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
@@ -68,19 +70,19 @@ export default function TrocasPage() {
             }`}
           >
             {status === 'ALL' ? 'Todas' : status === 'PENDING' ? 'Pendentes' : status === 'APPROVED' ? 'Aprovadas' : status === 'REJECTED' ? 'Recusadas' : 'Canceladas'}
-          </button>
+          </Button>
         ))}
       </div>
 
       {showRequestForm && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="card-flat p-6 mb-6">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="card-v2 p-4 p-6 mb-6">
           <h3 className="section-title mb-4">Nova Solicitação de Troca</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1">Data Original</label>
               <input
                 type="date"
-                className="form-control"
+                className="input-v2"
                 value={formData.originalDate}
                 onChange={e => setFormData({ ...formData, originalDate: e.target.value })}
               />
@@ -89,7 +91,7 @@ export default function TrocasPage() {
               <label className="block text-sm font-medium mb-1">Data Alvo</label>
               <input
                 type="date"
-                className="form-control"
+                className="input-v2"
                 value={formData.targetDate}
                 onChange={e => setFormData({ ...formData, targetDate: e.target.value })}
               />
@@ -97,7 +99,7 @@ export default function TrocasPage() {
             <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-1">Justificativa</label>
               <textarea
-                className="form-control"
+                className="input-v2"
                 rows={3}
                 value={formData.justification}
                 onChange={e => setFormData({ ...formData, justification: e.target.value })}
@@ -105,14 +107,14 @@ export default function TrocasPage() {
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" className="btn-outline" onClick={() => setShowRequestForm(false)}>Cancelar</button>
-            <button 
-              className={`btn-nubank ${createMutation.loading ? 'opacity-50 cursor-not-allowed' : ''}`} 
+            <Button variant="outline" type="button" className="" onClick={() => setShowRequestForm(false)}>Cancelar</Button>
+            <Button variant="primary" type="button"
+              className={` ${createMutation.loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={createMutation.loading}
               onClick={() => createMutation.mutate(formData)}
             >
               {createMutation.loading ? 'Enviando...' : 'Enviar Solicitação'}
-            </button>
+            </Button>
           </div>
         </motion.div>
       )}
@@ -122,7 +124,7 @@ export default function TrocasPage() {
       ) : (
         <div className="grid gap-4">
           {filteredSwaps.map((swap: any) => (
-            <div key={swap.id} className="card-flat p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div key={swap.id} className="card-v2 p-4 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-full ${swap.status === 'PENDING' ? 'bg-yellow-100 text-yellow-600' : swap.status === 'APPROVED' ? 'bg-green-100 text-green-600' : swap.status === 'REJECTED' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
                   {swap.status === 'PENDING' ? <Clock className="w-6 h-6" /> : swap.status === 'APPROVED' ? <Check className="w-6 h-6" /> : swap.status === 'REJECTED' ? <X className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
@@ -137,41 +139,41 @@ export default function TrocasPage() {
                   <p className="text-sm mt-1">{swap.justification}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 {swap.status === 'PENDING' && isAdminOrGestor && (
                   <>
-                    <input
+                    <input aria-label="Motivo da decis?o"
                       type="text"
                       placeholder="Motivo (opcional)"
-                      className="form-control text-sm py-1 px-2 h-8 w-32"
+                      className="input-v2 text-sm py-1 px-2 h-8 w-32"
                       value={reviewReason}
                       onChange={e => setReviewReason(e.target.value)}
                     />
-                    <button 
-                      className={`btn-icon text-green-600 bg-green-50 ${reviewMutation.loading ? 'opacity-50' : ''}`} 
+                    <Button aria-label="Aprovar" variant="ghost" type="button"
+                      className={` text-green-600 bg-green-50 ${reviewMutation.loading ? 'opacity-50' : ''}`}
                       disabled={reviewMutation.loading}
                       onClick={() => reviewMutation.mutate({ id: swap.id, action: 'APPROVED', reason: reviewReason })}
                     >
                       <Check className="w-4 h-4" />
-                    </button>
-                    <button 
-                      className={`btn-icon text-red-600 bg-red-50 ${reviewMutation.loading ? 'opacity-50' : ''}`} 
+                    </Button>
+                    <Button aria-label="Fechar" variant="ghost" type="button"
+                      className={` text-red-600 bg-red-50 ${reviewMutation.loading ? 'opacity-50' : ''}`}
                       disabled={reviewMutation.loading}
                       onClick={() => reviewMutation.mutate({ id: swap.id, action: 'REJECTED', reason: reviewReason })}
                     >
                       <X className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </>
                 )}
                 {swap.status === 'PENDING' && swap.requesterId === user?.id && !isAdminOrGestor && (
-                  <button 
-                    className={`btn-outline text-red-600 border-red-200 hover:bg-red-50 ${cancelMutation.loading ? 'opacity-50' : ''}`} 
+                  <Button variant="outline" type="button"
+                    className={` text-red-600 border-red-200 hover:bg-red-50 ${cancelMutation.loading ? 'opacity-50' : ''}`}
                     disabled={cancelMutation.loading}
                     onClick={() => cancelMutation.mutate(swap.id)}
                   >
                     {cancelMutation.loading ? 'Cancelando...' : 'Cancelar'}
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>

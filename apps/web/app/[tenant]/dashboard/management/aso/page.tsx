@@ -1,5 +1,8 @@
 'use client';
 
+import { Button } from '@/app/components/ui/button';
+import recordStyles from '../../escalas/_components/operational-ui.module.css';
+
 import { useMemo, useState } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery, useMutation } from '@/app/hooks/use-data';
@@ -74,15 +77,15 @@ export default function AsoPage() {
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="stat-card">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">ASOs vencidos</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">
+        <div className="card-v2 p-4">
+          <p className="text-xs font-semibold r text-slate-500">ASOs vencidos</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-950">
             {asos.filter((aso) => aso.status === 'EXPIRED' || (aso.dueDate && new Date(aso.dueDate) < new Date() && aso.status !== 'COMPLETED' && aso.status !== 'CANCELLED')).length}
           </p>
         </div>
-        <div className="stat-card">
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">ASOs pendentes</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">
+        <div className="card-v2 p-4">
+          <p className="text-xs font-semibold r text-slate-500">ASOs pendentes</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-950">
             {asos.filter((aso) => aso.status === 'PENDING').length}
           </p>
         </div>
@@ -150,30 +153,30 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
     <section className="surface overflow-hidden">
       <div className="flex flex-col gap-3 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-sm font-black text-slate-950">CONTROLE DE ASO</h3>
+          <h3 className="text-sm font-semibold text-slate-950">CONTROLE DE ASO</h3>
           <p className="mt-1 text-xs text-slate-500">Atestados de saúde ocupacional dos colaboradores.</p>
         </div>
         {canManage && (
-          <button onClick={() => onOpenForm(undefined)} disabled={saving} className="btn-primary inline-flex h-9 items-center gap-2 px-4 text-xs">
+          <Button variant="primary" type="button" onClick={() => onOpenForm(undefined)} disabled={saving} className=" inline-flex items-center gap-2 px-4 text-xs">
             + NOVO ASO
-          </button>
+          </Button>
         )}
       </div>
 
       <div className="flex flex-wrap gap-2 border-b border-slate-100 px-5 py-3 bg-slate-50">
-        <select value={filterType} onChange={e => setFilterType(e.target.value)} className="form-control max-w-[200px]">
+        <select aria-label="Filtrar por tipo" value={filterType} onChange={e => setFilterType(e.target.value)} className="input-v2 max-w-[200px]">
           <option value="">TODOS TIPOS</option>{ASO_TYPES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="form-control max-w-[200px]">
+        <select aria-label="Filtrar por status" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-v2 max-w-[200px]">
           <option value="">TODOS STATUS</option>{ASO_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
-        <select value={filterEmp} onChange={e => setFilterEmp(e.target.value)} className="form-control max-w-[200px]">
+        <select aria-label="Filtrar por funcion?rio" value={filterEmp} onChange={e => setFilterEmp(e.target.value)} className="input-v2 max-w-[200px]">
           <option value="">TODOS FUNCIONÁRIOS</option>{employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
         </select>
       </div>
-      
+
       <div className="overflow-x-auto">
-        <table className="data-table w-full">
+        <div className={recordStyles.records}><table className="data-table w-full">
           <thead>
             <tr>
               <th>FUNCIONÁRIO</th>
@@ -193,7 +196,7 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-brand)]/10 mb-4 text-[var(--color-brand)]">
                       <FileCheck2 size={28} />
                     </div>
-                    <h4 className="text-sm font-black text-slate-900">Nenhum ASO registrado</h4>
+                    <h4 className="text-sm font-semibold text-slate-900">Nenhum ASO registrado</h4>
                     <p className="mt-1 text-xs text-slate-500">A saúde ocupacional é obrigatória por lei.</p>
                   </div>
                 </td>
@@ -203,18 +206,18 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
                 const alert = getAsoAlert(r.status, r.dueDate);
                 return (
                   <tr key={r.id}>
-                    <td className="font-bold text-slate-950">{empName(r.employeeId)}</td>
-                    <td>{r.asoType}</td>
-                    <td>{fmtDate(r.examDate)}</td>
-                    <td>{fmtDate(r.dueDate)}</td>
-                    <td><span className={`inline-flex rounded-[5px] border px-2 py-0.5 text-[10px] font-black ${alert.cls}`}>{alert.label}</span></td>
-                    <td className="truncate max-w-[150px]">{r.clinicName ?? '---'}</td>
-                    <td className="text-right">
+                    <td data-label="FUNCIONÁRIO" className="font-bold text-slate-950">{empName(r.employeeId)}</td>
+                    <td data-label="TIPO">{r.asoType}</td>
+                    <td data-label="Exame">{fmtDate(r.examDate)}</td>
+                    <td data-label="Vencimento">{fmtDate(r.dueDate)}</td>
+                    <td data-label="Status"><span className={`inline-flex rounded-[5px] border px-2 py-0.5 text-xs font-semibold ${alert.cls}`}>{alert.label}</span></td>
+                    <td data-label="Clínica" className="truncate max-w-[150px]">{r.clinicName ?? '---'}</td>
+                    <td data-label="Ações" className="text-right">
                       <div className="flex justify-end gap-1.5">
-                        <button onClick={() => handleGenerateAsoPdf(r)} disabled={pdfId === r.id} className="btn-outline h-7 px-2 text-[10px] font-bold disabled:opacity-60">{pdfId === r.id ? 'Gerando...' : 'PDF'}</button>
-                        <button onClick={() => onOpenForm(r)} disabled={saving} className="btn-outline h-7 px-2 text-[10px] font-bold">Editar</button>
-                        {canManage && <button onClick={() => onSave({ status: 'CANCELLED' }, r.id)} disabled={saving} className="btn-danger h-7 px-2 text-[10px] flex items-center gap-1"><XCircle size={12}/></button>}
-                        {canManage && <button onClick={() => { if (window.confirm('Excluir?')) onDelete(r.id); }} disabled={saving} className="btn-danger h-7 px-2 text-[10px] font-black">X</button>}
+                        <Button variant="outline" type="button" onClick={() => handleGenerateAsoPdf(r)} disabled={pdfId === r.id} className=" px-2 text-xs font-bold disabled:opacity-60">{pdfId === r.id ? 'Gerando...' : 'PDF'}</Button>
+                        <Button variant="outline" type="button" onClick={() => onOpenForm(r)} disabled={saving} className=" px-2 text-xs font-bold">Editar</Button>
+                        {canManage && <Button variant="danger" type="button" onClick={() => onSave({ status: 'CANCELLED' }, r.id)} disabled={saving} className=" px-2 text-xs flex items-center gap-1"><XCircle size={12}/></Button>}
+                        {canManage && <Button variant="danger" type="button" onClick={() => { if (window.confirm('Excluir?')) onDelete(r.id); }} disabled={saving} className=" px-2 text-xs font-semibold">X</Button>}
                       </div>
                     </td>
                   </tr>
@@ -222,7 +225,7 @@ function AsoTab({ records, employees, canManage, onOpenForm, onSave, onDelete, s
               })
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </section>
   );
@@ -238,7 +241,7 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
   const [result, setResult] = useState<'APTO' | 'INAPTO' | ''>(init.result ?? '');
   const [examDate, setExamDate] = useState(init.examDate?.slice(0, 16) ?? '');
   const [dueDate, setDueDate] = useState(init.dueDate?.slice(0, 10) ?? '');
-  
+
   const [clinicName, setClinicName] = useState(init.clinicName ?? '');
   const [doctorName, setDoctorName] = useState(init.doctorName ?? '');
   const [clinicCep, setClinicCep] = useState('');
@@ -275,21 +278,21 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
               <Activity size={20} strokeWidth={2.5} />
             </div>
             <div>
-              <h3 className="text-lg font-black text-slate-900">{record ? 'Editar ASO' : 'Agendar ASO'}</h3>
+              <h3 className="text-lg font-semibold text-slate-900">{record ? 'Editar ASO' : 'Agendar ASO'}</h3>
               <p className="text-xs font-semibold text-slate-500">Atestado de Saúde Ocupacional</p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X size={20}/></button>
+          <Button aria-label="Fechar" variant="ghost" type="button" onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X size={20}/></Button>
         </div>
 
         <div className="grid gap-x-6 gap-y-6 lg:grid-cols-2">
           <div className="space-y-4">
-            <h4 className="flex items-center gap-2 text-xs font-black uppercase text-slate-800">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px]">1</span> Identificação
+            <h4 className="flex items-center gap-2 text-xs font-semibold text-slate-800">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-xs">1</span> Identificação
             </h4>
             <label className="form-group">
               <span>Funcionário *</span>
-              <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="form-control">
+              <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="input-v2">
                 <option value="">Selecione...</option>
                 {employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
               </select>
@@ -297,13 +300,13 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
             <div className="grid grid-cols-2 gap-3">
               <label className="form-group">
                 <span>Tipo *</span>
-                <select value={asoType} onChange={e => setAsoType(e.target.value)} className="form-control">
+                <select value={asoType} onChange={e => setAsoType(e.target.value)} className="input-v2">
                   {ASO_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </label>
               <label className="form-group">
                 <span>Status</span>
-                <select value={status} onChange={e => setStatus(e.target.value)} className="form-control">
+                <select value={status} onChange={e => setStatus(e.target.value)} className="input-v2">
                   {ASO_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </label>
@@ -311,7 +314,7 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
             {status === 'COMPLETED' && (
               <label className="form-group rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
                 <span className="text-emerald-900">Resultado *</span>
-                <select value={result} onChange={e => setResult(e.target.value as 'APTO' | 'INAPTO' | '')} className="form-control border-emerald-200 focus:border-emerald-500">
+                <select value={result} onChange={e => setResult(e.target.value as 'APTO' | 'INAPTO' | '')} className="input-v2 border-emerald-200 focus:border-emerald-500">
                   <option value="">Selecione...</option>
                   <option value="APTO">Apto para a função</option>
                   <option value="INAPTO">Inapto para a função</option>
@@ -321,30 +324,30 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
             <div className="grid grid-cols-2 gap-3">
               <label className="form-group">
                 <span>Data do Exame</span>
-                <input type="datetime-local" value={examDate} onChange={e => setExamDate(e.target.value)} className="form-control"/>
+                <input type="datetime-local" value={examDate} onChange={e => setExamDate(e.target.value)} className="input-v2"/>
               </label>
               <label className="form-group opacity-80">
                 <span>Vencimento</span>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="form-control"/>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="input-v2"/>
               </label>
             </div>
           </div>
 
           <div className="space-y-4 rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-            <h4 className="flex items-center gap-2 text-xs font-black uppercase text-slate-800">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px]">2</span> Clínica
+            <h4 className="flex items-center gap-2 text-xs font-semibold text-slate-800">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-xs">2</span> Clínica
             </h4>
             <label className="form-group">
               <span>Nome da Clínica</span>
-              <input value={clinicName} onChange={e => setClinicName(e.target.value)} placeholder="Clínica..." className="form-control"/>
+              <input value={clinicName} onChange={e => setClinicName(e.target.value)} placeholder="Clínica..." className="input-v2"/>
             </label>
             <label className="form-group">
               <span>Endereço</span>
-              <input value={clinicAddress} onChange={e => setClinicAddress(e.target.value)} placeholder="Endereço..." className="form-control"/>
+              <input value={clinicAddress} onChange={e => setClinicAddress(e.target.value)} placeholder="Endereço..." className="input-v2"/>
             </label>
             <label className="form-group">
               <span>Médico</span>
-              <input value={doctorName} onChange={e => setDoctorName(e.target.value)} placeholder="Dr. ..." className="form-control"/>
+              <input value={doctorName} onChange={e => setDoctorName(e.target.value)} placeholder="Dr. ..." className="input-v2"/>
             </label>
           </div>
         </div>
@@ -352,13 +355,13 @@ function AsoModal({ record, employees, asos, onClose, onSave, saving }: {
         <div className="mt-6 border-t border-slate-100 pt-4">
           <label className="form-group">
             <span>Observações</span>
-            <textarea value={observation} onChange={e => setObservation(e.target.value)} rows={2} className="form-control resize-none"/>
+            <textarea value={observation} onChange={e => setObservation(e.target.value)} rows={2} className="input-v2 resize-none"/>
           </label>
         </div>
 
         <div className="mt-8 flex justify-end gap-3 pt-6">
-          <button onClick={onClose} className="btn-outline px-6">Cancelar</button>
-          <button onClick={save} disabled={!ok || saving} className="btn-primary px-8 disabled:opacity-60">{saving ? 'Salvando...' : 'Salvar ASO'}</button>
+          <Button variant="outline" type="button" onClick={onClose} className=" px-6">Cancelar</Button>
+          <Button variant="primary" type="button" onClick={save} disabled={!ok || saving} className=" px-8 disabled:opacity-60">{saving ? 'Salvando...' : 'Salvar ASO'}</Button>
         </div>
       </div>
     </div>

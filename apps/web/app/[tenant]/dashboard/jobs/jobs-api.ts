@@ -4,6 +4,7 @@ import { readAuthSession } from '@/app/lib/auth-session';
 import type {
   ApplicationStatus,
   HireResult,
+  HirePayload,
   Job,
   JobApplication,
   JobPayload,
@@ -54,10 +55,10 @@ export const jobsApi = {
     );
   },
 
-  hire(applicationId: string) {
+  hire(applicationId: string, payload?: HirePayload) {
     return request<HireResult>(
       `/jobs/applications/${encodeURIComponent(applicationId)}/hire`,
-      { method: 'POST', body: {} },
+      { method: 'POST', body: payload ?? {} },
     );
   },
 

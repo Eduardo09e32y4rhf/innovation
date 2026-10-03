@@ -10,6 +10,7 @@ function collection<T>(payload: CollectionResponse<T>): T[] {
 }
 
 export const payrollApi = {
+  get: (id: string) => request<PayrollItem>(`/payroll/${encodeURIComponent(id)}`),
   async list(year: number, month: number): Promise<PayrollItem[]> {
     const payload = await request<CollectionResponse<PayrollItem>>(
       `/payroll?year=${year}&month=${month}`,

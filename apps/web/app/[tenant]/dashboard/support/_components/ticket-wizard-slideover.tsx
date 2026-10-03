@@ -1,7 +1,7 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, ChevronRight, ChevronLeft, Upload, Paperclip } from 'lucide-react';
-import { ButtonPrimary, ButtonSecondary, GlassCard } from '@/app/components/platform-ui';
+import { Button, Drawer, ConfirmDialog } from '@/app/components/ui';
 import { toast } from 'sonner';
 
 export function TicketWizardSlideover({
@@ -15,6 +15,9 @@ export function TicketWizardSlideover({
   onCreate: (data: { category: string; title: string; description: string; priority: string; files: File[] }) => Promise<void>;
   creating: boolean;
 }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const [discard, setDiscard] = useState(false);
+  function requestClose() { if (creating) return; if (title || description || files.length || category || priority) setDiscard(true); else onClose(); }
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState('');
@@ -32,12 +35,14 @@ export function TicketWizardSlideover({
     setFiles([]);
   }, [isOpen]);
 
+  useEffect(() => { if (isOpen) headingRef.current?.focus(); }, [step, isOpen]);
+
   if (!isOpen) return null;
 
   const nextStep = () => {
     if (step === 1 && !category) return toast.error('Selecione uma categoria.');
     if (step === 2 && !priority) return toast.error('Selecione uma urgência.');
-    if (step === 3 && (!title.trim() || !description.trim())) return toast.error('Preencha título e descrição.');
+    if (step === 3 && (title.trim().length < 5 || title.trim().length > 150 || description.trim().length < 10 || description.trim().length > 10000)) return toast.error('Informe um título de 5 a 150 caracteres e uma descrição de 10 a 10.000 caracteres.');
     setStep((s) => s + 1);
   };
 
@@ -45,6 +50,7 @@ export function TicketWizardSlideover({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
     if (!category || !priority || !title.trim() || !description.trim()) {
       return toast.error('Preencha todos os campos obrigatórios.');
     }
@@ -52,18 +58,10 @@ export function TicketWizardSlideover({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-sm transition-all">
-      <div className="flex h-full w-full max-w-md flex-col bg-bg-elev shadow-v2-xl animate-in slide-in-from-right duration-300">
-        <header className="flex items-center justify-between border-b border-border bg-bg-sub/70 px-6 py-5">
-          <div>
-            <h2 className="text-lg font-black text-fg">Novo chamado</h2>
-            <p className="text-xs font-semibold text-fg-mut">Etapa {step} de 4</p>
-          </div>
-          <button onClick={onClose} aria-label="Fechar novo chamado" className="flex h-9 w-9 items-center justify-center rounded-v2 text-fg-mut transition-colors hover:bg-bg-sub hover:text-fg">
-            <X size={18} />
-          </button>
-        </header>
-
+    <>
+    <Drawer isOpen={isOpen} onClose={requestClose} title="Novo chamado" description={`Etapa ${step} de 4`} maxWidth="max-w-lg" footer={<div className="flex flex-wrap justify-between gap-2"><Button type="button" variant="outline" disabled={creating} onClick={step > 1 ? prevStep : requestClose}>{step > 1 ? 'Voltar' : 'Cancelar'}</Button>{step < 4 ? <Button type="button" disabled={creating} onClick={nextStep}>Avançar <ChevronRight size={18} /></Button> : <Button type="submit" form="support-wizard" isLoading={creating}>Abrir chamado</Button>}</div>}>
+    <form id="support-wizard" onSubmit={handleSubmit} className="space-y-4">
+      <h3 ref={headingRef} tabIndex={-1} className="text-sm font-semibold text-fg focus-visible:outline-none">{step === 1 ? 'Categoria' : step === 2 ? 'Impacto' : step === 3 ? 'Descrição' : 'Revisão e anexos'}</h3>
         <div className="flex-1 overflow-y-auto p-6">
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
@@ -71,6 +69,8 @@ export function TicketWizardSlideover({
               {[{ value: 'ACCESS', label: 'Acesso e senha' }, { value: 'BUG', label: 'Erro ou instabilidade' }, { value: 'BILLING', label: 'Financeiro e assinatura' }, { value: 'FEATURE_REQUEST', label: 'Sugestão de melhoria' }, { value: 'OTHER', label: 'Outra dúvida' }].map((cat) => (
                 <button
                   key={cat.value}
+                  type="button"
+                  aria-pressed={category === cat.value}
                   onClick={() => setCategory(cat.value)}
                   className={`w-full text-left px-4 py-3 rounded-2xl border-2 transition-all ${
                     category === cat.value ? 'border-brand bg-brand/10 text-brand font-bold shadow-v2-sm' : 'border-border hover:border-brand/30 hover:bg-bg-sub font-semibold text-fg-mut'
@@ -93,6 +93,8 @@ export function TicketWizardSlideover({
               ].map((pri) => (
                 <button
                   key={pri.value}
+                  type="button"
+                  aria-pressed={priority === pri.value}
                   onClick={() => setPriority(pri.value)}
                   className={`w-full text-left px-4 py-3 rounded-2xl border-2 transition-all ${
                     priority === pri.value ? 'border-brand bg-brand/10 text-brand font-bold shadow-v2-sm' : 'border-border hover:border-brand/30 hover:bg-bg-sub font-semibold text-fg-mut'
@@ -108,9 +110,13 @@ export function TicketWizardSlideover({
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
               <h3 className="mb-2 text-sm font-black text-fg">3. Conte o que aconteceu</h3>
               <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Assunto / Título</label>
+                <label htmlFor="ticket-title" className="mb-1 block text-sm font-medium text-fg">Assunto (obrigatório)</label>
                 <input
+                  id="ticket-title"
                   type="text"
+                  minLength={5}
+                  maxLength={150}
+                  required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ex: Erro ao gerar espelho de ponto"
@@ -118,8 +124,8 @@ export function TicketWizardSlideover({
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Descrição</label>
-                <textarea
+                <label htmlFor="ticket-description" className="mb-1 block text-sm font-medium text-fg">Descrição (obrigatória)</label>
+                <textarea id="ticket-description" required minLength={10} maxLength={10000}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={6}
@@ -132,17 +138,23 @@ export function TicketWizardSlideover({
 
           {step === 4 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-              <h3 className="mb-2 text-sm font-black text-fg">4. Adicione evidências <span className="font-medium text-fg-sub">(opcional)</span></h3>
+              <div className="rounded-xl bg-bg-sub p-3 text-sm text-fg"><p className="font-semibold">{title}</p><p className="mt-1 whitespace-pre-wrap break-words">{description}</p><p className="mt-2">Categoria: {({ ACCESS: 'Acesso e senha', BUG: 'Erro ou instabilidade', BILLING: 'Financeiro e assinatura', FEATURE_REQUEST: 'Sugestão', OTHER: 'Outra dúvida' } as Record<string, string>)[category]} · Impacto: {({ LOW: 'Baixo', NORMAL: 'Normal', HIGH: 'Alto', CRITICAL: 'Crítico' } as Record<string, string>)[priority]}</p></div><h3 className="mb-2 text-sm font-black text-fg">4. Adicione evidências <span className="font-medium text-fg-sub">(opcional)</span></h3>
               <label className="flex cursor-pointer flex-col items-center justify-center rounded-v2 border-2 border-dashed border-border bg-bg-sub p-8 transition-colors hover:border-brand/40 hover:bg-brand/5">
                 <Upload size={24} className="mb-3 text-brand" />
                 <span className="text-sm font-bold text-fg-mut">Clique para anexar arquivos</span>
-                <span className="mt-1 text-xs text-fg-sub">PNG, JPG, PDF (máx. 20 MB)</span>
+                <span className="mt-1 text-xs text-fg-sub">PNG, JPG, WEBP, PDF, TXT, MP4 e WEBM · até 20 MB por arquivo</span>
                 <input
                   type="file"
                   multiple
+                  accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.mp4,.webm"
+                  disabled={creating}
                   className="hidden"
                   onChange={(e) => {
-                    if (e.target.files) setFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                    const selected = Array.from(e.target.files || []);
+                    const valid = selected.filter(file => /\.(png|jpe?g|webp|pdf|txt|mp4|webm)$/i.test(file.name) && file.size <= 20 * 1024 * 1024);
+                    if (valid.length !== selected.length) toast.error('Selecione tipos aceitos com até 20 MB por arquivo.');
+                    setFiles(previous => [...previous, ...valid]);
+                    e.target.value = '';
                   }}
                 />
               </label>
@@ -156,6 +168,8 @@ export function TicketWizardSlideover({
                         <span className="truncate text-xs font-semibold text-fg-mut">{file.name}</span>
                       </div>
                       <button
+                        type="button"
+                        disabled={creating}
                         onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
                         aria-label={`Remover ${file.name}`}
                         className="rounded-full p-1 text-fg-sub transition-colors hover:bg-danger/10 hover:text-danger"
@@ -170,26 +184,9 @@ export function TicketWizardSlideover({
           )}
         </div>
 
-        <footer className="flex items-center justify-between border-t border-border bg-bg-sub/70 px-6 py-4">
-          {step > 1 ? (
-            <ButtonSecondary onClick={prevStep} type="button" disabled={creating} className="px-3! py-2!">
-              <ChevronLeft size={16} /> Voltar
-            </ButtonSecondary>
-          ) : (
-            <div /> // Spacer
-          )}
-
-          {step < 4 ? (
-            <ButtonPrimary onClick={nextStep} type="button" className="flex items-center gap-1 px-4! py-2!">
-              Avançar <ChevronRight size={16} />
-            </ButtonPrimary>
-          ) : (
-            <ButtonPrimary onClick={handleSubmit} type="button" disabled={creating} className="px-6! py-2!">
-              {creating ? 'Registrando...' : 'Finalizar e Abrir'}
-            </ButtonPrimary>
-          )}
-        </footer>
-      </div>
-    </div>
+    </form>
+    </Drawer>
+    <ConfirmDialog isOpen={discard} title="Descartar novo chamado?" description="O conteúdo digitado e os anexos selecionados serão descartados." confirmText="Descartar" onClose={() => setDiscard(false)} onConfirm={() => { setDiscard(false); onClose(); }} />
+    </>
   );
 }

@@ -1,78 +1,17 @@
-import { Users, Ban, KeyRound, Building2, Clock3 } from 'lucide-react';
 import type { AppUser, UsersUsage } from '@/app/lib/api';
 
-interface UserSummaryCardsProps {
-  rows: AppUser[];
-  usage: UsersUsage | null;
-}
-
+interface UserSummaryCardsProps { rows: AppUser[]; usage: UsersUsage | null; }
 export function UserSummaryCards({ rows, usage }: UserSummaryCardsProps) {
-  const activeUsers = rows.filter((user) => user.isActive !== false).length;
-  const blockedUsers = rows.filter(
-    (user) => user.isActive === false || (user.failedLoginAttempts ?? 0) >= 3,
-  ).length;
-  const pendingPasswordChange = rows.filter((user) => user.forcePasswordChange).length;
-  const activeRecently = rows.filter((user) => Boolean(user.lastActiveAt)).length;
-
-  const usedLicenses = usage?.used ?? rows.length;
-  const maxLicenses = usage?.max ?? 0;
-  const isFull = maxLicenses > 0 && usedLicenses >= maxLicenses;
-
   const cards = [
-    {
-      title: 'Usuarios ativos',
-      value: activeUsers,
-      icon: Users,
-      iconColor: 'text-teal-700',
-    },
-    {
-      title: 'Bloqueados',
-      value: blockedUsers,
-      icon: Ban,
-      iconColor: blockedUsers > 0 ? 'text-rose-600' : 'text-slate-600',
-    },
-    {
-      title: 'Troca pendente',
-      value: pendingPasswordChange,
-      icon: KeyRound,
-      iconColor: pendingPasswordChange > 0 ? 'text-amber-600' : 'text-slate-600',
-    },
-    {
-      title: 'Licencas',
-      value: maxLicenses > 0 ? `${usedLicenses} / ${maxLicenses}` : usedLicenses,
-      icon: Building2,
-      iconColor: isFull ? 'text-amber-600' : 'text-slate-600',
-    },
-    {
-      title: 'Com acesso recente',
-      value: activeRecently,
-      icon: Clock3,
-      iconColor: 'text-teal-700',
-    },
+    ['Usuários ativos', rows.filter(user => user.isActive !== false).length],
+    ['Bloqueados', rows.filter(user => user.isActive === false).length],
+    ['Troca pendente', rows.filter(user => user.forcePasswordChange).length],
+    ['Licenças da empresa atual', usage ? `${usage.used} / ${usage.max}` : 'Indisponível'],
+    ['Já acessaram', rows.filter(user => !!user.lastActiveAt).length],
   ];
-
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      {cards.map((card, i) => (
-        <div
-          key={i}
-          className="card-v2 flex flex-col justify-center p-5"
-        >
-          <div className="flex items-start gap-4">
-            <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-v2 border border-border bg-bg-sub ${card.iconColor}`}
-            >
-              <card.icon size={20} />
-            </div>
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-fg-mut">
-                {card.title}
-              </p>
-              <p className="mt-1 text-2xl font-black text-fg">{card.value}</p>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  return <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    {cards.map(([label, value]) => <div key={label} className="card-v2 min-w-0 p-4">
+      <dt className="text-sm text-fg-mut">{label}</dt><dd className="mt-2 break-words text-2xl font-semibold text-fg">{value}</dd>
+    </div>)}
+  </dl>;
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button, PageHeader, Drawer, ConfirmDialog } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api } from '@/app/lib/api';
 import {
@@ -40,7 +41,7 @@ interface Ticket {
   title?: string;
   subject?: string;
   description?: string;
-  status: 'NEW' | 'TRIAGE' | 'IN_PROGRESS' | 'WAITING_CUSTOMER' | 'RESOLVED' | 'CLOSED' | 'OPEN' | 'REOPENED';
+  status: 'NEW' | 'TRIAGE' | 'IN_PROGRESS' | 'WAITING_CUSTOMER' | 'WAITING_DEPLOY' | 'RESOLVED' | 'CLOSED' | 'OPEN' | 'REOPENED';
   priority: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL' | 'MEDIUM';
   createdAt: string;
   updatedAt: string;
@@ -75,6 +76,10 @@ function getStatusBadge(status: string) {
     case 'TRIAGE':
     case 'IN_PROGRESS':
       return <span className="chip-brand inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold"><Clock size={14} className="shrink-0" /> Em andamento</span>;
+    case 'WAITING_DEPLOY':
+      return <span className="chip">Aguardando atualização</span>;
+    case 'REOPENED':
+      return <span className="chip">Reaberto</span>;
     case 'WAITING_CUSTOMER':
       return <span className="chip inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-accent"><Clock size={14} className="shrink-0" /> Aguardando cliente</span>;
     case 'RESOLVED':
@@ -89,6 +94,11 @@ function CustomerSupportPage() {
   const { user } = useAuth();
   const role = String(user?.profile || user?.role || '').toUpperCase();
   const isAdminOrRh = role === 'ADMIN' || role === 'RH';
+  const canCreate = !['FUNCIONARIO', 'CONSULTA', 'COMERCIAL'].includes(role);
+  const detailRequest = useRef(0);
+  const selectedId = useRef<string | null>(null);
+  const [detailError, setDetailError] = useState('');
+  const [failedAttachments, setFailedAttachments] = useState<{ ticketId: string; files: File[] } | null>(null);
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [stats, setStats] = useState<{ open: number; resolved: number; closed: number } | null>(null);
@@ -133,16 +143,21 @@ function CustomerSupportPage() {
   }, [loadTickets]);
 
   const loadTicketDetail = async (ticket: Ticket) => {
+    if (sendingReply) return;
+    const requestId = ++detailRequest.current;
+    selectedId.current = ticket.id;
+    setDetailError('');
+    setShowCloseConfirm(false);
     setSelectedTicket(ticket);
     setLoadingDetail(true);
     setReplyText('');
     try {
       const fullTicket = await api.support.get(ticket.id);
-      if (fullTicket?.id) setSelectedTicket(fullTicket);
+      if (fullTicket?.id && requestId === detailRequest.current) setSelectedTicket(fullTicket);
     } catch (err: any) {
-      toast.error(err?.message || 'Não foi possível carregar os detalhes do chamado.');
+      if (requestId === detailRequest.current) setDetailError(err?.message || 'Não foi possível carregar os detalhes do chamado.');
     } finally {
-      setLoadingDetail(false);
+      if (requestId === detailRequest.current) setLoadingDetail(false);
     }
   };
 
@@ -176,14 +191,14 @@ function CustomerSupportPage() {
   };
 
   const handleSendReply = async () => {
-    if (!selectedTicket || !replyText.trim()) return;
+    if (!selectedTicket || !replyText.trim() || sendingReply || loadingDetail || detailError) return;
     setSendingReply(true);
     try {
       await api.support.reply(selectedTicket.id, { message: replyText.trim() });
       toast.success('Resposta enviada.');
       setReplyText('');
       const updated = await api.support.get(selectedTicket.id);
-      if (updated) setSelectedTicket(updated);
+      if (updated && selectedId.current === updated.id) setSelectedTicket(updated);
       loadTickets();
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao responder chamado.');
@@ -193,7 +208,8 @@ function CustomerSupportPage() {
   };
 
   const handleCloseTicket = async () => {
-    if (!selectedTicket) return;
+    if (!selectedTicket || sendingReply) return;
+    setSendingReply(true);
     try {
       await api.support.close(selectedTicket.id);
       toast.success('Chamado encerrado.');
@@ -203,7 +219,7 @@ function CustomerSupportPage() {
       setShowCloseConfirm(false);
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao fechar chamado.');
-    }
+    } finally { setSendingReply(false); }
   };
 
   const handleReopenTicket = async () => {
@@ -216,7 +232,7 @@ function CustomerSupportPage() {
       loadTickets();
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao reabrir chamado.');
-    }
+    } finally { setSendingReply(false); }
   };
 
   const handleDownloadAttachment = async (attachmentId: string) => {
@@ -258,35 +274,8 @@ function CustomerSupportPage() {
   return (
     <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
       <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header className="card-v2 relative flex flex-col gap-4 overflow-hidden p-5 sm:p-6 md:flex-row md:items-center md:justify-between">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-brand/10 blur-3xl" />
-        <div>
-          <h1 className="relative flex items-center gap-3 text-2xl font-black tracking-tight text-fg">
-            <div className="flex h-11 w-11 items-center justify-center rounded-v2 bg-brand text-white shadow-v2-md">
-              <LifeBuoy size={24} />
-            </div>
-            Central de Suporte ao Cliente
-          </h1>
-          <p className="relative mt-1 text-sm font-medium text-fg-mut">
-            {isAdminOrRh
-              ? 'Gerencie e acompanhe os chamados de suporte da sua empresa.'
-              : 'Acompanhe seus chamados de suporte e tire dúvidas direto com nossa equipe.'}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={loadTickets}
-            className="btn-v2-outline"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin text-brand' : 'text-fg-sub'} />
-            Atualizar
-          </button>
-          <button onClick={() => setShowModal(true)} className="btn-v2-primary">
-            <Plus size={16} /> Abrir novo chamado
-          </button>
-        </div>
-      </header>
+      <PageHeader title="Suporte" subtitle="Acompanhe os chamados disponíveis para seu perfil e empresa." actions={<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => void loadTickets()} isLoading={loading}><RefreshCw size={18} /> Atualizar</Button>{canCreate && <Button onClick={() => setShowModal(true)}><Plus size={18} /> Abrir novo chamado</Button>}</div>} />
+      {failedAttachments && <div role="alert" className="card-v2 space-y-2 p-4 text-sm"><p>O chamado foi criado. Falhou o envio de: {failedAttachments.files.map(file => file.name).join(', ')}.</p><Button variant="outline" isLoading={creating} onClick={async () => { if (creating) return; setCreating(true); const pending: File[] = []; for (const file of failedAttachments.files) { try { await api.support.uploadAttachment(failedAttachments.ticketId, file); } catch { pending.push(file); } } setFailedAttachments(pending.length ? { ...failedAttachments, files: pending } : null); setCreating(false); if (!pending.length) toast.success('Anexos enviados.'); }}>Reenviar anexos ao chamado criado</Button></div>}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="card-v2 p-4">
@@ -308,7 +297,7 @@ function CustomerSupportPage() {
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar por código, assunto, empresa ou responsável..."
+            aria-label="Buscar chamados" placeholder="Buscar por código, assunto, empresa ou responsável..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="input-v2 h-11 w-full pl-10"
@@ -321,6 +310,7 @@ function CustomerSupportPage() {
             <span>Status:</span>
           </div>
           <select
+                aria-label="Situação do chamado"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="input-v2 h-11 min-w-56"
@@ -397,9 +387,8 @@ function CustomerSupportPage() {
       </div>
 
       {selectedTicket && (
-        <div className="fixed inset-0 z-50">
-          <button className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm" onClick={() => setSelectedTicket(null)} />
-          <aside className="absolute right-0 top-0 flex h-full w-full max-w-2xl flex-col overflow-hidden border-l border-border bg-bg-sub shadow-v2-xl">
+        <Drawer isOpen title={selectedTicket.title || selectedTicket.subject || 'Chamado'} description={selectedTicket.ticketNumber || selectedTicket.id} maxWidth="max-w-3xl" onClose={() => { if (!sendingReply) { selectedId.current = null; detailRequest.current++; setSelectedTicket(null); } }}>
+          <div className="flex min-w-0 flex-col">
             <header className="border-b border-border bg-fg px-6 py-4 text-white">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -545,7 +534,11 @@ function CustomerSupportPage() {
             {(selectedTicket.status !== 'RESOLVED' && selectedTicket.status !== 'CLOSED') ? (
               <div className="space-y-3 border-t border-border bg-bg-elev p-4 md:p-6">
                 <label className="block text-xs font-bold text-slate-700">Adicionar nova resposta ou informação complementar</label>
+                {detailError && <div role="alert" className="text-sm text-danger">{detailError}<Button variant="outline" onClick={() => void loadTicketDetail(selectedTicket)}>Tentar novamente</Button></div>}
                 <textarea
+                  aria-label="Resposta ao chamado"
+                  disabled={sendingReply || loadingDetail}
+                  maxLength={10000}
                   rows={3}
                   placeholder="Escreva sua mensagem aqui..."
                   value={replyText}
@@ -557,7 +550,7 @@ function CustomerSupportPage() {
                   <button
                     type="button"
                     onClick={handleSendReply}
-                    disabled={sendingReply || !replyText.trim()}
+                    disabled={sendingReply || loadingDetail || Boolean(detailError) || !replyText.trim()}
                     className="btn-v2-primary disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Send size={14} />
@@ -574,6 +567,7 @@ function CustomerSupportPage() {
                   </button>
                   <button
                     type="button"
+                    disabled={!canCreate}
                     onClick={() => setShowModal(true)}
                     className="btn-v2-outline border-brand/20 bg-brand/10 text-brand"
                   >
@@ -601,50 +595,31 @@ function CustomerSupportPage() {
                 </div>
               </div>
             )}
-          </aside>
-        </div>
+          </div>
+        </Drawer>
       )}
 
       <TicketWizardSlideover
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => { if (!creating) setShowModal(false); }}
         creating={creating}
         onCreate={async (data) => {
+          if (creating || !canCreate) return;
           setCreating(true);
           try {
-            const ticket = await api.support.create({
-              category: data.category as any,
-              title: data.title.trim(),
-              description: data.description.trim(),
-              impact: data.priority,
-            });
-            for (const file of data.files) {
-              await api.support.uploadAttachment(ticket.id, file);
-            }
-            toast.success('Chamado aberto com sucesso.');
+            const impact: Record<string, string> = { LOW: 'Dúvida que pode esperar', NORMAL: 'Dúvida comum', HIGH: 'Alguns usuários estão impedidos de trabalhar', CRITICAL: 'toda empresa parada ou perda de dados' };
+            const ticket = await api.support.create({ category: data.category as any, title: data.title.trim(), description: data.description.trim(), impact: impact[data.priority] || data.priority });
+            const pending: File[] = [];
+            for (const file of data.files) { try { await api.support.uploadAttachment(ticket.id, file); } catch { pending.push(file); } }
+            setFailedAttachments(pending.length ? { ticketId: ticket.id, files: pending } : null);
             setShowModal(false);
-            loadTickets();
-          } catch (err: any) {
-            toast.error(err?.message || 'Erro ao criar o chamado.');
-          } finally {
-            setCreating(false);
-          }
+            toast.success(pending.length ? 'Chamado criado. Reenvie os anexos que falharam.' : 'Chamado aberto com sucesso.');
+            void loadTickets();
+          } catch (err: any) { toast.error(err?.message || 'Erro ao criar o chamado.'); }
+          finally { setCreating(false); }
         }}
       />
-      {showCloseConfirm && selectedTicket && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[3px]">
-          <div className="card-v2 w-full max-w-md bg-bg-elev p-6 shadow-v2-xl">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-600"><CheckCircle2 size={18} /></span>
-              <div><h2 className="text-sm font-black text-fg">Encerrar este chamado?</h2><p className="mt-1 text-xs leading-5 text-fg-mut">Você poderá reabrir o chamado depois se precisar enviar novas informações.</p></div>
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button type="button" onClick={() => setShowCloseConfirm(false)} className="btn-v2-outline">Continuar atendendo</button>
-              <button type="button" onClick={() => void handleCloseTicket()} className="btn-v2-primary bg-emerald-600 hover:bg-emerald-700">Encerrar chamado</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog isOpen={showCloseConfirm && Boolean(selectedTicket)} title="Encerrar chamado?" description="Você poderá reabrir o chamado para enviar novas informações." confirmText="Encerrar chamado" cancelText="Continuar atendendo" variant="primary" isLoading={sendingReply} onClose={() => setShowCloseConfirm(false)} onConfirm={handleCloseTicket} />
       </div>
     </div>
   );
@@ -652,6 +627,6 @@ function CustomerSupportPage() {
 
 export default function SupportPage() {
   const { user } = useAuth();
-  const role = String(user?.role || user?.profile || '').toUpperCase();
+  const role = String(user?.profile || user?.role || '').toUpperCase();
   return role === 'DEV' ? <PlatformSupportPage /> : <CustomerSupportPage />;
 }

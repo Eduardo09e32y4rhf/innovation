@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Loader2, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { useMutation, useQuery } from '@/app/hooks/use-data';
+import { useMutation, useQuery } from './use-platform-query';
 import { api, type CompanyStatus, type PlatformCompany } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
 

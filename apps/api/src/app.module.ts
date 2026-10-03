@@ -78,7 +78,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     RedisModule,
     DatabaseModule,
     HealthModule,
-    AuthModule,   // @Global() ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â JwtService disponivel em todos os modulos
+    AuthModule,   // @Global() Ò¢â�a¬â�� JwtService disponivel em todos os modulos
     UsersModule,
     CompaniesModule,
     CommunicationModule,
@@ -115,6 +115,3 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
   ],
 })
 export class AppModule {}
-
-
-

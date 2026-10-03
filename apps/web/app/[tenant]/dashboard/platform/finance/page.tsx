@@ -21,9 +21,12 @@ import {
   WalletCards,
   X,
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Button, PageHeader, Modal, Drawer, ConfirmDialog } from '@/app/components/ui';
+import { csvDocument } from '../_components/csv';
 import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
-import { useQuery } from '@/app/hooks/use-data';
+import { useQuery } from '../_components/use-platform-query';
 import { useAuth } from '@/app/contexts/AuthContext';
 import api, {
   ApiError,
@@ -91,13 +94,18 @@ function toIsoDate(value: string) {
 
 export default function FinancePage({ params: { tenant } }: { params: { tenant: string } }) {
   const { user } = useAuth();
-  const role = String(user?.role || user?.profile || '').toUpperCase();
-  const canManage = role === 'DEV' || role === 'COMERCIAL' || role === 'ADMIN';
+  const role = String(user?.profile || user?.role || '').toUpperCase();
+  const canManage = role === 'DEV' || role === 'CEO';
+  const query = useSearchParams();
+  const companyId = query.get('companyId') || '';
+  const [exporting, setExporting] = useState(false);
+  const [confirmation, setConfirmation] = useState<{ title: string; description: string; resolve: (answer: boolean) => void } | null>(null);
+  function askConfirm(title: string, description: string) { return new Promise<boolean>(resolve => setConfirmation({ title, description, resolve })); }
   const [search, setSearch] = useState('');
   const deferredSearch = useDeferredValue(search);
   const [status, setStatus] = useState<PlatformInvoiceStatus | ''>('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [from, setFrom] = useState(query.get('from') || '');
+  const [to, setTo] = useState(query.get('to') || '');
   const [page, setPage] = useState(1);
   const [workingId, setWorkingId] = useState<string>();
   const [showModal, setShowModal] = useState(false);
@@ -105,13 +113,24 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
 
+  async function loadInvoices(currentPage = page, limit = 20) {
+    if (!companyId) return api.platform.finance.list({ page: currentPage, limit, status, search: deferredSearch, from, to });
+    const items = (await api.platform.finance.listCompany(companyId)).filter(invoice =>
+      (!status || invoice.status === status)
+      && (!from || invoice.dueDate.slice(0, 10) >= from)
+      && (!to || invoice.dueDate.slice(0, 10) <= to)
+      && [invoice.company?.name || '', invoice.company?.document || '', invoice.description || ''].some(value => value.toLowerCase().includes(deferredSearch.trim().toLowerCase()))
+    );
+    return { items: items.slice((currentPage - 1) * limit, currentPage * limit), pagination: { page: currentPage, limit, total: items.length, pages: Math.max(1, Math.ceil(items.length / limit)) } };
+  }
+
   const summary = useQuery(() => api.platform.finance.summary({ from, to }), [from, to]);
   const invoices = useQuery(
-    () => api.platform.finance.list({ page, limit: 20, status, search: deferredSearch, from, to }),
-    [page, status, deferredSearch, from, to],
+    () => loadInvoices(),
+    [page, status, deferredSearch, from, to, companyId],
   );
-  const webhookEvents = useQuery(() => api.platform.finance.webhookEvents({ limit: 12 }), []);
-  const billingAuditLogs = useQuery(() => api.platform.finance.billingAuditLogs({ limit: 12 }), []);
+  const webhookEvents = useQuery(() => api.platform.finance.webhookEvents({ limit: 12, companyId: companyId || undefined }), []);
+  const billingAuditLogs = useQuery(() => api.platform.finance.billingAuditLogs({ limit: 12, companyId: companyId || undefined }), []);
   const companies = useQuery(() => api.platform.listCompanies({ limit: 1000 }).then(res => res.data), [], { enabled: showModal || Boolean(editingInvoice) });
   const [retryingWebhookId, setRetryingWebhookId] = useState<string | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<PlatformInvoice | null>(null);
@@ -129,7 +148,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
 
   function startCreate() {
     setEditingInvoice(null);
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, companyId });
     setShowModal(true);
   }
 
@@ -148,6 +167,8 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
 
   async function submitInvoice(event: React.FormEvent) {
     event.preventDefault();
+    if (saving || !canManage) return;
+    if (!Number.isFinite(Number(form.amount)) || Number(form.amount) <= 0 || !form.dueDate || !form.description.trim() || (!editingInvoice && !form.companyId)) return toast.error('Confira empresa, valor, descrição e vencimento.');
     setSaving(true);
     try {
       if (editingInvoice) {
@@ -181,7 +202,8 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   }
 
   async function removeInvoice(invoice: PlatformInvoice) {
-    if (!window.confirm(`Cancelar a cobrança ${invoice.description || 'selecionada'}?`)) return false;
+    if (!canManage || workingId) return false;
+    if (!await askConfirm('Cancelar cobrança', `${invoice.company?.name || 'Empresa'} · ${invoice.description || 'Cobrança'} · ${money(invoice.amount)}. Confirme o cancelamento desta cobrança e o efeito na integração.`)) return false;
     setWorkingId(invoice.id);
     try {
       await api.platform.finance.delete(invoice.id);
@@ -197,7 +219,8 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   }
 
   async function refundInvoice(invoice: PlatformInvoice) {
-    if (!window.confirm(`Solicitar reembolso de ${money(invoice.amount)}?`)) return false;
+    if (!canManage || workingId || invoice.status !== 'PAID') return false;
+    if (!await askConfirm('Solicitar reembolso', `${invoice.company?.name || 'Empresa'} · ${invoice.description || 'Cobrança'} · ${money(invoice.amount)}. O provedor valida a elegibilidade do reembolso.`)) return false;
     setWorkingId(invoice.id);
     try {
       await api.platform.finance.refund(invoice.id);
@@ -213,6 +236,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   }
 
   async function sync(invoice: PlatformInvoice) {
+    if (!canManage || workingId) return false;
     setWorkingId(invoice.id);
     try {
       await api.platform.finance.sync(invoice.id);
@@ -237,6 +261,8 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   }
 
   async function retryWebhook(event: AsaasWebhookEvent) {
+    if (role !== 'DEV' || retryingWebhookId) return;
+    if (!await askConfirm('Reprocessar evento', `Evento ${event.eventType}, de ${dateTime(event.createdAt)}. O processamento pode atualizar as cobranças vinculadas.`)) return;
     setRetryingWebhookId(event.id);
     try {
       await api.platform.finance.retryWebhookEvent(event.id);
@@ -250,33 +276,27 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
   }
 
   async function exportCsv() {
+    if (exporting) return;
+    setExporting(true);
     try {
-      const result = await api.platform.finance.list({ limit: 500, status, search: deferredSearch, from, to });
-      const rows = result.items.map((item) => [
-        `"${item.company?.name || 'Empresa'}"`,
-        `"${item.company?.document || '-'}"`,
-        `"${item.description || 'Mensalidade'}"`,
-        `"${Number(item.amount).toFixed(2)}"`,
-        `"${item.dueDate ? date(item.dueDate) : '-'}"`,
-        `"${STATUS[item.status]?.label ?? item.status}"`,
-        `"${BILLING_LABEL[item.billingType] ?? item.billingType}"`,
-        `"${item.asaasPaymentId ? 'Asaas' : 'Local'}"`,
-      ].join(','));
-      const header = '"Empresa","Documento","Cobrança","Valor R$","Vencimento","Status","Forma","Integração"\n';
-      const csv = '\uFEFF' + header + rows.join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
+      const first = await loadInvoices(1, 100);
+      const items = [...first.items];
+      for (let current = 2; current <= first.pagination.pages; current++) {
+        const result = await loadInvoices(current, 100);
+        items.push(...result.items);
+      }
+      if (new Set(items.map(item => item.id)).size !== first.pagination.total) throw new Error('A lista mudou durante a exportação. Atualize e tente novamente.');
+      const rows: unknown[][] = [['Empresa', 'Documento', 'Cobrança', 'Valor R$', 'Vencimento', 'Situação', 'Forma', 'Integração']];
+      items.forEach(item => rows.push([item.company?.name || 'Empresa', item.company?.document || '', item.description || 'Mensalidade', parseMoney(item.amount).toFixed(2).replace('.', ','), item.dueDate ? date(item.dueDate) : '', STATUS[item.status]?.label ?? item.status, BILLING_LABEL[item.billingType] ?? item.billingType, item.asaasPaymentId ? 'Asaas' : 'Local']));
+      const url = URL.createObjectURL(new Blob([csvDocument(rows)], { type: 'text/csv;charset=utf-8;' }));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `extrato-bancario-${new Date().toISOString().slice(0, 10)}.csv`);
-      document.body.appendChild(link);
+      link.download = `cobrancas-${new Date().toISOString().slice(0, 10)}.csv`;
       link.click();
-      document.body.removeChild(link);
       window.setTimeout(() => URL.revokeObjectURL(url), 5000);
-      toast.success('Extrato bancário (CSV/Excel) gerado com sucesso!');
-    } catch {
-      toast.error('Não foi possível gerar o extrato bancário.');
-    }
+      toast.success(`${items.length} cobranças exportadas conforme os filtros.`);
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Não foi possível exportar as cobranças.'); }
+    finally { setExporting(false); }
   }
 
   const totals = summary.data?.totals;
@@ -319,26 +339,9 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
 
   return (
     <div className="mx-auto w-full space-y-6 pb-10">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">Controle da operacao</p>
-          <h2 className="mt-1 text-2xl font-black text-slate-950">Gestao da Plataforma</h2>
-          <p className="mt-2 max-w-2xl text-sm text-slate-500">Cobranças, reembolsos e sincronização Asaas em um painel único e prático.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {canManage && (
-            <button onClick={startCreate} className="inline-flex h-10 items-center gap-2 rounded-[8px] bg-teal-600 px-4 text-xs font-black text-white hover:bg-teal-700 shadow-sm">
-              <Plus size={14} /> Nova cobrança
-            </button>
-          )}
-          <button onClick={exportPdf} className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-sm">
-            <ArrowDownToLine size={14} className="text-slate-500" /> Exportar PDF/HTML
-          </button>
-          <button onClick={exportCsv} className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 shadow-sm">
-            <ArrowDownToLine size={14} className="text-emerald-600" /> Extrato Bancário (CSV)
-          </button>
-        </div>
-      </header>
+      <PageHeader title="Financeiro" subtitle="Cobranças e integração Asaas. O resumo é global para o período; a lista respeita o contexto da empresa." actions={<div className="flex flex-wrap gap-2">{canManage && <Button onClick={startCreate}><Plus size={18} /> Nova cobrança</Button>}<Button variant="outline" onClick={exportPdf} disabled={Boolean(companyId)} title={companyId ? 'O endpoint de PDF oferece apenas o demonstrativo global.' : undefined}><ArrowDownToLine size={18} /> Exportar PDF/HTML</Button><Button variant="outline" onClick={exportCsv} isLoading={exporting}><ArrowDownToLine size={18} /> Exportar cobranças (CSV)</Button></div>} />
+      {companyId && <div className="card-v2 flex flex-wrap items-center justify-between gap-2 p-3 text-sm"><span>Empresa: {invoices.data?.items[0]?.company?.name || companyId} · {from || 'Início não definido'} a {to || 'Fim não definido'}</span><a className="btn btn-outline" href={`/${tenant}/dashboard/platform/finance`}>Ver todas as empresas</a></div>}
+      {summary.error && <ErrorState message={summary.error} onRetry={summary.refetch} />}
 
       {companies.loading || summary.loading ? <LoadingState label="Carregando financeiro..." /> : null}
 
@@ -353,7 +356,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
           <article key={card.label} className={`relative overflow-hidden rounded-[14px] border border-slate-200 p-5 shadow-sm ${card.tone}`}>
             <card.icon size={18} className="mb-5 opacity-75" />
             <p className="text-[10px] font-black uppercase tracking-[0.16em] opacity-65">{card.label}</p>
-            <p className="mt-1 text-2xl font-black">{money(card.value ?? 0)}</p>
+            <p className="mt-1 text-2xl font-black">{card.value == null ? '—' : money(card.value)}</p>
             <div className="absolute -bottom-10 -right-8 h-28 w-28 rounded-full bg-current opacity-[0.04]" />
           </article>
         ))}
@@ -369,7 +372,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
             <TrendingUp size={20} className="text-teal-600" />
           </div>
           <div className="mt-8 flex items-end gap-3">
-            <span className="text-5xl font-black text-slate-950">{summary.data?.conversionRate ?? 0}%</span>
+            <span className="text-5xl font-black text-slate-950">{summary.data?.conversionRate == null ? '—' : `${summary.data.conversionRate}%`}</span>
             <span className="pb-1 text-xs font-bold text-slate-400">do faturado</span>
           </div>
           <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
@@ -414,7 +417,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
               <h3 className="mt-1 text-lg font-black text-slate-950">Saude da cobranca e integracao</h3>
             </div>
             <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-1 text-[10px] font-black text-teal-700">
-              Extrato backend
+              Página atual · até 20 cobranças
             </span>
           </div>
 
@@ -632,11 +635,12 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                 setSearch(event.target.value);
                 setPage(1);
               }}
-              placeholder="Buscar empresa ou CNPJ..."
+              aria-label="Buscar empresa ou CNPJ" placeholder="Buscar empresa ou CNPJ..."
               className="h-10 w-full rounded-[8px] border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-teal-500"
             />
           </div>
           <select
+            aria-label="Situação da cobrança"
             value={status}
             onChange={(event) => {
               setStatus(event.target.value as PlatformInvoiceStatus | '');
@@ -647,9 +651,9 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
             <option value="">Todos os status</option>
             {Object.entries(STATUS).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}
           </select>
-          <input type="date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} className="h-10 rounded-[8px] border border-slate-200 px-3 text-xs text-slate-600 outline-none" />
-          <input type="date" value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} className="h-10 rounded-[8px] border border-slate-200 px-3 text-xs text-slate-600 outline-none" />
-          <button onClick={refresh} className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-200 text-slate-500 hover:bg-slate-50">
+          <input aria-label="Vencimento inicial" type="date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} className="h-10 rounded-[8px] border border-slate-200 px-3 text-xs text-slate-600 outline-none" />
+          <input aria-label="Vencimento final" type="date" value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} className="h-10 rounded-[8px] border border-slate-200 px-3 text-xs text-slate-600 outline-none" />
+          <button aria-label="Atualizar cobranças" onClick={refresh} className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-slate-200 text-slate-500 hover:bg-slate-50">
             <RefreshCw size={14} />
           </button>
         </div>
@@ -713,16 +717,16 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                         )}
                         {canManage && (
                           <>
-                            <button type="button" onClick={() => startEdit(invoice)} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-violet-700 hover:shadow-sm" title="Editar">
+                            <button type="button" onClick={() => startEdit(invoice)} disabled={Boolean(workingId)} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-violet-700 hover:shadow-sm" title="Editar">
                               <Edit2 size={14} />
                             </button>
                             {invoice.status !== 'CANCELED' && (
-                              <button type="button" onClick={() => removeInvoice(invoice)} disabled={workingId === invoice.id} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-rose-700 hover:shadow-sm disabled:opacity-40" title="Cancelar / Excluir">
+                              <button type="button" onClick={() => removeInvoice(invoice)} disabled={Boolean(workingId)} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-rose-700 hover:shadow-sm disabled:opacity-40" title="Cancelar / Excluir">
                                 <Trash2 size={14} />
                               </button>
                             )}
                             {invoice.status === 'PAID' && (
-                              <button type="button" onClick={() => refundInvoice(invoice)} disabled={workingId === invoice.id} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-amber-700 hover:shadow-sm disabled:opacity-40" title="Reembolsar (Estorno 7 dias)">
+                              <button type="button" onClick={() => refundInvoice(invoice)} disabled={workingId === invoice.id} className="rounded-[7px] p-2 text-slate-500 hover:bg-white hover:text-amber-700 hover:shadow-sm disabled:opacity-40" title="Solicitar reembolso">
                                 {workingId === invoice.id ? <Loader2 size={14} className="animate-spin" /> : <Banknote size={14} />}
                               </button>
                             )}
@@ -755,19 +759,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
     </section>
 
       {selectedInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 p-4">
-          <div className="flex h-full w-full max-w-2xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl">
-            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-600">Detalhe da cobrança</p>
-                <h3 className="mt-1 text-lg font-black text-slate-950">{selectedInvoice.company?.name || 'Empresa'}</h3>
-                <p className="mt-1 text-xs text-slate-500">{selectedInvoice.description || 'Mensalidade'} • {money(selectedInvoice.amount)}</p>
-              </div>
-              <button type="button" onClick={() => setSelectedInvoice(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
-                <X size={18} />
-              </button>
-            </header>
-
+        <Drawer isOpen onClose={() => setSelectedInvoice(null)} title={selectedInvoice.description || 'Detalhes da cobrança'} description={selectedInvoice.company?.name} maxWidth="max-w-2xl">
             <div className="grid gap-4 overflow-y-auto p-6">
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
@@ -789,6 +781,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                   <button
                     type="button"
                     onClick={() => {
+                      if (!canManage) return;
                       startEdit(selectedInvoice);
                       setSelectedInvoice(null);
                     }}
@@ -804,7 +797,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                         setSelectedInvoice(null);
                       }
                     }}
-                    disabled={selectedInvoice.status !== 'PAID'}
+                    disabled={!canManage || Boolean(workingId) || selectedInvoice.status !== 'PAID'}
                     className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Banknote size={14} />
@@ -817,7 +810,7 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                         setSelectedInvoice(null);
                       }
                     }}
-                    disabled={!selectedInvoice.asaasPaymentId}
+                    disabled={!canManage || Boolean(workingId) || !selectedInvoice.asaasPaymentId}
                     className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <RefreshCw size={14} />
@@ -867,23 +860,12 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                 </div>
               </article>
             </div>
-          </div>
-        </div>
+        </Drawer>
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
-          <div className="w-full max-w-2xl rounded-[20px] bg-white shadow-2xl">
-            <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <div>
-                <h2 className="text-base font-black text-slate-900">{editingInvoice ? 'Editar cobrança' : 'Nova cobrança'}</h2>
-                <p className="mt-1 text-xs text-slate-500">{editingInvoice ? 'Ajuste valor, vencimento ou descrição.' : 'Crie uma cobrança local ou envie ao Asaas.'}</p>
-              </div>
-              <button onClick={() => { setShowModal(false); setEditingInvoice(null); setForm(EMPTY_FORM); }} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
-                <X size={18} />
-              </button>
-            </header>
-            <form onSubmit={submitInvoice} className="space-y-4 p-6">
+        <Modal isOpen onClose={() => { if (!saving) setShowModal(false); }} title={editingInvoice ? 'Editar cobrança' : 'Nova cobrança'} description="Confira os dados antes de salvar ou enviar ao Asaas." maxWidth="max-w-2xl">
+            <form onSubmit={submitInvoice} className="max-h-[70dvh] space-y-4 overflow-y-auto">
               {!editingInvoice && (
                 <label className="block text-xs font-bold text-slate-600">
                   Empresa
@@ -948,9 +930,9 @@ export default function FinancePage({ params: { tenant } }: { params: { tenant: 
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
+      <ConfirmDialog isOpen={Boolean(confirmation)} title={confirmation?.title || 'Confirmar ação'} description={confirmation?.description} onClose={() => { confirmation?.resolve(false); setConfirmation(null); }} onConfirm={() => { confirmation?.resolve(true); setConfirmation(null); }} />
     </div>
   );
 }

@@ -1,5 +1,8 @@
 'use client';
 
+import { Button } from '@/app/components/ui/button';
+import recordStyles from '../_components/operational-ui.module.css';
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useMutation } from '@/app/hooks/use-data';
 import { api, type Employee, type TimeTrack, type TimeTrackAdjustmentReason } from '@/app/lib/api';
@@ -101,7 +104,7 @@ function buildGrid(month: string, emp: Employee, tracks: TimeTrack[], startDay: 
   const empSchedule = teamSchedules.find(ts => ts.employee?.id === emp.id || ts.employeeId === emp.id);
   const calDays = empSchedule ? (empSchedule.days || []) : [];
   const getCalDay = (k: string) => calDays.find((cd: any) => cd.date === k);
-  
+
   let startDate = new Date(Date.UTC(y, m - 1, 1));
   let endDate = new Date(Date.UTC(y, m, 0));
 
@@ -239,7 +242,7 @@ function StatusBadge({ status }: { status: string }) {
     'ATRASO':'bg-rose-50 text-rose-800 border-rose-300',
     'SAÍDA ANTECIPADA':'bg-rose-50 text-rose-800 border-rose-300',
   };
-  return <span className={`inline-flex items-center rounded border px-2 py-0.5 text-[9px] font-bold whitespace-nowrap ${c[u]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{u}</span>;
+  return <span className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-bold whitespace-nowrap ${c[u]||'bg-slate-100 text-slate-600 border-slate-200'}`}>{u}</span>;
 }
 
 export default function PontoPage() {
@@ -247,7 +250,7 @@ export default function PontoPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   const canManage = hasPermission(user, 'time_tracking.view_all');
   const canApprove = hasPermission(user, 'time_tracking.approve_all') || hasPermission(user, 'time_tracking.approve_team');
   const isGestor = hasPermission(user, 'time_tracking.view_team') && !canManage;
@@ -267,7 +270,7 @@ export default function PontoPage() {
     }
   };
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(searchParams.get('employeeId') || (isFunc ? user?.id : 'all'));
-  
+
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [editingTrack, setEditingTrack] = useState<TimeTrack | null>(null);
 
@@ -278,17 +281,17 @@ export default function PontoPage() {
 
   const { data: employeesData } = useQuery(() => api.employees.list(), []);
   const employees = (employeesData || []) as Employee[];
-  
+
   const { data: timeRecordsData, loading: isLoadingTracks, refetch: refetchTracks } = useQuery(
     () => api.timeTrack.list(currentMonth),
     [currentMonth]
   );
-  
+
   const { data: teamSchedulesData } = useQuery(
     () => api.schedules.teamSchedule(currentMonth),
     [currentMonth]
   );
-  
+
   const { data: companyData } = useQuery(() => api.companies.me(), []);
   const { data: holidaysData } = useQuery(() => api.companies.getHolidays(), []);
   const { data: pendingData, refetch: refetchPending } = useQuery(() => api.timeTrack.listPending(), [], { enabled: canApprove });
@@ -347,12 +350,12 @@ export default function PontoPage() {
         <div className="flex flex-wrap gap-2 mt-4 md:mt-0">
           {(canManage || isGestor) && (
             <>
-              <button onClick={() => handleDownloadPdf()} disabled={isDownloading} className="btn-outline flex items-center gap-2 text-brand bg-brand/5 border-brand/20 hover:bg-brand/10 transition-colors disabled:opacity-50">
+              <Button variant="outline" type="button" onClick={() => handleDownloadPdf()} disabled={isDownloading} className=" flex items-center gap-2 text-brand bg-brand/5 border-brand/20 hover:bg-brand/10 transition-colors disabled:opacity-50">
                 <FileText size={16} /><span>{isDownloading ? 'Gerando...' : 'Imprimir Relatório'}</span>
-              </button>
-              <button onClick={() => { setEditingTrack(null); setIsManualModalOpen(true); }} className="btn-outline flex items-center gap-2">
+              </Button>
+              <Button variant="outline" type="button" onClick={() => { setEditingTrack(null); setIsManualModalOpen(true); }} className=" flex items-center gap-2">
                 <Plus size={16} /><span>Ajuste Manual</span>
-              </button>
+              </Button>
             </>
           )}
           <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="btn-nubank flex items-center gap-2">
@@ -363,21 +366,21 @@ export default function PontoPage() {
 
       <div className="flex flex-col md:flex-row justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
         <div className="flex items-center gap-4">
-          <button onClick={handlePrevMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm">
+          <Button aria-label="M?s anterior" variant="ghost" type="button" onClick={handlePrevMonth} className="flex items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm">
             <ChevronLeft size={16} />
-          </button>
-          <span className="font-black text-slate-900 text-base min-w-[150px] text-center uppercase tracking-wider">
+          </Button>
+          <span className="font-semibold text-slate-900 text-base min-w-[150px] text-center r">
             {new Date(`${currentMonth}-01T00:00:00`).toLocaleDateString('pt-BR', { month: 'long' })} <span className="text-brand">{new Date(`${currentMonth}-01T00:00:00`).getFullYear()}</span>
           </span>
-          <button onClick={handleNextMonth} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm">
+          <Button aria-label="Pr?ximo m?s" variant="ghost" type="button" onClick={handleNextMonth} className="flex items-center justify-center rounded-xl bg-brand/10 text-brand ring-1 ring-brand/20 hover:bg-brand hover:text-white transition-all shadow-sm">
             <ChevronRight size={16} />
-          </button>
+          </Button>
         </div>
 
         {!isFunc && (
           <div className="flex items-center gap-2 w-full md:w-auto relative">
             <Search size={16} className="absolute left-3 text-slate-400" />
-            <select 
+            <select aria-label="Funcion?rio"
               className="pl-9 pr-4 py-2 w-full md:w-72 bg-slate-50 border border-slate-200 text-sm rounded-lg font-medium text-slate-700 outline-none focus:border-brand/50 focus:ring-2 focus:ring-brand/20 transition-all"
               value={selectedEmployeeId}
               onChange={(e) => {
@@ -410,44 +413,44 @@ export default function PontoPage() {
               const grid = buildGrid(currentMonth, emp, rows, (companyData as any)?.payrollStartDay || 1, holidaysData as any[] || [], teamSchedulesData?.withSchedule || []);
               const { worked, saldo } = getEffectiveStatsFromGrid(grid);
               const faltas = rows.filter(isFalta).length;
-              
+
               return (
                 <div key={emp.id} onClick={() => setSelectedEmployeeId(emp.id)} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 hover:bg-brand/5 cursor-pointer transition-all duration-300 relative overflow-hidden">
                   {/* Linha lateral colorida */}
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-brand transition-colors" />
-                  
+
                   <div className="flex items-center gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white text-sm font-black shadow-md group-hover:scale-110 transition-transform bg-gradient-to-br from-brand to-[#5e0382] ml-1">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white text-sm font-semibold shadow-md group-hover:scale-110 transition-transform bg-gradient-to-br from-brand to-[#5e0382] ml-1">
                       {normalizeDisplayName(emp.name).charAt(0).toUpperCase()}
                     </div>
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-2">
-                        <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-mono tracking-widest border border-slate-200 group-hover:border-brand/30 group-hover:text-brand transition-colors">
+                        <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-xs font-mono st border border-slate-200 group-hover:border-brand/30 group-hover:text-brand transition-colors">
                           {emp.registration ? String(emp.registration).padStart(4, '0') : emp.id.slice(0,8).toUpperCase()}
                         </span>
-                        <p className="font-black text-sm text-slate-900 tracking-tight">{normalizeDisplayName(emp.name).toUpperCase()}</p>
+                        <p className="font-semibold text-sm text-slate-900 tracking-tight">{normalizeDisplayName(emp.name).toUpperCase()}</p>
                       </div>
-                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{emp.department || 'SEM DEPARTAMENTO'} {faltas > 0 && <span className="text-red-500 ml-2 font-bold bg-red-50 px-1.5 py-0.5 rounded border border-red-200">{faltas} FALTA(S)</span>}</p>
+                      <p className="text-xs font-bold text-slate-500 r">{emp.department || 'SEM DEPARTAMENTO'} {faltas > 0 && <span className="text-red-500 ml-2 font-bold bg-red-50 px-1.5 py-0.5 rounded border border-red-200">{faltas} FALTA(S)</span>}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="flex gap-5 items-center">
                       <div className="flex flex-col items-end">
-                        <span className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Trabalhado</span>
-                        <span className="font-mono text-sm font-black text-slate-700">{fmtWorked(worked)}</span>
+                        <span className="text-xs font-bold text-slate-400 r">Trabalhado</span>
+                        <span className="font-mono text-sm font-semibold text-slate-700">{fmtWorked(worked)}</span>
                       </div>
                       <div className="w-px h-8 bg-slate-200"></div>
                       <div className="flex flex-col items-end">
-                        <span className="text-[9px] font-bold uppercase text-slate-400 tracking-wider">Saldo</span>
-                        <span className={`font-mono text-sm font-black ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</span>
+                        <span className="text-xs font-bold text-slate-400 r">Saldo</span>
+                        <span className={`font-mono text-sm font-semibold ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</span>
                       </div>
                     </div>
                     <div className="flex flex-row gap-2 shrink-0">
-                      <button onClick={(e) => { e.stopPropagation(); setSelectedEmployeeId(emp.id); }} className="btn-nubank px-4 py-2 text-[10px] shadow-sm font-bold tracking-wider hover:scale-105 transition-transform">VER FOLHA</button>
+                      <Button variant="primary" type="button" onClick={(e) => { e.stopPropagation(); setSelectedEmployeeId(emp.id); }} className=" px-4 py-2 text-xs shadow-sm font-bold r hover:scale-105 transition-transform">VER FOLHA</Button>
                       {(canManage || isGestor) && (
-                        <button onClick={(e) => { e.stopPropagation(); handleDownloadPdf(emp.id); }} disabled={isDownloading} className="btn-outline flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] font-bold border-brand/30 text-brand hover:bg-brand/5 transition-transform hover:scale-105 disabled:opacity-50">
+                        <Button variant="outline" type="button" onClick={(e) => { e.stopPropagation(); handleDownloadPdf(emp.id); }} disabled={isDownloading} className=" flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold border-brand/30 text-brand hover:bg-brand/5 transition-transform hover:scale-105 disabled:opacity-50">
                           <Download size={14}/> PDF
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -462,12 +465,12 @@ export default function PontoPage() {
           </div>
         </SolidCard>
       ) : (
-        <MonthGridView 
-          employee={visibleEmployees[0]} 
-          tracks={byEmpMap[visibleEmployees[0].id] || []} 
-          month={currentMonth} 
-          company={companyData} 
-          holidays={holidaysData as any[]} 
+        <MonthGridView
+          employee={visibleEmployees[0]}
+          tracks={byEmpMap[visibleEmployees[0].id] || []}
+          month={currentMonth}
+          company={companyData}
+          holidays={holidaysData as any[]}
           teamSchedules={teamSchedulesData?.withSchedule || []}
           canManage={canManage}
           canApprove={canApprove}
@@ -478,7 +481,7 @@ export default function PontoPage() {
       )}
 
       {isManualModalOpen && (
-        <TimeTrackModal 
+        <TimeTrackModal
           track={editingTrack}
           employees={employees}
           defaultEmpId={selectedEmployeeId !== 'all' ? selectedEmployeeId : ''}
@@ -494,7 +497,7 @@ export default function PontoPage() {
 function MonthGridView({ employee, tracks, month, company, holidays, teamSchedules, canManage, canApprove, onEdit, onDelete, onApprove }: any) {
   const grid = useMemo(() => buildGrid(month, employee, tracks, company?.payrollStartDay || 1, holidays, teamSchedules), [month, employee, tracks, company, holidays, teamSchedules]);
   const { worked, saldo } = useMemo(() => getEffectiveStatsFromGrid(grid), [grid]);
-  
+
   const restDays = grid.filter((g: any) => g.isRest).length;
   const batidas = grid.filter((g: any) => g.track && !g.isRest).length;
   const pendentes = grid.filter((g: any) => !g.isRest && !g.isFuture && !g.track).length;
@@ -502,19 +505,19 @@ function MonthGridView({ employee, tracks, month, company, holidays, teamSchedul
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card-stat">
+        <div className="card-v2 p-4">
           <p className="card-stat-label">Trabalhado</p>
           <p className="card-stat-value text-slate-800 font-mono">{fmtWorked(worked)}</p>
         </div>
-        <div className="card-stat">
+        <div className="card-v2 p-4">
           <p className="card-stat-label">Saldo (Banco)</p>
           <p className={`card-stat-value font-mono ${saldo >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtBalance(saldo)}</p>
         </div>
-        <div className="card-stat">
+        <div className="card-v2 p-4">
           <p className="card-stat-label">Dias Restantes</p>
           <p className="card-stat-value text-slate-600">{grid.filter((g: any) => g.isFuture && !g.isRest).length} dias</p>
         </div>
-        <div className="card-stat">
+        <div className="card-v2 p-4">
           <p className="card-stat-label">Pendências</p>
           <p className="card-stat-value text-amber-600">{pendentes} ausências</p>
         </div>
@@ -522,9 +525,9 @@ function MonthGridView({ employee, tracks, month, company, holidays, teamSchedul
 
       <SolidCard className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] border-collapse text-left">
+          <div className={recordStyles.records}><table className="w-full min-w-[900px] border-collapse text-left">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold r text-slate-500">
                 <th className="px-4 py-3 w-[12%]">DATA</th>
                 <th className="px-4 py-3 w-[9%] text-center">ENTRADA</th>
                 <th className="px-4 py-3 w-[11%] text-center">ALMOÇO</th>
@@ -542,7 +545,7 @@ function MonthGridView({ employee, tracks, month, company, holidays, teamSchedul
                 if (day.isRest) bg = 'bg-slate-50/50';
                 else if (day.isFuture) bg = 'bg-white opacity-60';
                 else if (!t && !day.antesAdmissao && !day.depoisDemissao) bg = 'bg-rose-50/30';
-                
+
                 let status = '';
                 if (t) status = dayStatus(t, day.holidayName);
                 else if (day.dayType === 'ATESTADO' || day.dayType === 'ATESTADO_HORAS') status = 'ATESTADO';
@@ -556,41 +559,41 @@ function MonthGridView({ employee, tracks, month, company, holidays, teamSchedul
                 const isAtestado = ['ATESTADO','FERIADO','SUSPENSÃO','FOLGA','FOLGA EXTRA','FOLGA BANCO','FOLGA (DSR)','---'].includes(status);
 
                 return (
-                  <tr key={day.key} className={`border-t border-slate-100 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors ${bg}`}>
-                    <td className="px-4 py-2 text-slate-600 font-bold">
+                  <tr key={day.key} className={`border-t border-slate-100 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors ${bg}`}>
+                    <td data-label="DATA" className="px-4 py-2 text-slate-600 font-bold">
                       <div className="flex flex-col">
                         <span>{fmtDateFull(day.key)}</span>
                         {t?.locationAddress && (
-                          <span className="mt-0.5 flex items-center gap-1 text-[9px] font-semibold text-brand truncate max-w-[120px]" title={t.locationAddress}>
+                          <span className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-brand truncate max-w-[120px]" title={t.locationAddress}>
                             <MapPin size={10} /> {t.locationAddress}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.entry?'text-slate-900':day.scheduled?.entry?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):(day.scheduled?.entry ? fmtTime(day.scheduled.entry) : '--:--')}</td>
-                    <td className={`px-4 text-center font-mono text-[11px] font-medium ${t?.lunchStart||t?.lunchReturn?'text-slate-500':day.scheduled?.lunchStart?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):(day.scheduled?.lunchStart ? fmtLunch(day.scheduled.lunchStart, day.scheduled.lunchReturn) : '--:--')}</td>
-                    <td className={`px-4 text-center font-mono text-[11px] font-medium ${isAtestado?'text-slate-300':t?.exit?'text-slate-900':day.scheduled?.exit?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):(day.scheduled?.exit ? fmtTime(day.scheduled.exit) : '--:--')}</td>
-                    <td className="px-4 text-center text-slate-500 font-medium">{isAtestado?'---':t?fmtWorked(t.totalWorked):'--:--'}</td>
-                    <td className={`px-4 text-center font-bold ${isAtestado?'text-slate-300':t&&(t.dailyBalance??0)<0?'text-rose-500':t?'text-emerald-500':'text-slate-300'}`}>{isAtestado?'---':t?fmtBalance(t.dailyBalance):'--:--'}</td>
-                    <td className="px-4 text-center">
+                    <td data-label="ENTRADA" className={`px-4 text-center font-mono text-xs font-medium ${isAtestado?'text-slate-300':t?.entry?'text-slate-900':day.scheduled?.entry?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.entry?fmtTime(t.entry):(day.scheduled?.entry ? fmtTime(day.scheduled.entry) : '--:--')}</td>
+                    <td data-label="ALMOÇO" className={`px-4 text-center font-mono text-xs font-medium ${t?.lunchStart||t?.lunchReturn?'text-slate-500':day.scheduled?.lunchStart?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.lunchStart?fmtLunch(t?.lunchStart,t?.lunchReturn):(day.scheduled?.lunchStart ? fmtLunch(day.scheduled.lunchStart, day.scheduled.lunchReturn) : '--:--')}</td>
+                    <td data-label="SAÍDA" className={`px-4 text-center font-mono text-xs font-medium ${isAtestado?'text-slate-300':t?.exit?'text-slate-900':day.scheduled?.exit?'text-slate-400':'text-slate-300'}`}>{isAtestado?'---':t?.exit?fmtTime(t.exit):(day.scheduled?.exit ? fmtTime(day.scheduled.exit) : '--:--')}</td>
+                    <td data-label="TRAB" className="px-4 text-center text-slate-500 font-medium">{isAtestado?'---':t?fmtWorked(t.totalWorked):'--:--'}</td>
+                    <td data-label="SALDO" className={`px-4 text-center font-bold ${isAtestado?'text-slate-300':t&&(t.dailyBalance??0)<0?'text-rose-500':t?'text-emerald-500':'text-slate-300'}`}>{isAtestado?'---':t?fmtBalance(t.dailyBalance):'--:--'}</td>
+                    <td data-label="STATUS" className="px-4 text-center">
                       <StatusBadge status={status}/>
                     </td>
-                    <td className="px-4">
+                    <td data-label="AÇÕES" className="px-4">
                       <div className="flex items-center justify-center gap-2 whitespace-nowrap">
                         {!day.isFuture && (
-                          <button onClick={() => onEdit(t || { employeeId: employee.id, date: day.key, entry: null, lunchStart: null, lunchReturn: null, exit: null } as any)} className="p-1.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                          <Button aria-label="Editar ponto" variant="ghost" type="button" onClick={() => onEdit(t || { employeeId: employee.id, date: day.key, entry: null, lunchStart: null, lunchReturn: null, exit: null } as any)} className="p-1.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
                             <Edit3 size={12} />
-                          </button>
+                          </Button>
                         )}
                         {t && canApprove && t.manualStatus === 'pending' && (
-                          <button onClick={() => onApprove(t.id, true)} className="p-1.5 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors">
+                          <Button aria-label="Aprovar ponto" variant="ghost" type="button" onClick={() => onApprove(t.id, true)} className="p-1.5 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors">
                             <CheckCircle size={12} />
-                          </button>
+                          </Button>
                         )}
                         {t && canManage && (
-                          <button onClick={() => onDelete(t)} className="p-1.5 rounded bg-rose-100 text-rose-600 hover:bg-rose-200 transition-colors">
+                          <Button aria-label="Excluir" variant="ghost" type="button" onClick={() => onDelete(t)} className="p-1.5 rounded bg-rose-100 text-rose-600 hover:bg-rose-200 transition-colors">
                             <Trash2 size={12} />
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </td>
@@ -598,7 +601,7 @@ function MonthGridView({ employee, tracks, month, company, holidays, teamSchedul
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
         <div className="bg-slate-50 p-4 border-t border-slate-100 text-xs text-slate-500 font-medium flex gap-4">
           <div className="flex items-center gap-2"><span className="w-2 h-2 rounded bg-emerald-500"></span> Batida Normal</div>
@@ -620,7 +623,7 @@ function TimeTrackModal({ track, employees, onClose, onDone, defaultEmpId, canMa
   const [lunchR, setLunchR] = useState(track?.lunchReturn ? fmtTime(track.lunchReturn) : '');
   const [exit, setExit] = useState(track?.exit ? fmtTime(track.exit) : '');
   const [detail, setDetail] = useState(track?.observation ?? '');
-  
+
   const selReason = REASONS.find((r) => r.value === reason);
   const fullDay = Boolean(selReason?.fullDay);
 
@@ -656,29 +659,29 @@ function TimeTrackModal({ track, employees, onClose, onDone, defaultEmpId, canMa
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
         <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
           <h3 className="text-lg font-bold text-slate-800">{track?.id ? 'Editar Ponto' : 'Lançar Ponto Manual'}</h3>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-colors"><X size={20}/></button>
+          <Button aria-label="Fechar" variant="ghost" type="button" onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 rounded-full transition-colors"><X size={20}/></Button>
         </div>
-        
+
         {save.error && <p className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 border border-rose-100">{save.error}</p>}
-        
+
         <div className="space-y-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-500 uppercase">Colaborador</label>
-            <select disabled={!!track?.id} value={empId} onChange={e=>setEmpId(e.target.value)} className="form-control">
+            <label htmlFor="ponto-field-666" className="text-xs font-bold text-slate-500 ">Colaborador</label>
+            <select id="ponto-field-666" disabled={!!track?.id} value={empId} onChange={e=>setEmpId(e.target.value)} className="input-v2">
               <option value="">Selecione...</option>
               {employees.map((e: any)=><option key={e.id} value={e.id}>[{e.registration || e.id.slice(0,8).toUpperCase()}] {normalizeDisplayName(e.name)}</option>)}
             </select>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-500 uppercase">Data</label>
-              <input disabled={!!track?.id} type="date" value={date} onChange={e=>setDate(e.target.value)} className="form-control" />
+              <label className="text-xs font-bold text-slate-500 ">Data</label>
+              <input disabled={!!track?.id} type="date" value={date} onChange={e=>setDate(e.target.value)} className="input-v2" />
             </div>
             {(!track?.id || !canManage) && (
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Motivo</label>
-                <select value={reason} onChange={e=>setReason(e.target.value as any)} className="form-control">
+                <label htmlFor="ponto-field-680" className="text-xs font-bold text-slate-500 ">Motivo</label>
+                <select id="ponto-field-680" value={reason} onChange={e=>setReason(e.target.value as any)} className="input-v2">
                   {REASONS.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
               </div>
@@ -688,35 +691,35 @@ function TimeTrackModal({ track, employees, onClose, onDone, defaultEmpId, canMa
           {!fullDay && (
             <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Entrada</label>
-                <input type="time" value={entry} onChange={e=>setEntry(e.target.value)} className="form-control bg-white" />
+                <label className="text-xs font-bold text-slate-500 ">Entrada</label>
+                <input type="time" value={entry} onChange={e=>setEntry(e.target.value)} className="input-v2 bg-white" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Saída</label>
-                <input type="time" value={exit} onChange={e=>setExit(e.target.value)} className="form-control bg-white" />
+                <label className="text-xs font-bold text-slate-500 ">Saída</label>
+                <input type="time" value={exit} onChange={e=>setExit(e.target.value)} className="input-v2 bg-white" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Saída Almoço</label>
-                <input type="time" value={lunchS} onChange={e=>setLunchS(e.target.value)} className="form-control bg-white" />
+                <label className="text-xs font-bold text-slate-500 ">Saída Almoço</label>
+                <input type="time" value={lunchS} onChange={e=>setLunchS(e.target.value)} className="input-v2 bg-white" />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Retorno Almoço</label>
-                <input type="time" value={lunchR} onChange={e=>setLunchR(e.target.value)} className="form-control bg-white" />
+                <label className="text-xs font-bold text-slate-500 ">Retorno Almoço</label>
+                <input type="time" value={lunchR} onChange={e=>setLunchR(e.target.value)} className="input-v2 bg-white" />
               </div>
             </div>
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-500 uppercase">Observação</label>
-            <input value={detail} onChange={e=>setDetail(e.target.value)} className="form-control" placeholder="Motivo do ajuste..." />
+            <label className="text-xs font-bold text-slate-500 ">Observação</label>
+            <input aria-label="Motivo do ajuste..." value={detail} onChange={e=>setDetail(e.target.value)} className="input-v2" placeholder="Motivo do ajuste..." />
           </div>
         </div>
-        
+
         <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-100">
-          <button onClick={onClose} className="btn-outline">Cancelar</button>
-          <button onClick={()=>ok && save.mutate().catch(()=>{})} disabled={!ok || save.loading} className="btn-nubank">
+          <Button variant="outline" type="button" onClick={onClose} className="">Cancelar</Button>
+          <Button variant="primary" type="button" onClick={()=>ok && save.mutate().catch(()=>{})} disabled={!ok || save.loading} className="">
             {save.loading ? 'Salvando...' : 'Salvar Registro'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

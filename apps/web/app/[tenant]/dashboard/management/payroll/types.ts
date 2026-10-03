@@ -15,9 +15,10 @@ export interface PayrollItem {
   referenceMonth: number;
   referenceYear: number;
   grossSalary: number | string;
-  inss: number | string;
-  irrf: number | string;
-  fgts: number | string;
+  baseSalary: number | string;
+  inssAmount: number | string;
+  irrfAmount: number | string;
+  fgtsAmount: number | string;
   netSalary: number | string;
   status: PayrollStatus;
   createdAt: string;

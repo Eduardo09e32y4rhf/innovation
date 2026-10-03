@@ -1,6 +1,7 @@
-import { User } from '@/app/contexts/AuthContext';
+import type { User } from '@/app/contexts/AuthContext';
+import { resolveUserRole } from './user-role';
 
-export type Permission = 
+export type Permission =
   | 'time_tracking.clock_in'
   | 'time_tracking.view_own'
   | 'time_tracking.view_team'
@@ -146,12 +147,12 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
 
 export function hasPermission(user: User | null, permission: Permission): boolean {
   if (!user) return false;
-  
+
   if (Array.isArray(user.customPermissions) && user.customPermissions.length > 0) {
     return user.customPermissions.includes(permission);
   }
-  
-  const role = user.profile.toLowerCase();
+
+  const role = resolveUserRole(user).toLowerCase();
   const defaultPerms = DEFAULT_PERMISSIONS[role] || [];
   return defaultPerms.includes(permission);
 }
@@ -159,6 +160,3 @@ export function hasPermission(user: User | null, permission: Permission): boolea
 export function getDefaultPermissions(role: string): Permission[] {
   return DEFAULT_PERMISSIONS[role.toLowerCase()] || [];
 }
-
-
-

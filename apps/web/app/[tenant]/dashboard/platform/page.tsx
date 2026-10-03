@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Activity, AlertTriangle, ArrowUpRight, BarChart3, Building2, CheckCircle2, CircleDollarSign, ClipboardSignature, Clock3, FileKey2, Headset, Plus, ShieldAlert, ShieldCheck, Users, WalletCards } from 'lucide-react';
 import { useMemo } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useQuery } from '@/app/hooks/use-data';
+import { useQuery } from './_components/use-platform-query';
 import { api } from '@/app/lib/api';
 
 type LinkItem = { id: string; title: string; description: string; href: string; icon: typeof Building2; tone: string; restricted?: boolean };

@@ -81,6 +81,13 @@ export interface HireResult {
   application?: JobApplication;
 }
 
+export interface HirePayload {
+  department: string;
+  contractType: string;
+  admissionDate: string;
+  salary?: number;
+}
+
 export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
   OPEN: 'Aberta',
   CLOSED: 'Fechada',

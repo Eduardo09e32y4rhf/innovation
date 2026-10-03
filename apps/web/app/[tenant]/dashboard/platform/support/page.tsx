@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { Button, PageHeader, Drawer } from '@/app/components/ui';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api } from '@/app/lib/api';
@@ -95,6 +96,13 @@ function formatFileSize(value: number) {
 export default function PlatformSupportPage() {
   const { user, isDev } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const query = useSearchParams();
+  const tenant = String(params?.tenant || '');
+  const companyId = query.get('companyId') || '';
+  const detailRequest = useRef(0);
+  const selectedId = useRef<string | null>(null);
+  const [detailError, setDetailError] = useState('');
 
   const [tickets, setTickets] = useState<PlatformTicket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +122,7 @@ export default function PlatformSupportPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.platformSupport.list();
+      const data = await api.platformSupport.list(companyId ? { companyId } : undefined);
       setTickets(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load platform tickets', err);
@@ -123,17 +131,21 @@ export default function PlatformSupportPage() {
     } finally {
       setLoading(false);
     }
-  }, [isDev]);
+  }, [isDev, companyId]);
 
   useEffect(() => {
     if (user && !isDev) {
-      router.push('/dashboard');
+      router.push(`/${tenant}/dashboard`);
       return;
     }
     void loadTickets();
   }, [user, isDev, router, loadTickets]);
 
   const handleSelectTicket = async (ticket: PlatformTicket) => {
+    if (sendingReply || updatingStatus || uploadingAttachment) return;
+    const requestId = ++detailRequest.current;
+    selectedId.current = ticket.id;
+    setDetailError('');
     setSelectedTicket(ticket);
     setLoadingDetail(true);
     setReplyText('');
@@ -141,18 +153,18 @@ export default function PlatformSupportPage() {
 
     try {
       const fullTicket = await api.platformSupport.get(ticket.id);
-      if (fullTicket?.id) {
+      if (fullTicket?.id && requestId === detailRequest.current) {
         setSelectedTicket(fullTicket);
       }
     } catch (err) {
-      console.error('Erro ao carregar detalhes do chamado', err);
+      setDetailError(err instanceof Error ? err.message : 'Não foi possível carregar a conversa.');
     } finally {
-      setLoadingDetail(false);
+      if (requestId === detailRequest.current) setLoadingDetail(false);
     }
   };
 
   const handleSendReply = async () => {
-    if (!selectedTicket || !replyText.trim()) return;
+    if (!selectedTicket || !replyText.trim() || sendingReply || loadingDetail || detailError) return;
 
     setSendingReply(true);
     try {
@@ -164,7 +176,7 @@ export default function PlatformSupportPage() {
 
       setReplyText('');
       const updated = await api.platformSupport.get(selectedTicket.id);
-      if (updated) setSelectedTicket(updated);
+      if (updated && selectedId.current === updated.id) setSelectedTicket(updated);
       void loadTickets();
       toast.success(isInternalNote ? 'Nota interna enviada.' : 'Resposta enviada.');
     } catch (err: any) {
@@ -344,35 +356,7 @@ export default function PlatformSupportPage() {
   return (
     <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
       <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header className="card-v2 relative flex flex-col gap-4 overflow-hidden p-5 sm:p-6 md:flex-row md:items-center md:justify-between">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-brand/10 blur-3xl" />
-        <div>
-          <h1 className="relative flex items-center gap-3 text-2xl font-black tracking-tight text-fg">
-            <div className="flex h-11 w-11 items-center justify-center rounded-v2 bg-brand text-white shadow-v2-md">
-              <Headset size={24} />
-            </div>
-            Central de Suporte Operacional
-          </h1>
-          <p className="relative mt-1 text-sm font-medium text-fg-mut">
-            Triagem, SLA e atendimento corporativo de todos os chamados da plataforma.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={loadTickets}
-            className="btn-v2-primary"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Atualizar
-          </button>
-          <div className="chip-brand inline-flex items-center gap-2 px-3.5 py-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-brand" />
-            <span className="text-xs font-bold">{pendingCount} pendentes</span>
-          </div>
-        </div>
-      </header>
+      <PageHeader title="Suporte operacional" subtitle={companyId ? 'Fila da empresa selecionada. Respostas públicas e notas internas possuem visibilidade distinta.' : 'Fila global de atendimento. Respostas públicas e notas internas possuem visibilidade distinta.'} actions={<Button variant="outline" onClick={() => void loadTickets()} isLoading={loading}><RefreshCw size={18} /> Atualizar chamados</Button>} />
 
       <div className="card-v2 bg-bg-sub/70 p-2">
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
@@ -418,7 +402,7 @@ export default function PlatformSupportPage() {
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar por numero do chamado, assunto ou empresa..."
+            aria-label="Buscar chamados" placeholder="Buscar por numero do chamado, assunto ou empresa..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             className="input-v2 h-11 w-full pl-10"
@@ -533,9 +517,10 @@ export default function PlatformSupportPage() {
       </div>
 
       {selectedTicket && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="flex h-full w-full max-w-5xl flex-col overflow-hidden bg-white shadow-2xl animate-in slide-in-from-right duration-300 md:flex-row">
-            <div className="flex h-full flex-1 flex-col border-r border-slate-200/80 bg-slate-50/50">
+        <Drawer isOpen title={selectedTicket.title || selectedTicket.subject || 'Chamado'} description={selectedTicket.ticketNumber || selectedTicket.id} maxWidth="max-w-5xl" onClose={() => { if (!sendingReply && !updatingStatus && !uploadingAttachment) { selectedId.current = null; detailRequest.current++; setSelectedTicket(null); } }}>
+
+          <div className="flex min-h-0 w-full flex-col gap-4 bg-white xl:flex-row">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-slate-200/80 bg-slate-50/50">
               <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950 p-4 text-white md:p-6">
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="rounded-lg bg-white/10 px-2.5 py-1 font-mono text-xs font-black text-white">
@@ -546,7 +531,7 @@ export default function PlatformSupportPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setSelectedTicket(null)}
+                  onClick={() => { if (!sendingReply && !updatingStatus && !uploadingAttachment) { selectedId.current = null; detailRequest.current++; setSelectedTicket(null); } }}
                   className="rounded-full p-2 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
                 >
                   <X size={20} />
@@ -698,7 +683,11 @@ export default function PlatformSupportPage() {
                   )}
                 </div>
 
+                {detailError && <div role="alert" className="text-sm text-danger">{detailError}<Button variant="outline" onClick={() => void handleSelectTicket(selectedTicket)}>Tentar novamente</Button></div>}
                 <textarea
+                  aria-label={isInternalNote ? 'Nota interna' : 'Resposta pública'}
+                  maxLength={10000}
+                  disabled={sendingReply || loadingDetail}
                   rows={3}
                   placeholder={
                     isInternalNote
@@ -719,7 +708,7 @@ export default function PlatformSupportPage() {
                   <button
                     type="button"
                     onClick={handleSendReply}
-                    disabled={sendingReply || !replyText.trim()}
+                    disabled={sendingReply || loadingDetail || Boolean(detailError) || !replyText.trim()}
                     className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black text-white shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
                       isInternalNote
                         ? 'bg-amber-600 shadow-amber-600/20 hover:bg-amber-700'
@@ -733,7 +722,7 @@ export default function PlatformSupportPage() {
               </div>
             </div>
 
-            <div className="flex w-full flex-col justify-between overflow-y-auto border-l border-slate-200 bg-slate-50 p-6 space-y-6 md:w-80">
+            <div className="flex w-full flex-col justify-between overflow-y-auto border-l border-slate-200 bg-slate-50 p-6 space-y-6 xl:w-72">
               <div className="space-y-6">
                 <div>
                   <h3 className="mb-3 text-xs font-extrabold uppercase tracking-wider text-slate-500">Acoes rapidas</h3>
@@ -798,7 +787,7 @@ export default function PlatformSupportPage() {
                     <span>Empresa / Cliente</span>
                     {selectedTicket.company?.id && (
                       <Link
-                        href={`/dashboard/platform/companies/${selectedTicket.company.id}`}
+                        href={`/${tenant}/dashboard/platform/${selectedTicket.company.id}?tab=general`}
                         className="inline-flex items-center gap-0.5 text-[11px] font-bold text-purple-600 hover:text-purple-700"
                       >
                         Abrir <ArrowUpRight size={12} />
@@ -860,9 +849,8 @@ export default function PlatformSupportPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
-      </div>
+        </Drawer>
+      )}    </div>
     </div>
   );
 }

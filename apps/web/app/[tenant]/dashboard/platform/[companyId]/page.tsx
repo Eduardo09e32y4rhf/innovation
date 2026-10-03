@@ -25,7 +25,7 @@ import {
 import { toast } from 'sonner';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useQuery } from '@/app/hooks/use-data';
+import { useQuery } from '../_components/use-platform-query';
 import api, { ApiError, type PlatformInvoice } from '@/app/lib/api';
 
 const statusLabel: Record<string, string> = { ACTIVE: 'Ativa', SUSPENDED: 'Suspensa', CANCELLED: 'Cancelada', OPEN: 'Em aberto', PAID: 'Paga', OVERDUE: 'Vencida', CANCELED: 'Cancelada' };
@@ -55,7 +55,7 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
   const initialTab = (searchParams?.get('tab') as any) || 'general';
   const role = user?.profile?.toUpperCase();
   const [tab, setTab] = useState<'general' | 'subscription' | 'finance' | 'users' | 'documents' | 'support' | 'logs'>(initialTab);
-  
+
   useEffect(() => {
     const paramTab = searchParams?.get('tab') as any;
     if (paramTab) setTab(paramTab);

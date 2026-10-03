@@ -2,57 +2,26 @@
 
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
-import { Home, Users, Clock3, CalendarDays, Menu } from 'lucide-react';
-import { cn } from '@/app/lib/cn';
-
-const ITEMS = [
-  { label: 'InÃ­cio',  href: '/dashboard',           icon: Home,         match: '/dashboard' },
-  { label: 'Equipe',  href: '/dashboard/employees', icon: Users,        match: '/dashboard/employees' },
-  { label: 'Escalas', href: '/dashboard/escalas',   icon: Clock3,       match: '/dashboard/escalas' },
-  { label: 'FÃ©rias',  href: '/dashboard/vacations', icon: CalendarDays, match: '/dashboard/vacations' },
-];
+import { Menu } from 'lucide-react';
+import { useWorkspace } from './workspace-context';
+import { isNavActive, tenantRoute } from './nav-config';
 
 export function MobileBottomNav({ onMenu }: { onMenu?: () => void }) {
   const pathname = usePathname();
   const params = useParams();
   const tenant = String(params?.tenant ?? '');
-
-  return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 lg:hidden glass border-t border-border/60 safe-b">
-      <ul className="flex items-center justify-around px-2 py-2">
-        {ITEMS.map((item) => {
-          const route = `/${tenant}${item.match}`;
-          const active =
-            item.href === '/dashboard'
-              ? pathname === route || pathname === `${route}/`
-              : pathname?.startsWith(route);
-          const Icon = item.icon;
-          return (
-            <li key={item.href}>
-              <Link
-                href={`/${tenant}${item.href}`}
-                className={cn(
-                  'flex flex-col items-center gap-1 rounded-v2-md px-3 py-1.5 min-w-[64px] transition-colors',
-                  active ? 'text-brand-600' : 'text-fg-mut',
-                )}
-              >
-                <Icon size={20} strokeWidth={active ? 2.6 : 2} />
-                <span className="text-[10px] font-bold">{item.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-        <li>
-          <button
-            type="button"
-            onClick={onMenu}
-            className="flex flex-col items-center gap-1 rounded-v2-md px-3 py-1.5 min-w-[64px] text-fg-mut"
-          >
-            <Menu size={20} strokeWidth={2} />
-            <span className="text-[10px] font-bold">Mais</span>
-          </button>
-        </li>
-      </ul>
-    </nav>
-  );
+  const { items } = useWorkspace();
+  const preferred = ['dashboard', 'employees', 'escalas', 'vacations'];
+  const destinations = [
+    ...preferred.flatMap((id) => items.filter((item) => item.id === id)),
+    ...items.filter((item) => !preferred.includes(item.id)),
+  ].slice(0, 4);
+  return <nav aria-label="Navegação principal no celular" className="safe-b fixed inset-x-0 bottom-0 z-30 border-t border-border bg-bg-elev lg:hidden">
+    <ul className="flex min-h-[68px] items-stretch px-1">
+      {destinations.map((item) => <li key={item.id} className="min-w-0 flex-1"><Link href={tenantRoute(tenant, item.href)} aria-current={isNavActive(pathname, tenant, item) ? 'page' : undefined} className={'flex h-full min-h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 ' + (isNavActive(pathname, tenant, item) ? 'text-brand-700 dark:text-brand-300' : 'text-fg-mut')}>
+        <item.icon size={20} aria-hidden="true" /><span className="text-center text-[11px] font-semibold leading-tight">{item.label}</span>
+      </Link></li>)}
+      <li className="min-w-0 flex-1"><button type="button" aria-label="Abrir todos os destinos" onClick={onMenu} className="flex h-full min-h-14 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-fg-mut"><Menu size={20} aria-hidden="true" /><span className="text-[11px] font-semibold">Mais</span></button></li>
+    </ul>
+  </nav>;
 }

@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Plus, Edit3, Trash2, X, RotateCcw, Check, Users, Briefcase, Layers, Eye, EyeOff, Gift, Search, ShieldCheck, Building2, DollarSign } from 'lucide-react';
 import { ErrorState, LoadingState, EmptyState } from '@/app/components/data-states';
-import { useMutation, useQuery } from '@/app/hooks/use-data';
+import { useMutation, useQuery } from '../_components/use-platform-query';
 import { request } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
 
@@ -567,5 +567,3 @@ export default function PlansPage({ params: { tenant } }: { params: { tenant: st
     </div>
   );
 }
-
-

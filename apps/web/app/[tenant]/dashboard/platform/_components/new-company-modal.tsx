@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
-import { useMutation, useQuery } from '@/app/hooks/use-data';
+import { useMutation, useQuery } from './use-platform-query';
 import { api, type CreatePlatformCompanyInput } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
 
@@ -23,7 +23,7 @@ export function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDo
     name: '', document: '', slug: '', maxUsers: 10, maxEmployees: 20,
     adminName: '', adminEmail: '', adminPassword: '',
   });
-  
+
   const create = useMutation(() => api.platform.createCompany({
     ...form,
     name: normalizeDisplayName(form.name),
@@ -42,7 +42,7 @@ export function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDo
     }
     onDone();
   } });
-  
+
   const valid = form.name && form.adminName && form.adminEmail && form.adminPassword.length >= 8;
 
   function set<K extends keyof (CreatePlatformCompanyInput & { planId?: string })>(k: K, v: any) {
@@ -63,7 +63,7 @@ export function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDo
             <label className="text-xs font-medium text-slate-600">CNPJ</label>
             <div className="flex gap-2">
               <input type="text" value={form.document ?? ''} onChange={(e) => set('document', e.target.value)} className="h-10 flex-1 rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
-              <button 
+              <button
                 type="button"
                 onClick={async () => {
                   if (!form.document || form.document.length < 14) return alert('Digite um CNPJ válido');

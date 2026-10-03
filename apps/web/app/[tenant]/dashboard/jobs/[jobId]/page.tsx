@@ -1,473 +1,214 @@
 'use client';
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  BrainCircuit,
-  Briefcase,
-  CheckCircle2,
-  Copy,
-  GripVertical,
-  Inbox,
-  Loader2,
-  MapPin,
-  RefreshCw,
-  UserCheck,
-  UserRoundSearch,
-  Users,
-  XCircle,
-} from 'lucide-react';
+import { ArrowLeft, Copy, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
+import { Button } from '@/app/components/ui/button';
+import { ConfirmDialog } from '@/app/components/ui/confirm-dialog';
+import { PageHeader } from '@/app/components/ui/page-header';
+import { Modal } from '@/app/components/ui/modal';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
-
 import { CandidateDrawer } from '../candidate-drawer';
 import { jobsApi } from '../jobs-api';
-import {
-  normalizeApplicationStatus,
-  type ApplicationStatus,
-  type Job,
-  type JobApplication,
-} from '../types';
+import { JOB_STATUS_LABEL, normalizeApplicationStatus, type ApplicationStatus, type JobApplication } from '../types';
 
-type KanbanStatus = Exclude<ApplicationStatus, 'REVIEWING'>;
-
+type Stage = Exclude<ApplicationStatus, 'REVIEWING'>;
 const ALLOWED_ROLES = new Set(['DEV', 'ADMIN', 'RH', 'GESTOR']);
-
-const COLUMNS: Array<{
-  status: KanbanStatus;
-  label: string;
-  description: string;
-  icon: typeof Inbox;
-  accent: string;
-  header: string;
-}> = [
-  { status: 'APPLIED', label: 'Inscritos', description: 'Novas candidaturas', icon: Inbox, accent: 'bg-blue-500', header: 'bg-blue-50 text-blue-800' },
-  { status: 'SCREENING', label: 'Em análise', description: 'Triagem do RH', icon: UserRoundSearch, accent: 'bg-violet-500', header: 'bg-violet-50 text-violet-800' },
-  { status: 'INTERVIEW', label: 'Entrevista', description: 'Etapa de conversa', icon: Users, accent: 'bg-amber-500', header: 'bg-amber-50 text-amber-800' },
-  { status: 'OFFER', label: 'Proposta', description: 'Oferta enviada', icon: ArrowRight, accent: 'bg-cyan-500', header: 'bg-cyan-50 text-cyan-800' },
-  { status: 'HIRED', label: 'Contratados', description: 'Prontos para admissão', icon: UserCheck, accent: 'bg-emerald-500', header: 'bg-emerald-50 text-emerald-800' },
-  { status: 'REJECTED', label: 'Reprovados', description: 'Fora do processo', icon: XCircle, accent: 'bg-rose-500', header: 'bg-rose-50 text-rose-800' },
+const STAGES: Array<{ status: Stage; label: string }> = [
+  { status: 'APPLIED', label: 'Inscritos' }, { status: 'SCREENING', label: 'Em análise' },
+  { status: 'INTERVIEW', label: 'Entrevista' }, { status: 'OFFER', label: 'Proposta' },
+  { status: 'HIRED', label: 'Contratados' }, { status: 'REJECTED', label: 'Reprovados' },
 ];
-
-function publicJobUrl(companyId: string, jobId: string) {
-  const path = `/carreiras/${encodeURIComponent(companyId)}/${encodeURIComponent(jobId)}`;
-  return typeof window === 'undefined' ? path : `${window.location.origin}${path}`;
-}
+const message = (error: unknown, fallback: string) => error instanceof ApiError ? error.message : fallback;
 
 export default function JobPipelinePage() {
-  const params = useParams<{ tenant: string; jobId: string }>();
-  const tenant = params?.tenant ?? '';
-  const jobId = params?.jobId ?? '';
+  const { tenant = '', jobId = '' } = useParams<{ tenant: string; jobId: string }>();
   const { user, company } = useAuth();
-  const role = (user?.profile ?? user?.role ?? '').toUpperCase();
-  const canAccess = ALLOWED_ROLES.has(role);
-
-  const jobs = useQuery(() => jobsApi.list(), [], { enabled: canAccess });
-  const applications = useQuery(() => jobsApi.applications(jobId), [jobId], { enabled: canAccess && Boolean(jobId) });
+  const canAccess = ALLOWED_ROLES.has((user?.profile ?? user?.role ?? '').toUpperCase());
+  const jobs = useQuery(() => jobsApi.list(), [company?.id], { enabled: canAccess });
+  const applications = useQuery(() => jobsApi.applications(jobId), [jobId, company?.id], { enabled: canAccess && Boolean(jobId) });
+  const [stage, setStage] = useState<Stage>('APPLIED');
   const [selected, setSelected] = useState<JobApplication | null>(null);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [hiringId, setHiringId] = useState<string | null>(null);
-  const [downloadingResumeId, setDownloadingResumeId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const [downloading, setDownloading] = useState(false);
   const [candidateToHire, setCandidateToHire] = useState<JobApplication | null>(null);
+  const [hireReview, setHireReview] = useState(false);
+  const [hireForm, setHireForm] = useState({ department: '', contractType: '', admissionDate: '', salary: '' });
+  const [bulkStage, setBulkStage] = useState<Stage>('SCREENING');
+  const [results, setResults] = useState<Array<{ id: string; name: string; ok: boolean; detail: string }>>([]);
+  const [admissionId, setAdmissionId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
+  const job = (jobs.data ?? []).find(item => item.id === jobId);
+  const rows = useMemo(() => applications.data ?? [], [applications.data]);
+  const grouped = useMemo(() => STAGES.map(column => ({
+    ...column, items: rows.filter(item => normalizeApplicationStatus(item.status) === column.status)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+  })), [rows]);
 
-  const job = useMemo(() => (jobs.data ?? []).find((item) => item.id === jobId) ?? null, [jobId, jobs.data]);
-  const rows = applications.data ?? [];
-  const grouped = useMemo(() => {
-    const result = new Map<KanbanStatus, JobApplication[]>(COLUMNS.map((column) => [column.status, []]));
-    rows.forEach((application) => {
-      const status = normalizeApplicationStatus(application.status);
-      result.get(status)?.push(application);
-    });
-    result.forEach((items) => {
-      items.sort((left, right) => {
-        const scoreDiff = (right.candidate.aiScore ?? -1) - (left.candidate.aiScore ?? -1);
-        if (scoreDiff) return scoreDiff;
-        return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
-      });
-    });
-    return result;
+  useEffect(() => {
+    setSelected(null); setSelectedIds(new Set()); setCandidateToHire(null);
+    setResults([]); setAdmissionId(null); setActionError(''); setDraggingId(null);
+  }, [jobId, company?.id, user?.id]);
+  useEffect(() => {
+    setSelectedIds(ids => new Set([...ids].filter(id => rows.some(row => row.id === id && row.status !== 'HIRED'))));
+    setSelected(current => current ? rows.find(row => row.id === current.id) ?? null : null);
   }, [rows]);
 
-  if (!canAccess) {
-    return (
-      <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
-        <div className="card-v2 mx-auto max-w-2xl p-8 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-v2 bg-brand/10 text-brand"><Briefcase size={26} /></span>
-          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.16em] text-brand">Recrutamento</p>
-          <h1 className="mt-1 text-xl font-black text-fg">Acesso restrito ao funil</h1>
-          <p className="mt-2 text-sm font-medium text-fg-mut">Seu perfil não possui acesso ao funil de candidatos.</p>
-        </div>
-      </div>
-    );
+  function refresh() { jobs.refetch(); applications.refetch(); }
+  function requestHire(application: JobApplication) {
+    if (busyRef.current || application.status === 'HIRED') return;
+    setSelected(null);
+    setCandidateToHire(application);
+    setHireReview(false);
+    setHireForm({ department: '', contractType: job?.employmentType || '', admissionDate: '', salary: '' });
+    setActionError('');
   }
-
-  const refresh = () => {
-    jobs.refetch();
-    applications.refetch();
-  };
-
-  const changeStatus = async (application: JobApplication, status: ApplicationStatus) => {
-    const current = normalizeApplicationStatus(application.status);
-    const next = normalizeApplicationStatus(status);
-    if (current === next) return;
-    if (next === 'HIRED') {
-      await hire(application);
-      setDraggingId(null);
-      return;
-    }
-
-    setUpdatingId(application.id);
+  async function changeStatus(application: JobApplication, next: ApplicationStatus) {
+    if (busyRef.current || application.status === 'HIRED') return;
+    if (next === 'HIRED') { requestHire(application); return; }
+    if (normalizeApplicationStatus(application.status) === normalizeApplicationStatus(next)) return;
+    busyRef.current = true; setBusy(true); setActionError('');
     try {
       const updated = await jobsApi.updateApplicationStatus(application.id, next);
-      setSelected((currentSelection) =>
-        currentSelection?.id === application.id
-          ? { ...currentSelection, ...updated, status: next }
-          : currentSelection,
-      );
-      toast.success(`Candidato movido para ${COLUMNS.find((column) => column.status === next)?.label ?? next}.`);
-      applications.refetch();
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Não foi possível mover o candidato.');
-      throw error;
-    } finally {
-      setUpdatingId(null);
-      setDraggingId(null);
-    }
-  };
-
-  const handleBulkStatusChange = async (status: ApplicationStatus) => {
-    if (selectedIds.size === 0) return;
-    const next = normalizeApplicationStatus(status);
-    if (next === 'HIRED') {
-      toast.error('Contratações devem ser feitas individualmente (admissão).');
-      return;
-    }
-    setBulkUpdating(true);
-    let successCount = 0;
+      setSelected(current => current?.id === application.id ? { ...current, ...updated } : current);
+      toast.success('Etapa atualizada.'); applications.refetch();
+    } catch (error) { setActionError(message(error, 'Não foi possível atualizar a etapa. Tente novamente.')); }
+    finally { busyRef.current = false; setBusy(false); setDraggingId(null); }
+  }
+  async function moveBulk() {
+    if (busyRef.current || !selectedIds.size || bulkStage === 'HIRED') return;
+    const targets = rows.filter(row => selectedIds.has(row.id) && row.status !== 'HIRED');
+    busyRef.current = true; setBusy(true); setResults([]); setActionError('');
+    const settled = await Promise.allSettled(targets.map(async row => {
+      if (normalizeApplicationStatus(row.status) !== bulkStage) await jobsApi.updateApplicationStatus(row.id, bulkStage);
+    }));
+    const nextResults = settled.map((result, index) => ({
+      id: targets[index].id, name: targets[index].candidate.name, ok: result.status === 'fulfilled',
+      detail: result.status === 'fulfilled' ? 'Etapa confirmada' : message(result.reason, 'Falha ao atualizar. Tente novamente.'),
+    }));
+    setResults(nextResults);
+    setSelectedIds(new Set(nextResults.filter(result => !result.ok).map(result => result.id)));
+    applications.refetch(); busyRef.current = false; setBusy(false);
+  }
+  async function hire() {
+    if (!candidateToHire || busyRef.current) return;
+    busyRef.current = true; setBusy(true); setActionError('');
     try {
-      await Promise.all(
-        Array.from(selectedIds).map(async (id) => {
-          await jobsApi.updateApplicationStatus(id, next);
-          successCount++;
-        })
-      );
-      toast.success(`${successCount} candidato(s) movido(s) para ${COLUMNS.find((c) => c.status === next)?.label ?? next}. E-mail de feedback automático enviado na fila.`);
-      applications.refetch();
-      setSelectedIds(new Set());
-    } catch (error) {
-      toast.error('Falha parcial ao mover candidatos em lote.');
-      applications.refetch();
-    } finally {
-      setBulkUpdating(false);
-    }
-  };
-
-  const hire = async (application: JobApplication) => {
-    setHiringId(application.id);
+      const result = await jobsApi.hire(candidateToHire.id, {
+        department: hireForm.department.trim(), contractType: hireForm.contractType.trim(), admissionDate: hireForm.admissionDate,
+        ...(hireForm.salary !== '' ? { salary: Number(hireForm.salary) } : {}),
+      });
+      setAdmissionId(result.employee?.id ?? result.employeeId ?? null);
+      setCandidateToHire(null); toast.success('Admissão iniciada. Confira os dados do funcionário.');
+      refresh();
+    } catch (error) { setActionError(message(error, 'Não foi possível iniciar a admissão. Verifique o estado antes de tentar novamente.')); }
+    finally { busyRef.current = false; setBusy(false); }
+  }
+  async function copyLink() {
+    const companyId = job?.companyId;
+    if (!companyId) return;
     try {
-      const result = await jobsApi.hire(application.id);
-      const employeeId = result.employee?.id ?? result.employeeId;
-      toast.success(employeeId ? 'Colaborador criado em onboarding.' : 'Admissão iniciada com sucesso.');
-      setSelected(null);
-      applications.refetch();
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Não foi possível iniciar a admissão.');
-      throw error;
-    } finally {
-      setHiringId(null);
-    }
-  };
-
-  const copyLink = async () => {
-    const companyId = job?.companyId || company?.id || user?.companyId;
-    if (!companyId) {
-      toast.error('A empresa da vaga não foi identificada.');
-      return;
-    }
-    await navigator.clipboard.writeText(publicJobUrl(companyId, jobId));
-    toast.success('Link público copiado.');
-  };
-
-  const downloadResume = async (application: JobApplication) => {
-    setDownloadingResumeId(application.id);
-    try {
-      const safeName = application.candidate.name.trim().replace(/\s+/g, '-').toLowerCase();
-      await jobsApi.downloadResume(application.id, `curriculo-${safeName || 'candidato'}`);
-      toast.success('Currículo baixado.');
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : 'Não foi possível baixar o currículo.');
-      throw error;
-    } finally {
-      setDownloadingResumeId(null);
-    }
-  };
-
-  if (jobs.loading || applications.loading) return <LoadingState label="Carregando funil da vaga..." />;
-  if (jobs.error || applications.error) return <ErrorState message={jobs.error || applications.error || 'Falha ao carregar o funil.'} onRetry={refresh} />;
-  if (!job) {
-    return (
-        <div className="w-full space-y-5 px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
-          <Link href={`/${tenant}/dashboard/jobs`} className="btn-v2-outline w-fit">
-          <ArrowLeft size={14} /> Voltar para vagas
-        </Link>
-        <EmptyState message="Vaga não encontrada ou removida." />
-      </div>
-    );
+      await navigator.clipboard.writeText(window.location.origin + '/carreiras/' + encodeURIComponent(companyId) + '/' + encodeURIComponent(jobId));
+      toast.success('Link público copiado.');
+    } catch { setActionError('Não foi possível copiar o link. Abra a publicação para compartilhar o endereço.'); }
+  }
+  async function downloadResume() {
+    if (!selected || downloading) return;
+    setDownloading(true);
+    try { await jobsApi.downloadResume(selected.id, 'curriculo'); }
+    catch (error) { setActionError(message(error, 'Não foi possível baixar o currículo.')); }
+    finally { setDownloading(false); }
   }
 
-  return (
-    <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
-      <div className="flex flex-col gap-5">
-      <header className="card-v2 flex flex-col gap-4 p-5 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <Link href={`/${tenant}/dashboard/jobs`} className="btn-v2-outline mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center p-0" aria-label="Voltar para vagas">
-            <ArrowLeft size={15} />
-          </Link>
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-brand">Funil de recrutamento</p>
-            <h1 className="truncate text-2xl font-black text-fg">{job.title}</h1>
-            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium text-fg-mut">
-              <span className="inline-flex items-center gap-1"><MapPin size={12} /> {job.location || 'Local não informado'}</span>
-              <span className="inline-flex items-center gap-1"><Users size={12} /> {rows.length} candidatura{rows.length === 1 ? '' : 's'}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={copyLink} className="btn-v2-outline">
-            <Copy size={14} /> Copiar link público
-          </button>
-          <button type="button" onClick={refresh} className="btn-v2-outline">
-            <RefreshCw size={14} /> Atualizar
-          </button>
-        </div>
-      </header>
-
-      <section className="card-v2 flex items-center justify-between gap-4 border-brand/20 bg-brand/5 px-4 py-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-fg-mut">
-          <GripVertical size={15} className="text-brand" />
-          Arraste os cartões entre as colunas ou altere a etapa no dossiê do candidato.
-        </div>
-        {updatingId && (
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-brand">
-            <Loader2 size={12} className="animate-spin" /> Salvando
-          </span>
-        )}
-      </section>
-
-      {selectedIds.size > 0 && (
-        <section className="sticky top-4 z-40 flex items-center justify-between gap-4 rounded-v2 border border-border bg-fg px-5 py-3 shadow-v2-xl">
-          <div className="flex items-center gap-3 text-xs font-bold text-white">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white shadow-sm">
-              {selectedIds.size}
-            </span>
-            candidatos selecionados
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase text-slate-400">Mover para:</span>
-            {COLUMNS.filter((c) => c.status !== 'HIRED').map((col) => (
-              <button
-                key={col.status}
-                onClick={() => handleBulkStatusChange(col.status)}
-                disabled={bulkUpdating}
-                className="inline-flex h-8 items-center rounded-v2 bg-white/10 px-3 text-[10px] font-bold text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {col.label}
-              </button>
-            ))}
-            <div className="mx-2 h-4 w-px bg-white/20" />
-            <button
-              onClick={() => setSelectedIds(new Set())}
-              className="inline-flex h-8 items-center rounded-v2 px-2 text-[10px] font-bold text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              Cancelar
-            </button>
-          </div>
-        </section>
-      )}
-
-      <section className="overflow-x-auto pb-3">
-        <div className="grid min-w-[1680px] grid-cols-6 gap-3">
-          {COLUMNS.map((column) => {
-            const ColumnIcon = column.icon;
-            const items = grouped.get(column.status) ?? [];
-            return (
-              <div
-                key={column.status}
-                className="min-h-[520px] rounded-v2 border border-border bg-bg-sub/70 p-2"
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={() => {
-                  const application = rows.find((item) => item.id === draggingId);
-                  if (application) void changeStatus(application, column.status);
-                }}
-              >
-                  <header className={`mb-2 rounded-v2 border border-white/80 p-3 ${column.header}`}>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`h-2 w-2 rounded-full ${column.accent}`} />
-                      <ColumnIcon size={14} />
-                      <h2 className="text-xs font-black">{column.label}</h2>
-                    </div>
-                    <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-[10px] font-black shadow-sm">
-                      {items.length}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[9px] font-bold opacity-70">{column.description}</p>
-                </header>
-
-                <div className="space-y-2">
-                  {items.length === 0 ? (
-                    <div className="rounded-v2 border border-dashed border-border bg-bg-elev/50 px-3 py-8 text-center">
-                      <p className="text-[10px] font-bold text-fg-sub">Solte candidatos aqui</p>
-                    </div>
-                  ) : (
-                    items.map((application) => (
-                      <CandidateCard
-                        key={application.id}
-                        application={application}
-                        selected={selectedIds.has(application.id)}
-                        onToggleSelection={() => {
-                          const next = new Set(selectedIds);
-                          if (next.has(application.id)) next.delete(application.id);
-                          else next.add(application.id);
-                          setSelectedIds(next);
-                        }}
-                        disabled={updatingId === application.id || bulkUpdating}
-                        onOpen={() => setSelected(application)}
-                        onDragStart={() => setDraggingId(application.id)}
-                        onDragEnd={() => setDraggingId(null)}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <CandidateDrawer
-        application={selected}
-        job={job}
-        updating={updatingId === selected?.id}
-        hiring={hiringId === selected?.id}
-        downloadingResume={downloadingResumeId === selected?.id}
-        onClose={() => {
-          if (!hiringId) setSelected(null);
-        }}
-        onStatusChange={(status) => (selected ? changeStatus(selected, status) : Promise.resolve())}
-        onHire={() => { if (selected) setCandidateToHire(selected); return Promise.resolve(); }}
-        onDownloadResume={() => (selected ? downloadResume(selected) : Promise.resolve())}
-      />
-      {candidateToHire && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[3px]">
-          <div className="card-v2 w-full max-w-md bg-bg-elev p-6 shadow-v2-xl">
-            <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand"><UserCheck size={18} /></span>
-              <div><h2 className="text-sm font-black text-fg">Iniciar admissão?</h2><p className="mt-1 text-xs leading-5 text-fg-mut">{candidateToHire.candidate.name} será convertido em colaborador e enviado para onboarding e conferência do RH.</p></div>
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button type="button" onClick={() => setCandidateToHire(null)} disabled={Boolean(hiringId)} className="btn-v2-outline">Cancelar</button>
-              <button type="button" onClick={() => { const candidate = candidateToHire; setCandidateToHire(null); void hire(candidate); }} disabled={Boolean(hiringId)} className="btn-v2-primary"><UserCheck size={14} /> Confirmar admissão</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-    </div>
-  );
-}
-
-function CandidateCard({
-  application,
-  selected,
-  onToggleSelection,
-  disabled,
-  onOpen,
-  onDragStart,
-  onDragEnd,
-}: {
-  application: JobApplication;
-  selected: boolean;
-  onToggleSelection: () => void;
-  disabled: boolean;
-  onOpen: () => void;
-  onDragStart: () => void;
-  onDragEnd: () => void;
-}) {
-  const candidate = application.candidate;
-  const score = candidate.aiScore == null ? null : Math.min(100, Math.max(0, candidate.aiScore));
+  if (!canAccess) return <PageHeader title="Acesso restrito ao funil" subtitle="Seu perfil não possui acesso ao recrutamento." />;
+  if ((jobs.loading && !jobs.data) || (applications.loading && !applications.data)) return <LoadingState label="Carregando funil da vaga..." />;
+  if (jobs.error || applications.error) return <ErrorState message={jobs.error || applications.error || 'Falha ao carregar o funil.'} onRetry={refresh} />;
+  if (!job) return <div className="space-y-4 p-4"><Link className="btn btn-outline" href={'/' + tenant + '/dashboard/jobs'}>Voltar para vagas</Link><EmptyState message="Vaga não encontrada ou removida." /></div>;
 
   return (
-    <article
-      draggable={!disabled}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      className={`group relative rounded-v2 border bg-bg-elev p-3 shadow-v2-sm transition-all hover:-translate-y-0.5 hover:shadow-v2-md ${
-        selected ? 'border-brand ring-1 ring-brand' : 'border-border hover:border-brand/40'
-      } ${disabled ? 'opacity-60' : ''}`}
-    >
-      <div className="absolute left-3 top-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={onToggleSelection}
-          className="h-4 w-4 cursor-pointer rounded border-border text-brand focus:ring-brand"
-        />
-      </div>
-      <div
-        onClick={(e) => {
-          const target = e.target as HTMLElement;
-          if (target.tagName.toLowerCase() !== 'input') {
-            onOpen();
-          }
-        }}
-        className="cursor-pointer"
-      >
-        <div className="flex items-start justify-between gap-2 pl-6">
-          <div className="min-w-0">
-            <h3 className="truncate text-xs font-black text-fg">{candidate.name}</h3>
-            <p className="mt-0.5 truncate text-[10px] font-medium text-fg-mut">{candidate.email || 'E-mail não informado'}</p>
-          </div>
-          <GripVertical size={14} className="shrink-0 text-fg-sub group-hover:text-brand" />
+    <div className="min-w-0 space-y-5 p-4 sm:p-6">
+      <Link href={'/' + tenant + '/dashboard/jobs'} className="btn btn-ghost"><ArrowLeft size={18} aria-hidden /> Voltar para vagas</Link>
+      <PageHeader title={job.title} eyebrow="Funil de recrutamento"
+        subtitle={JOB_STATUS_LABEL[job.status] + ' · ' + (job.location || 'Local não informado') + ' · ' + rows.length + ' candidaturas'}
+        actions={<><Button type="button" variant="outline" onClick={copyLink}><Copy size={18} aria-hidden /> Copiar link público</Button>
+          <Link className="btn btn-outline" href={'/carreiras/' + encodeURIComponent(job.companyId) + '/' + encodeURIComponent(job.id)}>Ver publicação</Link>
+          <Button type="button" variant="outline" disabled={busy || applications.loading} onClick={refresh}><RefreshCw size={18} aria-hidden /> Atualizar</Button></>} />
+      {actionError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{actionError}</p>}
+      {admissionId && <div role="status" className="card-v2 space-y-2 p-4"><p>Funcionário criado em admissão.</p><Link className="btn btn-outline" href={'/' + tenant + '/dashboard/employees/new?id=' + encodeURIComponent(admissionId)}>Conferir cadastro do funcionário</Link></div>}
+      <p className="text-sm text-fg-mut">Abra o candidato para alterar a etapa ou iniciar a admissão. Contratações são confirmadas individualmente.</p>
+      <label className="block space-y-2 md:hidden">
+        <span className="text-sm font-medium">Etapa do funil</span>
+        <select className="input-v2 min-h-11 text-base" value={stage} onChange={event => setStage(event.target.value as Stage)}>
+          {grouped.map(column => <option key={column.status} value={column.status}>{column.label} ({column.items.length})</option>)}
+        </select>
+      </label>
+      {selectedIds.size > 0 && <section aria-label="Ações em lote" className="card-v2 flex flex-col gap-3 p-4 lg:flex-row lg:items-end">
+        <p className="text-sm font-semibold">{selectedIds.size} candidatos selecionados entre as etapas</p>
+        <label className="min-w-0 space-y-1 lg:flex-1"><span className="text-sm">Mover selecionados para</span>
+          <select className="input-v2 min-h-11 text-base" value={bulkStage} disabled={busy} onChange={event => setBulkStage(event.target.value as Stage)}>
+            {STAGES.filter(column => column.status !== 'HIRED').map(column => <option key={column.status} value={column.status}>{column.label}</option>)}
+          </select>
+        </label>
+        <Button type="button" onClick={moveBulk} isLoading={busy}>Atualizar selecionados</Button>
+        <Button type="button" variant="outline" disabled={busy} onClick={() => setSelectedIds(new Set())}>Cancelar seleção</Button>
+      </section>}
+      {results.length > 0 && <section className="card-v2 p-4" aria-live="polite"><h2 className="font-semibold">Resultado do lote</h2><ul className="mt-2 space-y-2 text-sm">
+        {results.map(result => <li key={result.id} className={result.ok ? 'text-emerald-800' : 'text-rose-800'}>{result.name}: {result.detail}</li>)}
+      </ul><p className="mt-2 text-sm text-fg-mut">A seleção mantém apenas as falhas para nova tentativa.</p></section>}
+      <section aria-label="Candidatos por etapa" className="min-w-0 md:overflow-x-auto md:pb-3" tabIndex={0}>
+        <div className="md:grid md:min-w-[1680px] md:grid-cols-6 md:gap-4">
+          {grouped.map(column => <section key={column.status} aria-label={column.label}
+            className={'rounded-xl border border-border bg-bg-sub p-3 ' + (column.status === stage ? 'block' : 'hidden') + ' md:block'}
+            onDragOver={event => event.preventDefault()} onDrop={() => {
+              const row = rows.find(item => item.id === draggingId);
+              if (row) void changeStatus(row, column.status);
+            }}>
+            <h2 className="mb-3 flex justify-between gap-2 text-sm font-semibold">{column.label}<span>{column.items.length}</span></h2>
+            {!column.items.length && <p className="rounded-lg border border-dashed border-border p-5 text-sm text-fg-mut">Nenhum candidato nesta etapa.</p>}
+            <div className="space-y-3">{column.items.map(application => <article key={application.id}
+              draggable={!busy && application.status !== 'HIRED'} onDragStart={() => setDraggingId(application.id)} onDragEnd={() => setDraggingId(null)}
+              className="card-v2 min-w-0 p-3">
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+                <input type="checkbox" className="h-5 w-5" checked={selectedIds.has(application.id)} disabled={busy || application.status === 'HIRED'}
+                  onChange={() => setSelectedIds(current => { const next = new Set(current); next.has(application.id) ? next.delete(application.id) : next.add(application.id); return next; })} />
+                <span className="break-words">Selecionar {application.candidate.name}</span>
+              </label>
+              <h3 className="mt-2 break-words font-semibold">{application.candidate.name}</h3>
+              <p className="mt-1 break-all text-sm text-fg-mut">{application.candidate.email || 'E-mail não informado'}</p>
+              <p className="mt-2 text-xs text-fg-mut">{new Date(application.createdAt).toLocaleDateString('pt-BR')}</p>
+              {application.candidate.aiScore != null && <p className="mt-2 text-sm">Análise automática: {application.candidate.aiScore}%</p>}
+              {application.candidate.aiSummary && <p className="mt-2 break-words text-sm text-fg-mut">{application.candidate.aiSummary}</p>}
+              <Button type="button" variant="outline" className="mt-3 w-full" disabled={busy} onClick={() => setSelected(application)}>Ver candidato</Button>
+            </article>)}</div>
+          </section>)}
         </div>
-
-      {score != null ? (
-        <div className="mt-3">
-          <div className="mb-1 flex items-center justify-between text-[9px] font-black uppercase">
-            <span className="inline-flex items-center gap-1 text-violet-700"><BrainCircuit size={11} /> Aderência IA</span>
-            <span className={score >= 70 ? 'text-emerald-700' : score >= 45 ? 'text-amber-700' : 'text-rose-700'}>{score}%</span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-gradient-to-r from-violet-600 to-teal-500" style={{ width: `${score}%` }} />
-          </div>
-        </div>
-      ) : (
-        <p className="mt-3 inline-flex items-center gap-1 rounded-v2 bg-bg-sub px-2 py-1 text-[9px] font-bold text-fg-mut">
-          <BrainCircuit size={11} /> Análise pendente
-        </p>
-      )}
-
-      {candidate.aiSummary && (
-        <p className="mt-2 line-clamp-3 text-[10px] leading-4 text-fg-mut">{candidate.aiSummary}</p>
-      )}
-
-      <div className="mt-3 flex items-center justify-between border-t border-border pt-2 text-[9px] font-bold text-fg-sub">
-        <span>{new Intl.DateTimeFormat('pt-BR').format(new Date(application.createdAt))}</span>
-        <span className="inline-flex items-center gap-1 text-violet-700">
-          Ver dossiê <ArrowRight size={10} />
-        </span>
-      </div>
-      </div>
-    </article>
+      </section>
+      <CandidateDrawer application={selected} job={job} updating={busy} hiring={busy} downloadingResume={downloading}
+        onClose={() => { if (!busy && !downloading) setSelected(null); }}
+        onStatusChange={status => selected ? changeStatus(selected, status) : Promise.resolve()}
+        onHire={() => { if (selected) requestHire(selected); return Promise.resolve(); }} onDownloadResume={downloadResume} />
+      <Modal isOpen={Boolean(candidateToHire) && !hireReview} title="Dados para admissão" description={candidateToHire?.candidate.name} onClose={() => setCandidateToHire(null)}>
+        <form className="space-y-4" onSubmit={event => { event.preventDefault(); setHireReview(true); }}>
+          <p className="text-sm text-fg-mut">Informe os dados exigidos para iniciar a admissão. Campos com * são obrigatórios.</p>
+          <label className="block space-y-1"><span>Departamento *</span><input autoFocus required maxLength={120} className="input-v2 text-base" value={hireForm.department} onChange={e => setHireForm(current => ({ ...current, department: e.target.value }))} /></label>
+          <label className="block space-y-1"><span>Tipo de contrato *</span><input required maxLength={80} className="input-v2 text-base" value={hireForm.contractType} onChange={e => setHireForm(current => ({ ...current, contractType: e.target.value }))} /></label>
+          <label className="block space-y-1"><span>Data de admissão *</span><input required type="date" className="input-v2 text-base" value={hireForm.admissionDate} onChange={e => setHireForm(current => ({ ...current, admissionDate: e.target.value }))} /></label>
+          <label className="block space-y-1"><span>Salário em reais (opcional)</span><input type="number" min={0} step="0.01" inputMode="decimal" className="input-v2 text-base" value={hireForm.salary} onChange={e => setHireForm(current => ({ ...current, salary: e.target.value }))} /></label>
+          <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" onClick={() => setCandidateToHire(null)}>Cancelar</Button><Button type="submit">Revisar admissão</Button></div>
+        </form>
+      </Modal>
+      <ConfirmDialog isOpen={Boolean(candidateToHire) && hireReview} title="Iniciar admissão?" variant="primary"
+        description={(candidateToHire?.candidate.name || '') + ' · ' + hireForm.department + ' · ' + hireForm.contractType + ' · ' + hireForm.admissionDate.split('-').reverse().join('/') + (hireForm.salary !== '' ? ' · ' + Number(hireForm.salary).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '') + '. Os dados serão reaproveitados para criação ou vínculo de funcionário em admissão. ' + actionError}
+        confirmText="Confirmar admissão" isLoading={busy} onConfirm={hire}
+        cancelText="Revisar dados" onClose={() => { setHireReview(false); setActionError(''); }} />
+    </div>
   );
 }

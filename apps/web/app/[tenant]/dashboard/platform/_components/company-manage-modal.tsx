@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { CreditCard, Database, MessageSquare, Shield, X } from 'lucide-react';
-import { useQuery } from '@/app/hooks/use-data';
+import { useQuery } from './use-platform-query';
 import { api, type PlatformCompany } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
 
@@ -63,14 +63,14 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
     }
   };
 
-  const changed = 
+  const changed =
     name !== (company.name || '') ||
     cnpj !== (company.document || '') ||
-    maxUsers !== (company.maxUsers ?? 1) || 
-    maxEmployees !== (company.maxEmployees ?? 1) || 
-    plan !== (company.plan ?? 'FREE') || 
-    billingStatus !== (company.billingStatus ?? 'TRIAL') || 
-    trialEndsAt !== safeIsoDate(company.trialEndsAt) || 
+    maxUsers !== (company.maxUsers ?? 1) ||
+    maxEmployees !== (company.maxEmployees ?? 1) ||
+    plan !== (company.plan ?? 'FREE') ||
+    billingStatus !== (company.billingStatus ?? 'TRIAL') ||
+    trialEndsAt !== safeIsoDate(company.trialEndsAt) ||
     JSON.stringify(activeModules) !== JSON.stringify(company.activeModules || ['employees', 'time-track', 'vacations', 'management', 'whatsapp']) ||
     asaasCustomerId !== (company.asaasCustomerId || '') ||
     asaasSubscriptionId !== (company.asaasSubscriptionId || '') ||
@@ -81,7 +81,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
   return (
     <div className="fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/40">
       <div className="flex h-full w-full max-w-2xl flex-col border-l border-slate-200 bg-white p-0 shadow-2xl">
-        
+
         {/* HEADER */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div>
@@ -186,9 +186,9 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                     </select>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
-                  <button 
+                  <button
                     onClick={handleGeneratePdf}
                     disabled={generatingContract}
                     className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
@@ -235,7 +235,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                     <p className="text-[11px] text-slate-500">Vincule a empresa ao cliente e assinatura do Asaas</p>
                   </div>
                 </div>
-                
+
                 <div className="grid gap-4 sm:grid-cols-2 mt-4">
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Customer ID (Asaas)</label>
@@ -269,11 +269,11 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
           {activeTab === 'crm' && (
             <div className="rounded-[10px] border border-slate-100 bg-white p-5 shadow-sm flex flex-col h-full">
               <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Anotações Internas (Somente DEV/COMERCIAL)</label>
-              <textarea 
-                value={internalNotes} 
-                onChange={(e) => setInternalNotes(e.target.value)} 
+              <textarea
+                value={internalNotes}
+                onChange={(e) => setInternalNotes(e.target.value)}
                 placeholder="Registre aqui o histórico de negociação, alinhamentos e observações técnicas sobre o cliente..."
-                className="w-full flex-1 min-h-[160px] rounded-[8px] border border-slate-200 p-3 text-sm outline-none focus:border-teal-500 resize-y" 
+                className="w-full flex-1 min-h-[160px] rounded-[8px] border border-slate-200 p-3 text-sm outline-none focus:border-teal-500 resize-y"
               />
             </div>
           )}
@@ -292,18 +292,18 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
           <div className="flex gap-2">
             <button onClick={onClose} className="btn-outline h-9 rounded-[8px] px-4 text-xs font-bold">Cancelar</button>
             <button
-              onClick={() => valid && changed && onSave({ 
+              onClick={() => valid && changed && onSave({
                 name,
                 document: cnpj,
-                maxUsers, 
-                maxEmployees, 
-                plan, 
-                billingStatus, 
-                trialEndsAt: trialEndsAt ? new Date(trialEndsAt).toISOString() : undefined, 
-                activeModules, 
-                asaasCustomerId, 
-                asaasSubscriptionId, 
-                internalNotes 
+                maxUsers,
+                maxEmployees,
+                plan,
+                billingStatus,
+                trialEndsAt: trialEndsAt ? new Date(trialEndsAt).toISOString() : undefined,
+                activeModules,
+                asaasCustomerId,
+                asaasSubscriptionId,
+                internalNotes
               })}
               disabled={!valid || !changed || loading}
               className="crystal-button h-9 rounded-[8px] px-4 text-xs font-black text-white disabled:opacity-60"

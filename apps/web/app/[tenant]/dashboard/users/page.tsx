@@ -1,406 +1,195 @@
 'use client';
 
-import { useState } from 'react';
-import { AlertTriangle, UserPlus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { RefreshCw, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
+import { Button, PageHeader } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useMutation, useQuery } from '@/app/hooks/use-data';
-import { api, type AppUser, type UserRole } from '@/app/lib/api';
-
+import { useQuery } from '@/app/hooks/use-data';
+import { API_URL, api, type AppUser, type CreateUserInput } from '@/app/lib/api';
+import { readAuthSession } from '@/app/lib/auth-session';
 import { UserSummaryCards } from './_components/user-summary-cards';
 import { UserFilters, type UserFilterState } from './_components/user-filters';
 import { UsersTable } from './_components/users-table';
-import { UserDrawer } from './_components/user-drawer';
+import { UserDrawer, type UserDrawerTab } from './_components/user-drawer';
 import { UserCreateModal } from './_components/user-create-modal';
 import { UserPasswordResetModal } from './_components/user-password-reset-modal';
+import { AccessConfirmDialog } from './_components/access-confirm-dialog';
+import { USER_ROLES, availableUserRoles, userAccessPolicy } from './_components/access-policy';
 
-// ─── Modal de confirmação reutilizável ────────────────────────────────────────
-interface ConfirmModalProps {
-  isOpen: boolean;
-  title: string;
-  description: string;
-  confirmLabel: string;
-  confirmClass?: string;
-  loading?: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-function ConfirmModal({ isOpen, title, description, confirmLabel, confirmClass = 'bg-danger text-white hover:opacity-90', loading, onConfirm, onCancel }: ConfirmModalProps) {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[3px]">
-      <div className="card-v2 w-full max-w-sm bg-bg-elev p-6 shadow-v2-xl">
-        <div className="mb-4 flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger/10">
-            <AlertTriangle size={18} className="text-danger" />
-          </div>
-          <div>
-            <h3 className="text-sm font-black text-fg">{title}</h3>
-            <p className="mt-1 text-xs text-fg-mut">{description}</p>
-          </div>
-        </div>
-        <div className="flex justify-end gap-3">
-          <button onClick={onCancel} disabled={loading} className="btn-v2-outline px-5">
-            Cancelar
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={loading}
-            className={`inline-flex h-10 items-center rounded-v2 px-5 text-xs font-black shadow-v2-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 ${confirmClass}`}
-          >
-            {loading ? 'Aguarde...' : confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const ALL_ROLES: UserRole[] = ['DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
-const COMPANY_ROLES: UserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
-const RH_ROLES: UserRole[] = ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
-const ROLE_MANAGEMENT: Record<UserRole, UserRole[]> = {
-  DEV: ['DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
-  CEO: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
-  CONTABIL: [],
-  COMERCIAL: [],
-  ADMIN: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
-  RH: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
-  GESTOR: [],
-  FUNCIONARIO: [],
-  CONSULTA: [],
-};
-
-// SEGURANÇA: e-mail do DEV proprietário — lido de variável de ambiente pública
-const PLATFORM_OWNER_EMAIL = (process.env.NEXT_PUBLIC_PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
-
-function getAvailableRoles(currentRole?: string): UserRole[] {
-  // A API continua sendo a autoridade. Todo DEV autenticado pode ver os
-  // perfis internos no formulário; a proteção do proprietário é aplicada no backend.
-  if (currentRole === 'DEV') return ALL_ROLES;
-  if (currentRole === 'RH') return RH_ROLES;
-  return COMPANY_ROLES;
-}
-
-function canManageRow(currentRole?: string, targetRole?: string) {
-  if (!currentRole || !targetRole) return false;
-  return ROLE_MANAGEMENT[currentRole as UserRole]?.includes(targetRole as UserRole) ?? false;
-}
+const emptyFilters: UserFilterState = { search: '', role: '', status: '', link: '', company: '' };
+const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 export default function UsersPage() {
-  const { user: currentUser } = useAuth();
-  const currentRole = (currentUser?.profile ?? currentUser?.role)?.toUpperCase();
-  const availableRoles = getAvailableRoles(currentRole);
-  const canCreateUsers = ['DEV', 'CEO', 'ADMIN', 'RH'].includes(currentRole ?? '');
-  
-  const users = useQuery(() => api.users.list(), []);
-  const usage = useQuery(() => api.users.usage(), []);
-  const companies = useQuery(() => api.platform.listCompanies({ limit: 1000 }).then(res => res.data), [], { enabled: currentRole === 'DEV' });
-
-  const remove = useMutation((id: string) => api.users.delete(id), {
-    onSuccess: () => { users.refetch(); usage.refetch(); },
-  });
-
-  const toggleStatus = useMutation(({ id, isActive }: { id: string; isActive: boolean }) => 
-    api.users.update(id, { isActive }), {
-    onSuccess: () => { users.refetch(); },
-  });
-
-  // States
-  const [filters, setFilters] = useState<UserFilterState>({
-    search: '',
-    role: '',
-    status: '',
-    link: '',
-    company: '',
-  });
-
+  const { user: currentUser, company, loading: authLoading, refreshUser } = useAuth();
+  const currentRole = (currentUser?.role || currentUser?.profile || '').toUpperCase();
+  const canRead = ['DEV', 'CEO', 'ADMIN', 'RH'].includes(currentRole);
+  const availableRoles = availableUserRoles(currentRole);
+  const users = useQuery(() => api.users.list(), [currentRole, company?.id], { enabled: canRead });
+  const usage = useQuery(() => api.users.usage(), [company?.id], { enabled: canRead });
+  const companies = useQuery(() => api.platform.listCompanies({ limit: 1000 }).then(result => result.data), [], { enabled: currentRole === 'DEV' });
+  const [filters, setFilters] = useState<UserFilterState>(emptyFilters);
+  const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
-  const [resetModalOpen, setResetModalOpen] = useState(false);
-
-  // Confirm modal state
-  type ConfirmAction = { type: 'block' | 'delete'; user: AppUser } | null;
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [drawerTab, setDrawerTab] = useState<UserDrawerTab>('geral');
+  const [selected, setSelected] = useState<AppUser | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [returnToDrawer, setReturnToDrawer] = useState(false);
+  const [confirmation, setConfirmation] = useState<{ type: 'block' | 'delete'; user: AppUser } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
-
-  // Data
+  const confirmBusy = useRef(false);
+  const [confirmError, setConfirmError] = useState('');
+  const [downloading, setDownloading] = useState(false);
+  const downloadBusy = useRef(false);
+  useEffect(() => {
+    setFilters(emptyFilters); setPage(1); setSelected(null); setCreateOpen(false);
+    setDrawerOpen(false); setResetOpen(false); setConfirmation(null); setReturnToDrawer(false);
+  }, [currentUser?.id, company?.id, currentRole]);
   const rows = users.data ?? [];
-  const companyOptions = currentRole === 'DEV' ? (companies.data ?? []) : [];
-  const showCompanyFilter = currentRole === 'DEV' && companyOptions.length > 1;
-  const showCompanyColumn = currentRole === 'DEV' && companyOptions.length > 1;
-
-  const filteredRows = rows.filter(u => {
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      if (!u.name.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
-    }
-    if (filters.role && u.role !== filters.role) return false;
-    if (filters.company && u.companyId !== filters.company) return false;
-    if (filters.status) {
-      if (filters.status === 'ativos' && u.isActive === false) return false;
-      if (filters.status === 'bloqueados' && u.isActive !== false) return false;
-      if (filters.status === 'pendente' && !u.forcePasswordChange) return false;
-    }
-    if (filters.link) {
-      const hasLink = !!u.employee?.id;
-      if (filters.link === 'com' && !hasLink) return false;
-      if (filters.link === 'sem' && hasLink) return false;
-    }
+  const companyOptions = companies.data ?? [];
+  const filtered = rows.filter(user => {
+    if (filters.search && !normalize(`${user.name} ${user.email}`).includes(normalize(filters.search.trim()))) return false;
+    if (filters.role && user.role !== filters.role) return false;
+    if (filters.company && user.companyId !== filters.company) return false;
+    if (filters.status === 'ativos' && user.isActive === false) return false;
+    if (filters.status === 'bloqueados' && user.isActive !== false) return false;
+    if (filters.status === 'pendente' && !user.forcePasswordChange) return false;
+    if (filters.link === 'com' && !user.employee?.id) return false;
+    if (filters.link === 'sem' && user.employee?.id) return false;
     return true;
   });
-
-  // Actions
-  const handleEdit = (user: AppUser) => {
-    setSelectedUser(user);
-    setDrawerOpen(true);
-  };
-
-  const handleResetPassword = (user: AppUser) => {
-    setSelectedUser(user);
-    setResetModalOpen(true);
-  };
-
-  const handleToggleBlock = (user: AppUser) => {
-    setConfirmAction({ type: 'block', user });
-  };
-
-  const executeToggleBlock = async (user: AppUser) => {
-    setConfirmLoading(true);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / 20));
+  const currentPage = Math.min(page, pageCount);
+  const visible = filtered.slice((currentPage - 1) * 20, currentPage * 20);
+  const scope = currentRole === 'DEV' ? 'Lista global de usuários autorizados. Licenças referem-se à empresa atual.' : 'Usuários da empresa atual.';
+  function openUser(user: AppUser, tab: UserDrawerTab = 'geral') {
+    if (!userAccessPolicy(currentRole, currentUser?.id, user).read) return;
+    setSelected(user); setDrawerTab(tab); setDrawerOpen(true);
+  }
+  function openReset(user: AppUser, fromDrawer = false) {
+    if (!userAccessPolicy(currentRole, currentUser?.id, user).reset) return;
+    setSelected(user); setReturnToDrawer(fromDrawer); setDrawerOpen(false); setResetOpen(true);
+  }
+  function closeReset() {
+    setResetOpen(false);
+    if (returnToDrawer) { setDrawerTab('seguranca'); setDrawerOpen(true); }
+    else setSelected(null);
+    setReturnToDrawer(false);
+  }
+  function confirm(type: 'block' | 'delete', user: AppUser, fromDrawer = false) {
+    const policy = userAccessPolicy(currentRole, currentUser?.id, user);
+    if (!policy[type]) return;
+    setReturnToDrawer(fromDrawer); setDrawerOpen(false); setConfirmation({ type, user }); setConfirmError('');
+  }
+  function closeConfirmation() {
+    if (confirmBusy.current) return;
+    setConfirmation(null); setConfirmError('');
+    if (returnToDrawer) { setDrawerTab('seguranca'); setDrawerOpen(true); }
+    setReturnToDrawer(false);
+  }
+  async function execute() {
+    if (!confirmation || confirmBusy.current) return;
+    const { user, type } = confirmation;
+    if (!userAccessPolicy(currentRole, currentUser?.id, user)[type]) return;
+    confirmBusy.current = true; setConfirmLoading(true); setConfirmError('');
     try {
-      await toggleStatus.mutate({ id: user.id, isActive: user.isActive === false });
-      toast.success(user.isActive === false ? 'Acesso desbloqueado.' : 'Acesso bloqueado.');
-      setConfirmAction(null);
-    } catch (e: any) {
-      toast.error(e?.message || 'Não foi possível atualizar o acesso.');
-    } finally {
-      setConfirmLoading(false);
-    }
-  };
-
-  const handleDownloadTerm = async (user: AppUser) => {
-    try {
-      const { readAuthSession } = require('@/app/lib/auth-session');
-      const token = readAuthSession().token;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/legal/terms/download/${user.id}?t=${Date.now()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store'
-      });
-      if (!res.ok) throw new Error('Não foi possível baixar o termo');
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Termo_De_Uso_${user.id}.pdf`;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        a.remove();
-        window.URL.revokeObjectURL(url);
-      }, 1000);
-    } catch (e) {
-      toast.error('Erro ao baixar o PDF. Pode nao ter sido assinado ainda.');
-    }
-  };
-
-  const handleHistory = (user: AppUser) => {
-    setSelectedUser(user);
-    setDrawerOpen(true);
-  };
-
-  const handleDelete = (user: AppUser) => {
-    setConfirmAction({ type: 'delete', user });
-  };
-
-  const executeDelete = async (user: AppUser) => {
-    setConfirmLoading(true);
-    try {
-      await remove.mutate(user.id);
-      toast.success('Acesso excluído.');
-      setConfirmAction(null);
-      if (drawerOpen && selectedUser?.id === user.id) {
-        setDrawerOpen(false);
-        setSelectedUser(null);
+      if (type === 'delete') {
+        await api.users.delete(user.id);
+        toast.success('Acesso desativado. Os registros foram preservados.');
+        if (selected?.id === user.id) { setSelected(null); setReturnToDrawer(false); }
+      } else {
+        const updated = await api.users.update(user.id, { isActive: user.isActive === false });
+        if (selected?.id === user.id) setSelected({ ...user, ...updated });
+        toast.success(user.isActive === false ? 'Acesso desbloqueado.' : 'Acesso bloqueado.');
+        if (returnToDrawer) { setDrawerTab('seguranca'); setDrawerOpen(true); }
       }
-    } catch (e: any) {
-      toast.error(e?.message || 'Não foi possível excluir o acesso.');
-    } finally {
-      setConfirmLoading(false);
-    }
-  };
-
-  const handleCreateSubmit = async (data: any) => {
+      users.refetch(); usage.refetch(); setConfirmation(null); setReturnToDrawer(false);
+    } catch (err) { setConfirmError(err instanceof Error ? err.message : 'Não foi possível atualizar o acesso.'); }
+    finally { confirmBusy.current = false; setConfirmLoading(false); }
+  }
+  async function downloadTerm(user: AppUser) {
+    if (downloadBusy.current || !userAccessPolicy(currentRole, currentUser?.id, user).download) return;
+    downloadBusy.current = true; setDownloading(true);
     try {
-      const { password, ...rest } = data;
-      await api.users.create({ ...rest, password });
-      users.refetch();
-      usage.refetch();
-    } catch (e: any) {
-      // Re-lança o erro para o modal tratar inline (ex: e-mail duplicado)
-      throw e;
-    }
-  };
-
-  const handleResetSubmit = async (newPassword: string) => {
-    if (!selectedUser) return;
-    try {
-      const updatedUser = await api.users.resetPassword(selectedUser.id, { newPassword });
-      setSelectedUser(updatedUser);
-      setResetModalOpen(false);
-      toast.success('Senha temporaria definida com sucesso!');
-      await users.refetch();
-    } catch (error: any) {
-      toast.error(error?.message || 'Nao foi possivel redefinir a senha.');
-      throw error;
-    }
-  };
-
-  const handleSaveGeneral = async (data: Partial<AppUser>) => {
-    if (!selectedUser) return;
-    const updated = await api.users.update(selectedUser.id, data);
-    setSelectedUser(updated);
-    users.refetch();
-  };
-
-  const handleSavePermissions = async (customPermissions: string[] | null) => {
-    if (!selectedUser) return;
-    const updated = await api.users.update(selectedUser.id, { customPermissions });
-    setSelectedUser(updated);
-    users.refetch();
-  };
-
-  return (
-    <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
-      <div className="flex flex-col gap-5">
-        <header className="card-v2 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-brand">Administração</p>
-            <h1 className="mt-1 text-xl font-black tracking-tight text-fg">Usuários e acessos</h1>
-            <p className="mt-1 text-xs text-fg-mut">Gerencie perfis, segurança e permissões da sua equipe.</p>
-          </div>
-          {canCreateUsers && (
-            <button onClick={() => setCreateOpen(true)} className="btn-v2-primary shrink-0">
-              <UserPlus size={15} /> Novo usuário
-            </button>
-          )}
-        </header>
-
-      {users.loading ? (
-        <LoadingState label="Carregando usuários..." />
-      ) : users.error ? (
-        <ErrorState message={users.error} onRetry={users.refetch} />
-      ) : (
-        <>
-          <UserSummaryCards rows={rows} usage={usage.data} />
-
-          <div className="card-v2 p-4">
-            <UserFilters
-              filters={filters}
-              onChange={setFilters}
-              companies={companyOptions}
-              showCompanyFilter={showCompanyFilter}
-              availableRoles={availableRoles}
-            />
-          </div>
-
-          {filteredRows.length === 0 ? (
-            <EmptyState message="Nenhum usuário encontrado." />
-          ) : (
-            <UsersTable
-              rows={filteredRows}
-              currentRole={currentRole}
-              showCompanyColumn={showCompanyColumn}
-              canManageRow={canManageRow}
-              onEdit={handleEdit}
-              onResetPassword={handleResetPassword}
-              onToggleBlock={handleToggleBlock}
-              onDownloadTerm={handleDownloadTerm}
-              onHistory={handleHistory}
-              onDelete={handleDelete}
-            />
-          )}
-        </>
-      )}
-
-        {canCreateUsers && <UserCreateModal
-          isOpen={createOpen}
-          onClose={() => setCreateOpen(false)}
-          availableRoles={availableRoles}
-          currentRole={currentRole}
-          companies={companyOptions}
-          onSubmit={handleCreateSubmit}
-        />}
-
-      <UserPasswordResetModal
-        isOpen={resetModalOpen}
-        user={selectedUser}
-        onClose={() => {
-          setResetModalOpen(false);
-          if (!drawerOpen) setSelectedUser(null);
-        }}
-        onSubmit={handleResetSubmit}
-      />
-
-      <UserDrawer
-        isOpen={drawerOpen}
-        user={selectedUser}
-        onClose={() => {
-          setDrawerOpen(false);
-          setSelectedUser(null);
-        }}
-        availableRoles={availableRoles}
-        currentRole={currentRole}
-        isDevOwner={currentRole === 'DEV' && currentUser?.email?.toLowerCase() === PLATFORM_OWNER_EMAIL}
-        onSaveGeneral={handleSaveGeneral}
-        onSavePermissions={handleSavePermissions}
-        onResetPassword={() => setResetModalOpen(true)}
-        onToggleBlock={() => handleToggleBlock(selectedUser!)}
-      />
-
-      {/* Modal de confirmação (bloquear/excluir) */}
-      <ConfirmModal
-        isOpen={!!confirmAction}
-        loading={confirmLoading}
-        title={
-          confirmAction?.type === 'delete'
-            ? `Excluir acesso de ${confirmAction.user.name}?`
-            : confirmAction?.user.isActive === false
-              ? `Desbloquear ${confirmAction?.user.name}?`
-              : `Bloquear ${confirmAction?.user.name}?`
-        }
-        description={
-          confirmAction?.type === 'delete'
-            ? 'Esta ação é irreversível. O usuário perderá acesso imediatamente e todos os dados de acesso serão removidos.'
-            : confirmAction?.user.isActive === false
-              ? 'O usuário voltará a conseguir fazer login normalmente.'
-              : 'O usuário será impedido de fazer login até ser desbloqueado.'
-        }
-        confirmLabel={
-          confirmAction?.type === 'delete'
-            ? 'Excluir definitivamente'
-            : confirmAction?.user.isActive === false
-              ? 'Desbloquear'
-              : 'Bloquear'
-        }
-        confirmClass={
-          confirmAction?.type === 'delete'
-            ? 'bg-danger text-white hover:opacity-90'
-            : confirmAction?.user.isActive === false
-              ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-              : 'bg-danger text-white hover:opacity-90'
-        }
-        onConfirm={() => {
-          if (!confirmAction) return;
-          if (confirmAction.type === 'block') executeToggleBlock(confirmAction.user);
-          else executeDelete(confirmAction.user);
-        }}
-        onCancel={() => setConfirmAction(null)}
-      />
-      </div>
-    </div>
-  );
+      const response = await fetch(`${API_URL}/legal/terms/download/${encodeURIComponent(user.id)}`, {
+        headers: { Authorization: `Bearer ${readAuthSession().token || ''}` }, cache: 'no-store',
+      });
+      if (!response.ok) throw new Error(response.status === 404 ? 'Termo não disponível para esta conta ou ainda não aceito.' : 'Não foi possível baixar o termo.');
+      const url = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement('a');
+      anchor.href = url; anchor.download = `Termo_De_Uso_${user.id}.pdf`;
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) { toast.error(err instanceof Error ? err.message : 'Não foi possível baixar o termo.'); }
+    finally { downloadBusy.current = false; setDownloading(false); }
+  }
+  async function create(data: CreateUserInput) {
+    if (!canRead) throw new Error('Seu perfil não pode criar usuários.');
+    await api.users.create(data); users.refetch(); usage.refetch();
+  }
+  async function saveGeneral(data: Partial<AppUser>) {
+    if (!selected || !userAccessPolicy(currentRole, currentUser?.id, selected).edit) throw new Error('Edição não autorizada.');
+    const updated = await api.users.update(selected.id, data);
+    setSelected({ ...selected, ...updated }); users.refetch();
+    if (selected.id === currentUser?.id) await refreshUser();
+  }
+  async function savePermissions(customPermissions: string[] | null) {
+    if (!selected || !userAccessPolicy(currentRole, currentUser?.id, selected).permissions) throw new Error('Edição de permissões não autorizada.');
+    const updated = await api.users.update(selected.id, { customPermissions });
+    setSelected({ ...selected, ...updated }); users.refetch();
+  }
+  const description = confirmation?.type === 'delete'
+    ? `O acesso de ${confirmation.user.name} será desativado e a troca de senha ficará pendente. Os registros e o vínculo com funcionário serão preservados.`
+    : confirmation?.user.isActive === false ? 'O usuário voltará a poder acessar o sistema, sujeito à política de senha.'
+      : 'O acesso às rotas autenticadas será bloqueado até a conta ser desbloqueada.';
+  return <div className="app-page"><div className="app-page-content space-y-5">
+    <PageHeader title="Usuários" subtitle="Gerencie acessos, perfis e permissões."
+      actions={canRead ? <div className="flex flex-wrap gap-3">
+        <Button type="button" variant="outline" onClick={() => { users.refetch(); usage.refetch(); if (currentRole === 'DEV') companies.refetch(); }} disabled={users.loading}>
+          <RefreshCw size={18} aria-hidden="true" />Atualizar
+        </Button>
+        <Button type="button" onClick={() => setCreateOpen(true)} disabled={currentRole === 'DEV' && (!companyOptions.length || companies.loading)}>
+          <UserPlus size={18} aria-hidden="true" />Novo usuário
+        </Button>
+      </div> : undefined} />
+    {authLoading ? <LoadingState label="Carregando perfil..." /> : !canRead ? <p role="alert" className="card-v2 p-5 text-sm text-fg-mut">Seu perfil não pode consultar ou administrar usuários.</p> : <>
+      <p className="text-sm text-fg-mut">{scope}</p>
+      {companies.error && currentRole === 'DEV' && <ErrorState message={`Não foi possível carregar as empresas: ${companies.error}`} onRetry={companies.refetch} />}
+      {users.loading && !users.data ? <LoadingState label="Carregando usuários..." /> : users.error ? <ErrorState message={users.error} onRetry={users.refetch} /> : <>
+        <UserSummaryCards rows={rows} usage={usage.data ?? null} />
+        {usage.error && <p role="status" className="text-sm text-amber-800">Não foi possível consultar as licenças. Atualize para tentar novamente.</p>}
+        <div className="card-v2 p-4"><UserFilters filters={filters} onChange={value => { setFilters(value); setPage(1); }}
+          companies={companyOptions} showCompanyFilter={currentRole === 'DEV'} availableRoles={USER_ROLES.filter(role => rows.some(user => user.role === role) || availableRoles.includes(role))} /></div>
+        {users.loading && <p role="status" className="text-sm text-fg-mut">Atualizando usuários...</p>}
+        {downloading && <p role="status" className="text-sm text-fg-mut">Baixando termo...</p>}
+        {!filtered.length ? <EmptyState message={rows.length ? 'Nenhum usuário corresponde aos filtros.' : 'Nenhum usuário cadastrado.'} /> :
+          <UsersTable rows={visible} currentRole={currentRole} currentUserId={currentUser?.id} showCompanyColumn={currentRole === 'DEV'}
+            canManageRow={(role, target) => availableUserRoles(role).includes(target as AppUser['role'])}
+            onEdit={user => openUser(user)} onResetPassword={user => openReset(user)} onToggleBlock={user => confirm('block', user)}
+            onDownloadTerm={downloadTerm} onHistory={user => openUser(user, 'seguranca')} onDelete={user => confirm('delete', user)} />}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p role="status" className="text-sm text-fg-mut">{filtered.length} usuário(s) encontrado(s){filtered.length > 0 ? ` · Página ${currentPage} de ${pageCount}` : ''}</p>
+          {pageCount > 1 && <div className="flex gap-3"><Button type="button" variant="outline" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Anterior</Button>
+            <Button type="button" variant="outline" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>Próxima</Button></div>}
+        </div>
+      </>}
+    </>}
+    {canRead && <UserCreateModal isOpen={createOpen} onClose={() => setCreateOpen(false)} availableRoles={availableRoles} currentRole={currentRole} companies={companyOptions} onSubmit={create} />}
+    <UserPasswordResetModal isOpen={resetOpen} user={selected} onClose={closeReset} onSubmit={async password => {
+      if (!selected || !userAccessPolicy(currentRole, currentUser?.id, selected).reset) throw new Error('Reset não autorizado.');
+      const updated = await api.users.resetPassword(selected.id, { newPassword: password });
+      setSelected({ ...selected, ...updated }); users.refetch(); toast.success('Senha temporária definida.');
+    }} />
+    <UserDrawer isOpen={drawerOpen} user={selected} currentRole={currentRole} currentUserId={currentUser?.id} contextCompanyId={company?.id ?? currentUser?.companyId}
+      initialTab={drawerTab} availableRoles={availableRoles} onClose={() => { setDrawerOpen(false); setSelected(null); }}
+      onSaveGeneral={saveGeneral} onSavePermissions={savePermissions}
+      onResetPassword={() => { if (selected) openReset(selected, true); }} onToggleBlock={() => { if (selected) confirm('block', selected, true); }} />
+    <AccessConfirmDialog isOpen={!!confirmation} isLoading={confirmLoading} onClose={closeConfirmation} onConfirm={execute}
+      title={confirmation?.type === 'delete' ? `Excluir acesso de ${confirmation.user.name}?` : `${confirmation?.user.isActive === false ? 'Desbloquear' : 'Bloquear'} acesso de ${confirmation?.user.name ?? ''}?`}
+      description={confirmError ? `${description} Erro: ${confirmError}` : description}
+      confirmText={confirmation?.type === 'delete' ? 'Excluir acesso' : confirmation?.user.isActive === false ? 'Desbloquear acesso' : 'Bloquear acesso'}
+      variant={confirmation?.type === 'block' && confirmation.user.isActive === false ? 'primary' : 'danger'} />
+  </div></div>;
 }
