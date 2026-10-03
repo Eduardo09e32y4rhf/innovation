@@ -692,3 +692,15 @@ Migrar o shell do dashboard e as telas de autenticação/cadastro para usar os c
 - A validação biométrica permanece fora do aceite, restrita aos fluxos faciais específicos de ponto/onboarding.
 - O DTO de `legal/terms/accept` deixou de declarar campos biométricos; a API continua rejeitando payloads antigos que tentem misturá-los.
 - Validação: `typecheck:web` e `build:api` aprovados no checkout temporário; nenhuma migração ou operação de produção foi executada.
+
+## 24. Correção de visibilidade dos perfis internos - 02/10/2026
+
+- O modal de criação de usuário não mostrava CEO/CONTABIL quando `NEXT_PUBLIC_PLATFORM_OWNER_EMAIL` estava vazio ou diferente do e-mail da sessão, porque o frontend fazia uma filtragem baseada em e-mail público.
+- A filtragem foi corrigida: sessão DEV passa a visualizar DEV, CEO, CONTABIL, COMERCIAL e perfis de empresas; a API continua decidindo se a operação é permitida.
+- O modal agora explica que CEO, Contábil e Comercial são perfis internos da plataforma.
+- O typecheck web passou após a correção.
+- A tela Usuários foi migrada para `PageHeader` e `ActionBar`; o typecheck web passou novamente.
+
+### 24.1 Transparência sobre as 23 telas
+
+O redesign completo das 23 telas ainda não foi concluído. Nesta etapa foram migrados o shell/base compartilhada, Dashboard, Funcionários e Usuários. As demais telas continuam funcionais, mas ainda precisam ser migradas para o padrão único definido na seção 21, em lotes de Férias, Suporte, ASO, Folha, Agenda, Recrutamento, Portal público e Console da plataforma.

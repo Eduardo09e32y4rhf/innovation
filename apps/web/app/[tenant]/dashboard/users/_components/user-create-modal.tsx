@@ -269,6 +269,11 @@ export function UserCreateModal({
                   </option>
                 ))}
               </select>
+              {currentRole === 'DEV' && (
+                <p className="mt-1 text-[10px] font-medium text-slate-500">
+                  CEO, Contábil e Comercial são perfis internos da plataforma. A API valida a autorização final.
+                </p>
+              )}
             </div>
 
             <div className="rounded-[8px] border border-slate-200 bg-slate-50 p-4">

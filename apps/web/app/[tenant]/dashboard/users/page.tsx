@@ -14,6 +14,7 @@ import { UsersTable } from './_components/users-table';
 import { UserDrawer } from './_components/user-drawer';
 import { UserCreateModal } from './_components/user-create-modal';
 import { UserPasswordResetModal } from './_components/user-password-reset-modal';
+import { ActionBar, PageHeader } from '@/app/components/ui';
 
 // ─── Modal de confirmação reutilizável ────────────────────────────────────────
 interface ConfirmModalProps {
@@ -76,8 +77,10 @@ const ROLE_MANAGEMENT: Record<UserRole, UserRole[]> = {
 // SEGURANÇA: e-mail do DEV proprietário — lido de variável de ambiente pública
 const PLATFORM_OWNER_EMAIL = (process.env.NEXT_PUBLIC_PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
 
-function getAvailableRoles(currentRole?: string, email?: string): UserRole[] {
-  if (currentRole === 'DEV' && email?.toLowerCase() === PLATFORM_OWNER_EMAIL) return ALL_ROLES;
+function getAvailableRoles(currentRole?: string): UserRole[] {
+  // A API continua sendo a autoridade. Todo DEV autenticado pode ver os
+  // perfis internos no formulário; a proteção do proprietário é aplicada no backend.
+  if (currentRole === 'DEV') return ALL_ROLES;
   if (currentRole === 'RH') return RH_ROLES;
   return COMPANY_ROLES;
 }
@@ -89,8 +92,8 @@ function canManageRow(currentRole?: string, targetRole?: string) {
 
 export default function UsersPage() {
   const { user: currentUser } = useAuth();
-  const currentRole = currentUser?.profile?.toUpperCase();
-  const availableRoles = getAvailableRoles(currentRole, currentUser?.email);
+  const currentRole = (currentUser?.profile ?? currentUser?.role)?.toUpperCase();
+  const availableRoles = getAvailableRoles(currentRole);
   
   const users = useQuery(() => api.users.list(), []);
   const usage = useQuery(() => api.users.usage(), []);
@@ -272,25 +275,16 @@ export default function UsersPage() {
 
   return (
     <div className="mx-auto w-full space-y-5 overflow-x-hidden">
-      <header className="page-header items-center">
-        <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">
-            Usuários
-          </p>
-          <h2 className="text-2xl font-black text-slate-950">
-            Usuários e acessos
-          </h2>
-          <p className="text-sm font-medium text-slate-500">
-            Gerencie acessos, perfis e segurança da sua equipe.
-          </p>
-        </div>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="crystal-button"
-        >
-          <UserPlus size={14} /> Novo usuário
-        </button>
-      </header>
+      <PageHeader
+        eyebrow="Usuários"
+        title="Usuários e acessos"
+        subtitle="Gerencie acessos, perfis e segurança da sua equipe."
+        actions={(
+          <button onClick={() => setCreateOpen(true)} className="crystal-button">
+            <UserPlus size={14} /> Novo usuário
+          </button>
+        )}
+      />
 
       {users.loading ? (
         <LoadingState label="Carregando usuários..." />
@@ -300,7 +294,7 @@ export default function UsersPage() {
         <>
           <UserSummaryCards rows={rows} usage={usage.data} />
 
-          <div className="ops-card rounded-[14px] border border-slate-200 bg-white p-5">
+          <ActionBar>
             <UserFilters
               filters={filters}
               onChange={setFilters}
@@ -308,7 +302,7 @@ export default function UsersPage() {
               showCompanyFilter={showCompanyFilter}
               availableRoles={availableRoles}
             />
-          </div>
+          </ActionBar>
 
           {filteredRows.length === 0 ? (
             <EmptyState message="Nenhum usuário encontrado." />
