@@ -175,6 +175,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
         loading={summary.loading || insights.loading || timeTracks.loading}
       />
     );
+
   }
 
   const rolePresentation: Record<string, { eyebrow: string; title: string; description: string }> = {
@@ -222,6 +223,48 @@ function DashboardContent({ tenant }: { tenant: string }) {
         { label: 'Empresas', href: `/${tenant}/dashboard/platform/companies`, icon: Users },
       ]
     : roleActions[profile || ''] ?? roleActions.ADMIN;
+
+  if (isCommercial) {
+    return (
+      <div className="flex flex-col gap-5">
+        {/* ─── Header ──────────────────────────────────────────────────────────── */}
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between pb-2">
+          <div className="min-w-0">
+            <p className="mb-1 text-[11px] font-black uppercase tracking-[0.22em] text-brand-600">
+              {presentation.eyebrow}
+            </p>
+            <h1 className="text-[clamp(1.75rem,1.5rem+1.4vw,2.25rem)] font-black tracking-tight text-fg">
+              {presentation.title}
+            </h1>
+            <p className="mt-2 max-w-3xl text-[clamp(0.875rem,0.85rem+0.25vw,1rem)] font-medium text-fg-mut">
+              {presentation.description}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {shortcuts.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <Link key={i} href={s.href} className="btn-v2-outline">
+                  <Icon size={15} strokeWidth={2.4} />
+                  <span className="hidden sm:inline">{s.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </header>
+
+        <div className="flex flex-col items-center justify-center py-20 text-center rounded-v2-xl border border-border/60 bg-bg-sub/20 mt-4">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+            <TrendingUp size={32} />
+          </div>
+          <h2 className="text-xl font-black text-fg">Visão Comercial</h2>
+          <p className="mt-2 max-w-md text-sm text-fg-mut mx-auto">
+            Bem-vindo ao painel comercial da plataforma. Utilize os atalhos acima ou o menu lateral para gerenciar empresas, propostas e planos.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
