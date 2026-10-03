@@ -567,25 +567,25 @@ function MetricCard({ label, value, icon: Icon, detail, trend, trendColor = 'eme
   trend?: string; trendColor?: string; alert?: boolean; loading?: boolean;
 }) {
   return (
-    <GlassCard className="relative group p-5 flex flex-col gap-1 transition-all hover:shadow-lg">
-      {alert && <div className="absolute right-3 top-3 h-2 w-2 animate-pulse rounded-full bg-violet-600" />}
+    <div className="stat-card group hover:-translate-y-0.5 hover:shadow-md transition-all">
+      {alert && <div className="absolute right-3 top-3 h-2 w-2 animate-pulse rounded-full bg-[var(--color-danger)]" />}
       <div className="flex items-start justify-between">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
-        <Icon size={14} className="text-slate-400 group-hover:text-violet-600 transition-colors" />
+        <p className="stat-card-label">{label}</p>
+        <Icon size={14} className="text-slate-400 group-hover:text-[var(--color-brand)] transition-colors" />
       </div>
-      <p className="text-2xl font-black text-slate-900 leading-none mt-2">
+      <p className="stat-card-value">
         {loading && value === undefined ? '--' : value ?? '0'}
       </p>
       <div className="mt-2 flex items-center justify-between">
-        <p className="text-[11px] text-slate-400 font-medium">Atualizado hoje · {detail}</p>
+        <p className="stat-card-detail">Atualizado hoje • {detail}</p>
         {trend && (
-          <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-black text-slate-700">
+          <span className={`inline-flex items-center gap-1 rounded bg-${trendColor}-50 px-1.5 py-0.5 text-[10px] font-black text-${trendColor}-700`}>
             <ArrowUpRight size={10} strokeWidth={3} />
             {trend}
           </span>
         )}
       </div>
-    </GlassCard>
+    </div>
   );
 }
 

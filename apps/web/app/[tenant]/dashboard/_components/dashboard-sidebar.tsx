@@ -194,21 +194,18 @@ function NavItem({ item, active, onNavigate }: { item: NavItemConfig; active: bo
       <Link 
         href={item.href}
         onClick={onNavigate}
-        className={`group relative flex h-[40px] items-center gap-3 rounded-[var(--radius-md)] px-3 text-sm font-bold transition-all duration-200 overflow-hidden ${
+        className={`group relative flex h-[44px] items-center gap-3 px-4 text-[13px] font-bold transition-all duration-200 overflow-hidden ${
           active 
-            ? 'bg-[var(--color-brand-900)] text-white ring-1 ring-[var(--color-brand-600)]' 
-            : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+            ? 'bg-[var(--color-brand)] text-white rounded-[var(--radius-full)] shadow-md' 
+            : 'text-zinc-400 hover:bg-white/5 hover:text-white rounded-[var(--radius-full)]'
         }`}
       >
-        {active && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--color-brand)] rounded-r-sm shadow-[0_0_8px_var(--color-brand)]" />
-        )}
-        <Icon size={18} strokeWidth={active ? 2.5 : 2} className={`shrink-0 transition-colors ${active ? 'text-[var(--color-brand-300)]' : 'text-zinc-500 group-hover:text-zinc-300'}`} />
+        <Icon size={18} strokeWidth={active ? 2.5 : 2} className={`shrink-0 transition-colors ${active ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'}`} />
         <span className="truncate tracking-wide">{item.label}</span>
       </Link>
       
       {active && visibleSubItems && visibleSubItems.length > 0 && (
-        <div className="ml-9 mt-1.5 flex flex-col gap-0.5">
+        <div className="ml-5 mt-1 flex flex-col gap-0.5 border-l-2 border-white/10 pl-3 py-1">
           {visibleSubItems.map(sub => {
             const isActiveSub = pathname === sub.href || pathname?.startsWith(sub.href + '/');
             
@@ -219,11 +216,11 @@ function NavItem({ item, active, onNavigate }: { item: NavItemConfig; active: bo
                 onClick={onNavigate} 
                 className={`flex w-full items-center text-[12px] font-bold transition-colors py-2 px-3 rounded-[var(--radius-md)] ${
                   isActiveSub 
-                    ? 'text-white bg-white/10' 
+                    ? 'text-[var(--color-brand-300)]' 
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
                 }`}
               >
-                <div className={`w-1.5 h-1.5 rounded-full mr-2.5 ${isActiveSub ? 'bg-[var(--color-brand)]' : 'bg-zinc-600'}`} />
+                <div className={`w-1.5 h-1.5 rounded-full mr-2.5 ${isActiveSub ? 'bg-[var(--color-brand-400)] shadow-[0_0_8px_var(--color-brand-400)]' : 'bg-zinc-600'}`} />
                 <span className="truncate">{sub.label}</span>
               </Link>
             );
