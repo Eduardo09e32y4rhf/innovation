@@ -9,7 +9,11 @@ export class VacationsRepository {
   list(companyId: string) {
     return this.prisma.vacation.findMany({
       where: { employee: { companyId } },
-      include: { employee: true, entitlement: true, payments: true },
+      include: {
+        employee: { select: { id: true, name: true, registration: true, position: true, department: true } },
+        entitlement: true,
+        payments: true
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -25,7 +29,12 @@ export class VacationsRepository {
   findById(companyId: string, id: string) {
     return this.prisma.vacation.findFirst({
       where: { id, employee: { companyId } },
-      include: { employee: true, entitlement: true, payments: true, auditLogs: { orderBy: { createdAt: 'desc' } } },
+      include: {
+        employee: { select: { id: true, name: true, registration: true, position: true, department: true } },
+        entitlement: true,
+        payments: true,
+        auditLogs: { orderBy: { createdAt: 'desc' } }
+      },
     });
   }
 
@@ -91,7 +100,11 @@ export class VacationsRepository {
     if (!manager) return [];
     return this.prisma.vacation.findMany({
       where: { employee: { companyId, OR: [{ id: manager.id }, { managerId: manager.id }] } },
-      include: { employee: true, entitlement: true, payments: true },
+      include: {
+        employee: { select: { id: true, name: true, registration: true, position: true, department: true } },
+        entitlement: true,
+        payments: true
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -101,7 +114,11 @@ export class VacationsRepository {
     if (!employee) return [];
     return this.prisma.vacation.findMany({
       where: { employeeId: employee.id },
-      include: { employee: true, entitlement: true, payments: true },
+      include: {
+        employee: { select: { id: true, name: true, registration: true, position: true, department: true } },
+        entitlement: true,
+        payments: true
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -232,7 +249,11 @@ export class VacationsRepository {
       const updated = await tx.vacation.update({
         where: { id },
         data: { status, ...(observation === undefined ? {} : { observation }) },
-        include: { employee: true, entitlement: true, payments: true },
+        include: {
+          employee: { select: { id: true, name: true, registration: true, position: true, department: true } },
+          entitlement: true,
+          payments: true
+        },
       });
       if (updated.entitlement) {
         const consumedDays = updated.entitlement.usedDays + updated.entitlement.soldDays;
