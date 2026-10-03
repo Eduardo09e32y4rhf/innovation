@@ -37,6 +37,7 @@ export class ScheduleService {
     exceptions: any[],
     holidays: any[],
     timeTracks: any[],
+    actor?: JwtUser,
   ) {
     const { start: startDate, end: endDate } = this.monthBounds(month);
     const exceptionByDate = new Map(exceptions.map((item) => [toSaoPauloDateKey(item.date), item]));
@@ -86,39 +87,41 @@ export class ScheduleService {
         dayType = 'SEM_ESCALA';
       }
 
+      const actualData = timeTrack ? {
+        entry: timeTrack.entry,
+        lunchStart: timeTrack.lunchStart,
+        lunchReturn: timeTrack.lunchReturn,
+        exit: timeTrack.exit,
+        totalWorked: timeTrack.totalWorked,
+        dailyBalance: timeTrack.dailyBalance,
+        incidentType: timeTrack.incidentType,
+        lateMinutes: timeTrack.lateMinutes,
+        earlyLeaveMinutes: timeTrack.earlyLeaveMinutes,
+        absenceMinutes: timeTrack.absenceMinutes,
+        overtime50Minutes: timeTrack.overtime50Minutes,
+        overtime100Minutes: timeTrack.overtime100Minutes,
+        nightShiftMinutes: timeTrack.nightShiftMinutes,
+        overtimeApprovalStatus: timeTrack.overtimeApprovalStatus,
+        overtimeExceedsLimit: timeTrack.overtimeExceedsLimit,
+        overtimeHandling: timeTrack.overtimeHandling,
+        overtimeBankMinutes: timeTrack.overtimeBankMinutes,
+        overtimePaymentMinutes: timeTrack.overtimePaymentMinutes,
+        manualStatus: timeTrack.manualStatus,
+        clockedInWithoutFacial: timeTrack.clockedInWithoutFacial ?? false,
+        ...(actor.role === 'GESTOR' ? {} : {
+          observation: timeTrack.observation,
+          manualReason: timeTrack.manualReason,
+          latitude: timeTrack.latitude,
+          longitude: timeTrack.longitude,
+        }),
+      } : null;
+
       days.push({
         date: dateStr,
         dayOfWeek: dow,
         dayType,
         scheduled: { entry, lunchStart, lunchReturn, exit },
-        actual: timeTrack
-          ? {
-              entry: timeTrack.entry,
-              lunchStart: timeTrack.lunchStart,
-              lunchReturn: timeTrack.lunchReturn,
-              exit: timeTrack.exit,
-              totalWorked: timeTrack.totalWorked,
-              dailyBalance: timeTrack.dailyBalance,
-              incidentType: timeTrack.incidentType,
-              lateMinutes: timeTrack.lateMinutes,
-              earlyLeaveMinutes: timeTrack.earlyLeaveMinutes,
-              absenceMinutes: timeTrack.absenceMinutes,
-              overtime50Minutes: timeTrack.overtime50Minutes,
-              overtime100Minutes: timeTrack.overtime100Minutes,
-              nightShiftMinutes: timeTrack.nightShiftMinutes,
-              overtimeApprovalStatus: timeTrack.overtimeApprovalStatus,
-              overtimeExceedsLimit: timeTrack.overtimeExceedsLimit,
-              overtimeHandling: timeTrack.overtimeHandling,
-              overtimeBankMinutes: timeTrack.overtimeBankMinutes,
-              overtimePaymentMinutes: timeTrack.overtimePaymentMinutes,
-              observation: timeTrack.observation,
-              manualReason: timeTrack.manualReason,
-              manualStatus: timeTrack.manualStatus,
-              latitude: timeTrack.latitude,
-              longitude: timeTrack.longitude,
-              clockedInWithoutFacial: timeTrack.clockedInWithoutFacial ?? false,
-            }
-          : null,
+        actual: actualData,
         exception: exception ?? null,
         holiday: holiday ? { name: (holiday as any).name, date: dateStr } : null,
       });
@@ -694,6 +697,7 @@ export class ScheduleService {
       exceptions,
       holidays,
       timeTracks,
+      actor,
     );
   }
 
@@ -819,6 +823,7 @@ export class ScheduleService {
         exceptionsByEmployee.get(employeeId) ?? [],
         holidays,
         timeTracksByEmployee.get(employeeId) ?? [],
+        actor,
       ),
     );
 
