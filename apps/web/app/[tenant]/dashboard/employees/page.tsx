@@ -117,6 +117,11 @@ export default function EmployeesPage() {
       <Link href={base + '/employees/import'} className="btn btn-outline btn-md"><Download size={18} aria-hidden="true" /> Importar XLSX</Link>
       <Link href={base + '/employees/new'} className="btn btn-primary btn-md"><UserPlus size={18} aria-hidden="true" /> Novo funcionário</Link>
     </>} />
+    {canEdit && <Link href={`/${tenant}/dashboard/users`} className="flex items-center gap-3 rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm hover:bg-purple-100 transition-colors">
+      <ShieldCheck size={20} className="text-purple-600" />
+      <div className="flex-1"><p className="font-medium text-purple-900">Gerenciar usuários e acessos</p><p className="text-xs text-purple-700">Para criar usuários sem vínculo com funcionário ou atualizar perfis e permissões.</p></div>
+      <span className="text-purple-600 font-medium">→</span>
+    </Link>}
     <section aria-label="Situação dos funcionários no escopo autorizado" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {[
         ['Ativos', employees.filter(e => e.status === 'ACTIVE').length, Users],

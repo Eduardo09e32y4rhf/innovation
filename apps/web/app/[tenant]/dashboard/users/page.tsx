@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { RefreshCw, UserPlus } from 'lucide-react';
+import { RefreshCw, UserPlus, Users } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button, PageHeader } from '@/app/components/ui';
@@ -22,9 +24,11 @@ const emptyFilters: UserFilterState = { search: '', role: '', status: '', link: 
 const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 export default function UsersPage() {
+  const tenant = String(useParams()?.tenant ?? '');
   const { user: currentUser, company, loading: authLoading, refreshUser } = useAuth();
   const currentRole = (currentUser?.role || currentUser?.profile || '').toUpperCase();
   const canRead = ['DEV', 'CEO', 'ADMIN', 'RH'].includes(currentRole);
+  const canManageEmployees = ['DEV', 'ADMIN', 'RH'].includes(currentRole);
   const availableRoles = availableUserRoles(currentRole);
   const users = useQuery(() => api.users.list(), [currentRole, company?.id], { enabled: canRead });
   const usage = useQuery(() => api.users.usage(), [company?.id], { enabled: canRead });
@@ -156,6 +160,11 @@ export default function UsersPage() {
       </div> : undefined} />
     {authLoading ? <LoadingState label="Carregando perfil..." /> : !canRead ? <p role="alert" className="card-v2 p-5 text-sm text-fg-mut">Seu perfil não pode consultar ou administrar usuários.</p> : <>
       <p className="text-sm text-fg-mut">{scope}</p>
+      {canManageEmployees && <Link href={`/${tenant}/dashboard/employees/new`} className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm hover:bg-blue-100 transition-colors">
+        <Users size={20} className="text-blue-600" />
+        <div className="flex-1"><p className="font-medium text-blue-900">Criar novo funcionário</p><p className="text-xs text-blue-700">Vai criar um funcionário com acesso automático ao painel. Para usuários sem vínculo com funcionário, crie aqui.</p></div>
+        <span className="text-blue-600 font-medium">→</span>
+      </Link>}
       {companies.error && currentRole === 'DEV' && <ErrorState message={`Não foi possível carregar as empresas: ${companies.error}`} onRetry={companies.refetch} />}
       {users.loading && !users.data ? <LoadingState label="Carregando usuários..." /> : users.error ? <ErrorState message={users.error} onRetry={users.refetch} /> : <>
         <UserSummaryCards rows={rows} usage={usage.data ?? null} />
