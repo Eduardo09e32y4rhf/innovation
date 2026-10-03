@@ -8,6 +8,7 @@ import { AlertTriangle, ArrowUpRight, Bell, Cake, CalendarDays, Clock3, MessageS
 import { ErrorState } from '@/app/components/data-states';
 import { PageHeader, GlassCard } from "@/app/components/platform-ui";
 import { StatCard } from "@/app/components/ui/stat-card";
+import { ActionBar } from "@/app/components/ui";
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
@@ -203,7 +204,7 @@ function DashboardContent() {
 
       {/* Filters */}
       {!isFuncionario && !isCommercial && (
-        <section className="flex flex-col gap-3 rounded-xl bg-white p-3 border border-slate-200 sm:flex-row sm:items-center mb-4">
+        <ActionBar className="mb-4">
           <label className="flex flex-1 flex-col gap-1">
             <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Mês de Referência</span>
             <input type="month" value={dashMonth} onChange={(e) => setDashMonth(e.target.value)} className="form-control h-8 text-xs" />
@@ -215,7 +216,7 @@ function DashboardContent() {
               {departments.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </label>
-        </section>
+        </ActionBar>
       )}
 
       {/* Real Indicators Grid */}

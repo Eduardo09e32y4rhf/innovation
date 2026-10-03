@@ -17,12 +17,14 @@ export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
             {label}
           </label>
         )}
-        {children}
+        <div aria-invalid={error ? true : undefined} aria-describedby={htmlFor && (error || description) ? `${htmlFor}-hint` : undefined}>
+          {children}
+        </div>
         {description && !error && (
-          <p className="text-xs text-zinc-500">{description}</p>
+          <p id={htmlFor ? `${htmlFor}-hint` : undefined} className="text-xs text-zinc-500">{description}</p>
         )}
         {error && (
-          <p className="text-xs font-medium text-rose-500">{error}</p>
+          <p id={htmlFor ? `${htmlFor}-hint` : undefined} role="alert" className="text-xs font-medium text-rose-500">{error}</p>
         )}
       </div>
     )

@@ -1,7 +1,7 @@
 import * as React from "react"
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'cyan' | 'icon';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
 }
@@ -12,7 +12,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || isLoading}
-        className={`btn btn-${variant} btn-${size} ${isLoading ? 'opacity-70 cursor-not-allowed' : ''} ${className}`}
+        aria-busy={isLoading || undefined}
+        className={`${variant === 'icon' ? 'btn-icon' : `btn btn-${variant} btn-${size}`} ${isLoading ? 'opacity-70 cursor-not-allowed' : ''} ${className}`}
         {...props}
       >
         {isLoading && (

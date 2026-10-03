@@ -60,8 +60,8 @@
     --sidebar-width: 260px;
 
     /* Tokens de Tamanho (Controles) */
-    --control-sm: 32px;
-    --control-md: 40px;
+    --control-sm: 36px;
+    --control-md: 44px;
     --control-lg: 48px;
   }
 
@@ -75,6 +75,11 @@
   }
 
   * { box-sizing: border-box; }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
 
   .font-display {
     font-family: "Segoe UI Variable Display", "Trebuchet MS", sans-serif;
@@ -128,7 +133,7 @@
   /* --- BotÃµes --- */
   .btn {
     @apply inline-flex items-center justify-center gap-1.5 font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed select-none;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     height: var(--control-md);
     padding: 0 16px;
     font-size: 13px;
@@ -143,12 +148,13 @@
   .btn-danger { @apply bg-[var(--color-danger)] text-white hover:bg-[#be123c] active:scale-[0.98]; }
   .btn-warning { @apply bg-[var(--color-warning)] text-white hover:bg-[#b45309] active:scale-[0.98]; }
   .btn-success { @apply bg-[var(--color-success)] text-white hover:bg-[#047857] active:scale-[0.98]; }
+  .btn-cyan { @apply bg-cyan-500 text-white hover:bg-cyan-600 active:scale-[0.98]; }
   
   .btn-icon {
     @apply inline-flex items-center justify-center bg-zinc-100 border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200 hover:border-zinc-300 transition-colors disabled:opacity-50;
     border-radius: var(--radius-md);
-    width: var(--control-sm);
-    height: var(--control-sm);
+    width: var(--control-md);
+    height: var(--control-md);
   }
 
   /* --- FormulÃ¡rios --- */
@@ -245,6 +251,16 @@
   .state-title { @apply text-sm font-bold text-zinc-900; }
   .state-description { @apply text-xs text-zinc-500 max-w-sm mx-auto; }
 
+  .action-bar {
+    @apply flex flex-col gap-3 rounded-[var(--radius-xl)] border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-xs)] sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .mobile-record-card {
+    @apply rounded-[var(--radius-xl)] border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-xs)];
+  }
+
+  .table-responsive-shell { scrollbar-gutter: stable; }
+
 
   /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      3. COMPATIBILIDADE LEGADA (NÃ£o remover atÃ© o fim do projeto)
@@ -286,6 +302,19 @@
   .section-header { @apply surface-header py-3; }
   .section-title { @apply text-xs font-black uppercase tracking-widest text-zinc-900; }
   .state-text { @apply state-description; }
+}
+
+@media (max-width: 640px) {
+  .app-page-container { padding: 1rem; }
+  .page-header { padding: 1rem; }
+  .page-title { font-size: 1.25rem; }
+  .page-actions { width: 100%; flex-wrap: wrap; }
+  .page-actions > * { flex: 1 1 auto; }
+  .modal { max-height: calc(100dvh - 1rem); margin: 0.5rem; border-radius: var(--radius-xl); }
+  .modal-body { max-height: calc(100dvh - 11rem); padding: 1rem; }
+  .modal-footer { flex-wrap: wrap; padding: 1rem; }
+  .modal-footer > * { flex: 1 1 10rem; }
+  .drawer { max-width: 100%; }
 }
 
 @layer utilities {

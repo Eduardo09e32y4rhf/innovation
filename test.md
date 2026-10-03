@@ -532,3 +532,155 @@ A solicitacao somente sera considerada concluida quando P0-P7 tiverem saida comp
 - P3 acrescentou migracao de `CEOProfile`/`CEOContract`, emissao exclusiva pelo DEV, entrega em Notificacoes e endpoints de estado/perfil/contrato/desafio. API compilou e typecheck web passou; falta teste de integracao com banco e a decisao/integração do fornecedor facial.
 
 Este plano é especificação técnica e organizacional, não minuta de contrato nem parecer jurídico/contábil.
+
+## 21. Plano padrão do novo layout unificado e responsivo - 02/10/2026
+
+### 21.1 Objetivo visual e regra principal
+
+O sistema inteiro terá uma linguagem visual única: mesmas cores atuais, mesmas regras de espaçamento, mesmos botões, mesmos estados e mesmos componentes. O redesign simplifica a interface sem remover funcionalidades. Cada tela deve mostrar primeiro o que o perfil pode fazer e esconder detalhes secundários em menus, abas, drawers ou ações contextuais.
+
+Exceção prevista: o portal público de vagas continua com sua identidade própria de marketing em verde escuro, mas usará os mesmos princípios de acessibilidade, responsividade, campos, botões e estados.
+
+Regras obrigatórias:
+
+- Cards, modais, painéis, campos e botões com bordas arredondadas; padrão `rounded-xl`, com raios maiores para modais e destaque.
+- Uma ação primária por contexto; ações secundárias em botão branco/cinza ou menu de três pontos.
+- Roxo atual para ação primária e seleção; vermelho somente para destrutivo; ciano somente para férias/ausências; sem criar nova paleta.
+- Sidebar escura com item ativo em pílula roxa; no celular vira drawer.
+- Foco visível de 2px na cor primária, contraste adequado, textos claros e alvos de toque de no mínimo 44px.
+- Nenhum botão apenas com ícone sem `aria-label`, tooltip ou texto acessível.
+- Toda tela deve possuir estado de carregamento, vazio, erro, sucesso, sem permissão e sem dados filtrados.
+
+### 21.2 Grade responsiva obrigatória
+
+| Dispositivo | Largura de referência | Comportamento padrão |
+| --- | --- | --- |
+| Celular pequeno | 320-374px | Uma coluna, topbar compacta, drawer, formulários empilhados, tabelas em cards. |
+| Celular | 375-767px | Uma coluna, ação primária fixa quando necessário, modais como tela cheia/sheet. |
+| Tablet | 768-1023px | Sidebar recolhida, duas colunas quando houver espaço, tabelas com scroll controlado. |
+| Notebook | 1024-1279px | Sidebar compacta, conteúdo fluido, duas ou três colunas conforme densidade. |
+| Desktop | 1280-1439px | Sidebar completa, conteúdo centralizado, até quatro KPIs por linha. |
+| Desktop amplo | 1440px ou mais | Limite de conteúdo, sem esticar cards indefinidamente, maior área para tabelas. |
+
+A implementação não pode depender de largura fixa de 400px para logo, tabelas ou formulários. Deve respeitar zoom, teclado virtual, safe-area do celular, orientação horizontal e scroll sem quebrar o contexto.
+
+### 21.3 Componentes oficiais a reutilizar
+
+Antes de criar componente novo, usar e normalizar os componentes existentes em `apps/web/app/components/ui`. O catálogo oficial será:
+
+1. `AppShell`, `Sidebar`, `MobileNavDrawer` e `TopBar`.
+2. `PageHeader`, `Breadcrumbs`, `ActionBar` e `CommandMenu`.
+3. `Card`, `StatCard`, `KpiGrid`, `DataState`, `EmptyState`, `ErrorState` e `Skeleton`.
+4. `Button` com variantes primary, secondary, ghost, danger, success, cyan e icon; tamanhos sm, md e lg; estados loading e disabled.
+5. `FormField`, `PasswordField`, `Select`, `DateField`, `SearchField`, `FileUpload` e `FormActions`.
+6. `DataTable` responsiva, `MobileRecordCard`, `FiltersBar`, `Pagination`, `BulkActions` e `ExportMenu`.
+7. `Modal`, `Drawer`, `ConfirmDialog`, `Toast`, `Tabs`, `Badge`, `Stepper`, `Calendar` e `Kanban`.
+
+Cada componente deve possuir exemplo de uso, estados de erro/loading/disabled, comportamento mobile e teste de acessibilidade. Não duplicar botões, modais ou estilos de tela em tela.
+
+### 21.4 Padrão de interação
+
+- `PageHeader`: título, descrição curta, breadcrumb e somente a ação primária daquela tela.
+- `ActionBar`: busca, filtros, ordenação e ações em massa; no celular filtros viram drawer.
+- `DataTable`: desktop em tabela; tablet com colunas prioritárias; celular como cards com menu de ações.
+- `Modal`: confirmação ou formulário curto; formulário longo usa `Drawer`/sheet ou página dedicada.
+- `ConfirmDialog`: toda exclusão, desligamento, pausa de cobrança, cancelamento e reversão exige motivo quando aplicável.
+- Formulários: validação inline, mensagem objetiva, preservação de dados digitados e foco no primeiro erro.
+- Operações longas: indicador de progresso, possibilidade de cancelar quando seguro e resultado rastreável.
+- Links e filtros relevantes devem preservar estado na URL; filtros usados com frequência podem ser salvos.
+- Feedback: toast para resultado simples; banner para bloqueio/pendência; página de erro para falha estrutural.
+- Menus mostram somente ações autorizadas, mas a API continua sendo a autoridade de permissão.
+
+### 21.5 Mapa padrão das 23 telas
+
+| Tela/componente | Padrão visual | Ação primária | Adaptação responsiva e melhoria |
+| --- | --- | --- | --- |
+| 1. Dashboard global | AppShell + KpiGrid + cards por perfil | Abrir tarefa principal | KPIs e atalhos por papel; uma coluna no celular. |
+| 2. Funcionários | PageHeader + filtros + DataTable | Novo funcionário | Cards no celular; ações em menu contextual. |
+| 3. Escalas/fechamento | Tabs + calendário/tabela + status | Fechar período | Calendário vira lista; fechamento exige confirmação e resumo. |
+| 4. Férias | Cards ciano + calendário + filtros | Solicitar/aprovar férias | Fluxo em sheet; cores ciano mantidas. |
+| 5. Agenda gerencial | Calendário + lista de pendências | Criar atividade | Lista alternativa no celular e filtros por equipe/status. |
+| 6. Usuários/acessos | DataTable + badges de papel/estado | Convidar/provisionar | Carteira e escopo sempre visíveis; sem senha definitiva. |
+| 7. Configurações plataforma | Tabs de configuração + cards de segurança | Salvar configuração | Seções empilhadas; segredos nunca exibidos. |
+| 8. Suporte | Inbox/tabela + painel de detalhe | Abrir/responder chamado | No celular, lista e detalhe em telas consecutivas. |
+| 9. Vagas | Cards de vaga + filtros | Nova vaga | Cards compactos e menu de publicar/pausar. |
+| 10. Console DEV | Dashboard operacional + auditoria | Abrir operação autorizada | Alta densidade no desktop; resumo seguro no mobile. |
+| 11. Modal nova vaga | Modal padrão de formulário | Criar vaga | Vira sheet full-screen no celular; preview antes de publicar. |
+| 12. Modal nova empresa | Stepper de onboarding | Criar empresa | Etapas curtas, salvamento seguro e retomada. |
+| 13. Barra superior funcionário | TopBar enxuta + status | Abrir notificações/perfil | Menu acessível e sem overflow horizontal. |
+| 14. Upload XLSX | Dropzone + validação + progresso | Importar arquivo | Dropzone responsivo, erros por linha e reprocessamento seguro. |
+| 15. Calendário avançado | Calendário + métricas + legenda | Filtrar período | No celular alterna calendário/lista; métricas em cards. |
+| 16. Modal pedido de férias | Formulário curto + resumo | Enviar pedido | Sheet mobile, validação de datas e conflito visível. |
+| 17. ASO | Timeline/documentos + status | Registrar/atualizar ASO | Documentos em cards; upload com progresso e permissão explícita. |
+| 18. Notificações | Inbox agrupada + badges | Marcar como lida/abrir | Filtros em drawer; contratos com download privado. |
+| 19. Folha | Competência + resumo + tabela | Calcular/fechar folha | Cards de totais no mobile; snapshot e versão sempre visíveis. |
+| 20. Modal novo usuário | Stepper de acesso + senha provisória | Criar/provisionar acesso | Etapas claras; segredo exibido somente no fluxo autorizado. |
+| 21. Recrutamento kanban | Colunas, filtros e drawer de candidato | Mover/abrir candidato | Scroll horizontal controlado e alternativa de lista no mobile. |
+| 22. Portal público de vagas | Layout de marketing responsivo | Candidatar-se | Identidade verde preservada; formulário simples e acessível. |
+| 23. Modal editar vaga | Mesmo formulário da nova vaga | Salvar alterações | Reutilizar schema e componentes; diferenciar salvar/duplicar/pausar. |
+
+### 21.6 Melhorias funcionais que entram junto
+
+- Unificar todas as ações em nomenclatura consistente: criar, editar, salvar, publicar, pausar, reativar, cancelar e excluir.
+- Adicionar busca global somente para recursos permitidos pelo perfil, com resultados agrupados e atalho de teclado.
+- Adicionar filtros salvos, última visualização, ordenação persistida e exportação com escopo explícito.
+- Padronizar ações em massa com seleção, limite, preview, confirmação e auditoria.
+- Mostrar no dashboard pendências reais: onboarding do CEO, contratos, folha, chamados, férias, vagas e cobrança.
+- Integrar estados existentes de vendas/comissões, folha versionada, pausa de cobrança e contrato do CEO sem expor dados sensíveis a perfis indevidos.
+- Usar progressive disclosure: resumo primeiro, detalhe em drawer/página, configurações avançadas em seção recolhida.
+- Aplicar permissão por recurso, empresa, carteira e equipe em cada tela, não apenas na navegação.
+
+### 21.7 Ordem de implementação por menor risco e maior reaproveitamento
+
+1. Inventariar rotas, ações, permissões, componentes duplicados e estados de cada tela.
+2. Consolidar tokens, raios, espaçamentos, tipografia, foco e variantes do `Button`, `Card`, `Badge`, `Modal` e `FormField`.
+3. Corrigir `AppShell`, sidebar, topbar, drawer mobile e `PageHeader`.
+4. Padronizar estados vazios, carregamento, erro, sucesso, sem acesso e tabelas responsivas.
+5. Migrar autenticação, cadastro público, perfil e portal de vagas.
+6. Migrar Funcionários, Usuários, ASO, upload XLSX e suporte.
+7. Migrar escalas, ponto, fechamento, agenda, férias e calendário.
+8. Migrar folha, contratos, notificações, empresas, cobrança e console DEV.
+9. Migrar recrutamento, modais de vaga e onboarding da empresa/CEO.
+10. Executar regressão visual, funcional, acessibilidade e E2E por largura e perfil.
+
+### 21.8 Critério de aceite por tela
+
+Uma tela só será considerada concluída quando: usar os componentes oficiais; funcionar nos seis intervalos de largura; não possuir overflow horizontal indevido; tiver loading/empty/error/success/sem permissão; usar a ação primária padronizada; validar teclado e leitor de tela; manter permissão no backend; não expor segredo ou biometria; possuir teste funcional; e tiver evidência desktop, notebook, tablet e celular.
+
+Matriz mínima de validação: 320x800, 390x844, 768x1024, 1024x768, 1280x800 e 1440x900. Validar também zoom de 200%, teclado, orientação horizontal, toque, foco e conexão lenta.
+
+### 21.9 Entregáveis do redesign
+
+- Catálogo de tokens e componentes oficiais.
+- Matriz rota x perfil x ação x estado.
+- Wireframe responsivo das 23 telas.
+- Migração incremental sem remover funcionalidades existentes.
+- Testes visuais/funcionais e checklist de acessibilidade.
+- Registro de decisões e screenshots de cada breakpoint no `test.md`.
+
+O redesign visual não libera automaticamente CEO, facial, assinatura, cobrança ou folha em produção. Esses fluxos continuam condicionados aos bloqueios de segurança, validações jurídicas/contábeis e aprovação operacional já registrados neste plano.
+
+## 22. Execução do redesign - base responsiva - 02/10/2026
+
+- A base compartilhada de `apps/web/app/components/ui` foi atualizada sem alterar a paleta atual.
+- `Button` agora possui variantes `primary`, `secondary`, `outline`, `ghost`, `danger`, `success`, `cyan` e `icon`, com estados de carregamento e foco visível.
+- Controles padrão passaram a respeitar alvo mínimo de toque maior; os tokens ficaram em 36/44/48px para sm/md/lg.
+- Foi incluído foco global `:focus-visible` de 2px na cor de marca.
+- Foi criado `ActionBar` para filtros, busca e ações contextuais.
+- `DataTable` ganhou casca responsiva e `MobileRecordCard`/`TableResponsiveFallback` para migração de tabelas densas em telas pequenas.
+- O CSS responsivo recebeu ajustes para page header, botões, modais, drawers e conteúdo em até seis larguras previstas no plano.
+- Validação no checkout temporário fora do OneDrive: `typecheck:web` aprovado; `lint:web` aprovado com warnings não bloqueantes preexistentes; `build:web` aprovado com 17 páginas estáticas geradas.
+- O checkout principal continua com falha ambiental `EPERM` do Node ao resolver `C:\Users\eduar` dentro do OneDrive; nenhuma publicação ou operação de produção foi executada.
+
+### 22.1 Próximo lote
+
+Migrar o shell do dashboard e as telas de autenticação/cadastro para usar os componentes oficiais, eliminando gradualmente estilos duplicados. Depois validar visualmente os breakpoints 320, 390, 768, 1024, 1280 e 1440px antes de seguir para Funcionários e Usuários.
+
+- Correção de implementação: `ActionBar` foi separado para `action-bar.tsx`; o barrel `ui/index.ts` permanece sem JSX inválido.
+- Formulários passaram a expor estado de erro/descrição com semântica de acessibilidade, e o topbar passou a declarar menu de perfil e estado expandido.
+- Segunda validação no checkout temporário: `typecheck:web` e `lint:web` aprovados; permanecem apenas warnings preexistentes de imagens e dependências de hooks.
+- Gate complementar no checkout temporário: Prisma Client foi gerado localmente sem banco; `prisma validate` aprovado; `build:api` aprovado; unitários `38 arquivos/253 testes` aprovados; contrato `5 arquivos/38 testes` aprovados; segurança `5 arquivos/35 testes` aprovados.
+- Os avisos de ClamAV indisponível mantiveram anexos em quarentena durante os testes, como previsto pela política; nenhum serviço externo ou ambiente de produção foi acionado.
+- O filtro de mês/departamento do dashboard foi migrado para o `ActionBar` oficial, iniciando a remoção de padrões locais duplicados sem alterar os dados ou permissões da tela; typecheck web passou após a migração.
+- A tela Funcionários foi migrada para `PageHeader` e `ActionBar`, mantendo as ações de importar/criar e a busca existente; typecheck web passou após a migração.
+- Build web final após as migrações: aprovado no checkout temporário fora do OneDrive; rotas do dashboard e Funcionários foram compiladas sem erro.

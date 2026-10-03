@@ -9,7 +9,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { API_URL, api, type Employee, type EmployeeDossier } from '@/app/lib/api';
 import { readAuthSession } from '@/app/lib/auth-session';
-import { ConfirmDialog, Modal } from '@/app/components/ui';
+import { ActionBar, ConfirmDialog, Modal, PageHeader } from '@/app/components/ui';
 import { EMPLOYEE_STATUS_LABEL, formatDate, formatMinutes, formatTime } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
@@ -148,12 +148,10 @@ export default function EmployeesPage() {
     <div className="app-page">
       <div className="app-page-content flex flex-col gap-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-black text-slate-900">Cadastro da equipe</h1>
-            <p className="text-sm text-slate-500 mt-1">Gerencie as informações, documentos e acessos dos funcionários.</p>
-          </div>
-          {canEdit && (
+        <PageHeader
+          title="Cadastro da equipe"
+          subtitle="Gerencie as informações, documentos e acessos dos funcionários."
+          actions={canEdit ? (
             <div className="flex flex-wrap gap-2">
               <Link href={`/${tenant}/dashboard/employees/import`} className="btn-outline flex items-center gap-2">
                 <Download size={15} /> Importar XLSX
@@ -162,8 +160,8 @@ export default function EmployeesPage() {
                 <UserPlus size={15} /> Novo funcionário
               </Link>
             </div>
-          )}
-        </div>
+          ) : undefined}
+        />
 
       {/* Stats Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -191,7 +189,7 @@ export default function EmployeesPage() {
       </section>
 
       {/* Search */}
-      <section className="card-flat p-4">
+      <ActionBar>
         <label className="space-y-2 text-xs font-bold uppercase tracking-widest text-zinc-400">
           <span>Pesquisar por nome, CPF, matrícula, gestor ou departamento</span>
           <div className="relative">
@@ -204,7 +202,7 @@ export default function EmployeesPage() {
             />
           </div>
         </label>
-      </section>
+      </ActionBar>
 
       {(terminate.error || remove.error) && (
         <p className="rounded-[10px] border border-rose-200 bg-rose-50 px-5 py-3 text-xs text-rose-700">{terminate.error || remove.error}</p>
