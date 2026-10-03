@@ -39,7 +39,8 @@ export const PERMISSIONS_LABELS: Record<Permission, string> = {
   'users.view_employee_files': 'Ver Ficha do Funcionário',
   'admin.manage_rh': 'Gerenciar acessos do RH',
   'admin.delete_employees': 'Deletar/Demitir funcionários',
-  'platform.manage': 'Acessar aba Plataforma / Gestão Superior'
+  'platform.manage': 'Acessar aba Plataforma / Gestão Superior',
+  'platform.view_finance': 'Visualizar financeiro da Plataforma'
 };
 
 const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
