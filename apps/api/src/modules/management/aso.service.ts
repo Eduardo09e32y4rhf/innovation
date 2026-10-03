@@ -21,11 +21,35 @@ export class AsoService {
         where: { companyId, status: 'COMPLETED', dueDate: { lte: today } },
         include: { employee: true }
       });
+
+      if (expired.length === 0) return;
+
+      // ⚡ Bolt Optimization: Batch fetch existing periodicos to avoid N+1 query inside the loop
+      const expiredEmployeeIds = [...new Set(expired.map(e => e.employeeId))];
+      const existingPeriodicos = await this.prisma.employeeAsoRecord.findMany({
+        where: {
+          companyId,
+          employeeId: { in: expiredEmployeeIds },
+          asoType: 'PERIODICO'
+        },
+        select: { employeeId: true, createdAt: true }
+      });
+
+      const periodicosByEmployee = existingPeriodicos.reduce((acc, curr) => {
+        if (!acc[curr.employeeId]) acc[curr.employeeId] = [];
+        acc[curr.employeeId].push(curr.createdAt.getTime());
+        return acc;
+      }, {} as Record<string, number[]>);
+
       for (const record of expired) {
-        const existing = await this.prisma.employeeAsoRecord.findFirst({
-          where: { companyId, employeeId: record.employeeId, asoType: 'PERIODICO', createdAt: { gt: record.createdAt } }
-        });
-        if (!existing) {
+        const employeePeriodicos = periodicosByEmployee[record.employeeId] || [];
+        const hasExisting = employeePeriodicos.some(time => time > record.createdAt.getTime());
+
+        if (!hasExisting) {
+          // Add the newly created record's time to avoid duplicate creations in the same loop if employee has multiple expired records
+          employeePeriodicos.push(Date.now());
+          periodicosByEmployee[record.employeeId] = employeePeriodicos;
+
           await this.prisma.employeeAsoRecord.create({
             data: {
               companyId,

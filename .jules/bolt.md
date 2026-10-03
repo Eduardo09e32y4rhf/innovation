@@ -1,0 +1,3 @@
+## 2026-10-03 - N+1 Query in Background Service
+**Learning:** In ASO module, the `triggerPeriodicAso` function was looping through expired ASO records and running a `findFirst` query for each employee to check if a replacement record was already created. This leads to an N+1 query problem, especially since this runs implicitly when listing or getting alerts.
+**Action:** Replaced the loop-based `findFirst` queries with a single batched `findMany` fetching all `PERIODICO` records for the expired employees, grouped them by employee in a dictionary, and used it to filter before creation. This optimizes db queries from O(N) to O(1) in background data processing tasks.
