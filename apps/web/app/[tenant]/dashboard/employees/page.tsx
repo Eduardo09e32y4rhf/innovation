@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AlertTriangle, CalendarDays, Clock3, Download, FileText, FolderOpen, HeartPulse, Key, Lock, Unlock, MoreHorizontal, RotateCcw, Search, ShieldCheck, UserMinus, UserPlus, Users } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Clock3, Download, FileText, FolderOpen, HeartPulse, Key, Lock, Unlock, RotateCcw, Search, ShieldCheck, UserMinus, UserPlus, Users } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button, ConfirmDialog, Drawer, Modal, PageHeader } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -14,6 +14,7 @@ import { EMPLOYEE_STATUS_LABEL, VACATION_STATUS_LABEL, formatDate, formatMinutes
 import { normalizeDisplayName } from '@/app/lib/text';
 import { matchesEmployee } from './employee-filters';
 import { EmployeeAccessModal } from './_components/employee-access-modal';
+import { RowActionsMenu } from './_components/row-actions-menu';
 import { toast } from 'sonner';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
@@ -84,9 +85,7 @@ export default function EmployeesPage() {
 
     return <div className="flex flex-wrap items-center gap-2">
       <Button type="button" variant="outline" onClick={() => setSelectedEmployeeId(employee.id)} aria-label={`Abrir dossiê de ${normalizeDisplayName(employee.name)}`}><FolderOpen size={18} aria-hidden="true" /> Dossiê</Button>
-      <details className="relative" onKeyDown={event => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}>
-        <summary className="btn btn-outline btn-md cursor-pointer list-none" aria-label={`Ações de ${normalizeDisplayName(employee.name)}`}><MoreHorizontal size={18} aria-hidden="true" /> Ações</summary>
-        <div className="relative z-20 mt-2 flex w-full min-w-[210px] flex-col gap-1 rounded-xl border border-border bg-bg-elev p-2 shadow-lg md:absolute md:right-0 md:w-64" onClick={event => { const details = event.currentTarget.closest('details'); if (details) details.open = false; }}>
+      <RowActionsMenu label={`Ações de ${normalizeDisplayName(employee.name)}`}>
           {canEdit && <>
             <Button type="button" variant="ghost" className="justify-start" onClick={() => setAccessModalEmployee(employee.id)}><Key size={18} aria-hidden="true" /> Criar acesso</Button>
             {hasAccess && <>
@@ -107,8 +106,7 @@ export default function EmployeesPage() {
             <Button type="button" variant="ghost" className="justify-start" disabled={employee.status === 'TERMINATED' || terminate.loading} onClick={() => { terminate.reset(); setTerminating(employee); }}>Desligar funcionário</Button>
             <Button type="button" variant="ghost" className="justify-start text-rose-700" disabled={remove.loading} onClick={() => { remove.reset(); setConfirmationName(''); setDeleting(employee); }}>Excluir ou arquivar</Button>
           </>}
-        </div>
-      </details>
+      </RowActionsMenu>
     </div>;
   }
 

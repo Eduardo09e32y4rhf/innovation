@@ -25,9 +25,25 @@ export type PublicJob = {
   status: 'OPEN' | 'CLOSED' | string;
   department?: string | null;
   workMode?: string | null;
+  seniority?: string | null;
+  openings: number;
+  requirements: string[];
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  salaryHidden: boolean;
+  deadline?: string | null;
+  questions: PublicQuestion[];
   createdAt?: string | null;
   updatedAt?: string | null;
   company?: PublicCompany | null;
+};
+
+export type PublicQuestion = {
+  id: string;
+  label: string;
+  type: 'TEXT' | 'LONG' | 'SELECT' | 'MULTI' | 'YESNO' | 'NUMBER';
+  required: boolean;
+  options: string[];
 };
 
 export type PublicJobsResult = {
@@ -44,15 +60,18 @@ export type JobApplicationInput = {
   consent: boolean;
   website?: string;
   resume: File;
+  answers?: Record<string, string | string[]>;
 };
 
 export class CareersApiError extends Error {
   status: number;
+  fields: Record<string, string>;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, fields: Record<string, string> = {}) {
     super(message);
     this.name = 'CareersApiError';
     this.status = status;
+    this.fields = fields;
   }
 }
 
@@ -110,6 +129,22 @@ function normalizeBenefits(value: unknown): string[] {
   return [];
 }
 
+function normalizeQuestions(value: unknown): PublicQuestion[] {
+  if (!Array.isArray(value)) return [];
+  const types = ['TEXT', 'LONG', 'SELECT', 'MULTI', 'YESNO', 'NUMBER'];
+  return value
+    .map((item) => asRecord(item))
+    .filter((item): item is Record<string, unknown> => Boolean(item))
+    .map((item) => ({
+      id: optionalString(item.id) ?? '',
+      label: optionalString(item.label) ?? '',
+      type: (types.includes(String(item.type)) ? item.type : 'TEXT') as PublicQuestion['type'],
+      required: Boolean(item.required),
+      options: Array.isArray(item.options) ? item.options.filter((option): option is string => typeof option === 'string') : [],
+    }))
+    .filter((item) => item.id && item.label);
+}
+
 function normalizeJob(value: unknown, fallbackCompanyId: string): PublicJob | null {
   const record = asRecord(value);
   if (!record) return null;
@@ -136,6 +171,14 @@ function normalizeJob(value: unknown, fallbackCompanyId: string): PublicJob | nu
     status: optionalString(record.status) ?? 'OPEN',
     department: optionalString(record.department),
     workMode: optionalString(record.workMode),
+    seniority: optionalString(record.seniority),
+    openings: typeof record.openings === 'number' && record.openings > 0 ? record.openings : 1,
+    requirements: normalizeBenefits(record.requirements),
+    salaryMin: typeof record.salaryMin === 'number' ? record.salaryMin : null,
+    salaryMax: typeof record.salaryMax === 'number' ? record.salaryMax : null,
+    salaryHidden: Boolean(record.salaryHidden),
+    deadline: optionalString(record.deadline),
+    questions: normalizeQuestions(record.questions),
     createdAt: optionalString(record.createdAt),
     updatedAt: optionalString(record.updatedAt),
     company: companyRecord ? normalizeCompany(companyRecord, companyId) : null,
@@ -180,12 +223,20 @@ async function fetchPublic(path: string, init?: RequestInit): Promise<unknown> {
       ? rawMessage.join(', ')
       : optionalString(rawMessage);
 
+    const rawFields = asRecord(nestedError?.fields ?? record?.fields);
+    const fields = Object.fromEntries(
+      Object.entries(rawFields ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+    );
+
     throw new CareersApiError(
       response.status,
       message ??
         (response.status === 404
           ? 'A vaga ou empresa informada não foi encontrada.'
-          : 'Não foi possível concluir a solicitação. Tente novamente.'),
+          : response.status === 429
+            ? 'Muitas tentativas em pouco tempo. Aguarde um minuto e tente novamente.'
+            : 'Não foi possível concluir a solicitação. Tente novamente.'),
+      fields,
     );
   }
 
@@ -305,6 +356,9 @@ export async function applyToPublicJob(
     formData.append('website', input.website.trim());
   }
   formData.append('consent', String(Boolean(input.consent)));
+  if (input.answers && Object.keys(input.answers).length) {
+    formData.append('answers', JSON.stringify(input.answers));
+  }
   formData.append('resume', input.resume, input.resume.name);
 
   const payload = await fetchPublic(`/public/jobs/${encodeURIComponent(jobId)}/apply`, {
@@ -354,6 +408,20 @@ export function companyInitials(name: string): string {
 
 export function safeAccentColor(color?: string | null): string {
   return color && /^#[0-9a-f]{6}$/i.test(color) ? color : '#0f766e';
+}
+
+export function workModeLabel(mode?: string | null): string | null {
+  const labels: Record<string, string> = { PRESENCIAL: 'Presencial', HIBRIDO: 'Híbrido', REMOTO: 'Remoto' };
+  return mode ? labels[mode.toUpperCase()] ?? mode : null;
+}
+
+export function publicSalaryLabel(job: Pick<PublicJob, 'salaryMin' | 'salaryMax' | 'salaryRange' | 'salaryHidden'>): string | null {
+  if (job.salaryHidden) return null;
+  const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  if (job.salaryMin && job.salaryMax) return `${money(job.salaryMin)} a ${money(job.salaryMax)}`;
+  if (job.salaryMin) return `A partir de ${money(job.salaryMin)}`;
+  if (job.salaryMax) return `Até ${money(job.salaryMax)}`;
+  return job.salaryRange ?? null;
 }
 
 export function employmentTypeLabel(type?: string | null): string {

@@ -17,7 +17,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateJobDto, UpdateJobDto } from './dto/create-job.dto';
-import { HireCandidateDto, UpdateApplicationStatusDto } from './dto/hire-candidate.dto';
+import { HireCandidateDto } from './dto/hire-candidate.dto';
 import { JobsService } from './jobs.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -51,18 +51,9 @@ export class JobsController {
     return this.service.delete(companyId, id);
   }
 
-  @Get(':id/applications')
-  applications(@CurrentCompany() companyId: string, @Param('id') id: string) {
-    return this.service.applications(companyId, id);
-  }
-
-  @Patch('applications/:id/status')
-  move(
-    @CurrentCompany() companyId: string,
-    @Param('id') id: string,
-    @Body() dto: UpdateApplicationStatusDto,
-  ) {
-    return this.service.updateApplicationStatus(companyId, id, dto.status);
+  @Post(':id/duplicate')
+  duplicate(@CurrentCompany() companyId: string, @Param('id') id: string) {
+    return this.service.duplicate(companyId, id);
   }
 
   @Post('applications/:id/hire')

@@ -42,8 +42,15 @@ describe('Public application isolation', () => {
     let candidateUpdate: Record<string, unknown> | undefined;
     let applicationCreate: Record<string, unknown> | undefined;
 
+    const stages = [
+      { id: 'stage-applied', kind: 'APPLIED', name: 'Inscritos' },
+      { id: 'stage-rejected', kind: 'REJECTED', name: 'Reprovado' },
+    ];
     const tx = {
       $executeRaw: vi.fn().mockResolvedValue(1),
+      job: { findUnique: vi.fn().mockResolvedValue({ pipelineId: 'pipeline-1' }) },
+      hiringPipeline: { findFirst: vi.fn() },
+      pipelineStage: { findMany: vi.fn().mockResolvedValue(stages) },
       candidate: {
         findFirst: vi.fn().mockResolvedValue(candidate),
         update: vi.fn().mockImplementation(async ({ data }) => {
@@ -73,8 +80,6 @@ describe('Public application isolation', () => {
         phone: '11999999999',
         linkedinUrl: 'https://linkedin.example/new',
         coverLetter: 'Carta exclusiva da vaga 2',
-        aiScore: 88,
-        aiSummary: 'Triagem exclusiva da vaga 2',
         consent: true,
         source: 'CAREERS_PORTAL',
       },
@@ -83,6 +88,13 @@ describe('Public application isolation', () => {
         name: 'curriculo-vaga-2.pdf',
         type: 'application/pdf',
         size: 2048,
+      },
+      {
+        answers: [{ questionId: 'q1', value: 'Sim' }],
+        score: 15,
+        knockedOut: false,
+        knockoutReason: null,
+        rejectOnKnockout: false,
       },
     );
 
@@ -105,12 +117,46 @@ describe('Public application isolation', () => {
       coverLetter: 'Carta exclusiva da vaga 2',
       resumeUrl: 'company-a/applications/application-2/resume.pdf',
       resumeName: 'curriculo-vaga-2.pdf',
-      aiScore: 88,
-      aiSummary: 'Triagem exclusiva da vaga 2',
       consentGiven: true,
       source: 'CAREERS_PORTAL',
+      stageId: 'stage-applied',
+      score: 15,
+      knockedOut: false,
     }));
+    expect(applicationCreate).not.toHaveProperty('aiScore');
+    expect(applicationCreate).not.toHaveProperty('aiSummary');
     expect(applicationCreate?.consentAt).toBeInstanceOf(Date);
+  });
+
+  it('moves a knocked-out candidate straight to the rejected stage when the HR rule says REJECT', async () => {
+    const stages = [
+      { id: 'stage-applied', kind: 'APPLIED', name: 'Inscritos' },
+      { id: 'stage-rejected', kind: 'REJECTED', name: 'Reprovado' },
+    ];
+    let applicationCreate: Record<string, any> | undefined;
+    const tx = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      job: { findUnique: vi.fn().mockResolvedValue({ pipelineId: 'pipeline-1' }) },
+      hiringPipeline: { findFirst: vi.fn() },
+      pipelineStage: { findMany: vi.fn().mockResolvedValue(stages) },
+      candidate: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({ id: 'candidate-9' }),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      application: {
+        findFirst: vi.fn(),
+        create: vi.fn().mockImplementation(async ({ data }) => { applicationCreate = data; return { id: 'a-9', ...data }; }),
+      },
+    };
+    const repository = new JobsRepository({ $transaction: (operation: (client: typeof tx) => unknown) => operation(tx) } as never);
+
+    await repository.apply('company-a', 'job-1', { name: 'X', email: 'x@example.test', phone: '11999999999', consent: true },
+      { key: 'k', name: 'k.pdf', type: 'application/pdf', size: 1 },
+      { answers: [{ questionId: 'q1', value: 'Não' }], score: 0, knockedOut: true, knockoutReason: 'Resposta fora do critério', rejectOnKnockout: true });
+
+    expect(applicationCreate).toMatchObject({ status: 'REJECTED', stageId: 'stage-rejected', knockedOut: true, rejectionReason: 'Resposta fora do critério' });
+    expect(tx.candidate.update).toHaveBeenCalledWith({ where: { id: 'candidate-9' }, data: { status: 'REJECTED' } });
   });
 
   it('uses company, candidate and job together when checking duplicate applications', async () => {

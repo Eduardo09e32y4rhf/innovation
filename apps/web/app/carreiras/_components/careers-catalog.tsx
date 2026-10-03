@@ -5,7 +5,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { CareersBrand, CareersFooter, CareersLogo } from './careers-brand';
-import { getAllPublicJobs, getPublicJobs, employmentTypeLabel, type PublicCompany, type PublicJob } from '../_lib/public-jobs';
+import { getAllPublicJobs, getPublicJobs, employmentTypeLabel, publicSalaryLabel, workModeLabel, type PublicCompany, type PublicJob } from '../_lib/public-jobs';
 
 export function CareersCatalog({ companyId }: { companyId?: string }) {
   const [company, setCompany] = useState<PublicCompany>({ id: companyId || '', name: companyId ? 'Portal de carreiras' : 'Innovation RH' });
@@ -78,8 +78,12 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
               {!companyId && <p className="text-sm text-fg-mut">{job.company?.name || 'Empresa'}</p>}
               <h3 className="break-words text-lg font-semibold">{job.title}</h3>
               <p className="text-sm text-fg-mut">{job.location || 'Local não informado'} · {employmentTypeLabel(job.employmentType)}</p>
-              {job.department && <p className="text-sm">{job.department}</p>}{job.workMode && <p className="text-sm">{job.workMode}</p>}
-              {job.salaryRange && <p className="text-sm">{job.salaryRange}</p>}
+              <div className="flex flex-wrap gap-1.5">
+                {job.department && <span className="rounded-full bg-bg-sub px-2.5 py-0.5 text-xs font-medium">{job.department}</span>}
+                {workModeLabel(job.workMode) && <span className="rounded-full bg-bg-sub px-2.5 py-0.5 text-xs font-medium">{workModeLabel(job.workMode)}</span>}
+                {job.seniority && <span className="rounded-full bg-bg-sub px-2.5 py-0.5 text-xs font-medium">{job.seniority}</span>}
+                {publicSalaryLabel(job) && <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-medium text-purple-700">{publicSalaryLabel(job)}</span>}
+              </div>
               <p className="line-clamp-3 text-sm text-fg-mut">{job.description}</p>
               <Link className="btn btn-outline" href={'/carreiras/' + encodeURIComponent(companyId || job.companyId) + '/' + encodeURIComponent(job.id)}>Ver oportunidade e candidatar-se</Link>
             </article>)}</div>}

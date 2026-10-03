@@ -2,6 +2,39 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
+const PUBLIC_JOB_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  location: true,
+  employmentType: true,
+  salaryRange: true,
+  benefits: true,
+  requirements: true,
+  department: true,
+  workMode: true,
+  seniority: true,
+  openings: true,
+  salaryMin: true,
+  salaryMax: true,
+  salaryHidden: true,
+  deadline: true,
+  createdAt: true,
+  updatedAt: true,
+  companyId: true,
+} satisfies Prisma.JobSelect;
+
+const PUBLIC_COMPANY_SELECT = { id: true, name: true, slug: true, logoUrl: true, primaryColor: true, city: true, state: true };
+const ACTIVE_COMPANY: Prisma.CompanyWhereInput = {
+  isActive: true,
+  status: 'ACTIVE',
+  billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] },
+};
+const openJob = () => ({
+  status: 'OPEN' as const,
+  OR: [{ deadline: null }, { deadline: { gte: new Date() } }],
+});
+
 @Injectable()
 export class JobsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -9,9 +42,13 @@ export class JobsRepository {
   list(companyId: string) {
     return this.prisma.job.findMany({
       where: { companyId },
-      include: { _count: { select: { applications: true } } },
+      include: { _count: { select: { applications: true, questions: true } } },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  applicationCountsByJob(companyId: string) {
+    return this.prisma.application.groupBy({ by: ['jobId', 'status'], where: { companyId }, _count: true });
   }
 
   find(companyId: string, id: string) {
@@ -33,17 +70,6 @@ export class JobsRepository {
     return this.prisma.job.deleteMany({ where: { companyId, id } });
   }
 
-  applications(companyId: string, jobId: string) {
-    return this.prisma.application.findMany({
-      where: { companyId, jobId },
-      include: {
-        candidate: { include: { admittedEmployee: { select: { id: true, status: true } } } },
-        job: { select: { id: true, title: true, status: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
   application(companyId: string, id: string) {
     return this.prisma.application.findFirst({
       where: { companyId, id },
@@ -54,160 +80,61 @@ export class JobsRepository {
     });
   }
 
-  async updateApplicationStatus(companyId: string, id: string, status: any) {
-    return this.prisma.$transaction(async (tx) => {
-      const application = await tx.application.findFirst({ where: { companyId, id } });
-      if (!application) return null;
-
-      const nextStatus = status === 'APPLIED' ? 'NEW' : status;
-      const candidateApplications = await tx.application.findMany({
-        where: { companyId, candidateId: application.candidateId },
-        select: { id: true, status: true, updatedAt: true },
-        orderBy: [{ updatedAt: 'desc' }],
-      });
-      const latestStatus = candidateApplications
-        .map((item) => (item.id === application.id ? nextStatus : item.status))
-        .find(Boolean);
-
-      if (latestStatus) {
-        await tx.candidate.update({
-          where: { id: application.candidateId },
-          data: { status: latestStatus as any },
-        });
-      }
-
-      return tx.application.update({ where: { id }, data: { status } });
-    });
-  }
-
   async publicCompany(companyKey: string) {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(companyKey);
     return this.prisma.company.findFirst({
       where: {
-        isActive: true,
-        status: 'ACTIVE',
-        billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] },
+        ...ACTIVE_COMPANY,
         OR: [{ slug: companyKey }, ...(isUuid ? [{ id: companyKey }] : [])],
       },
-      select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true, city: true, state: true },
+      select: PUBLIC_COMPANY_SELECT,
     });
   }
 
   publicJobs(companyId: string) {
     return this.prisma.job.findMany({
-      where: { companyId, status: 'OPEN' },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        location: true,
-        employmentType: true,
-        salaryRange: true,
-        benefits: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      where: { companyId, ...openJob() },
+      select: PUBLIC_JOB_SELECT,
       orderBy: { createdAt: 'desc' },
     });
   }
 
   publicJobsCatalog() {
     return this.prisma.job.findMany({
-      where: {
-        status: 'OPEN',
-        company: { isActive: true, status: 'ACTIVE', billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] } },
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        location: true,
-        employmentType: true,
-        salaryRange: true,
-        benefits: true,
-        createdAt: true,
-        updatedAt: true,
-        companyId: true,
-        company: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            logoUrl: true,
-            primaryColor: true,
-            city: true,
-            state: true,
-          },
-        },
-      },
+      where: { ...openJob(), company: ACTIVE_COMPANY },
+      select: { ...PUBLIC_JOB_SELECT, company: { select: PUBLIC_COMPANY_SELECT } },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   publicJob(companyId: string, jobId: string) {
     return this.prisma.job.findFirst({
-      where: { companyId, id: jobId, status: 'OPEN' },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        location: true,
-        employmentType: true,
-        salaryRange: true,
-        benefits: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      where: { companyId, id: jobId, ...openJob() },
+      select: { ...PUBLIC_JOB_SELECT, questions: { select: { id: true, label: true, type: true, required: true, options: true }, orderBy: { position: 'asc' } } },
     });
   }
 
   publicJobById(jobId: string) {
     return this.prisma.job.findFirst({
-      where: { id: jobId, status: 'OPEN', company: { isActive: true } },
+      where: { id: jobId, ...openJob(), company: { isActive: true } },
       include: {
         company: { select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true } },
+        questions: { select: { id: true, label: true, type: true, required: true, options: true, knockout: true, scoreRule: true }, orderBy: { position: 'asc' } },
       },
     });
   }
 
   async allPublicJobs() {
     const jobs = await this.prisma.job.findMany({
-      where: {
-        status: 'OPEN',
-        company: {
-          isActive: true,
-          status: 'ACTIVE',
-          billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] },
-        },
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        location: true,
-        employmentType: true,
-        salaryRange: true,
-        benefits: true,
-        createdAt: true,
-        updatedAt: true,
-        companyId: true,
-        company: {
-          select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true, city: true, state: true },
-        },
-      },
+      where: { ...openJob(), company: ACTIVE_COMPANY },
+      select: { ...PUBLIC_JOB_SELECT, company: { select: PUBLIC_COMPANY_SELECT } },
       orderBy: { createdAt: 'desc' },
     });
-
     const companies = await this.prisma.company.findMany({
-      where: {
-        isActive: true,
-        status: 'ACTIVE',
-        billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] },
-      },
-      select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true, city: true, state: true },
+      where: ACTIVE_COMPANY,
+      select: PUBLIC_COMPANY_SELECT,
       orderBy: { name: 'asc' },
     });
-
     return { jobs, companies };
   }
 
@@ -215,11 +142,13 @@ export class JobsRepository {
     companyId: string,
     jobId: string,
     data: any,
-    resume: {
-      key: string;
-      name: string;
-      type: string;
-      size: number;
+    resume: { key: string; name: string; type: string; size: number },
+    extra: {
+      answers: { questionId: string; value: string }[];
+      score: number;
+      knockedOut: boolean;
+      knockoutReason: string | null;
+      rejectOnKnockout: boolean;
     },
   ) {
     return this.prisma.$transaction(async (tx) => {
@@ -231,38 +160,34 @@ export class JobsRepository {
 
       if (!candidate) {
         candidate = await tx.candidate.create({
-          data: {
-            companyId,
-            name: data.name,
-            email: data.email,
-            phone: data.phone,
-            linkedinUrl: data.linkedinUrl,
-            status: 'NEW',
-          },
+          data: { companyId, name: data.name, email: data.email, phone: data.phone, linkedinUrl: data.linkedinUrl, status: 'NEW' },
         });
       } else {
-        const duplicate = await tx.application.findFirst({
-          where: { companyId, candidateId: candidate.id, jobId },
-        });
+        const duplicate = await tx.application.findFirst({ where: { companyId, candidateId: candidate.id, jobId } });
         if (duplicate) return { duplicate: true as const, application: duplicate };
-
         candidate = await tx.candidate.update({
           where: { id: candidate.id },
-          data: {
-            name: data.name,
-            phone: data.phone,
-            linkedinUrl: data.linkedinUrl ?? candidate.linkedinUrl,
-            status: 'NEW',
-          },
+          data: { name: data.name, phone: data.phone, linkedinUrl: data.linkedinUrl ?? candidate.linkedinUrl, status: 'NEW' },
         });
       }
+
+      const job = await tx.job.findUnique({ where: { id: jobId }, select: { pipelineId: true } });
+      const pipelineId =
+        job?.pipelineId ??
+        (await tx.hiringPipeline.findFirst({ where: { companyId, isDefault: true }, select: { id: true } }))?.id ??
+        null;
+      const stages = pipelineId ? await tx.pipelineStage.findMany({ where: { pipelineId }, orderBy: { position: 'asc' } }) : [];
+      const firstStage = stages.find((stage) => stage.kind === 'APPLIED') ?? stages[0];
+      const rejectedStage = stages.find((stage) => stage.kind === 'REJECTED');
+      const autoReject = extra.knockedOut && extra.rejectOnKnockout && rejectedStage;
+      const stage = autoReject ? rejectedStage : firstStage;
 
       const application = await tx.application.create({
         data: {
           companyId,
           candidateId: candidate.id,
           jobId,
-          status: 'APPLIED',
+          status: autoReject ? 'REJECTED' : 'APPLIED',
           source: data.source ?? 'CAREERS_PORTAL',
           linkedinUrl: data.linkedinUrl,
           coverLetter: data.coverLetter,
@@ -270,12 +195,24 @@ export class JobsRepository {
           resumeName: resume.name,
           resumeType: resume.type,
           resumeSize: resume.size,
-          aiScore: data.aiScore,
-          aiSummary: data.aiSummary,
           consentGiven: Boolean(data.consent),
           consentAt: data.consent ? new Date() : null,
+          stageId: stage?.id,
+          stageMovedAt: new Date(),
+          score: extra.answers.length ? extra.score : null,
+          knockedOut: extra.knockedOut,
+          knockoutReason: extra.knockoutReason,
+          rejectionReason: autoReject ? extra.knockoutReason : null,
+          answers: extra.answers.length ? { create: extra.answers } : undefined,
+          events: {
+            create: [
+              { type: 'APPLIED', toStage: firstStage?.name ?? null, note: 'Candidatura recebida pelo portal' },
+              ...(autoReject ? [{ type: 'REJECTED', fromStage: firstStage?.name ?? null, toStage: rejectedStage!.name, note: extra.knockoutReason }] : []),
+            ],
+          },
         },
       });
+      if (autoReject) await tx.candidate.update({ where: { id: candidate.id }, data: { status: 'REJECTED' } });
 
       return { duplicate: false as const, application };
     });
@@ -286,7 +223,7 @@ export class JobsRepository {
       return await this.prisma.$transaction(async (tx) => {
         const application = await tx.application.findFirst({
           where: { companyId, id: applicationId },
-          include: { candidate: { include: { admittedEmployee: true } }, job: true },
+          include: { candidate: { include: { admittedEmployee: true } }, job: true, stage: true },
         });
         if (!application) return null;
         if (application.candidate.admittedEmployee) {
@@ -299,7 +236,6 @@ export class JobsRepository {
 
         const notes = [
           'Origem: Portal de Vagas / ATS.',
-          application.aiSummary ? `Triagem: ${application.aiSummary}` : null,
           application.coverLetter ? `Apresentacao: ${application.coverLetter}` : null,
         ]
           .filter(Boolean)
@@ -313,7 +249,7 @@ export class JobsRepository {
             email: application.candidate.email,
             phone: application.candidate.phone,
             position: application.job.title,
-            department: data.department?.trim() || 'A definir',
+            department: data.department?.trim() || application.job.department || 'A definir',
             salary: data.salary !== undefined ? String(data.salary) : undefined,
             admissionDate: data.admissionDate ? new Date(data.admissionDate) : new Date(),
             contractType: data.contractType,
@@ -351,17 +287,29 @@ export class JobsRepository {
           });
         }
 
-        await tx.application.update({ where: { id: application.id }, data: { status: 'HIRED' } });
+        const pipelineId =
+          application.stage?.pipelineId ??
+          application.job.pipelineId ??
+          (await tx.hiringPipeline.findFirst({ where: { companyId, isDefault: true }, select: { id: true } }))?.id;
+        const hiredStage = pipelineId
+          ? await tx.pipelineStage.findFirst({ where: { pipelineId, kind: 'HIRED' }, orderBy: { position: 'asc' } })
+          : null;
 
-        const latestApplication = await tx.application.findFirst({
-          where: { companyId, candidateId: application.candidate.id },
-          orderBy: [{ updatedAt: 'desc' }],
-          select: { status: true },
+        await tx.application.update({
+          where: { id: application.id },
+          data: { status: 'HIRED', stageId: hiredStage?.id ?? application.stageId, stageMovedAt: new Date(), rejectionReason: null },
         });
-        await tx.candidate.update({
-          where: { id: application.candidate.id },
-          data: { status: latestApplication?.status === 'APPLIED' ? 'NEW' : latestApplication?.status ?? 'HIRED' },
+        await tx.applicationEvent.create({
+          data: {
+            applicationId: application.id,
+            userId: actorId,
+            type: 'HIRED',
+            fromStage: application.stage?.name ?? null,
+            toStage: hiredStage?.name ?? 'Contratado',
+            note: 'Admissão iniciada',
+          },
         });
+        await tx.candidate.update({ where: { id: application.candidate.id }, data: { status: 'HIRED' } });
 
         return { employee, alreadyHired: false };
       });

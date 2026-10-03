@@ -1,6 +1,7 @@
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -405,45 +406,48 @@ model Company {
   scheduleExceptions ScheduleException[]
   swapRequests       ScheduleSwapRequest[]
 
-  supportTickets     SupportTicket[]
-  generatedDocuments GeneratedDocument[]
-  partners           Partner[]
-  partnerInvoices    PartnerInvoice[]
-  timeRecords        TimeRecord[]
-  timePunches        TimePunch[]
-  commercialSales    CommercialSale[]
+  supportTickets        SupportTicket[]
+  generatedDocuments    GeneratedDocument[]
+  partners              Partner[]
+  partnerInvoices       PartnerInvoice[]
+  timeRecords           TimeRecord[]
+  timePunches           TimePunch[]
+  commercialSales       CommercialSale[]
+  hiringPipelines       HiringPipeline[]
+  recruitmentTags       RecruitmentTag[]
+  recruitmentSavedViews RecruitmentSavedView[]
 
   @@index([commercialOwnerId])
 }
 
 model User {
-  id                   String    @id @default(uuid()) @db.Uuid
-  companyId            String    @db.Uuid
-  name                 String
-  email                String    @unique
-  passwordHash         String
-  passwordChangedAt    DateTime  @default(now())
-  forcePasswordChange  Boolean   @default(false)
-  role                 UserRole  @default(FUNCIONARIO)
-  isActive             Boolean   @default(true)
-  failedLoginAttempts  Int       @default(0)
-  previousPasswords    String[]  @default([])
-  resetPasswordCode    String?
-  resetPasswordExpires DateTime?
-  lastActiveAt         DateTime?
-  customPermissions    Json?
-  onboardingState      CEOOnboardingState?
+  id                    String              @id @default(uuid()) @db.Uuid
+  companyId             String              @db.Uuid
+  name                  String
+  email                 String              @unique
+  passwordHash          String
+  passwordChangedAt     DateTime            @default(now())
+  forcePasswordChange   Boolean             @default(false)
+  role                  UserRole            @default(FUNCIONARIO)
+  isActive              Boolean             @default(true)
+  failedLoginAttempts   Int                 @default(0)
+  previousPasswords     String[]            @default([])
+  resetPasswordCode     String?
+  resetPasswordExpires  DateTime?
+  lastActiveAt          DateTime?
+  customPermissions     Json?
+  onboardingState       CEOOnboardingState?
   onboardingCompletedAt DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
 
   company                Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
   commercialCompanies    Company[]               @relation("CommercialOwner")
   employee               Employee?
   temporaryCredential    TemporaryCredential?
   ceoProfile             CEOProfile?
-  ceoContracts           CEOContract[]          @relation("CEOContractSubject")
-  issuedCEOContracts     CEOContract[]          @relation("CEOContractIssuer")
+  ceoContracts           CEOContract[]           @relation("CEOContractSubject")
+  issuedCEOContracts     CEOContract[]           @relation("CEOContractIssuer")
   privacyConsents        PrivacyConsent[]
   auditLogs              AuditLog[]
   notificationRecipients NotificationRecipient[]
@@ -492,15 +496,15 @@ model TemporaryCredential {
 }
 
 model CEOProfile {
-  id           String    @id @default(uuid()) @db.Uuid
-  userId       String    @unique @db.Uuid
-  legalName    String?
-  cpf          String?
-  birthDate    DateTime?
-  data         Json?
-  completedAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @unique @db.Uuid
+  legalName   String?
+  cpf         String?
+  birthDate   DateTime?
+  data        Json?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -521,8 +525,8 @@ model CEOContract {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  ceo      User @relation("CEOContractSubject", fields: [ceoUserId], references: [id], onDelete: Cascade)
-  issuer   User @relation("CEOContractIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  ceo    User @relation("CEOContractSubject", fields: [ceoUserId], references: [id], onDelete: Cascade)
+  issuer User @relation("CEOContractIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
 
   @@unique([ceoUserId, version])
   @@index([ceoUserId, signedAt])
@@ -1259,13 +1263,192 @@ model Job {
   salaryRange    String?
   benefits       String[]  @default([])
   status         JobStatus @default(OPEN)
+  department     String?
+  workMode       String?
+  seniority      String?
+  openings       Int       @default(1)
+  salaryMin      Int?
+  salaryMax      Int?
+  salaryHidden   Boolean   @default(false)
+  deadline       DateTime?
+  requirements   String[]  @default([])
+  pipelineId     String?   @db.Uuid
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company      Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  pipeline     HiringPipeline? @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
   applications Application[]
+  questions    JobQuestion[]
+  criteria     JobCriterion[]
 
   @@index([companyId])
+  @@index([companyId, status])
+}
+
+model HiringPipeline {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  name      String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stages  PipelineStage[]
+  jobs    Job[]
+
+  @@index([companyId])
+}
+
+model PipelineStage {
+  id         String            @id @default(uuid()) @db.Uuid
+  pipelineId String            @db.Uuid
+  name       String
+  color      String            @default("#6b7280")
+  position   Int               @default(0)
+  kind       ApplicationStatus @default(SCREENING)
+
+  pipeline     HiringPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  applications Application[]
+
+  @@index([pipelineId, position])
+}
+
+model JobQuestion {
+  id        String   @id @default(uuid()) @db.Uuid
+  jobId     String   @db.Uuid
+  label     String
+  type      String   @default("TEXT")
+  required  Boolean  @default(false)
+  options   String[] @default([])
+  position  Int      @default(0)
+  knockout  Json?
+  scoreRule Json?
+
+  job     Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  answers ApplicationAnswer[]
+
+  @@index([jobId, position])
+}
+
+model JobCriterion {
+  id       String @id @default(uuid()) @db.Uuid
+  jobId    String @db.Uuid
+  name     String
+  weight   Int    @default(1)
+  position Int    @default(0)
+
+  job         Job                     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  evaluations ApplicationEvaluation[]
+
+  @@index([jobId, position])
+}
+
+model ApplicationAnswer {
+  id            String @id @default(uuid()) @db.Uuid
+  applicationId String @db.Uuid
+  questionId    String @db.Uuid
+  value         String
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  question    JobQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, questionId])
+  @@index([questionId])
+}
+
+model ApplicationEvaluation {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @db.Uuid
+  criterionId   String   @db.Uuid
+  userId        String   @db.Uuid
+  score         Int
+  comment       String?
+  updatedAt     DateTime @updatedAt
+
+  application Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  criterion   JobCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, criterionId, userId])
+}
+
+model RecruitmentTag {
+  id        String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  name      String
+  color     String @default("#7c3aed")
+
+  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  applications ApplicationTag[]
+
+  @@unique([companyId, name])
+}
+
+model ApplicationTag {
+  applicationId String @db.Uuid
+  tagId         String @db.Uuid
+
+  application Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  tag         RecruitmentTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([applicationId, tagId])
+}
+
+model ApplicationEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @db.Uuid
+  userId        String?  @db.Uuid
+  type          String
+  fromStage     String?
+  toStage       String?
+  note          String?
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+}
+
+model ApplicationNote {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @db.Uuid
+  userId        String   @db.Uuid
+  authorName    String?
+  body          String
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+}
+
+model ApplicationInterview {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @db.Uuid
+  scheduledAt   DateTime
+  kind          String   @default("ENTREVISTA")
+  location      String?
+  interviewer   String?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, scheduledAt])
+}
+
+model RecruitmentSavedView {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  userId    String   @db.Uuid
+  name      String
+  filters   Json
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, userId])
 }
 
 model Candidate {
@@ -1300,31 +1483,47 @@ model Candidate {
 }
 
 model Application {
-  id           String            @id @default(uuid()) @db.Uuid
-  companyId    String            @db.Uuid
-  candidateId  String            @db.Uuid
-  jobId        String            @db.Uuid
-  status       ApplicationStatus @default(APPLIED)
-  source       String?           @default("CAREERS_PORTAL")
-  linkedinUrl  String?
-  coverLetter  String?
-  resumeUrl    String?
-  resumeName   String?
-  resumeType   String?
-  resumeSize   Int?
-  aiScore      Int?
-  aiSummary    String?
-  consentGiven Boolean           @default(false)
-  consentAt    DateTime?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id              String            @id @default(uuid()) @db.Uuid
+  companyId       String            @db.Uuid
+  candidateId     String            @db.Uuid
+  jobId           String            @db.Uuid
+  status          ApplicationStatus @default(APPLIED)
+  source          String?           @default("CAREERS_PORTAL")
+  linkedinUrl     String?
+  coverLetter     String?
+  resumeUrl       String?
+  resumeName      String?
+  resumeType      String?
+  resumeSize      Int?
+  aiScore         Int?
+  aiSummary       String?
+  consentGiven    Boolean           @default(false)
+  consentAt       DateTime?
+  stageId         String?           @db.Uuid
+  stageMovedAt    DateTime?
+  rating          Int?
+  favorite        Boolean           @default(false)
+  rejectionReason String?
+  score           Int?
+  knockedOut      Boolean           @default(false)
+  knockoutReason  String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
-  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  job       Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  company     Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  candidate   Candidate               @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job         Job                     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  stage       PipelineStage?          @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  answers     ApplicationAnswer[]
+  evaluations ApplicationEvaluation[]
+  tags        ApplicationTag[]
+  events      ApplicationEvent[]
+  notes       ApplicationNote[]
+  interviews  ApplicationInterview[]
 
   @@unique([companyId, candidateId, jobId])
   @@index([companyId])
+  @@index([companyId, jobId, stageId])
 }
 
 model FinancialTransaction {
@@ -2300,30 +2499,30 @@ enum PayrollItemType {
 }
 
 model Payroll {
-  id               String        @id @default(uuid()) @db.Uuid
-  companyId        String        @db.Uuid
-  employeeId       String        @db.Uuid
-  referenceMonth   Int
-  referenceYear    Int
-  baseSalary       Decimal       @db.Decimal(12, 2)
-  grossSalary      Decimal       @db.Decimal(12, 2)
-  netSalary        Decimal       @db.Decimal(12, 2)
-  inssAmount       Decimal       @db.Decimal(12, 2)
-  irrfAmount       Decimal       @db.Decimal(12, 2)
-  fgtsAmount       Decimal       @db.Decimal(12, 2)
+  id                 String        @id @default(uuid()) @db.Uuid
+  companyId          String        @db.Uuid
+  employeeId         String        @db.Uuid
+  referenceMonth     Int
+  referenceYear      Int
+  baseSalary         Decimal       @db.Decimal(12, 2)
+  grossSalary        Decimal       @db.Decimal(12, 2)
+  netSalary          Decimal       @db.Decimal(12, 2)
+  inssAmount         Decimal       @db.Decimal(12, 2)
+  irrfAmount         Decimal       @db.Decimal(12, 2)
+  fgtsAmount         Decimal       @db.Decimal(12, 2)
   calculationVersion String?
-  taxTableSnapshot Json?
-  overtimeAmount   Decimal       @default(0) @db.Decimal(12, 2)
-  nightShiftAmount Decimal       @default(0) @db.Decimal(12, 2)
-  status           PayrollStatus @default(DRAFT)
-  pdfUrl           String?
-  observations     String?
-  approvedBy       String?       @db.Uuid
-  approvedAt       DateTime?
-  paidAt           DateTime?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  deletedAt        DateTime?
+  taxTableSnapshot   Json?
+  overtimeAmount     Decimal       @default(0) @db.Decimal(12, 2)
+  nightShiftAmount   Decimal       @default(0) @db.Decimal(12, 2)
+  status             PayrollStatus @default(DRAFT)
+  pdfUrl             String?
+  observations       String?
+  approvedBy         String?       @db.Uuid
+  approvedAt         DateTime?
+  paidAt             DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  deletedAt          DateTime?
 
   employee Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   items    PayrollItem[]
@@ -2641,25 +2840,25 @@ enum CommissionStatus {
 }
 
 model CommercialSale {
-  id                String   @id @default(uuid()) @db.Uuid
-  companyId         String   @db.Uuid
-  sellerId          String   @db.Uuid
-  authorId          String   @db.Uuid
-  planId            String?
-  cycle             String?
-  contractValue     Decimal  @db.Decimal(10, 2)
-  recurrence        Boolean  @default(false)
-  snapshot          Json?    // Snapshot da proposta/plano no momento da venda
-  status            String   @default("CONFIRMED") // CONFIRMED, CANCELED
-  paymentReference  String?  // ID do Asaas ou Fatura vinculada
-  idempotencyKey    String   @unique
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String   @id @default(uuid()) @db.Uuid
+  companyId        String   @db.Uuid
+  sellerId         String   @db.Uuid
+  authorId         String   @db.Uuid
+  planId           String?
+  cycle            String?
+  contractValue    Decimal  @db.Decimal(10, 2)
+  recurrence       Boolean  @default(false)
+  snapshot         Json? // Snapshot da proposta/plano no momento da venda
+  status           String   @default("CONFIRMED") // CONFIRMED, CANCELED
+  paymentReference String? // ID do Asaas ou Fatura vinculada
+  idempotencyKey   String   @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  company           Company  @relation(fields: [companyId], references: [id])
-  seller            User     @relation("SalesAsSeller", fields: [sellerId], references: [id])
-  author            User     @relation("SalesAsAuthor", fields: [authorId], references: [id])
-  commissions       CommissionEntry[]
+  company     Company           @relation(fields: [companyId], references: [id])
+  seller      User              @relation("SalesAsSeller", fields: [sellerId], references: [id])
+  author      User              @relation("SalesAsAuthor", fields: [authorId], references: [id])
+  commissions CommissionEntry[]
 }
 
 model CommissionEntry {
@@ -2674,7 +2873,6 @@ model CommissionEntry {
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
-  sale              CommercialSale   @relation(fields: [saleId], references: [id])
-  beneficiary       User             @relation("CommissionsReceived", fields: [beneficiaryId], references: [id])
+  sale        CommercialSale @relation(fields: [saleId], references: [id])
+  beneficiary User           @relation("CommissionsReceived", fields: [beneficiaryId], references: [id])
 }
-

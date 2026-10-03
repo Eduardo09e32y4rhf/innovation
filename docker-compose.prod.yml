@@ -22,6 +22,9 @@ services:
     environment:
       DATABASE_URL: "postgresql://innovation:innovation@db:5432/innovation_db?schema=public"
       JWT_SECRET: "innovation-secret-key-123"
+      RECRUITMENT_RESUMES_PATH: /data/recruitment
+    volumes:
+      - api_data:/data
     ports: ["3333:3333"]
     depends_on:
       - db
@@ -41,3 +44,4 @@ services:
 
 volumes:
   postgres_data:
+  api_data:

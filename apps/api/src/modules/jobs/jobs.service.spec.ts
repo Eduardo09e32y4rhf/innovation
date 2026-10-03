@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { JobsService } from './jobs.service';
+import { RecruitmentService } from './recruitment.service';
 
 function setup() {
   const repository = {
@@ -9,10 +10,9 @@ function setup() {
     update: vi.fn(),
     delete: vi.fn(),
     hire: vi.fn(),
-    applications: vi.fn(),
   } as any;
   const storage = {} as any;
-  return { service: new JobsService(repository, storage), repository };
+  return { service: new JobsService(repository, storage, {} as any), repository };
 }
 
 describe('JobsService', () => {
@@ -67,17 +67,34 @@ describe('JobsService', () => {
   });
 
   it('does not expose the internal resume storage key', async () => {
-    const { service, repository } = setup();
-    repository.find.mockResolvedValue({ id: 'job-1', _count: { applications: 1 } });
-    repository.applications.mockResolvedValue([{
-      id: 'application-1',
-      resumeUrl: 'private/storage/key.pdf',
-      candidate: { id: 'candidate-1', resumeUrl: 'private/storage/key.pdf' },
-    }]);
+    const stage = { id: 'stage-1', kind: 'APPLIED', name: 'Inscritos' };
+    const prisma = {
+      job: { findFirst: vi.fn().mockResolvedValue({ id: 'job-1', pipelineId: null }) },
+      hiringPipeline: { findFirst: vi.fn().mockResolvedValue({ id: 'p1', stages: [stage] }) },
+      application: {
+        findMany: vi.fn()
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([{
+            id: 'application-1',
+            jobId: 'job-1',
+            status: 'APPLIED',
+            stageId: 'stage-1',
+            createdAt: new Date(),
+            resumeUrl: 'private/storage/key.pdf',
+            candidate: { id: 'candidate-1', name: 'Maria', email: 'm@x.com' },
+            tags: [],
+            answers: [],
+            evaluations: [],
+          }]),
+      },
+      jobQuestion: { findMany: vi.fn().mockResolvedValue([]) },
+      jobCriterion: { findMany: vi.fn().mockResolvedValue([]) },
+    } as any;
+    const recruitment = new RecruitmentService(prisma);
 
-    const [application] = await service.applications('company-1', 'job-1');
-    expect(application.candidate.resumeUrl).toBeUndefined();
-    expect(application.candidate.resumeAvailable).toBe(true);
-    expect(application.candidate.resumeDownloadPath).toBe('/jobs/applications/application-1/resume');
+    const { applications } = await recruitment.listApplications('company-1', 'job-1', {});
+    expect(JSON.stringify(applications[0])).not.toContain('private/storage/key.pdf');
+    expect(applications[0].resumeAvailable).toBe(true);
+    expect(applications[0].resumeDownloadPath).toBe('/jobs/applications/application-1/resume');
   });
 });
