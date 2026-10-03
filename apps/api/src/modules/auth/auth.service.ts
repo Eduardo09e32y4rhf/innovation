@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
@@ -18,6 +18,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 
 import { NotificationsService } from '../notifications/notifications.service';
@@ -264,7 +265,7 @@ export class AuthService {
     return { requested: true };
   }
 
-  async validateResetCode(dto: { email: string; code: string; cpfStart: string; registration: string }) {
+  async validateResetCode(dto: ValidateResetCodeDto) {
     const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
     if (!user || !user.isActive) throw new UnauthorizedException('Dados de validação incorretos');
     
@@ -279,20 +280,18 @@ export class AuthService {
       throw new UnauthorizedException('Código expirado');
     }
 
+    // Usuários sem ficha de funcionário (ADMIN, CEO, contabilidade...) são validados apenas pelo código entregue pela empresa.
     const employee = user.employee;
-    if (!employee) {
-      throw new UnauthorizedException('Usuário não possui cadastro de colaborador. Contate o suporte.');
-    }
-    
-    const rawCpf = employee.cpf ? employee.cpf.replace(/\D/g, '') : '';
-    if (!rawCpf.startsWith(dto.cpfStart.trim())) {
-      throw new UnauthorizedException('Dados de validação incorretos');
-    }
-
-    const empReg = (employee.registration || '').trim().toLowerCase();
-    const providedReg = dto.registration.trim().toLowerCase();
-    if (empReg !== providedReg) {
-      throw new UnauthorizedException('Dados de validação incorretos');
+    if (employee) {
+      const rawCpf = employee.cpf ? employee.cpf.replace(/\D/g, '') : '';
+      const cpfStart = (dto.cpfStart ?? '').trim();
+      if (rawCpf && (!cpfStart || !rawCpf.startsWith(cpfStart))) {
+        throw new UnauthorizedException('Dados de validação incorretos');
+      }
+      const empReg = (employee.registration || '').trim().toLowerCase();
+      if (empReg && empReg !== (dto.registration ?? '').trim().toLowerCase()) {
+        throw new UnauthorizedException('Dados de validação incorretos');
+      }
     }
 
     const token = await this.jwtService.signAsync({
@@ -465,7 +464,7 @@ export class AuthService {
 
   private assertStrongPassword(password: string) {
     if (password.length < 10 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-      throw new ConflictException('A senha precisa ter no minimo 10 caracteres, letra maiuscula, minuscula, numero e simbolo');
+      throw new BadRequestException('A senha precisa ter no minimo 10 caracteres, letra maiuscula, minuscula, numero e simbolo');
     }
   }
   private resolveRole(email: string, role: UserRole): UserRole {

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { clearAuthSession, readAuthSession, readParsedAuthSession } from './auth-session';
 import { resetAllQueryStates } from '@/app/hooks/use-data';
@@ -626,7 +626,7 @@ export const api = {
 
   auth: {
     requestPasswordReset: (email: string, website?: string) => request<{ requested: boolean; demoCode?: string }>('/auth/password-reset/request', { method: 'POST', body: { email, website } }),
-    validateResetCode: (email: string, code: string, cpfStart: string, registration: string) => request<{ valid: boolean; resetToken: string }>('/auth/password-reset/validate-code', { method: 'POST', body: { email, code, cpfStart, registration } }),
+    validateResetCode: (email: string, code: string, cpfStart?: string, registration?: string) => request<{ valid: boolean; resetToken: string }>('/auth/password-reset/validate-code', { method: 'POST', body: { email, code, cpfStart: cpfStart || undefined, registration: registration || undefined } }),
     resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),
     publicPlans: () => request<PublicPlatformPlan[]>('/auth/public-plans'),
     quotePublicPlan: (data: { planId: string; seatQuantity: number; couponCode?: string }) => request<{ total: number; monthlyEquivalent?: number; commitmentMonths: number; seatQuantity: number; couponApplied: boolean; trialDays: number }>('/auth/public-plans/quote', { method: 'POST', body: data }),

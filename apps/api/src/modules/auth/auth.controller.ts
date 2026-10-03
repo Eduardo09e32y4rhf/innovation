@@ -21,6 +21,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AdminResetEmployeePasswordDto } from './dto/admin-reset-employee-password.dto';
 import { PublicPlanQuoteDto } from './dto/public-plan-quote.dto';
+import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 
 
 @Controller('auth')
@@ -60,7 +61,7 @@ export class AuthController {
 
   @Throttle({ default: { limit: 5, ttl: 300000 } })
   @Post('password-reset/validate-code')
-  validateResetCode(@Body() dto: { email: string; code: string; cpfStart: string; registration: string }) {
+  validateResetCode(@Body() dto: ValidateResetCodeDto) {
     return this.service.validateResetCode(dto);
   }
 

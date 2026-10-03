@@ -1,393 +1,202 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  AlertCircle,
-  ArrowRight,
-  Building2,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  Phone,
-  ShieldCheck,
-  Users,
-  Sparkles,
-  User,
-  FileText,
-} from 'lucide-react';
 import Link from 'next/link';
-import { AuthSplitLayout } from '@/app/components/auth-split-layout';
-import { api, type PublicPlatformPlan } from '@/app/lib/api';
-import { PricingSection } from '../_components/pricing-section';
-import { persistAuthSession } from '@/app/lib/auth-session';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { AuthAlert, AuthShell, authButton, authInput, authLink } from '@/app/_components/auth/auth-shell';
+import { PasswordField, isStrongPassword } from '@/app/_components/auth/password-field';
 import type { Company, User as AuthUser } from '@/app/contexts/AuthContext';
+import { api, type PublicPlatformPlan } from '@/app/lib/api';
+import { persistAuthSession } from '@/app/lib/auth-session';
 
-function parseMoney(val: any): number {
-  if (val === null || val === undefined || val === '') return 0;
-  if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
-  const raw = String(val).trim();
-  if (raw === 'NaN' || raw === 'null' || raw === 'undefined') return 0;
-  const normalized = raw.includes(',')
-    ? raw.replace(/\./g, '').replace(',', '.')
-    : raw.replace(/,/g, '');
-  const n = Number(normalized);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const brl = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+function num(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(String(value ?? '').replace(',', '.'));
   return Number.isFinite(n) ? n : 0;
 }
 
-function getPlanDisplayPrice(plan: PublicPlatformPlan): number {
-  const p = parseMoney(plan.price);
-  if (p > 0) return p;
-  const b = parseMoney(plan.baseMonthlyPrice);
-  if (b > 0) return b;
-  return 0;
+function maskDocument(raw: string) {
+  const d = raw.replace(/\D/g, '').slice(0, 14);
+  if (d.length <= 11) return d.replace(/^(\d{3})(\d)/, '$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1-$2');
+  return d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2');
+}
+
+function validDocument(raw: string) {
+  const d = raw.replace(/\D/g, '');
+  if (![11, 14].includes(d.length) || /^(\d)\1+$/.test(d)) return false;
+  const digits = d.split('').map(Number);
+  if (d.length === 11) {
+    const calc = (len: number) => { let s = 0; for (let i = 0; i < len; i += 1) s += digits[i] * (len + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; };
+    return calc(9) === digits[9] && calc(10) === digits[10];
+  }
+  const calc = (len: number) => {
+    const w = len === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const r = w.reduce((t, weight, i) => t + digits[i] * weight, 0) % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  return calc(12) === digits[12] && calc(13) === digits[13];
+}
+
+function maskPhone(raw: string) {
+  const d = raw.replace(/\D/g, '').slice(0, 11);
+  if (d.length > 10) return d.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+  if (d.length > 6) return d.replace(/^(\d{2})(\d{4})(\d{1,4}).*/, '($1) $2-$3');
+  if (d.length > 2) return d.replace(/^(\d{2})(\d{1,4})/, '($1) $2');
+  return d;
 }
 
 function CadastroForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  const initialPlanId = searchParams.get('planId') || '';
-  const initialSeats = searchParams.get('seats') || '1';
-  
-  const [formData, setFormData] = useState({
-    companyName: '',
-    document: '',
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    planId: initialPlanId,
-    seatQuantity: Number(initialSeats) || 1,
-    couponCode: '',
-  });
-  const [plans, setPlans] = useState<PublicPlatformPlan[]>([]);
-
-  const [showPassword, setShowPassword] = useState(false);
+  const search = useSearchParams();
+  const [step, setStep] = useState<1 | 2>(1);
+  const [form, setForm] = useState({ companyName: '', document: '', name: '', email: '', phone: '', password: '', couponCode: '' });
+  const [seats, setSeats] = useState(() => Math.max(1, Math.min(10_000, Number(search.get('seats')) || 1)));
+  const [planId, setPlanId] = useState(() => { const id = search.get('planId') ?? ''; return UUID.test(id) ? id : ''; });
+  const [accepted, setAccepted] = useState(false);
+  const [plans, setPlans] = useState<PublicPlatformPlan[] | null>(null);
+  const [plansError, setPlansError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const pending = useRef(false);
 
-  useEffect(() => {
+  const loadPlans = useCallback(() => {
+    setPlansError(''); setPlans(null);
     api.auth.publicPlans()
       .then((items) => {
-        if (items && Array.isArray(items)) {
-          setPlans(items);
-          setFormData(current => {
-            if (!current.planId) {
-              const recommended = items.find((item) => !item.isFree) ?? items[0];
-              return { ...current, planId: recommended?.id || '' };
-            }
-            return current;
-          });
-        }
+        const list = Array.isArray(items) ? items : [];
+        setPlans(list);
+        setPlanId((current) => list.some((p) => p.id === current) ? current : (list.find((p) => p.isRecommended) ?? list.find((p) => !p.isFree) ?? list[0])?.id ?? '');
       })
-      .catch(console.error);
+      .catch((cause) => setPlansError(cause instanceof Error ? cause.message : 'Não foi possível carregar os planos.'));
   }, []);
+  useEffect(loadPlans, [loadPlans]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  const plan = plans?.find((item) => item.id === planId) ?? null;
+  const set = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    const passwordIsValid =
-      formData.password.length >= 10 &&
-      /[a-z]/.test(formData.password) &&
-      /[A-Z]/.test(formData.password) &&
-      /\d/.test(formData.password) &&
-      /[^A-Za-z0-9]/.test(formData.password);
+  const stepOneError = useMemo(() => {
+    if (form.companyName.trim().length < 2) return 'Informe o nome da empresa.';
+    if (!validDocument(form.document)) return 'Informe um CPF ou CNPJ válido.';
+    if (form.name.trim().length < 2) return 'Informe seu nome completo.';
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) return 'Informe um e-mail válido.';
+    if (!isStrongPassword(form.password)) return 'A senha não atende a todos os requisitos.';
+    return '';
+  }, [form]);
 
-    if (!passwordIsValid) {
-      setError('A senha deve ter pelo menos 10 caracteres, com letra maiúscula, minúscula, número e símbolo.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await api.auth.registerCompany({
-        companyName: formData.companyName,
-        document: formData.document.replace(/\D/g, ''),
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone.replace(/\D/g, ''),
-        password: formData.password,
-        planId: formData.planId,
-        seatQuantity: formData.seatQuantity,
-        couponCode: formData.couponCode || undefined,
-      });
-
-      const sessionUser: AuthUser = {
-        id: response.user.sub,
-        name: response.user.name,
-        email: response.user.email,
-        profile: String(response.user.role).toLowerCase(),
-        role: response.user.role,
-        companyId: response.user.companyId,
-        companyStatus: response.user.companyStatus,
-        billingStatus: response.user.billingStatus,
-      };
-      const sessionCompany: Company = response.company;
-      persistAuthSession(response.access_token, sessionUser, sessionCompany, Boolean(response.passwordChangeRequired), false);
-      setSuccess(true);
-
-      const tenant = response.company.slug || response.company.id;
-      router.replace(response.trial ? `/${tenant}/dashboard` : `/${tenant}/fatura-pendente?autoCheckout=1`);
-      
-    } catch (err: any) {
-      setError(err instanceof Error ? err.message : 'Erro ao criar conta. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (success) {
-    return (
-      <AuthSplitLayout>
-        <div className="text-center animate-in fade-in zoom-in duration-700">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-            <CheckCircle2 size={48} strokeWidth={2} />
-          </div>
-          <h1 className="text-3xl font-black text-slate-900 mb-2">Conta Criada!</h1>
-          <p className="text-slate-500">
-            Sua empresa foi cadastrada com sucesso.
-          </p>
-          <p className="mt-4 text-sm font-bold text-brand-600">Redirecionando para o painel...</p>
-        </div>
-      </AuthSplitLayout>
-    );
+  function next(event: FormEvent) {
+    event.preventDefault();
+    if (stepOneError) return setError(stepOneError);
+    setError(''); setStep(2);
   }
 
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (pending.current) return;
+    if (!plan) return setError('Selecione um plano.');
+    if (plan.maxUsers && seats > plan.maxUsers) return setError(`Este plano permite no máximo ${plan.maxUsers} usuários.`);
+    if (!accepted) return setError('Aceite os Termos de Uso e a Política de Privacidade para continuar.');
+    pending.current = true; setLoading(true); setError('');
+    try {
+      const response = await api.auth.registerCompany({
+        companyName: form.companyName.trim(), document: form.document.replace(/\D/g, ''), name: form.name.trim(), email: form.email.trim().toLowerCase(),
+        phone: form.phone.replace(/\D/g, '') || undefined, password: form.password, planId: plan.id, seatQuantity: seats, couponCode: form.couponCode.trim() || undefined,
+      });
+      const sessionUser: AuthUser = {
+        id: response.user.sub, name: response.user.name, email: response.user.email, profile: String(response.user.role).toLowerCase(), role: response.user.role,
+        companyId: response.user.companyId, companyStatus: response.user.companyStatus, billingStatus: response.user.billingStatus,
+      };
+      persistAuthSession(response.access_token, sessionUser, response.company as Company, Boolean(response.passwordChangeRequired), false);
+      const tenant = response.company.slug || response.company.id;
+      router.replace(response.trial || plan.isFree ? `/${tenant}/dashboard` : `/${tenant}/fatura-pendente?autoCheckout=1`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível criar a conta. Tente novamente.');
+      pending.current = false; setLoading(false);
+    }
+  }
+
+  const unitPrice = plan ? num(plan.baseMonthlyPrice) || num(plan.price) : 0;
+  const seatPrice = plan ? num(plan.userMonthlyPrice) : 0;
+  const estimate = unitPrice + seats * seatPrice;
+
   return (
-    <AuthSplitLayout title="Crie sua conta" subtitle="E comece a usar a plataforma Innovation RH hoje mesmo.">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {error && (
-          <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-4 py-3">
-            <AlertCircle size={18} className="text-[var(--color-danger)] shrink-0" />
-            <p className="text-sm font-medium text-rose-800">{error}</p>
-          </div>
-        )}
+    <AuthShell wide title="Crie sua empresa" subtitle={step === 1 ? 'Etapa 1 de 2 · Dados da empresa e do administrador' : 'Etapa 2 de 2 · Plano e confirmação'}
+      footer={<>Já tem conta? <Link href="/login" className="font-semibold text-white underline">Entrar</Link></>}>
+      <div className="mb-5 flex gap-2" aria-hidden="true">
+        {[1, 2].map((n) => <span key={n} className={`h-1.5 flex-1 rounded-full ${n <= step ? 'bg-[var(--color-brand)]' : 'bg-zinc-200'}`} />)}
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="group relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
-              <User size={18} />
-            </div>
-            <input
-              type="text"
-              name="name"
-              placeholder="Seu Nome Completo"
-              value={formData.name}
-              onChange={handleChange}
-              disabled={loading}
-              required
-              className="form-control pl-11 pr-4 h-12 text-sm"
-            />
+      {step === 1 ? (
+        <form onSubmit={next} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="c-company" label="Nome da empresa"><input id="c-company" required autoComplete="organization" className={authInput} value={form.companyName} onChange={(e) => set('companyName', e.target.value)} /></Field>
+            <Field id="c-doc" label="CNPJ ou CPF">
+              <input id="c-doc" required inputMode="numeric" className={authInput} value={form.document} onChange={(e) => set('document', maskDocument(e.target.value))} aria-invalid={form.document.replace(/\D/g, '').length >= 11 && !validDocument(form.document)} />
+            </Field>
+            <Field id="c-name" label="Seu nome"><input id="c-name" required autoComplete="name" className={authInput} value={form.name} onChange={(e) => set('name', e.target.value)} /></Field>
+            <Field id="c-phone" label="Telefone / WhatsApp (opcional)"><input id="c-phone" type="tel" autoComplete="tel" className={authInput} value={form.phone} onChange={(e) => set('phone', maskPhone(e.target.value))} /></Field>
           </div>
+          <Field id="c-email" label="E-mail de acesso"><input id="c-email" required type="email" autoComplete="email" className={authInput} value={form.email} onChange={(e) => set('email', e.target.value)} /></Field>
+          <PasswordField label="Senha" value={form.password} onChange={(v) => set('password', v)} autoComplete="new-password" showRules />
+          {error && <AuthAlert>{error}</AuthAlert>}
+          <button type="submit" className={authButton}>Continuar</button>
+        </form>
+      ) : (
+        <form onSubmit={submit} className="space-y-4">
+          {plansError && <AuthAlert>{plansError} <button type="button" className="font-semibold underline" onClick={loadPlans}>Tentar de novo</button></AuthAlert>}
+          {!plansError && plans === null && <p role="status" className="text-sm text-zinc-500">Carregando planos…</p>}
+          {plans && plans.length === 0 && <AuthAlert kind="info">Nenhum plano disponível no momento. <Link href="/suporte" className="font-semibold underline">Fale com o suporte</Link>.</AuthAlert>}
 
-          <div className="group relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
-              <Building2 size={18} />
-            </div>
-            <input
-              type="text"
-              name="companyName"
-              placeholder="Nome da Empresa"
-              value={formData.companyName}
-              onChange={handleChange}
-              disabled={loading}
-              required
-              className="form-control pl-11 pr-4 h-12 text-sm"
-            />
-          </div>
-        </div>
+          {plans && plans.length > 0 && (
+            <fieldset className="space-y-2">
+              <legend className="mb-1 text-sm font-medium text-zinc-700">Plano</legend>
+              {plans.map((item) => {
+                const price = num(item.baseMonthlyPrice) || num(item.price);
+                const selected = item.id === planId;
+                return (
+                  <label key={item.id} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${selected ? 'border-[var(--color-brand)] bg-purple-50 ring-1 ring-[var(--color-brand)]' : 'border-zinc-200 hover:border-zinc-300'}`}>
+                    <input type="radio" name="plan" className="mt-1" checked={selected} onChange={() => setPlanId(item.id)} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold text-zinc-900">{item.name}</span>
+                        <span className="text-sm font-semibold text-[var(--color-brand-700)]">{item.isFree ? 'Grátis' : `a partir de ${brl(price)}/mês`}</span></span>
+                      {item.description && <span className="mt-0.5 block text-xs text-zinc-500">{item.description}</span>}
+                    </span>
+                  </label>
+                );
+              })}
+            </fieldset>
+          )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="group relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
-              <FileText size={18} />
-            </div>
-            <input
-              type="text"
-              name="document"
-              placeholder="CNPJ"
-              value={formData.document}
-              onChange={(e) => {
-                let v = e.target.value.replace(/\D/g, "");
-                if (v.length > 14) v = v.slice(0, 14);
-                if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, "$1.$2.$3/$4-$5");
-                else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{1,4}).*/, "$1.$2.$3/$4");
-                else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{1,3}).*/, "$1.$2.$3");
-                else if (v.length > 2) v = v.replace(/^(\d{2})(\d{1,3}).*/, "$1.$2");
-                setFormData(p => ({...p, document: v}));
-              }}
-              disabled={loading}
-              required
-              className="form-control pl-11 pr-4 h-12 text-sm"
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field id="c-seats" label="Usuários"><input id="c-seats" type="number" min={1} max={plan?.maxUsers || 10000} required className={authInput} value={seats} onChange={(e) => setSeats(Math.max(1, Math.floor(Number(e.target.value)) || 1))} /></Field>
+            <Field id="c-coupon" label="Cupom (opcional)"><input id="c-coupon" autoComplete="off" className={authInput} value={form.couponCode} onChange={(e) => set('couponCode', e.target.value.trim())} /></Field>
           </div>
 
-          <div className="group relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
-              <Phone size={18} />
-            </div>
-            <input
-              type="text"
-              name="phone"
-              placeholder="Telefone / WhatsApp"
-              value={formData.phone}
-              onChange={(e) => {
-                let v = e.target.value.replace(/\D/g, "");
-                if (v.length > 11) v = v.slice(0, 11);
-                if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4}).*/, "($1) $2-$3");
-                else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4})(\d{1,4}).*/, "($1) $2-$3");
-                else if (v.length > 2) v = v.replace(/^(\d{2})(\d{1,4}).*/, "($1) $2");
-                else if (v.length > 0) v = v.replace(/^(\d{1,2}).*/, "($1");
-                setFormData(p => ({...p, phone: v}));
-              }}
-              disabled={loading}
-              required
-              className="form-control pl-11 pr-4 h-12 text-sm"
-            />
+          {plan && !plan.isFree && estimate > 0 && (
+            <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">Estimativa mensal: <strong>{brl(estimate)}</strong> <span className="text-xs text-zinc-500">(base + {seats} usuário{seats > 1 ? 's' : ''}; o valor final com descontos aparece no checkout)</span></p>
+          )}
+
+          <label className="flex items-start gap-2 text-sm text-zinc-600">
+            <input type="checkbox" className="mt-1" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
+            <span>Li e aceito os <Link href="/termos" target="_blank" className={authLink}>Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className={authLink}>Política de Privacidade</Link>.</span>
+          </label>
+
+          {error && <AuthAlert>{error}</AuthAlert>}
+          <div className="flex gap-3">
+            <button type="button" onClick={() => { setStep(1); setError(''); }} disabled={loading} className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50">Voltar</button>
+            <button type="submit" disabled={loading || !plan || !accepted} className={authButton}>{loading ? 'Criando conta…' : 'Criar minha empresa'}</button>
           </div>
-        </div>
-
-        <div className="group relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
-            <Mail size={18} />
-          </div>
-          <input
-            type="email"
-            name="email"
-            placeholder="Seu melhor e-mail"
-            value={formData.email}
-            onChange={handleChange}
-            disabled={loading}
-            required
-            className="h-12 w-full rounded-[14px] border border-slate-200/80 bg-slate-50/50 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 disabled:opacity-60"
-          />
-        </div>
-
-        <div className="group relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
-            <Lock size={18} />
-          </div>
-          <input
-            type={showPassword ? 'text' : 'password'}
-            name="password"
-            placeholder="Crie uma senha forte"
-            value={formData.password}
-            onChange={handleChange}
-            disabled={loading}
-            minLength={10}
-            autoComplete="new-password"
-            aria-describedby="password-requirements"
-            required
-            className="form-control pl-11 pr-12 h-12 text-sm"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            tabIndex={-1}
-            className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 hover:text-zinc-600"
-          >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        </div>
-        <p id="password-requirements" className="-mt-2 text-xs font-medium text-slate-500">
-          Use pelo menos 10 caracteres, incluindo maiúscula, minúscula, número e símbolo.
-        </p>
-
-        <div className="flex flex-col gap-3 mt-4 mb-2">
-          <label className="text-sm font-bold text-slate-900">Escolha o Plano</label>
-          <div className="grid grid-cols-1 gap-3">
-            {plans.map(plan => (
-              <label key={plan.id} className={`relative flex cursor-pointer rounded-[var(--radius-md)] border p-4 transition-all ${formData.planId === plan.id ? 'border-[var(--color-brand)] bg-[var(--color-brand-50)] ring-1 ring-[var(--color-brand)]' : 'border-zinc-200 bg-zinc-50/50 hover:border-zinc-300'}`}>
-                <input 
-                  type="radio" 
-                  name="planId" 
-                  value={plan.id}
-                  checked={formData.planId === plan.id}
-                  onChange={(e) => setFormData(p => ({...p, planId: e.target.value}))}
-                  className="sr-only"
-                />
-                <div className="flex flex-col w-full">
-                  <div className="flex items-center justify-between w-full">
-                    <span className={`font-black ${formData.planId === plan.id ? 'text-[var(--color-brand-700)]' : 'text-zinc-900'}`}>{plan.name}</span>
-                    {plan.isRecommended && <span className="text-[10px] uppercase font-black tracking-wider text-[var(--color-brand-700)] bg-[var(--color-brand-100)] px-2 py-0.5 rounded-[var(--radius-full)]">Recomendado</span>}
-                  </div>
-                  <span className="text-xs font-medium text-zinc-500 mt-1">{plan.description}</span>
-                  {plan.cycle !== 'CUSTOM' && (
-                    <span className="text-sm font-black text-zinc-900 mt-2">{getPlanDisplayPrice(plan).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} <span className="text-[10px] text-zinc-500 font-medium">/{plan.cycle === 'YEARLY' ? 'ano' : 'mês'}</span></span>
-                  )}
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="group relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
-              <Users size={18} />
-            </div>
-            <input
-              type="number"
-              min={1}
-              name="seatQuantity"
-              placeholder="Quantidade de usuários"
-              value={formData.seatQuantity}
-              onChange={(e) => setFormData((current) => ({ ...current, seatQuantity: Math.max(1, Number(e.target.value) || 1) }))}
-              disabled={loading}
-              required
-              className="form-control pl-11 pr-4 h-12 text-sm"
-            />
-          </div>
-
-          <div className="group relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 transition-colors group-focus-within:text-brand-500">
-              <Sparkles size={18} />
-            </div>
-            <input
-              type="text"
-              name="couponCode"
-              placeholder="Cupom promocional (opcional)"
-              value={formData.couponCode}
-              onChange={handleChange}
-              disabled={loading}
-              className="form-control pl-11 pr-4 h-12 text-sm"
-            />
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading || !formData.planId}
-          className="btn btn-primary h-12 text-sm w-full mt-4 group"
-        >
-          {loading ? 'Criando conta...' : 'Cadastrar Empresa'}
-          {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
-        </button>
-
-        <p className="mt-4 text-center text-xs font-medium text-zinc-500">
-          Já tem uma conta?{' '}
-          <Link href="/login" className="font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-700)]">
-            Fazer login
-          </Link>
-        </p>
-      </form>
-    </AuthSplitLayout>
+        </form>
+      )}
+    </AuthShell>
   );
 }
 
+function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
+  return <div><label htmlFor={id} className="mb-1.5 block text-sm font-medium text-zinc-700">{label}</label>{children}</div>;
+}
+
 export default function CadastroPage() {
-  return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Carregando...</div>}>
-      <CadastroForm />
-    </Suspense>
-  );
+  return <Suspense fallback={<p role="status" className="p-6 text-center">Carregando…</p>}><CadastroForm /></Suspense>;
 }

@@ -1,12 +1,23 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
-import { PageHeader } from '@/app/components/ui/page-header';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { AuthAlert, AuthShell, authButton, authInput, authLink } from '@/app/_components/auth/auth-shell';
+import { PasswordField } from '@/app/_components/auth/password-field';
 import { useAuth } from '../contexts/AuthContext';
+
+/** Só aceita retorno para dentro do próprio tenant (evita open redirect). */
+function safeReturn(base: string): string | null {
+  const params = new URLSearchParams(window.location.search);
+  const requested = params.get('next') || params.get('returnTo');
+  if (!requested || requested.includes('\\') || /[\u0000-\u001f]/.test(requested)) return null;
+  try {
+    const url = new URL(requested, window.location.origin);
+    const allowed = [`${base}/dashboard`, `${base}/portal`].some((path) => url.pathname === path || url.pathname.startsWith(`${path}/`));
+    return url.origin === window.location.origin && allowed ? url.pathname + url.search + url.hash : null;
+  } catch { return null; }
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,61 +25,64 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [didSubmit, setDidSubmit] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const pending = useRef(false);
+
   const slug = company?.slug || company?.id || user?.companyId;
   const role = (user?.profile ?? user?.role ?? '').toUpperCase();
   const mustPay = role !== 'DEV' && (user?.companyStatus === 'SUSPENDED' || user?.companyStatus === 'CANCELLED' || user?.billingStatus === 'CANCELED' || user?.billingStatus === 'PENDING_PAYMENT');
+
   function destination() {
     if (!slug) return '/login';
-    if (mustPay) return '/' + encodeURIComponent(slug) + '/fatura-pendente?autoCheckout=1';
-    const base = '/' + encodeURIComponent(slug);
-    const requested = new URLSearchParams(window.location.search).get('next') || new URLSearchParams(window.location.search).get('returnTo');
-    if (requested && !requested.includes('\\') && !/[\u0000-\u001f]/.test(requested)) {
-      try {
-        const url = new URL(requested, window.location.origin);
-        if (url.origin === window.location.origin && [base + '/dashboard', base + '/portal'].some(path => url.pathname === path || url.pathname.startsWith(path + '/')))
-          return url.pathname + url.search + url.hash;
-      } catch { /* Use the session destination. */ }
-    }
-    return base + '/dashboard';
+    const base = `/${encodeURIComponent(slug)}`;
+    if (mustPay) return `${base}/fatura-pendente?autoCheckout=1`;
+    return safeReturn(base) ?? `${base}/dashboard`;
   }
+
   useEffect(() => {
-    if (didSubmit && isAuthenticated && company) router.replace(destination());
-    // The session decides the tenant and billing destination.
+    if (submitted && isAuthenticated && company) router.replace(destination());
+    // O destino depende da sessão recém-criada.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [didSubmit, isAuthenticated, company, user, router]);
+  }, [submitted, isAuthenticated, company, user, router]);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (pending.current) return;
     pending.current = true; setLoading(true); setError('');
-    try { setDidSubmit(true); await login(email.trim(), password); }
-    catch (cause) { setDidSubmit(false); setError(cause instanceof Error ? cause.message : 'Não foi possível entrar. Verifique os dados e tente novamente.'); }
+    try { setSubmitted(true); await login(email.trim(), password); }
+    catch (cause) { setSubmitted(false); setError(cause instanceof Error ? cause.message : 'Não foi possível entrar. Verifique os dados e tente novamente.'); }
     finally { pending.current = false; setLoading(false); }
   }
-  return <main className="flex min-h-screen items-center justify-center bg-bg px-4 py-8 text-fg">
-    <div className="card-v2 w-full max-w-md space-y-5 p-5 sm:p-8">
-      <Link className="text-lg font-semibold text-brand" href="/">Innovation RH</Link>
-      <PageHeader title="Entrar na Plataforma" subtitle="Informe seu e-mail e sua senha para acessar." />
-      {isAuthenticated && !didSubmit ? <section className="space-y-3"><p className="text-sm">Sessão ativa de {user?.name}.</p>
-        <Button type="button" className="w-full" onClick={() => router.replace(destination())}>Continuar sessão</Button>
-        <Button type="button" variant="outline" className="w-full" onClick={() => { logout(); setPassword(''); }}>Entrar com outra conta</Button></section>
-        : <form onSubmit={submit} className="space-y-4">
-          <label className="block space-y-1.5"><span className="text-sm font-medium">E-mail corporativo</span><input type="email" name="email" autoComplete="username" required disabled={loading} className="input-v2 min-h-11 text-base sm:text-sm" placeholder="voce@empresa.com.br" value={email} onChange={e => setEmail(e.target.value)} /></label>
-          <div><label htmlFor="login-password" className="mb-1.5 block text-sm font-medium">Senha</label><div className="relative">
-            <input id="login-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required disabled={loading} className="input-v2 min-h-11 pr-14 text-base sm:text-sm" value={password} onChange={e => setPassword(e.target.value)} />
-            <Button type="button" variant="icon" disabled={loading} aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={showPassword} aria-controls="login-password" className="absolute right-0 top-0 h-11 w-11" onClick={() => setShowPassword(current => !current)}>{showPassword ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}</Button>
-          </div></div>
-          <div className="space-y-2"><label className="flex min-h-11 items-center gap-2 text-sm text-fg-mut"><input type="checkbox" disabled aria-describedby="remember-help" className="h-5 w-5" />Lembrar-me</label>
-            <p id="remember-help" className="text-xs text-fg-mut">A duração da sessão segue a política atual da plataforma. Esta opção está indisponível.</p>
-            <Link href="/esqueci-senha" className="btn btn-ghost">Esqueci a senha</Link></div>
-          {error && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
-          <Button type="submit" isLoading={loading} className="w-full">Acessar plataforma</Button>
-        </form>}
-      <p className="text-sm text-fg-mut">Ainda não tem uma conta? <Link className="underline" href="/cadastro">Criar agora</Link></p>
-      <Link className="btn btn-ghost" href="/">Voltar para o site</Link>
-    </div>
-  </main>;
+
+  const locked = /bloquead/i.test(error);
+
+  return (
+    <AuthShell title="Entrar" subtitle="Acesse sua conta Innovation RH Connect."
+      footer={<>Ainda não tem conta? <Link href="/cadastro" className="font-semibold text-white underline">Criar minha empresa</Link></>}>
+      {isAuthenticated && !submitted ? (
+        <div className="space-y-3">
+          <p className="text-center text-sm text-zinc-600">Sessão ativa de <strong>{user?.name}</strong>.</p>
+          <button type="button" className={authButton} onClick={() => router.replace(destination())}>Continuar sessão</button>
+          <button type="button" className="min-h-11 w-full rounded-lg border border-zinc-300 text-sm font-medium text-zinc-700 hover:bg-zinc-50" onClick={() => { logout(); setPassword(''); }}>Entrar com outra conta</button>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="space-y-4" noValidate={false}>
+          <div>
+            <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-zinc-700">E-mail</label>
+            <input id="login-email" type="email" name="email" autoComplete="username" required disabled={loading} className={authInput} placeholder="voce@empresa.com.br" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <PasswordField label="Senha" name="password" value={password} onChange={setPassword} autoComplete="current-password" disabled={loading} />
+          {error && (
+            <AuthAlert>
+              {error}
+              {locked && <> <Link href="/esqueci-senha" className="font-semibold underline">Recuperar acesso</Link></>}
+            </AuthAlert>
+          )}
+          <button type="submit" disabled={loading || !email || !password} className={authButton}>{loading ? 'Entrando…' : 'Entrar'}</button>
+          <p className="text-center text-sm"><Link href="/esqueci-senha" className={authLink}>Esqueci minha senha</Link></p>
+        </form>
+      )}
+    </AuthShell>
+  );
 }
