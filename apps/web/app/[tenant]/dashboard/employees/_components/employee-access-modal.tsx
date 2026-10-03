@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
-import { Button, Modal, Input, Select } from '@/app/components/ui';
+import { Button, Modal } from '@/app/components/ui';
 import { api } from '@/app/lib/api';
 import { toast } from 'sonner';
 
@@ -70,34 +70,43 @@ export function EmployeeAccessModal({
       <div className="space-y-4">
         {!temporaryPassword ? (
           <>
-            <Input
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="funcionario@empresa.com"
-              disabled={loading}
-            />
-            <Input
-              label="Nome (opcional)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="João da Silva"
-              disabled={loading}
-            />
-            <Select
-              label="Perfil de Acesso"
-              value={role}
-              onChange={setRole}
-              disabled={loading}
-              options={[
-                { value: 'FUNCIONARIO', label: 'Funcionário' },
-                { value: 'GESTOR', label: 'Gestor' },
-                { value: 'RH', label: 'RH' },
-                { value: 'ADMIN', label: 'Administrador' },
-                { value: 'CONSULTA', label: 'Consulta' },
-              ]}
-            />
+            <div>
+              <label className="text-sm font-medium">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="funcionario@empresa.com"
+                disabled={loading}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm mt-1 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Nome (opcional)</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="João da Silva"
+                disabled={loading}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm mt-1 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Perfil de Acesso</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                disabled={loading}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm mt-1 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="FUNCIONARIO">Funcionário</option>
+                <option value="GESTOR">Gestor</option>
+                <option value="RH">RH</option>
+                <option value="ADMIN">Administrador</option>
+                <option value="CONSULTA">Consulta</option>
+              </select>
+            </div>
 
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={handleClose} disabled={loading}>

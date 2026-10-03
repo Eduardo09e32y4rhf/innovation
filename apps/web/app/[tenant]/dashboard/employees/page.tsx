@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AlertTriangle, CalendarDays, Clock3, Download, FileText, FolderOpen, HeartPulse, Key, Lock, LockOpen, MoreHorizontal, RotateCcw, Search, ShieldCheck, UserMinus, UserPlus, Users } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Clock3, Download, FileText, FolderOpen, HeartPulse, Key, Lock, Unlock, MoreHorizontal, RotateCcw, Search, ShieldCheck, UserMinus, UserPlus, Users } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button, ConfirmDialog, Drawer, Modal, PageHeader } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -91,7 +91,7 @@ export default function EmployeesPage() {
             <Button type="button" variant="ghost" className="justify-start" onClick={() => setAccessModalEmployee(employee.id)}><Key size={18} aria-hidden="true" /> Criar acesso</Button>
             {hasAccess && <>
               <Button type="button" variant="ghost" className="justify-start" disabled={isAccessActive ? blockUser.loading : unblockUser.loading} onClick={() => (isAccessActive ? blockUser.mutate(employee.id) : unblockUser.mutate(employee.id))}>
-                {isAccessActive ? <><Lock size={18} aria-hidden="true" /> Bloquear acesso</> : <><LockOpen size={18} aria-hidden="true" /> Desbloquear acesso</>}
+                {isAccessActive ? <><Lock size={18} aria-hidden="true" /> Bloquear acesso</> : <><Unlock size={18} aria-hidden="true" /> Desbloquear acesso</>}
               </Button>
               <Button type="button" variant="ghost" className="justify-start" disabled={resetPassword.loading} onClick={() => resetPassword.mutate(employee.id)}><RotateCcw size={18} aria-hidden="true" /> Redefinir senha</Button>
             </>}
