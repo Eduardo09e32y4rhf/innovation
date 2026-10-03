@@ -349,14 +349,14 @@ export class UsersService {
     const actorRole = String(actor?.role || '').toUpperCase();
     const protectedRoles = ['DEV', 'CEO', 'CONTABIL', 'COMERCIAL'];
 
-    if (protectedRoles.includes(nextRole) && !this.isPlatformOwner(actor)) {
-      throw new ForbiddenException('Apenas o DEV proprietario da plataforma pode criar ou promover perfis internos.');
+    if (protectedRoles.includes(nextRole) && actorRole !== 'DEV') {
+      throw new ForbiddenException('Apenas um perfil DEV pode criar ou promover perfis internos (CEO, Contábil, etc).');
     }
     if (actorRole === 'RH' && ['ADMIN', 'DEV', 'CEO', 'CONTABIL', 'COMERCIAL'].includes(nextRole)) {
-      throw new ForbiddenException('RH nao pode criar ou promover Administrador, Comercial ou Super Admin.');
+      throw new ForbiddenException('RH não pode criar ou promover Administrador, Comercial ou Perfis Internos.');
     }
     if (actorRole === 'GESTOR' || actorRole === 'FUNCIONARIO' || actorRole === 'CONSULTA') {
-      throw new ForbiddenException('Perfil sem permissao para alterar usuarios.');
+      throw new ForbiddenException('Seu perfil não tem permissão para alterar ou criar usuários.');
     }
   }
 

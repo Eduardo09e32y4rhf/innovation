@@ -20,9 +20,6 @@ export function validateEnv(config: Record<string, unknown>) {
     if (!config.ASAAS_WEBHOOK_TOKEN && !config.ASAAS_WEBHOOK_SECRET) {
       throw new Error('ASAAS_WEBHOOK_TOKEN is required in production.');
     }
-    if (!config.PLATFORM_OWNER_EMAIL) {
-      throw new Error('PLATFORM_OWNER_EMAIL is required in production.');
-    }
 
     const jwtSecret = String(config.JWT_SECRET ?? '');
     if (
