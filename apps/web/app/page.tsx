@@ -74,7 +74,10 @@ export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   return (
-    <main className={`${display.className} landing-page relative overflow-hidden bg-[var(--auth-bg-start)] text-slate-100 selection:bg-teal-500/30 selection:text-teal-200`}>
+    <main
+      className={`${display.className} landing-page relative overflow-hidden text-slate-100 selection:bg-teal-500/30 selection:text-teal-200`}
+      style={{ background: 'linear-gradient(135deg, var(--auth-bg-start) 0%, var(--auth-bg-mid) 55%, var(--auth-bg-end) 100%)' }}
+    >
       {/* Background Gradients */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:64px_64px]" />
       <div className="absolute top-[-20%] left-[-10%] h-[50rem] w-[50rem] rounded-full bg-teal-500/10 blur-[160px] pointer-events-none" />
@@ -83,7 +86,7 @@ export default function Home() {
       <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-4 pb-12 pt-4 sm:px-6 sm:pb-20 sm:pt-6 lg:px-8">
         
         {/* ================= NAVBAR ================= */}
-        <header className="flex items-center justify-between rounded-full border border-white/10 bg-white/[0.02] px-6 py-4 backdrop-blur-2xl">
+        <header className="flex items-center justify-between rounded-full border border-white/15 bg-white/[0.06] px-3 py-3 shadow-lg shadow-indigo-950/20 backdrop-blur-2xl sm:px-6 sm:py-4">
           <Link href="/" className="flex min-w-0 items-center gap-2">
             <Image src="/logo-innovation-clean.png" alt="Innovation RH Connect" width={160} height={160} priority className="h-auto w-[clamp(104px,18vw,148px)] object-contain" />
           </Link>
@@ -222,7 +225,7 @@ export default function Home() {
         </section>
 
         {/* ================= LOGOS SECTION ================= */}
-        <section className="mt-32 border-y border-white/10 py-10 text-center">
+        <section className="mt-20 border-y border-white/10 py-8 text-center sm:mt-32 sm:py-10">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 mb-8">Empresas que já simplificaram seu RH</p>
           <div className="flex flex-wrap justify-center items-center gap-12 sm:gap-20 opacity-50 grayscale">
             {/* Fake logos using fonts */}
@@ -235,7 +238,7 @@ export default function Home() {
         </section>
 
         {/* ================= PROBLEM & AGITATION ================= */}
-        <section id="beneficios" className="mt-32">
+        <section id="beneficios" className="mt-20 sm:mt-32">
           <div className="text-center max-w-3xl mx-auto">
             <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
               O RH tradicional custa <span className="text-rose-400">muito caro</span>.
@@ -262,7 +265,7 @@ export default function Home() {
         </section>
 
         {/* ================= DEEP DIVE: CLOCK IN ================= */}
-        <section id="solucao" className="mt-40 grid lg:grid-cols-2 gap-16 items-center">
+        <section id="solucao" className="mt-24 grid gap-12 lg:mt-40 lg:grid-cols-2 lg:gap-16 items-center">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/20 bg-teal-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-teal-300">
               Controle de Ponto 2.0
@@ -346,7 +349,7 @@ export default function Home() {
         </section>
 
         {/* ================= TESTIMONIALS ================= */}
-        <section className="mt-40">
+        <section className="mt-24 sm:mt-40">
            <div className="text-center max-w-3xl mx-auto">
             <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
               O que dizem os gestores.
@@ -378,12 +381,12 @@ export default function Home() {
         </section>
 
         {/* ================= PRICING ================= */}
-        <section id="planos" className="mt-40 pt-10 border-t border-white/10">
+        <section id="planos" className="mt-24 border-t border-white/10 pt-10 sm:mt-40">
           <PricingSection />
         </section>
 
         {/* ================= FAQ ================= */}
-        <section id="faq" className="mt-40 max-w-3xl mx-auto">
+        <section id="faq" className="mx-auto mt-24 max-w-3xl sm:mt-40">
           <h2 className="text-3xl font-black tracking-tight text-white text-center mb-10">Dúvidas Frequentes</h2>
           <div className="space-y-4">
             {faqs.map((faq, idx) => (
@@ -406,7 +409,7 @@ export default function Home() {
         </section>
 
         {/* ================= BOTTOM CTA ================= */}
-        <section className="mt-40 relative rounded-[3rem] bg-gradient-to-br from-teal-500 to-cyan-600 p-12 lg:p-20 text-center overflow-hidden">
+        <section className="relative mt-24 overflow-hidden rounded-[3rem] bg-gradient-to-br from-teal-500 to-cyan-600 p-7 text-center sm:mt-40 sm:p-12 lg:p-20">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay" />
           <div className="relative z-10">
             <h2 className="mx-auto max-w-3xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">

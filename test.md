@@ -712,3 +712,4 @@ O redesign completo das 23 telas ainda não foi concluído. Nesta etapa foram mi
 - A tela continua com os estados de carregamento, erro, vazio, alertas e historico existentes.
 - Validacao: `typecheck:web` aprovado.
 - Landing page e autenticaÃ§Ã£o: identidade visual alinhada ao gradiente azul/roxo do login, logo oficial compartilhada e dimensÃµes responsivas para celular, tablet e desktop. `typecheck:web` aprovado.
+- Revisao da landing em 03/10/2026: gradiente aplicado por estilo direto para igualar a autenticacao, cabecalho mais compacto e espacamentos reduzidos no mobile; logo oficial mantida com largura fluida. `typecheck:web` pendente nesta revisao.
