@@ -15,6 +15,8 @@ import { AssignScheduleDto } from './dto/assign-schedule.dto';
 import { CreateScheduleExceptionDto } from './dto/swap-request.dto';
 import { UpdateScheduleCoverageConfigDto } from './dto/schedule-governance.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { JwtUser } from '../../common/types/auth.types';
 
@@ -22,7 +24,8 @@ function currentMonthInSaoPaulo() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }).slice(0, 7);
 }
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA', 'DEV')
 @Controller('schedules')
 export class ScheduleController {
   constructor(private readonly service: ScheduleService) {}
@@ -61,16 +64,19 @@ export class ScheduleController {
     return this.service.getCalendar(actor.companyId, actor, employeeId, m);
   }
 
+  @Roles('ADMIN', 'RH', 'GESTOR', 'DEV')
   @Post()
   create(@CurrentUser() actor: JwtUser, @Body() dto: CreateScheduleDto) {
     return this.service.createSchedule(actor.companyId, actor, dto);
   }
 
+  @Roles('ADMIN', 'RH', 'GESTOR', 'DEV')
   @Patch(':id')
   update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: Partial<CreateScheduleDto>) {
     return this.service.updateSchedule(actor.companyId, actor, id, dto);
   }
 
+  @Roles('ADMIN', 'RH', 'DEV')
   @Patch(':id/archive')
   archive(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
     return this.service.archiveSchedule(actor.companyId, actor, id);
