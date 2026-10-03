@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { EmptyState } from '@/app/components/data-states';
 import { Clock } from 'lucide-react';
 import Link from 'next/link';
@@ -15,7 +15,7 @@ export default function PontoPage() {
           <h2 className="text-xl font-black text-slate-900">Meu Ponto</h2>
           <p className="mt-1 text-sm font-medium text-slate-500">Espelho de ponto e saldo de horas.</p>
         </div>
-        <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="crystal-button flex items-center gap-2">
+        <Link href={`/${tenant}/dashboard/escalas?view=ponto`} className="crystal-button flex items-center gap-2">
           <Clock size={16} /> Bater Ponto Agora
         </Link>
       </header>

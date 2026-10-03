@@ -7,7 +7,7 @@ export default function EscalaRedirect() {
   const params = useParams();
   const tenant = String(params?.tenant || '');
   useEffect(() => {
-    router.replace(`/${tenant}/dashboard/escalas/calendario`);
+    router.replace(`/${tenant}/dashboard/escalas?view=calendario`);
   }, [router, tenant]);
 
   return (

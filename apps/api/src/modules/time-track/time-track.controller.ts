@@ -40,22 +40,6 @@ export class TimeTrackController {
 
 
 
-  @Post('clock-in-facial')
-  @UseGuards(RateLimitGuard)
-  @RateLimit({ window: 60, max: 10, prefix: 'punch-facial' })
-  async clockInFacial(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: { imageBase64: string, faceDescriptor?: number[], fallback?: boolean } & any) {
-    return this.service.clockInFacial(companyId, actor, dto);
-  }
-
-  @Post('enroll-facial')
-  async enrollFacial(
-    @CurrentCompany() companyId: string,
-    @CurrentUser() actor: JwtUser,
-    @Body() dto: { descriptor: number[] }
-  ) {
-    return this.service.enrollFacial(companyId, actor, dto.descriptor);
-  }
-
   @Post('register')
   @UseGuards(RateLimitGuard)
   @RateLimit({ window: 60, max: 20, prefix: 'punch' }) // 20 punches per minute per user/IP

@@ -5,6 +5,7 @@ const TimeClosingStatus = $Enums.TimeClosingStatus;
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { rolesWith } from '../schedule/access/schedule-access';
 import { TimeClosingService } from './time-closing.service';
 
 @Controller('time-closing')
@@ -13,15 +14,15 @@ export class TimeClosingController {
   constructor(private readonly service: TimeClosingService) {}
 
   @Post('generate')
-  @Roles('ADMIN', 'RH')
+  @Roles(...rolesWith('closing.write'))
   generate(@Req() req: any, @Body() body: any) { return this.service.generate(req.user.companyId, req.user, body); }
 
   @Get()
-  @Roles('ADMIN', 'RH')
+  @Roles('ADMIN', 'RH', 'CEO', 'CONTABIL')
   list(@Req() req: any, @Query('status') status?: TimeClosingStatus) { return this.service.list(req.user.companyId, status); }
 
   @Get('collective/pdf')
-  @Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO')
+  @Roles(...rolesWith('closing.read'))
   collectivePdf(
     @Req() req: any,
     @Res() res: any,
@@ -37,38 +38,38 @@ export class TimeClosingController {
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'RH', 'FUNCIONARIO')
+  @Roles(...rolesWith('closing.read'))
   getById(@Req() req: any, @Param('id') id: string) { return this.service.getById(req.user.companyId, id, req.user); }
 
   @Patch(':id/adjust')
-  @Roles('ADMIN', 'RH')
+  @Roles(...rolesWith('closing.write'))
   adjust(@Req() req: any, @Param('id') id: string, @Body() body: any) { return this.service.adjust(req.user.companyId, req.user, id, body); }
 
   @Post(':id/submit-review')
-  @Roles('ADMIN', 'RH')
+  @Roles(...rolesWith('closing.write'))
   submitReview(@Req() req: any, @Param('id') id: string) { return this.service.submitReview(req.user.companyId, id); }
 
   @Post(':id/approve')
-  @Roles('ADMIN', 'RH')
+  @Roles(...rolesWith('closing.write'))
   approve(@Req() req: any, @Param('id') id: string) { return this.service.approve(req.user.companyId, id); }
 
   @Post(':id/close')
-  @Roles('ADMIN', 'RH')
+  @Roles(...rolesWith('closing.write'))
   close(@Req() req: any, @Param('id') id: string) { return this.service.close(req.user.companyId, req.user, id); }
 
   @Post(':id/reopen')
-  @Roles('ADMIN', 'RH')
+  @Roles(...rolesWith('closing.write'))
   reopen(@Req() req: any, @Param('id') id: string, @Body() body: { reason: string }) { return this.service.reopen(req.user.companyId, req.user, id, body.reason); }
 
   @Delete(':id')
-  @Roles('ADMIN', 'RH')
+  @Roles(...rolesWith('closing.write'))
   delete(@Req() req: any, @Param('id') id: string) { return this.service.delete(req.user.companyId, id); }
 
   @Get(':id/pdf')
-  @Roles('ADMIN', 'RH', 'FUNCIONARIO')
+  @Roles(...rolesWith('closing.read'))
   getPdf(@Req() req: any, @Param('id') id: string) { return this.service.getPdf(req.user.companyId, id, req.user); }
 
   @Get(':id/pdf-stream')
-  @Roles('ADMIN', 'RH', 'FUNCIONARIO')
+  @Roles(...rolesWith('closing.read'))
   streamPdf(@Req() req: any, @Res() res: any, @Param('id') id: string) { return this.service.streamPdf(req.user.companyId, id, res, req.user); }
 }

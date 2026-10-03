@@ -5,6 +5,7 @@ import {
 import type { User } from '../../../../contexts/AuthContext';
 import { hasPermission, type Permission } from '../../../../lib/permissions';
 import { resolveUserRole } from '../../../../lib/user-role';
+import { hasScheduleModule } from '../../../../lib/schedule-access';
 
 export type NavGroup = 'Trabalho' | 'Administração' | 'Operação global';
 export type NavItem = {
@@ -26,7 +27,7 @@ const ALL_ROLES = [...COMPANY_ROLES, 'CEO', 'CONTABIL', 'COMERCIAL'];
 export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, group: 'Trabalho', roles: ALL_ROLES },
   { id: 'employees', label: 'Funcionários', href: '/dashboard/employees', icon: Users, group: 'Trabalho', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'CONSULTA'], moduleKey: 'employees', anyPermission: ['users.manage_employees', 'users.view_team'] },
-  { id: 'escalas', label: 'Escalas', href: '/dashboard/escalas', icon: CalendarRange, group: 'Trabalho', roles: COMPANY_ROLES, moduleKey: 'time-track' },
+  { id: 'escalas', label: 'Escalas', href: '/dashboard/escalas', icon: CalendarRange, group: 'Trabalho', roles: ALL_ROLES.filter(hasScheduleModule), moduleKey: 'time-track' },
   { id: 'vacations', label: 'Férias', href: '/dashboard/vacations', icon: CalendarDays, group: 'Trabalho', roles: COMPANY_ROLES, moduleKey: 'vacations' },
   { id: 'management', label: 'Gestão', href: '/dashboard/management', icon: ShieldCheck, group: 'Trabalho', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'], moduleKey: 'management', anyPermission: ['platform.manage', 'users.view_team'] },
   { id: 'jobs', label: 'Vagas', href: '/dashboard/jobs', icon: Briefcase, group: 'Trabalho', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'] },
@@ -58,7 +59,7 @@ export function isNavActive(pathname: string, tenant: string, item: NavItem) {
 
 export type SearchDestination = { id: string; label: string; href: string; group: string; icon: LucideIcon };
 const MODULE_DESTINATIONS: { parent: string; label: string; suffix: string; roles?: readonly string[] }[] = [
-  ...[['Calendário', 'calendario'], ['Ponto', 'ponto'], ['Equipe', 'equipe'], ['Trocas', 'trocas'], ['Ocorrências', 'ocorrencias'], ['Regras', 'regras'], ['Fechamento', 'fechamento'], ['Documentos', 'documentos']].map(([label, suffix]) => ({ parent: 'escalas', label, suffix })),
+  ...[['Calendário', 'calendario'], ['Ponto', 'ponto'], ['Solicitações', 'solicitacoes'], ['Aprovações', 'aprovacoes'], ['Escalas e regras', 'modelos'], ['Fechamento', 'fechamento'], ['Relatórios', 'relatorios']].map(([label, suffix]) => ({ parent: 'escalas', label, suffix })),
   ...[['Agenda', 'agenda'], ['ASO', 'aso'], ['Comunicados', 'notifications']].map(([label, suffix]) => ({ parent: 'management', label, suffix })),
   { parent: 'management', label: 'Folha de pagamento', suffix: 'payroll', roles: ['DEV', 'ADMIN', 'RH'] },
   { parent: 'management', label: 'Admissão', suffix: 'onboarding', roles: ['DEV', 'ADMIN', 'RH'] },
@@ -69,7 +70,7 @@ export function getSearchDestinations(items: readonly NavItem[], role: string): 
   const result: SearchDestination[] = items.map((item) => ({ ...item }));
   for (const entry of MODULE_DESTINATIONS) {
     const parent = items.find((item) => item.id === entry.parent);
-    if (parent && (!entry.roles || entry.roles.includes(role))) result.push({ id: `${parent.id}-${entry.suffix}`, label: entry.label, href: `${parent.href}/${entry.suffix}`, group: parent.label, icon: parent.icon });
+    if (parent && (!entry.roles || entry.roles.includes(role))) result.push({ id: `${parent.id}-${entry.suffix}`, label: entry.label, href: entry.parent === 'escalas' ? `${parent.href}?view=${entry.suffix}` : `${parent.href}/${entry.suffix}`, group: parent.label, icon: parent.icon });
   }
   return result;
 }

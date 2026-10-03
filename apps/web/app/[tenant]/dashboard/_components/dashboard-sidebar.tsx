@@ -19,7 +19,7 @@ type NavItemConfig = { label: string; href: string; icon: LucideIcon; roles?: st
 const BASE_NAV_ITEMS: NavItemConfig[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['DEV', 'CEO', 'CONTABIL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] },
   { label: 'Funcionários', href: '/dashboard/employees', icon: Users, roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'CONSULTA'], moduleKey: 'employees' },
-  { label: 'Escalas', href: '/dashboard/escalas', icon: CalendarRange, roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], moduleKey: 'time-track' },
+  { label: 'Escalas', href: '/dashboard/escalas', icon: CalendarRange, roles: ['DEV', 'CEO', 'CONTABIL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], moduleKey: 'time-track' },
   { label: 'Férias', href: '/dashboard/vacations', icon: CalendarDays, roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], moduleKey: 'vacations' },
   { label: 'Gestão', href: '/dashboard/management', icon: ShieldCheck, roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'], moduleKey: 'management' },
   { label: 'Usuários', href: '/dashboard/users', icon: UserRoundCog, roles: ['DEV', 'ADMIN', 'RH'] },

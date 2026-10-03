@@ -687,17 +687,12 @@ export const api = {
     approve: (id: string) => request<any>(`/time-occurrences/${id}/approve`, { method: 'PUT' }),
     reject: (id: string) => request<any>(`/time-occurrences/${id}/reject`, { method: 'PUT' }),
   },
-  facialRecognition: {
-      enroll: (input: { imageBase64: string, employeeId?: string }) => request('/time-track/enroll-facial', { method: 'POST', body: input }),
-    },
-    timeTrack: {
+  timeTrack: {
     list: (month?: string) =>
       request<TimeTrack[]>(`/time-track${month ? `?month=${encodeURIComponent(month)}` : ''}`, { timeoutMs: 12000 }),
     listEmployeeMonth: (employeeId: string, month?: string) =>
       request<TimeTrack[]>(`/time-track/${employeeId}/month${month ? `?month=${encodeURIComponent(month)}` : ''}`, { timeoutMs: 12000 }),
     register: (input: RegisterTimeInput) => request<TimeTrack>('/time-track/register', { method: 'POST', body: input }),
-    enrollFacial: (input: { descriptor: number[] }) => request<void>('/time-track/enroll-facial', { method: 'POST', body: input }),
-    clockInFacial: (input: RegisterTimeInput & { imageBase64?: string, faceDescriptor?: number[], fallback?: boolean }) => request<TimeTrack>('/time-track/clock-in-facial', { method: 'POST', body: input }),
     manual: (input: ManualTimeTrackInput) => request<TimeTrack>('/time-track/manual', { method: 'POST', body: input }),
 
     update: (id: string, input: UpdateTimeTrackInput) => request<TimeTrack>(`/time-track/${id}`, { method: 'PATCH', body: input }),
@@ -894,20 +889,6 @@ export const api = {
     deleteException: (id: string) => request<void>(`/schedules/exceptions/${id}`, { method: 'DELETE' }),
   },
 
-  scheduleSwaps: {
-    /** Lista solicitações de troca */
-    list: (status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED') =>
-      request<any[]>(`/schedule-swaps${status ? `?status=${status}` : ''}`),
-    /** Cria solicitação de troca */
-    create: (data: { originalDate: string; targetDate: string; justification?: string }) =>
-      request<any>('/schedule-swaps', { method: 'POST', body: data }),
-    /** Aprova ou rejeita (GESTOR/RH/ADM/DEV) */
-    review: (id: string, action: 'APPROVED' | 'REJECTED', rejectionReason?: string) =>
-      request<any>(`/schedule-swaps/${id}/review`, { method: 'PATCH', body: { action, rejectionReason } }),
-    /** Cancela solicitação */
-    cancel: (id: string) => request<any>(`/schedule-swaps/${id}/cancel`, { method: 'PATCH' }),
-  },
-  
   support: {
     stats: () => request<{ open: number; resolved: number; closed: number }>('/support/stats'),
     list: (status?: string) => request<any[]>(`/support/tickets${status ? `?status=${status}` : ''}`),

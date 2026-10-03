@@ -24,6 +24,11 @@ const REASON_LABEL: Record<string, string> = {
   ajuste_suspensao: 'SUSPENSÃO',
 };
 
+export interface RegisterContext {
+  geo?: { outOfFence: boolean; reason?: string; address?: string | null };
+  result?: { type?: string; timestamp?: Date; workDate?: Date; trackId?: string };
+}
+
 @Injectable()
 export class TimeTrackService {
   constructor(
@@ -125,142 +130,7 @@ export class TimeTrackService {
     }
   }
 
-  
-  async logFacialAttempt(data: { companyId: string, employeeId: string, matched: boolean, similarity?: number, livenessOk?: boolean }) {
-    return this.prisma.faceClockAttempt.create({
-      data: {
-        companyId: data.companyId,
-        employeeId: data.employeeId,
-        matched: data.matched,
-        similarity: data.similarity,
-        livenessOk: data.livenessOk,
-      }
-    });
-  }
-
-  async clockInFacial(companyId: string, actor: JwtUser, dto: any) {
-    if (process.env.FACIAL_VERIFICATION_ENABLED !== 'true') {
-      throw new BadRequestException('Verificacao facial temporariamente indisponivel ate a ativacao de uma prova de vida validada no servidor.');
-    }
-    if (!dto.imageBase64) {
-      throw new BadRequestException('Imagem facial é obrigatória para o registro.');
-    }
-
-    if (dto.faceDescriptor !== undefined) this.assertValidFaceDescriptor(dto.faceDescriptor);
-
-    let facialSuccess = false;
-    let matchResult = null;
-
-    let employeeId = '';
-    const emp = await this.prisma.employee.findFirst({ 
-      where: { 
-        companyId,
-        OR: [
-          { userId: actor.sub },
-          { email: actor.email }
-        ]
-      } 
-    });
-    if (emp) employeeId = emp.id;
-
-    if (!employeeId) {
-      throw new BadRequestException('Funcionário não encontrado para este usuário.');
-    }
-
-    const enrollment = await this.prisma.faceEnrollment.findUnique({ where: { employeeId } });
-
-    if (!dto.faceDescriptor) {
-      if (enrollment && enrollment.active) {
-         throw new BadRequestException('Reconhecimento facial obrigatório. Seu dispositivo não enviou os dados biométricos.');
-      }
-      throw new BadRequestException('Prova biometrica do servidor nao recebida.');
-    } else if (!enrollment || !enrollment.active || !enrollment.descriptor) {
-      try {
-        await this.prisma.faceEnrollment.upsert({
-          where: { employeeId },
-          update: { descriptor: dto.faceDescriptor, enrolledAt: new Date(), active: true },
-          create: { companyId, employeeId, descriptor: dto.faceDescriptor, active: true }
-        });
-        facialSuccess = true;
-      } catch (error: any) {
-        throw new BadRequestException('Erro ao salvar biometria no banco de dados.');
-      }
-    } else {
-      const savedDescriptor = enrollment.descriptor as number[];
-      if (Array.isArray(savedDescriptor) && Array.isArray(dto.faceDescriptor) && savedDescriptor.length === dto.faceDescriptor.length) {
-        const distance = await new Promise<number>((resolve) => {
-          setImmediate(() => {
-            let sum = 0;
-            const len = dto.faceDescriptor.length;
-            for (let i = 0; i < len; i++) {
-              const diff = dto.faceDescriptor[i] - savedDescriptor[i];
-              sum += diff * diff;
-            }
-            resolve(Math.sqrt(sum));
-          });
-        });
-
-        matchResult = { distance, subject: employeeId };
-        if (distance < 0.55) {
-          facialSuccess = true;
-        } else {
-           throw new BadRequestException('Rosto não reconhecido. Tente novamente.');
-        }
-      } else {
-         throw new BadRequestException('Dados biométricos corrompidos ou inválidos. Contate o suporte.');
-      }
-    }
-
-    if (!dto.faceDescriptor && !facialSuccess) {
-       throw new BadRequestException('Dados biométricos não recebidos do dispositivo.');
-    }
-
-    await this.logFacialAttempt({
-      companyId,
-      employeeId,
-      matched: facialSuccess,
-      similarity: matchResult?.distance ? (1 - matchResult.distance) : 0,
-      livenessOk: false
-    });
-
-    if (!facialSuccess) {
-      throw new BadRequestException('Falha no reconhecimento facial.');
-    }
-
-    return this.register(companyId, actor, { ...dto, clockedInWithoutFacial: !facialSuccess });
-  }
-
-  async enrollFacial(companyId: string, actor: JwtUser, descriptor: number[]) {
-    if (process.env.FACIAL_VERIFICATION_ENABLED !== 'true') {
-      throw new BadRequestException('Cadastro facial temporariamente indisponivel ate a ativacao de uma prova de vida validada no servidor.');
-    }
-    this.assertValidFaceDescriptor(descriptor);
-    const employee = await this.prisma.employee.findFirst({ 
-      where: { 
-        companyId,
-        OR: [
-          { userId: actor.sub },
-          { email: actor.email }
-        ]
-      } 
-    });
-    if (!employee) throw new BadRequestException('Funcionário não encontrado no banco de dados. Contate o RH para vincular seu usuário.');
-    
-    await this.prisma.faceEnrollment.upsert({
-      where: { employeeId: employee.id },
-      update: { descriptor: descriptor, enrolledAt: new Date(), active: true },
-      create: { companyId, employeeId: employee.id, descriptor: descriptor, enrolledAt: new Date() },
-    });
-    return { success: true };
-  }
-
-  private assertValidFaceDescriptor(descriptor: unknown): asserts descriptor is number[] {
-    if (!Array.isArray(descriptor) || descriptor.length !== 128 || descriptor.some((value) => typeof value !== 'number' || !Number.isFinite(value))) {
-      throw new BadRequestException('Descritor facial invalido.');
-    }
-  }
-
-  async register(companyId: string, actor: JwtUser, dto: RegisterTimeDto) {
+  async register(companyId: string, actor: JwtUser, dto: RegisterTimeDto, ctx?: RegisterContext) {
     if (actor.role === 'DEV' || actor.role === 'COMERCIAL' || actor.role === 'CONSULTA') {
       throw new ForbiddenException('Este perfil nao bate ponto');
     }
@@ -344,7 +214,6 @@ export class TimeTrackService {
         incidentType: calculation.incidentType,
         lateMinutes: calculation.lateMinutes,
         earlyLeaveMinutes: calculation.earlyLeaveMinutes,
-        clockedInWithoutFacial: (dto as any).clockedInWithoutFacial || false,
         absenceMinutes: calculation.absenceMinutes,
         overtimeExceedsLimit: calculation.overtimeExceedsLimit,
         overtimeApprovalStatus: calculation.overtimeApprovalNeeded ? 'PENDING' : 'APPROVED',
@@ -358,6 +227,13 @@ export class TimeTrackService {
         if (dto.latitude !== undefined) updateData.latitude = dto.latitude;
         if (dto.longitude !== undefined) updateData.longitude = dto.longitude;
         
+        if (ctx?.geo) {
+          if (ctx.geo.address) updateData.locationAddress = ctx.geo.address;
+          if (ctx.geo.outOfFence) {
+            updateData.manualStatus = 'pending';
+            updateData.manualReason = ctx.geo.reason ?? 'Ponto fora da area permitida';
+          }
+        } else {
         // GEOFENCING LOGIC
         let isOutOfLocation = false;
         let distanceVal = 0;
@@ -384,7 +260,8 @@ export class TimeTrackService {
              updateData.observation = 'BATIDA FACIAL - ENDERECO: ' + (address || 'Desconhecido');
           }
         }
-      } else {
+
+        }      } else {
         updateData.observation = dto.observation ?? `Lancamento manual - ${dto.manualReason}`;
         if (dto.latitude !== undefined) updateData.latitude = dto.latitude;
         if (dto.longitude !== undefined) updateData.longitude = dto.longitude;
@@ -393,6 +270,7 @@ export class TimeTrackService {
       }
 
       const saved = await this.repository.upsert(employee.id, targetDate, updateData);
+      if (ctx) ctx.result = { type, timestamp: timestampToRecord, workDate: targetDate, trackId: saved.id };
       await this.syncCalculatedOccurrences(companyId, saved);
       return saved;
     } finally {
@@ -675,13 +553,14 @@ export class TimeTrackService {
     if (exception?.exceptionType === 'COMPENSACAO') {
       entry = exception.altEntryTime ?? entry;
       exit = exception.altExitTime ?? exit;
+      restDays = restDays.filter((day) => day !== date.getUTCDay());
     } else if (exception) {
-      restDays = Array.from(new Set([...restDays, saoPauloDayOfWeek(date)]));
+      restDays = Array.from(new Set([...restDays, date.getUTCDay()]));
     }
 
     if (schedule.scaleType === '12x36' && schedule.cycleStartDate) {
       const elapsedDays = Math.floor((date.getTime() - schedule.cycleStartDate.getTime()) / 86400000);
-      if (Math.abs(elapsedDays) % 2 === 1) restDays = Array.from(new Set([...restDays, saoPauloDayOfWeek(date)]));
+      if (Math.abs(elapsedDays) % 2 === 1) restDays = Array.from(new Set([...restDays, date.getUTCDay()]));
     }
 
     const firstPeriod = this.minutesBetweenClockTimes(entry, lunchStart || exit);

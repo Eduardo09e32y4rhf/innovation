@@ -277,6 +277,15 @@ export class TimeClosingService {
       }
     }
 
+    if (actor && actor.role === 'GESTOR') {
+      const self = await this.prisma.employee.findFirst({ where: { companyId, userId: actor.sub }, select: { id: true } });
+      const inTeam = self
+        ? closing.employeeId === self.id ||
+          (await this.prisma.employee.count({ where: { companyId, id: closing.employeeId, managerId: self.id } })) > 0
+        : false;
+      if (!inTeam) throw new ForbiddenException('Acesso negado ao fechamento de colaborador fora da sua equipe.');
+    }
+
     const tracks = await this.prisma.timeTrack.findMany({
       where: { companyId, employeeId: closing.employeeId, date: { gte: closing.periodStart, lte: closing.periodEnd } },
       orderBy: { date: 'asc' },
@@ -895,7 +904,7 @@ export class TimeClosingService {
     actor: JwtUser,
     requestedEmployeeIds: string[],
   ): Promise<string[]> {
-    if (actor.role === 'ADMIN' || actor.role === 'RH') return requestedEmployeeIds;
+    if (['ADMIN', 'RH', 'DEV', 'CEO', 'CONTABIL'].includes(actor.role)) return requestedEmployeeIds;
 
     const actorEmployee = await this.prisma.employee.findFirst({
       where: { companyId, userId: actor.sub },

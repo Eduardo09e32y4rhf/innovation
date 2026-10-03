@@ -392,7 +392,7 @@ export class AuthService {
       freshUser.id,
       passwordHash,
       nextPrevious,
-      freshUser.role === 'CEO' ? 'FACE_ENROLLMENT' : undefined,
+      undefined,
     );
     
     await this.repository.createAuditLog({
@@ -408,7 +408,7 @@ export class AuthService {
     return {
       changed: true,
       passwordChangeRequired: false,
-      onboardingState: freshUser.role === 'CEO' ? 'FACE_ENROLLMENT' : null,
+      onboardingState: null,
     };
   }
 

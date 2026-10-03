@@ -17,6 +17,7 @@ import { UpdateScheduleCoverageConfigDto } from './dto/schedule-governance.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { rolesWith } from './access/schedule-access';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { JwtUser } from '../../common/types/auth.types';
 
@@ -25,7 +26,7 @@ function currentMonthInSaoPaulo() {
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA', 'DEV')
+@Roles(...rolesWith('calendar.read'))
 @Controller('schedules')
 export class ScheduleController {
   constructor(private readonly service: ScheduleService) {}
@@ -64,19 +65,19 @@ export class ScheduleController {
     return this.service.getCalendar(actor.companyId, actor, employeeId, m);
   }
 
-  @Roles('ADMIN', 'RH', 'GESTOR', 'DEV')
+  @Roles(...rolesWith('policy.write'))
   @Post()
   create(@CurrentUser() actor: JwtUser, @Body() dto: CreateScheduleDto) {
     return this.service.createSchedule(actor.companyId, actor, dto);
   }
 
-  @Roles('ADMIN', 'RH', 'GESTOR', 'DEV')
+  @Roles(...rolesWith('policy.write'))
   @Patch(':id')
   update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: Partial<CreateScheduleDto>) {
     return this.service.updateSchedule(actor.companyId, actor, id, dto);
   }
 
-  @Roles('ADMIN', 'RH', 'DEV')
+  @Roles(...rolesWith('policy.write'))
   @Patch(':id/archive')
   archive(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
     return this.service.archiveSchedule(actor.companyId, actor, id);
@@ -84,16 +85,19 @@ export class ScheduleController {
 
   // ─── Atribuição ─────────────────────────────────────────────────
 
+  @Roles(...rolesWith('schedule.write'))
   @Post('assign')
   assign(@CurrentUser() actor: JwtUser, @Body() dto: AssignScheduleDto) {
     return this.service.assignSchedule(actor.companyId, actor, dto);
   }
 
+  @Roles(...rolesWith('schedule.write'))
   @Post('assign/preview')
   previewAssignment(@CurrentUser() actor: JwtUser, @Body() dto: AssignScheduleDto) {
     return this.service.previewAssignment(actor.companyId, actor, dto);
   }
 
+  @Roles(...rolesWith('schedule.write'))
   @Get('governance/history')
   history(
     @CurrentUser() actor: JwtUser,
@@ -103,11 +107,13 @@ export class ScheduleController {
     return this.service.history(actor.companyId, actor, employeeId, limit);
   }
 
+  @Roles(...rolesWith('schedule.write'))
   @Get('governance/coverage')
   coverageConfig(@CurrentUser() actor: JwtUser) {
     return this.service.getCoverageConfig(actor.companyId, actor);
   }
 
+  @Roles(...rolesWith('schedule.write'))
   @Post('governance/coverage')
   updateCoverageConfig(
     @CurrentUser() actor: JwtUser,
@@ -123,11 +129,13 @@ export class ScheduleController {
 
   // ─── Exceções ───────────────────────────────────────────────────
 
+  @Roles(...rolesWith('schedule.write'))
   @Post('exceptions')
   createException(@CurrentUser() actor: JwtUser, @Body() dto: CreateScheduleExceptionDto) {
     return this.service.createException(actor.companyId, actor, dto);
   }
 
+  @Roles(...rolesWith('schedule.write'))
   @Delete('exceptions/:id')
   deleteException(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
     return this.service.deleteException(actor.companyId, actor, id);

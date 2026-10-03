@@ -95,7 +95,7 @@ export default function OnboardingPage() {
           <nav className="flex flex-wrap gap-2" aria-label="Dados relacionados à admissão">
             <Link className="btn btn-outline" href={`/${tenant}/dashboard/employees?employeeId=${encodeURIComponent(flow.employeeId)}`}>Funcionário</Link>
             <Link className="btn btn-outline" href={`/${tenant}/dashboard/management/aso?employeeId=${encodeURIComponent(flow.employeeId)}`}>ASO</Link>
-            <Link className="btn btn-outline" href={`/${tenant}/dashboard/escalas/documentos`}>Documentos</Link>
+            <Link className="btn btn-outline" href={`/${tenant}/dashboard/escalas?view=fechamento`}>Documentos</Link>
           </nav>
           <ul className="space-y-3">{flow.tasks.map(task => <li key={task.id} className="card-v2 space-y-2 p-4"><div className="flex flex-wrap justify-between gap-2"><h3>{task.title}</h3><span>{task.completedAt ? 'Concluída' : task.required ? 'Obrigatória · pendente' : 'Opcional · pendente'}</span></div>{task.description && <p>{task.description}</p>}{task.completedAt ? <p className="text-sm text-slate-500">Concluída em {new Date(task.completedAt).toLocaleString('pt-BR')}</p> : <Button variant="outline" onClick={() => { setSelectedId(null); setDecision({ flow, task }); }}>Concluir tarefa</Button>}</li>)}</ul>
           {flow.documents.length > 0 && <section className="space-y-2"><h2>Documentos do checklist</h2>{flow.documents.map(document => <p key={document.id}>{document.name} · {document.uploadedAt ? 'Enviado' : 'Pendente'}{document.required ? ' · obrigatório' : ''}</p>)}</section>}

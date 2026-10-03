@@ -58,7 +58,7 @@ export function EmployeeDashboard({ tenant, userName, summary, insights, tracks,
             <h1 className="mt-3 max-w-xl text-3xl font-black tracking-tight sm:text-4xl">Ola, {firstName}. Sua jornada em um so lugar.</h1>
             <p className="mt-3 text-sm font-medium text-white/55">Acompanhe seu ponto, banco de horas e os momentos importantes da equipe.</p>
           </div>
-          <Link href={`/${tenant}/dashboard/time-track/clock-in`} className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-xs font-black text-black hover:-translate-y-0.5"><Clock3 size={15} /> Bater ponto <ArrowRight size={14} /></Link>
+          <Link href={`/${tenant}/dashboard/escalas?view=ponto`} className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-xs font-black text-black hover:-translate-y-0.5"><Clock3 size={15} /> Bater ponto <ArrowRight size={14} /></Link>
         </div>
       </section>
 
@@ -120,7 +120,7 @@ export function EmployeeDashboard({ tenant, userName, summary, insights, tracks,
       <section className="overflow-hidden rounded-[22px] border border-black/10 bg-white">
         <header className="flex items-center justify-between border-b border-black/10 px-5 py-5">
           <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40">Historico</p><h2 className="mt-1 text-lg font-black">Jornadas recentes</h2></div>
-          <Link href={`/${tenant}/dashboard/time-track`} className="inline-flex items-center gap-1 text-[11px] font-black hover:underline">Ver todos <ArrowRight size={13} /></Link>
+          <Link href={`/${tenant}/dashboard/escalas?view=ponto`} className="inline-flex items-center gap-1 text-[11px] font-black hover:underline">Ver todos <ArrowRight size={13} /></Link>
         </header>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[620px] text-left">

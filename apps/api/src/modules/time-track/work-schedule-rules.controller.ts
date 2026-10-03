@@ -1,49 +1,56 @@
-import { Body, Controller, ForbiddenException, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import type { JwtUser } from '../../common/types/auth.types';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { SCHEDULE_MODULE_ROLES, rolesWith } from '../schedule/access/schedule-access';
+import { WorkRuleDto } from './dto/work-rule.dto';
 import { WorkScheduleRulesService } from './work-schedule-rules.service';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('time-rules')
 export class WorkScheduleRulesController {
   constructor(private readonly svc: WorkScheduleRulesService) {}
 
+  @Roles(...SCHEDULE_MODULE_ROLES)
   @Get()
-  list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
-    return this.svc.list(companyId, actor);
+  list(@CurrentCompany() companyId: string) {
+    return this.svc.list(companyId);
   }
 
+  @Roles(...SCHEDULE_MODULE_ROLES)
   @Get('active')
   findActive(@CurrentCompany() companyId: string) {
     return this.svc.findActive(companyId);
   }
 
+  @Roles(...SCHEDULE_MODULE_ROLES)
   @Get(':id')
   getById(@CurrentCompany() companyId: string, @Param('id') id: string) {
     return this.svc.getById(companyId, id);
   }
 
+  @Roles(...rolesWith('policy.write'))
   @Post()
-  create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() data: any) {
-    return this.svc.create(companyId, actor, data);
+  create(@CurrentCompany() companyId: string, @Body() dto: WorkRuleDto) {
+    return this.svc.create(companyId, dto);
   }
 
+  @Roles(...rolesWith('policy.write'))
   @Put(':id')
-  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() data: any) {
-    return this.svc.update(companyId, actor, id, data);
+  update(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: WorkRuleDto) {
+    return this.svc.update(companyId, id, dto);
   }
 
+  @Roles(...rolesWith('policy.write'))
   @Put(':id/archive')
-  archive(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
-    if (actor.role !== 'ADMIN' && actor.role !== 'RH' && actor.role !== 'DEV') throw new ForbiddenException('Not allowed');
-    return this.svc.update(companyId, actor, id, { status: 'INACTIVE' });
+  archive(@CurrentCompany() companyId: string, @Param('id') id: string) {
+    return this.svc.update(companyId, id, { status: 'INACTIVE' });
   }
 
+  @Roles(...rolesWith('policy.write'))
   @Put(':id/activate')
-  activate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
-    if (actor.role !== 'ADMIN' && actor.role !== 'RH' && actor.role !== 'DEV') throw new ForbiddenException('Not allowed');
-    return this.svc.update(companyId, actor, id, { status: 'ACTIVE' });
+  activate(@CurrentCompany() companyId: string, @Param('id') id: string) {
+    return this.svc.update(companyId, id, { status: 'ACTIVE' });
   }
 }

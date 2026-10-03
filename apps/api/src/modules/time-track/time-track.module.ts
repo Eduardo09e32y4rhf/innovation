@@ -13,9 +13,10 @@ import { TimeZoneService } from '../../common/services/timezone.service';
 import { PayrollCalculationService } from './payroll-calculation.service';
 
 import { HolidaysModule } from '../holidays/holidays.module';
+import { ScheduleAccessModule } from '../schedule/access/schedule-access.module';
 
 @Module({
-  imports: [HolidaysModule],
+  imports: [HolidaysModule, ScheduleAccessModule],
   controllers: [TimeTrackController, WorkScheduleRulesController, TimeClosingController, TimeOccurrencesController],
   providers: [TimeTrackService, TimeTrackRepository, WorkScheduleRulesService, TimeClosingService, TimeOccurrencesService, TimeCalculationRulesService, TimeZoneService, PayrollCalculationService],
   exports: [TimeTrackService, TimeTrackRepository, WorkScheduleRulesService, TimeClosingService, TimeOccurrencesService, TimeCalculationRulesService, TimeZoneService, PayrollCalculationService],

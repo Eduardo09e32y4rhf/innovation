@@ -209,7 +209,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
     ADMIN:    [
       { label: 'Funcionários', href: `/${tenant}/dashboard/employees`, icon: Users },
       { label: 'Usuários',     href: `/${tenant}/dashboard/users`,     icon: UserPlus },
-      { label: 'Fechamento',   href: `/${tenant}/dashboard/time-track/closing`, icon: Download },
+      { label: 'Fechamento',   href: `/${tenant}/dashboard/escalas?view=fechamento`, icon: Download },
     ],
     RH:       [
       { label: 'Novo funcionário', href: `/${tenant}/dashboard/employees/new`, icon: UserPlus },
@@ -218,13 +218,13 @@ function DashboardContent({ tenant }: { tenant: string }) {
     ],
     GESTOR:   [
       { label: 'Minha equipe', href: `/${tenant}/dashboard/employees`,       icon: Users },
-      { label: 'Escala',       href: `/${tenant}/dashboard/escala?tab=equipe`, icon: CalendarDays },
-      { label: 'Ponto',        href: `/${tenant}/dashboard/time-track`,      icon: Clock3 },
+      { label: 'Escala',       href: `/${tenant}/dashboard/escalas?view=calendario`, icon: CalendarDays },
+      { label: 'Ponto',        href: `/${tenant}/dashboard/escalas?view=ponto`,      icon: Clock3 },
     ],
     CONSULTA: [
       { label: 'Funcionários', href: `/${tenant}/dashboard/employees`, icon: Users },
-      { label: 'Escala',       href: `/${tenant}/dashboard/escala`,    icon: CalendarDays },
-      { label: 'Ponto',        href: `/${tenant}/dashboard/time-track`,icon: Clock3 },
+      { label: 'Escala',       href: `/${tenant}/dashboard/escalas?view=calendario`,    icon: CalendarDays },
+      { label: 'Ponto',        href: `/${tenant}/dashboard/escalas?view=ponto`,icon: Clock3 },
     ],
   };
   const shortcuts = profile === 'COMERCIAL'
@@ -611,7 +611,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
           loading={timeTracks.loading}
           error={timeTracks.error}
           empty="Nenhum registro encontrado."
-          footerHref={`/${tenant}/dashboard/time-track`}
+          footerHref={`/${tenant}/dashboard/escalas?view=ponto`}
           footerLabel="Ver todos os registros"
         >
           {todayRows.map((row) => (
@@ -624,7 +624,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
               <td className="py-3 text-xs font-medium text-fg-mut tabular-nums">{formatTime(row.exit)}</td>
               <td className="py-3">
                 <Link
-                  href={`/${tenant}/dashboard/time-track?employeeId=${row.employeeId}`}
+                  href={`/${tenant}/dashboard/escalas?view=ponto&employeeId=${row.employeeId}`}
                   className="text-[11px] font-black text-brand-600 hover:underline"
                 >
                   Ver â†’
@@ -818,7 +818,7 @@ function PendencyCard({
   delay?: number;
 }) {
   const items = [
-    { label: 'Pontos manuais', value: pendingTimeTracks, href: `/${tenant}/dashboard/time-track`, accent: 'warning' as const },
+    { label: 'Pontos manuais', value: pendingTimeTracks, href: `/${tenant}/dashboard/escalas?view=ponto`, accent: 'warning' as const },
     { label: 'Férias pendentes', value: pendingVacations, href: `/${tenant}/dashboard/vacations`, accent: 'warning' as const },
     { label: 'Sem gestor',       value: employeesNoManager, href: `/${tenant}/dashboard/employees`, accent: 'danger' as const },
     { label: 'Sem acesso',       value: employeesNoAccess, href: `/${tenant}/dashboard/employees`, accent: 'danger' as const },

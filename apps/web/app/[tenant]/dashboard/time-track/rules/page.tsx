@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function WorkScheduleRulesRedirect({ params }: { params: { tenant: string } }) {
-  redirect(`/${params.tenant}/dashboard/escalas/regras`);
+export default function TimeTrackRulesPage({ params }: { params: { tenant: string } }) {
+  redirect(`/${params.tenant}/dashboard/escalas?view=modelos`);
 }

@@ -100,7 +100,7 @@ export default function EmployeesPage() {
             <Button type="button" variant="ghost" className="justify-start" disabled={!!downloadingId} onClick={() => download(employee, 'point-sheet')}><Download size={18} aria-hidden="true" /> Folha de ponto (PDF)</Button>
             <Button type="button" variant="ghost" className="justify-start" disabled={!!downloadingId} onClick={() => download(employee, 'occurrences')}><AlertTriangle size={18} aria-hidden="true" /> Ocorrências (PDF)</Button>
           </>}
-          {(canEdit || isGestor) && <Link className="btn btn-ghost btn-md justify-start" href={base + '/escalas/ponto?employeeId=' + encodeURIComponent(employee.id) + '&month=' + month}><Clock3 size={18} aria-hidden="true" /> Abrir ponto</Link>}
+          {(canEdit || isGestor) && <Link className="btn btn-ghost btn-md justify-start" href={base + '/escalas?view=ponto&employeeId=' + encodeURIComponent(employee.id) + '&month=' + month}><Clock3 size={18} aria-hidden="true" /> Abrir ponto</Link>}
           {canEdit && <>
             <Link className="btn btn-ghost btn-md justify-start" href={base + '/employees/new?id=' + encodeURIComponent(employee.id)}>Editar cadastro</Link>
             <Button type="button" variant="ghost" className="justify-start" disabled={employee.status === 'TERMINATED' || terminate.loading} onClick={() => { terminate.reset(); setTerminating(employee); }}>Desligar funcionário</Button>

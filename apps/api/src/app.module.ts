@@ -1,6 +1,5 @@
 import { PerformanceModule } from './modules/performance/performance.module';
 import { Module } from '@nestjs/common';
-import { TimeTrackingModule } from './modules/time-tracking/time-tracking.module';
 import { PartnersModule } from './modules/partners/partners.module';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
@@ -30,6 +29,7 @@ import { CryptoModule } from './common/crypto/crypto.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EscalaModule } from './modules/schedule/escala.module';
+import { ScheduleHubModule } from './modules/schedule-hub/schedule-hub.module';
 import { TenantGuard } from './common/guards/tenant.guard';
 import { SubscriptionActiveGuard } from './common/guards/subscription.guard';
 import { ManualContractsModule } from './modules/manual-contracts/manual-contracts.module';
@@ -52,7 +52,6 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
 
 @Module({
   imports: [
-    TimeTrackingModule,
     PerformanceModule,
     PartnersModule,
     PrometheusModule.register(),
@@ -94,6 +93,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     CryptoModule,
     FinanceModule,
     EscalaModule,
+    ScheduleHubModule,
     ManualContractsModule,
     CouponsModule,
     SupportModule,

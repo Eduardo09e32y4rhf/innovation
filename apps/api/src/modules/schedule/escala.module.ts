@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { ScheduleController } from './schedule.controller';
-import { ScheduleSwapService } from './schedule-swap.service';
-import { ScheduleSwapController } from './schedule-swap.controller';
+import { ScheduleAccessModule } from './access/schedule-access.module';
 
 @Module({
-  controllers: [ScheduleController, ScheduleSwapController],
-  providers: [ScheduleService, ScheduleSwapService],
-  exports: [ScheduleService, ScheduleSwapService],
+  imports: [ScheduleAccessModule],
+  controllers: [ScheduleController],
+  providers: [ScheduleService],
+  exports: [ScheduleService],
 })
 export class EscalaModule {}

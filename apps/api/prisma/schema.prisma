@@ -401,10 +401,14 @@ model Company {
   manualContracts     ManualContract[]
 
   // MÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³dulo Escala
-  schedules          Schedule[]
-  userSchedules      UserSchedule[]
-  scheduleExceptions ScheduleException[]
-  swapRequests       ScheduleSwapRequest[]
+  schedules           Schedule[]
+  userSchedules       UserSchedule[]
+  scheduleExceptions  ScheduleException[]
+  swapRequests        ScheduleSwapRequest[]
+  punchEvents         PunchEvent[]
+  geofences           Geofence[]
+  punchPolicy         TimePunchPolicy?
+  scheduleRequestsHub ScheduleRequest[]
 
   supportTickets        SupportTicket[]
   generatedDocuments    GeneratedDocument[]
@@ -637,6 +641,9 @@ model Employee {
   userSchedules      UserSchedule[]
   scheduleExceptions ScheduleException[]
   swapRequests       ScheduleSwapRequest[]
+  punchEvents        PunchEvent[]
+  requestsMade       ScheduleRequest[]     @relation("ScheduleRequestRequester")
+  requestsAsPeer     ScheduleRequest[]     @relation("ScheduleRequestPeer")
 
   supportTicketsAffected SupportTicket[]
   payrolls               Payroll[]
@@ -2875,4 +2882,118 @@ model CommissionEntry {
 
   sale        CommercialSale @relation(fields: [saleId], references: [id])
   beneficiary User           @relation("CommissionsReceived", fields: [beneficiaryId], references: [id])
+}
+
+// ─── Central de Escalas ────────────────────────────────────────────────
+enum ScheduleRequestType {
+  TROCA_FOLGA
+  TROCA_TURNO
+  NOVA_ESCALA
+  AJUSTE_BATIDA
+  JUSTIFICATIVA
+  FOLGA_COMPENSACAO
+}
+
+enum ScheduleRequestStatus {
+  AWAITING_PEER
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model PunchEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  companyId      String   @db.Uuid
+  employeeId     String   @db.Uuid
+  timeTrackId    String?  @db.Uuid
+  occurredAt     DateTime
+  workDate       DateTime @db.Date
+  type           String
+  origin         String   @default("APP")
+  latitude       Float?
+  longitude      Float?
+  accuracyMeters Float?
+  address        String?
+  geofenceId     String?  @db.Uuid
+  withinFence    Boolean?
+  distanceMeters Int?
+  flags          String[] @default([])
+  justification  String?
+  deviceId       String?
+  ipAddress      String?
+  userAgent      String?
+  receipt        String
+  createdAt      DateTime @default(now())
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([receipt])
+  @@index([companyId, employeeId, occurredAt])
+  @@index([companyId, workDate])
+}
+
+model Geofence {
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @db.Uuid
+  name         String
+  latitude     Float
+  longitude    Float
+  radiusMeters Int      @default(150)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model TimePunchPolicy {
+  id                          String   @id @default(uuid()) @db.Uuid
+  companyId                   String   @unique @db.Uuid
+  requireLocation             Boolean  @default(true)
+  fencePolicy                 String   @default("FLAG")
+  maxAccuracyMeters           Int      @default(150)
+  minIntervalSeconds          Int      @default(60)
+  maxPunchesPerDay            Int      @default(4)
+  earlyWindowMinutes          Int      @default(120)
+  lateWindowMinutes           Int      @default(360)
+  adjustmentDeadlineDays      Int      @default(5)
+  requireJustificationOutside Boolean  @default(true)
+  maxSpeedKmh                 Int      @default(250)
+  updatedByUserId             String?  @db.Uuid
+  updatedAt                   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model ScheduleRequest {
+  id                  String                @id @default(uuid()) @db.Uuid
+  companyId           String                @db.Uuid
+  requesterEmployeeId String                @db.Uuid
+  type                ScheduleRequestType
+  status              ScheduleRequestStatus @default(PENDING)
+  payload             Json
+  reason              String?
+  peerEmployeeId      String?               @db.Uuid
+  peerAcceptedAt      DateTime?
+  currentStep         String?
+  steps               Json                  @default("[]")
+  decidedByUserId     String?               @db.Uuid
+  decidedAt           DateTime?
+  decisionNote        String?
+  appliedAt           DateTime?
+  createdByUserId     String?               @db.Uuid
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requester Employee  @relation("ScheduleRequestRequester", fields: [requesterEmployeeId], references: [id], onDelete: Cascade)
+  peer      Employee? @relation("ScheduleRequestPeer", fields: [peerEmployeeId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, status])
+  @@index([requesterEmployeeId])
+  @@index([peerEmployeeId])
 }
