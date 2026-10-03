@@ -2,14 +2,15 @@
 
 import { Suspense, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams , useParams } from 'next/navigation';
-import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Plus, Save, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api, type ContractType, type CreateEmployeeInput, type DailyWorkload, type Employee, type EmployeeStatus, type WorkScale } from '@/app/lib/api';
-import { Button, ConfirmDialog, PageHeader } from '@/app/components/ui';
+import { Button, ConfirmDialog, Modal, PageHeader } from '@/app/components/ui';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { normalizeDisplayName, maskCPF, maskCNPJ, maskCEP } from '@/app/lib/text';
+import { toast } from 'sonner';
 
 const STATUS_OPTIONS: { value: EmployeeStatus; label: string }[] = [
   { value: 'ACTIVE', label: 'Ativo' },
@@ -219,6 +220,8 @@ function EmployeeForm() {
   const [lookupStatus, setLookupStatus] = useState({ cep: '', cnpj: '' });
   const [issues, setIssues] = useState<{ tab: TabName; label: string; message: string }[]>([]);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
+  const [copiedPassword, setCopiedPassword] = useState(false);
   const baseline = useRef(JSON.stringify([EMPTY, []]));
   const formRef = useRef<HTMLFormElement>(null);
   const cepRequest = useRef(0);
@@ -387,7 +390,16 @@ function EmployeeForm() {
   const save = useMutation(
     (payload: CreateEmployeeInput) =>
       isEdit && editId ? api.employees.update(editId, payload) : api.employees.create(payload),
-    { onSuccess: () => { baseline.current = JSON.stringify([form, dependentsList]); router.push(destination); } },
+    {
+      onSuccess: (result: any) => {
+        baseline.current = JSON.stringify([form, dependentsList]);
+        if (!isEdit && result.temporaryPassword) {
+          setTemporaryPassword(result.temporaryPassword);
+        } else {
+          router.push(destination);
+        }
+      }
+    },
   );
 
   function set<K extends keyof EmployeeFormState>(key: K, value: EmployeeFormState[K]) {
@@ -722,6 +734,55 @@ function EmployeeForm() {
         </div>
       </form>
       <ConfirmDialog isOpen={leaveOpen} onClose={() => setLeaveOpen(false)} onConfirm={() => router.push(destination)} title="Descartar alterações?" description="Os dados preenchidos ainda não foram salvos." confirmText="Descartar e voltar" cancelText="Continuar preenchendo" />
+
+      {temporaryPassword && (
+        <Modal open={!!temporaryPassword} onOpenChange={(open) => { if (!open) { setTemporaryPassword(null); router.push(destination); } }} title="Funcionário criado com acesso">
+          <div className="space-y-4">
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-sm font-semibold text-emerald-900 mb-2">✓ Funcionário criado com sucesso!</p>
+              <p className="text-xs text-emerald-700">
+                Acesso ao painel foi criado. Compartilhe a senha provisória abaixo com o funcionário. Ela expira em 24 horas.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Senha Provisória:</label>
+              <div className="flex gap-2 items-center">
+                <code className="flex-1 rounded bg-gray-100 px-3 py-2 text-sm font-mono break-all">
+                  {temporaryPassword}
+                </code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(temporaryPassword);
+                    setCopiedPassword(true);
+                    setTimeout(() => setCopiedPassword(false), 2000);
+                    toast.success('Senha copiada para a área de transferência');
+                  }}
+                  className="shrink-0"
+                >
+                  {copiedPassword ? (
+                    <Check size={16} className="text-emerald-600" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
+              <p className="text-xs text-amber-700">
+                <strong>⚠ Importante:</strong> A senha será exibida apenas uma vez. Copie-a com segurança.
+              </p>
+            </div>
+
+            <Button onClick={() => { setTemporaryPassword(null); router.push(destination); }} className="w-full">
+              Ir para Funcionários
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
