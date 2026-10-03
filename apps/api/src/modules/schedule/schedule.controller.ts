@@ -45,9 +45,10 @@ export class ScheduleController {
     return this.service.getTeamSchedule(actor.companyId, actor, m);
   }
 
-  @Get('me/calendar')
-  myCalendarStable(@CurrentUser() actor: JwtUser, @Query('month') month: string) {
-    return this.service.getMyCalendar(actor.companyId, actor, month || currentMonthInSaoPaulo());
+  @Get('calendar/me')
+  myCalendar(@CurrentUser() actor: JwtUser, @Query('month') month: string) {
+    const m = month || currentMonthInSaoPaulo();
+    return this.service.getMyCalendar(actor.companyId, actor, m);
   }
 
   @Get('calendar/:employeeId')
@@ -58,13 +59,6 @@ export class ScheduleController {
   ) {
     const m = month || currentMonthInSaoPaulo();
     return this.service.getCalendar(actor.companyId, actor, employeeId, m);
-  }
-
-  @Get('calendar/me')
-  myCalendar(@CurrentUser() actor: JwtUser, @Query('month') month: string) {
-    // Resolve o employeeId do usuário logado
-    const m = month || currentMonthInSaoPaulo();
-    return this.service.getMyCalendar(actor.companyId, actor, m);
   }
 
   @Post()
