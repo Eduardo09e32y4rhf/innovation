@@ -1,160 +1,229 @@
-# 🚀 Innovation RH Connect
+# Innovation RH Connect
 
-Um sistema corporativo *premium* e completo para Gestão de Recursos Humanos, controle eletrônico de jornada e comunicação inteligente. Projetado com foco absoluto em usabilidade (UX/UI), segurança e alta performance para revolucionar e automatizar o Departamento Pessoal de médias e grandes empresas.
+Plataforma completa para gestão de pessoas, departamento pessoal, jornada, férias, folha, comunicação e recrutamento.
 
-🔗 **Acesso ao Sistema Ao Vivo:** [https://vps8369.panel.icontainer.net/](https://vps8369.panel.icontainer.net/)
+## Site oficial
 
----
+**[innovationia.com.br](https://innovationia.com.br/)**
 
-## 🆕 Últimas Atualizações (V. 25-07-2026 - 1.1.0.0 | Commit: 57d69470)
+Conheça a solução, solicite uma apresentação e fale com a equipe comercial.
 
-- **Refatoração Completa do Console Operacional (SaaS Backoffice / Internet Banking):** Transformação visual da aba Plataforma corporativa para estética bancária de alta precisão com faixa financeira (Recebido, Faturado, MRR Estimado, Inadimplência) e bloco canônico de atenção operacional (`Requer sua atenção imediata`).
-- **Navegação Canônica Consolidada (7 Grupos):** Reestruturação da navegação corporativa em 7 grupos canônicos (`Visão Geral`, `Clientes`, `Financeiro`, `Comercial`, `Operações`, `Inteligência`, `Configurações`) com segregação e obfuscação automática de dados sensíveis para perfil `COMERCIAL`.
-- **Tela Única de Empresa (7 Abas):** Consolidação do gerenciamento de tenants em tela canônica exclusiva (`/platform/[companyId]`) com 7 abas (`Resumo`, `Assinatura`, `Financeiro`, `Usuários`, `Documentos`, `Chamados`, `Auditoria`), eliminação de modais flutuantes redundantes e proteção dos identificadores financeiros Asaas como estritamente somente leitura.
-- **Central de Suporte Cliente & DEV (Fases 2 e 5):** Implementação de segregação estrita de visibilidade na Central de Suporte do Cliente (`/dashboard/support`) para ADMIN, RH, GESTOR e FUNCIONARIO, criação do Painel DEV de Suporte (`/platform/support`), e agendador automático de SLAs (`SupportSlaScheduler`).
-- **Endurecimento de Segurança Backend (@Roles DEV):** Restrição de mutações em planos de assinatura, cobranças, faturas e limites de licenciamento exclusivamente à engenharia/DEV, isolando carteiras comerciais por escopo no banco de dados.
+## Proposta do produto
 
----
+O Innovation RH Connect transforma rotinas operacionais de RH em um único sistema web, com acesso por empresa, perfis de responsabilidade e histórico auditável.
 
-## 📸 Conheça o Sistema
+A plataforma reduz planilhas e retrabalho reunindo:
 
-Abaixo estão as principais interfaces da plataforma, construídas com um design moderno, limpo e responsivo:
+- colaboradores, usuários, permissões e documentos;
+- ponto, escalas, ocorrências, banco de horas e fechamento;
+- férias, ausências e exames ocupacionais;
+- folha com regras versionadas e snapshot do cálculo;
+- chamados, notificações e comunicação interna;
+- vagas, candidaturas e recrutamento Kanban;
+- propostas, empresas, assinaturas, cobrança e comissões;
+- contratos, PDFs, auditoria e operação da plataforma.
 
-### 📊 1. Painel Executivo (Dashboard)
-<p align="center">
-  <img src="tests-e2e/screenshots/tabs/ADMIN-Dashboard.png" alt="Painel Executivo" width="100%" style="border-radius: 8px; border: 1px solid #e5e7eb;">
-</p>
-<p align="justify">
-  <b>Visão consolidada da operação de RH em tempo real.</b> Acompanhe métricas vitais como funcionários ativos, jornadas registradas no dia, saldo do banco de horas global e alertas críticos (férias pendentes, alertas cadastrais e aniversariantes).
-</p>
+## Benefícios
 
-<hr>
+- **Sistema único:** RH, gestores, colaboradores, contabilidade, comercial e operação trabalham no mesmo ambiente.
+- **Operação simples:** ações resumidas, filtros, calendários, importações e históricos organizados.
+- **Acesso em qualquer tela:** layout responsivo para celular, tablet, notebook e desktop.
+- **Segurança por responsabilidade:** cada ação é validada por perfil, empresa, carteira, equipe e estado do recurso.
+- **Escala para SaaS:** empresas e usuários isolados por tenant, com auditoria e políticas de acesso.
 
-### 👥 2. Cadastro da Equipe (Funcionários)
-<p align="center">
-  <img src="tests-e2e/screenshots/tabs/ADMIN-Funcionarios.png" alt="Gestão de Funcionários" width="100%" style="border-radius: 8px; border: 1px solid #e5e7eb;">
-</p>
-<p align="justify">
-  <b>Módulo centralizado para gestão do quadro de colaboradores.</b> Listagem interativa com filtros avançados, exibição de status, departamento, cargo e nível de acesso ao sistema, permitindo ações rápidas como edição, desligamento e acesso rápido ao espelho de ponto.
-</p>
+## Módulos
 
-<hr>
+### Pessoas e acessos
 
-### 🏖️ 3. Gestão de Férias
-<p align="center">
-  <img src="tests-e2e/screenshots/tabs/ADMIN-Ferias.png" alt="Gestão de Férias" width="100%" style="border-radius: 8px; border: 1px solid #e5e7eb;">
-</p>
-<p align="justify">
-  <b>Módulo completo para solicitação, aprovação e acompanhamento de férias.</b> Visualização em calendário, cálculo automático de saldo, regras de vencimento e integração fluida com a folha de ponto da equipe.
-</p>
+Cadastro de funcionários, usuários vinculados, convites, senha provisória individual, troca obrigatória no primeiro acesso, perfis, permissões, documentos, ASO e desligamento com preservação de histórico.
 
-<hr>
+### Jornada e ponto
 
-### ⏱️ 4. Folha de Ponto (Gestão de Jornada)
-<p align="center">
-  <img src="tests-e2e/screenshots/tabs/ADMIN-Ponto.png" alt="Folha de Ponto" width="100%" style="border-radius: 8px; border: 1px solid #e5e7eb;">
-</p>
-<p align="justify">
-  <b>Painel do gestor e do RH para acompanhamento do espelho de ponto.</b> Visão consolidada por colaborador mostrando as horas trabalhadas e saldos (positivos ou negativos) no mês selecionado, permitindo auditoria detalhada, aprovação em lote e exportação simplificada.
-</p>
+Registro de entrada, saída e intervalos, escalas, regras, ajustes com motivo, aprovações, banco de horas, ocorrências, fechamento e relatórios. O fluxo facial é separado e só deve ser habilitado com validação técnica aprovada.
 
-<hr>
+### Férias e ausências
 
-### 📅 5. Gestão de RH (Agenda & Operacional)
-<p align="center">
-  <img src="tests-e2e/screenshots/tabs/ADMIN-Gestao.png" alt="Gestão de RH" width="100%" style="border-radius: 8px; border: 1px solid #e5e7eb;">
-</p>
-<p align="justify">
-  <b>Módulo administrativo para organização da rotina do departamento pessoal.</b> Gestão de compromissos, exames ocupacionais (ASO), notificações e regras de negócio da jornada. Possui visualização intuitiva em calendário (Agenda) e formato Kanban para facilitar o acompanhamento de pendências.
-</p>
+Solicitação, aprovação, saldo, períodos aquisitivos, conflitos, calendário e documentos relacionados.
 
----
+### Folha e contabilidade
 
-## 🛠️ Stack Tecnológica
+Cálculo por competência, tabelas versionadas, snapshot da regra usada, ajustes auditáveis e chamados contábeis por empresa.
 
-O sistema utiliza o que há de mais moderno na engenharia de software para garantir estabilidade, segurança e velocidade:
+### Agenda, notificações e suporte
 
-### 🎨 Frontend (Web App)
-- **Framework:** Next.js 14 (App Router)
-- **Linguagem:** TypeScript
-- **Estilização:** Tailwind CSS & Framer Motion (para micro-animações fluidas)
-- **Gráficos & Componentes:** Recharts, Lucide Icons
+Agenda operacional, central de notificações, chamados, anexos, mensagens, histórico e SLA.
 
-### ⚙️ Backend (API RESTful)
-- **Framework:** NestJS (Node.js)
-- **Linguagem:** TypeScript
-- **Banco de Dados & ORM:** PostgreSQL + Prisma ORM
-- **Cache & Filas:** Redis
-- **Segurança:** Autenticação robusta (JWT persistente), Helmet, Throttler, Cookie Parser
+### Recrutamento
 
----
+Vagas, portal público de carreiras, candidaturas, documentos, pipeline Kanban, publicação, pausa e encerramento.
 
-## 🛡️ Segurança e Rate Limiting
+### Comercial e plataforma
 
-O sistema possui proteção contra ataques de força bruta e abusos da API configurada globalmente através do `ThrottlerGuard`:
-- **Global**: 20 requisições por minuto (60s).
-- **Login (`/auth/login`)**: 5 requisições a cada 15 minutos.
-- **Registro (`/auth/register-company`)**: 3 requisições a cada 30 minutos.
-- **Recuperação de Senha (`/auth/password-reset/request`)**: 5 requisições a cada 30 minutos.
+Planos, propostas, empresas clientes, carteira comercial, vendas idempotentes, comissões, assinaturas, cobrança, eventos financeiros, console DEV, contratos e auditoria.
 
----
+## Perfis
 
-## 🚀 Como Rodar Localmente (Desenvolvimento)
+| Perfil | Escopo |
+| --- | --- |
+| **DEV** | Controle global, configurações, auditoria e administração técnica. |
+| **CEO** | Gestão operacional global autorizada, sem poder comprometer o DEV. |
+| **COMERCIAL** | Propostas, vendas, empresas, carteira e comissões autorizadas. |
+| **CONTABIL** | Folha, cálculos, correções e chamados contábeis. |
+| **ADMIN** | Administração da própria empresa cliente. |
+| **RH** | Pessoas, jornada, documentos, férias e folha da própria empresa. |
+| **GESTOR** | Equipe, aprovações e indicadores delegados. |
+| **FUNCIONARIO** | Uso próprio, ponto, documentos e solicitações autorizadas. |
+| **CONSULTA** | Visualização autorizada, sem administração. |
 
-1. **Instale as dependências:**
-   ```bash
-   npm install
-   ```
+Perfis internos não são atribuídos pelo cadastro público. A API é a autoridade final de autorização.
 
-2. **Inicie o banco de dados local via Docker:**
-   ```bash
-   docker compose -f docker-compose.yml up -d postgres
-   ```
+## Experiência visual
 
-3. **Gere o Prisma Client e execute as Migrações:**
-   ```bash
-   npm run db:generate
-   npm run db:migrate
-   npm run db:seed
-   ```
+- Cores oficiais da marca preservadas.
+- Cards, botões, campos e modais com bordas arredondadas.
+- Uma ação principal por contexto.
+- Estados de carregamento, vazio, erro, sucesso e sem permissão.
+- Foco visível, navegação por teclado e alvos de toque adequados.
+- Tabelas adaptadas para cards ou listas em telas estreitas.
+- Portal público de vagas com identidade própria e acessibilidade consistente.
 
-4. **Inicie os servidores de desenvolvimento:**
-   - **Backend API:** `npm run dev:api` (porta `3333`)
-   - **Frontend Web:** `npm run dev:web` (porta `3000`)
+## Arquitetura
 
----
+### Frontend
 
-## 🚢 Deploy de Produção (VPS)
+Next.js 14 com App Router, React, TypeScript, Tailwind CSS, Lucide Icons, Recharts e componentes compartilhados.
 
-Para rodar o ambiente de produção completo utilizando a infraestrutura conteinerizada via Docker Compose:
+### Backend
 
-1. **Copie o arquivo de variáveis de ambiente de produção:**
-   ```bash
-   cp .env.prod.example .env
-   ```
-2. **Preencha os valores do `.env` adequadamente (Senhas, Secrets do JWT, etc).**
+NestJS, Node.js, TypeScript, API REST, JWT, guards de autenticação/tenant/assinatura/permissões, rate limiting, Helmet, auditoria e DTOs validados.
 
-3. **Inicie os containers de Produção em segundo plano:**
-   ```bash
-   docker compose -f docker-compose.prod.yml up -d --build
-   ```
+### Dados e infraestrutura
 
----
+PostgreSQL, Prisma ORM, migrations aditivas, Redis, filas, Docker Compose e geração controlada de PDFs/documentos.
 
-## 🗄️ Comandos de Banco de Dados (Prisma)
+## Requisitos
 
-Comandos úteis para manutenção da estrutura do banco (schema `apps/api/prisma/schema.prisma`):
+- Node.js 20 ou superior.
+- npm.
+- Docker e Docker Compose.
+- PostgreSQL e Redis, locais ou gerenciados.
 
-```bash
-npm run db:generate  # Gera/Atualiza as tipagens locais do Prisma Client
-npm run db:migrate   # Cria e executa uma nova migration de desenvolvimento
-npm run db:deploy    # Executa migrations pendentes no banco de produção
-npm run db:studio    # Abre a interface gráfica do banco (Admin)
-```
+## Instalação local
 
----
+~~~bash
+git clone https://github.com/Eduardo09e32y4rhf/innovation.git
+cd innovation
+npm install
+docker compose -f docker-compose.yml up -d postgres redis
+cp .env.example .env
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+~~~
 
-## 📜 Licença e Propriedade
+Preencha o .env com os valores do ambiente antes de iniciar os serviços:
 
-Este software é **PROPRIETÁRIO**.  
-O uso, cópia, modificação ou distribuição não autorizada (comercial ou não comercial) é estritamente proibida. Para mais detalhes sobre uso e direitos, consulte o arquivo [LICENSE](LICENSE) na raiz do projeto.
+~~~bash
+npm run dev:api
+npm run dev:web
+~~~
+
+Frontend: http://localhost:3000
+API: http://localhost:3333
+
+## Configuração
+
+Nunca publique segredos no Git. Consulte .env.example, .env.test.example e .env.prod.example.
+
+A produção normalmente exige:
+
+- PostgreSQL e Redis;
+- segredo forte do JWT;
+- origens permitidas;
+- e-mail;
+- credenciais e webhook de cobrança;
+- armazenamento de arquivos;
+- chave de documentos, quando habilitada;
+- fornecedor facial aprovado, quando aplicável.
+
+## Comandos
+
+~~~bash
+npm run dev:web
+npm run dev:api
+npm run lint:web
+npm run typecheck:web
+npm run build:api
+npm run build:web
+npm run validate
+npm run db:generate
+npm run db:migrate
+npm run db:deploy
+npm run db:studio
+npm run test:unit
+npm run test:integration
+npm run test:contract
+npm run test:security
+npm run test:e2e
+npm run test:all
+~~~
+
+## Deploy e instalação em produção
+
+O modo recomendado é uma VPS ou servidor Linux com Docker Compose, domínio, HTTPS, PostgreSQL e Redis protegidos.
+
+Fluxo:
+
+1. Instalar Docker e Docker Compose.
+2. Clonar uma versão revisada do repositório.
+3. Criar .env a partir de .env.prod.example.
+4. Configurar domínio e HTTPS.
+5. Fazer backup do banco.
+6. Validar a versão em staging.
+7. Executar migrations aprovadas.
+8. Subir os serviços.
+9. Conferir API, login, filas, PDFs, cobrança e logs.
+
+~~~bash
+cp .env.prod.example .env
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
+~~~
+
+Atualizações devem usar commit ou tag aprovada, backup e janela de mudança. Não execute db:deploy em produção sem validação e autorização operacional.
+
+## Segurança e privacidade
+
+- Senhas definitivas ficam somente como hash.
+- Senhas provisórias são individuais, temporárias e auditadas.
+- Biometria não é aceita no endpoint de aceite de privacidade.
+- Facial, cadastro biométrico e assinatura são fluxos separados.
+- Dados sensíveis exigem finalidade e permissão compatíveis.
+- Acesso multiempresa é validado no backend.
+- Operações relevantes geram auditoria.
+- Anexos suspeitos ficam em quarentena quando o antivírus não está disponível.
+- A aplicação não substitui a proteção do servidor, banco, hospedagem ou repositório.
+
+O produto não é parecer jurídico, contábil ou certificação biométrica. Essas decisões dependem de validação profissional e do fornecedor contratado.
+
+## Estado atual
+
+O repositório contém os lotes P0 a P7, a base de redesign responsivo e o histórico de evidências em test.md.
+
+Validações recentes em checkout temporário:
+
+- 38 arquivos e 253 testes unitários aprovados;
+- 5 arquivos e 38 testes de contrato aprovados;
+- 5 arquivos e 35 testes de segurança aprovados;
+- build da API, typecheck e build web aprovados;
+- E2E público validado em desktop e mobile.
+
+Ainda exigem autorização explícita: migrations em produção, cobranças reais, liberação facial do CEO sem fornecedor validado e deploy operacional.
+
+Plano detalhado: [test.md](test.md).
+
+## Licença e contato
+
+Este software é proprietário. Uso, cópia, modificação ou distribuição dependem de autorização do proprietário.
+
+Para apresentação comercial, acesse **[innovationia.com.br](https://innovationia.com.br/)**.
