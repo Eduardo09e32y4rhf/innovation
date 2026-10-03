@@ -1,17 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ShieldCheck, ArrowRight, Camera } from 'lucide-react';
+import React from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
-import dynamic from 'next/dynamic';
-
-const FaceIDOverlay = dynamic(() => import('@/app/components/FaceIDOverlay').then(mod => mod.FaceIDOverlay), { ssr: false });
-
-// Pré-carrega os modelos de IA assim que o arquivo é importado
-if (typeof window !== 'undefined') {
-  import('@/app/components/FaceIDOverlay').catch(() => {});
-}
-
 const TERMS_VERSION = 'lgpd-rh-innovation-v2.0.0';
 
 const FALLBACK_PURPOSE = 'Uso do sistema SaaS para gestão de RH, departamento pessoal, colaboradores, ponto, jornada, férias, comunicação operacional e registros administrativos, com integração às ferramentas de Inteligência Artificial da Innovation System e consultoria, conforme bases legais aplicáveis da LGPD e normas de proteção avançada de dados.';
@@ -62,11 +53,9 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [locationData, setLocationData] = React.useState<{lat: number; lon: number; address: string} | null>(null);
   
-  const [showFaceID, setShowFaceID] = useState(false);
-  const [locationData, setLocationData] = useState<{lat: number; lon: number; address: string} | null>(null);
-
-  const [employeeInfo, setEmployeeInfo] = useState<{ name: string; email: string; cpf: string | null } | null>(null);
+  const [employeeInfo, setEmployeeInfo] = React.useState<{ name: string; email: string; cpf: string | null } | null>(null);
 
   React.useEffect(() => {
     async function fetchEmployee() {
@@ -147,10 +136,10 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
     if (!token || !checked) return;
     setSaving(true);
     setError('');
+    return acceptTerms();
 
     // Abre a câmera IMEDIATAMENTE — não espera o GPS
-    setShowFaceID(true);
-    setSaving(false);
+    await acceptTerms();
 
     // Geolocalização em paralelo (não bloqueia a câmera)
     if (navigator.geolocation) {
@@ -180,8 +169,7 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
     }
   };
 
-  const acceptTerms = async (photoBase64: string, faceDescriptor?: number[]) => {
-    setShowFaceID(false);
+  const acceptTerms = async () => {
     setSaving(true);
     setError('');
     try {
@@ -192,8 +180,6 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
           latitude: locationData?.lat,
           longitude: locationData?.lon,
           address: locationData?.address,
-          photoBase64,
-          faceDescriptor
         })
       });
       if (!response.ok) {
@@ -293,26 +279,18 @@ export function PrivacyConsentGate({ children }: { children: React.ReactNode }) 
           </label>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs font-semibold text-slate-400 max-w-sm">A assinatura requer acesso à câmera e à localização (GPS). O documento final estará disponível na sua área de notificações.</p>
+            <p className="text-xs font-semibold text-slate-400 max-w-sm">O aceite registra somente sua confirmação dos termos. O documento final estará disponível na sua área de notificações.</p>
             <button
               onClick={handleInitiateAccept}
               disabled={!checked || saving}
               className="flex h-12 items-center gap-2 rounded-[14px] bg-slate-900 px-6 text-sm font-black text-white shadow-[0_12px_24px_rgba(15,23,42,0.15)] transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {saving ? 'Processando...' : 'Assinar com Face ID'}
-              {!saving && <Camera size={18} />}
+              {saving ? 'Processando...' : 'Aceitar termos'}
             </button>
           </div>
         </footer>
       </section>
 
-      {showFaceID && (
-        <FaceIDOverlay 
-          title="Assinatura Biométrica Facial"
-          onCapture={acceptTerms} 
-          onCancel={() => setShowFaceID(false)} 
-        />
-      )}
     </div>
   );
 }

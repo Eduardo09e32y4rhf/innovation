@@ -684,3 +684,11 @@ Migrar o shell do dashboard e as telas de autenticação/cadastro para usar os c
 - O filtro de mês/departamento do dashboard foi migrado para o `ActionBar` oficial, iniciando a remoção de padrões locais duplicados sem alterar os dados ou permissões da tela; typecheck web passou após a migração.
 - A tela Funcionários foi migrada para `PageHeader` e `ActionBar`, mantendo as ações de importar/criar e a busca existente; typecheck web passou após a migração.
 - Build web final após as migrações: aprovado no checkout temporário fora do OneDrive; rotas do dashboard e Funcionários foram compiladas sem erro.
+
+## 23. Correção do aceite legal e separação biométrica - 02/10/2026
+
+- Erro reproduzido: `POST /legal/terms/accept` retornava 400 porque o `PrivacyConsentGate` ainda abria a câmera e enviava `photoBase64`/`faceDescriptor` junto com o aceite.
+- Correção aplicada: o aceite de privacidade agora envia somente os metadados legais permitidos e o botão passou a ser `Aceitar termos`.
+- A validação biométrica permanece fora do aceite, restrita aos fluxos faciais específicos de ponto/onboarding.
+- O DTO de `legal/terms/accept` deixou de declarar campos biométricos; a API continua rejeitando payloads antigos que tentem misturá-los.
+- Validação: `typecheck:web` e `build:api` aprovados no checkout temporário; nenhuma migração ou operação de produção foi executada.

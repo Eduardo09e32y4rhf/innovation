@@ -3,14 +3,12 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrivacyService } from './privacy.service';
-import { IsNumber, IsOptional, IsString, IsArray } from 'class-validator';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class AcceptTermsDto {
   @IsOptional() @IsNumber() latitude?: number;
   @IsOptional() @IsNumber() longitude?: number;
   @IsOptional() @IsString() address?: string;
-  @IsOptional() @IsString() photoBase64?: string;
-  @IsOptional() @IsArray() faceDescriptor?: number[];
 }
 
 @UseGuards(JwtAuthGuard)
