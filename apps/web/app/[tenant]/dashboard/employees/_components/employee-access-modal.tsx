@@ -112,7 +112,7 @@ export function EmployeeAccessModal({
               <Button variant="outline" onClick={handleClose} disabled={loading}>
                 Cancelar
               </Button>
-              <Button onClick={handleCreateAccess} loading={loading}>
+              <Button onClick={handleCreateAccess} isLoading={loading}>
                 Criar Acesso
               </Button>
             </div>

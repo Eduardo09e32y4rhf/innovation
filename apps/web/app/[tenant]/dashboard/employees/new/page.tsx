@@ -736,7 +736,7 @@ function EmployeeForm() {
       <ConfirmDialog isOpen={leaveOpen} onClose={() => setLeaveOpen(false)} onConfirm={() => router.push(destination)} title="Descartar alterações?" description="Os dados preenchidos ainda não foram salvos." confirmText="Descartar e voltar" cancelText="Continuar preenchendo" />
 
       {temporaryPassword && (
-        <Modal open={!!temporaryPassword} onOpenChange={(open) => { if (!open) { setTemporaryPassword(null); router.push(destination); } }} title="Funcionário criado com acesso">
+        <Modal isOpen={!!temporaryPassword} onClose={() => { setTemporaryPassword(null); router.push(destination); }} title="Funcionário criado com acesso">
           <div className="space-y-4">
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
               <p className="text-sm font-semibold text-emerald-900 mb-2">✓ Funcionário criado com sucesso!</p>
