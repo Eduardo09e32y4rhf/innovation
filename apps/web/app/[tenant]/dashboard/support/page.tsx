@@ -71,24 +71,23 @@ function getStatusBadge(status: string) {
   switch (status) {
     case 'NEW':
     case 'OPEN':
-      return <span className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800"><AlertCircle size={14} className="shrink-0 text-amber-600" /> Aberto</span>;
+      return <span className="chip-warning inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold"><AlertCircle size={14} className="shrink-0" /> Aberto</span>;
     case 'TRIAGE':
     case 'IN_PROGRESS':
-      return <span className="flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-800"><Clock size={14} className="shrink-0 text-sky-600" /> Em andamento</span>;
+      return <span className="chip-brand inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold"><Clock size={14} className="shrink-0" /> Em andamento</span>;
     case 'WAITING_CUSTOMER':
-      return <span className="flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-800"><Clock size={14} className="shrink-0 text-violet-600" /> Aguardando cliente</span>;
+      return <span className="chip inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-accent"><Clock size={14} className="shrink-0" /> Aguardando cliente</span>;
     case 'RESOLVED':
     case 'CLOSED':
-      return <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800"><CheckCircle2 size={14} className="shrink-0 text-emerald-600" /> Resolvido / Fechado</span>;
+      return <span className="chip-success inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold"><CheckCircle2 size={14} className="shrink-0" /> Resolvido / Fechado</span>;
     default:
-      return <span className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{status}</span>;
+      return <span className="chip inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold">{status}</span>;
   }
 }
 
 function CustomerSupportPage() {
   const { user } = useAuth();
-  const role = String(user?.role || user?.profile || '').toUpperCase();
-  const isFuncionario = role === 'FUNCIONARIO';
+  const role = String(user?.profile || user?.role || '').toUpperCase();
   const isAdminOrRh = role === 'ADMIN' || role === 'RH';
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -109,6 +108,7 @@ function CustomerSupportPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   const loadTickets = useCallback(async () => {
     setLoading(true);
@@ -194,13 +194,13 @@ function CustomerSupportPage() {
 
   const handleCloseTicket = async () => {
     if (!selectedTicket) return;
-    if (!confirm('Deseja realmente encerrar este chamado?')) return;
     try {
       await api.support.close(selectedTicket.id);
       toast.success('Chamado encerrado.');
       const updated = await api.support.get(selectedTicket.id);
       if (updated) setSelectedTicket(updated);
       loadTickets();
+      setShowCloseConfirm(false);
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao fechar chamado.');
     }
@@ -256,16 +256,18 @@ function CustomerSupportPage() {
     : [];
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-7xl flex-col gap-6 overflow-x-hidden p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
+      <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <header className="card-v2 relative flex flex-col gap-4 overflow-hidden p-5 sm:p-6 md:flex-row md:items-center md:justify-between">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-brand/10 blur-3xl" />
         <div>
-          <h1 className="flex items-center gap-3 text-2xl font-black tracking-tight text-slate-900">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-500/20">
+          <h1 className="relative flex items-center gap-3 text-2xl font-black tracking-tight text-fg">
+            <div className="flex h-11 w-11 items-center justify-center rounded-v2 bg-brand text-white shadow-v2-md">
               <LifeBuoy size={24} />
             </div>
             Central de Suporte ao Cliente
           </h1>
-          <p className="mt-1 text-sm font-medium text-slate-500">
+          <p className="relative mt-1 text-sm font-medium text-fg-mut">
             {isAdminOrRh
               ? 'Gerencie e acompanhe os chamados de suporte da sua empresa.'
               : 'Acompanhe seus chamados de suporte e tire dúvidas direto com nossa equipe.'}
@@ -275,39 +277,33 @@ function CustomerSupportPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={loadTickets}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50"
+            className="btn-v2-outline"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin text-violet-600' : 'text-slate-400'} />
+            <RefreshCw size={14} className={loading ? 'animate-spin text-brand' : 'text-fg-sub'} />
             Atualizar
           </button>
-          {!isFuncionario && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet-500/30 transition-all hover:scale-105 hover:bg-violet-700 active:scale-95"
-            >
-              <Plus size={18} />
-              Abrir Novo Chamado
-            </button>
-          )}
+          <button onClick={() => setShowModal(true)} className="btn-v2-primary">
+            <Plus size={16} /> Abrir novo chamado
+          </button>
         </div>
-      </div>
+      </header>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="card-v2 p-4">
           <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Chamados abertos</p>
           <p className="mt-1 text-2xl font-black text-slate-900">{stats?.open ?? filteredTickets.filter((ticket) => !['RESOLVED', 'CLOSED'].includes(ticket.status)).length}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="card-v2 p-4">
           <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Resolvidos</p>
           <p className="mt-1 text-2xl font-black text-slate-900">{stats?.resolved ?? filteredTickets.filter((ticket) => ticket.status === 'RESOLVED').length}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="card-v2 p-4">
           <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Fechados</p>
           <p className="mt-1 text-2xl font-black text-slate-900">{stats?.closed ?? filteredTickets.filter((ticket) => ticket.status === 'CLOSED').length}</p>
         </div>
       </div>
 
-      <div className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm md:flex-row md:items-center">
+      <div className="card-v2 flex flex-col justify-between gap-4 p-4 md:flex-row md:items-center">
         <div className="relative w-full md:max-w-md">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -315,7 +311,7 @@ function CustomerSupportPage() {
             placeholder="Buscar por código, assunto, empresa ou responsável..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
+            className="input-v2 h-11 w-full pl-10"
           />
         </div>
 
@@ -327,7 +323,7 @@ function CustomerSupportPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
+            className="input-v2 h-11 min-w-56"
           >
             <option value="">Todos os chamados</option>
             <option value="NEW">Novos</option>
@@ -339,7 +335,7 @@ function CustomerSupportPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div className="card-v2 flex-1 overflow-hidden">
         {loading ? (
           <LoadingState label="Carregando seus chamados..." />
         ) : error ? (
@@ -368,7 +364,7 @@ function CustomerSupportPage() {
                     )}
                   </div>
 
-                  <h3 className="text-base font-bold text-slate-900 transition-colors group-hover:text-violet-600">
+                  <h3 className="text-base font-bold text-fg transition-colors group-hover:text-brand">
                     {ticket.title || ticket.subject}
                   </h3>
 
@@ -388,9 +384,9 @@ function CustomerSupportPage() {
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2 text-xs font-bold text-violet-600 md:flex-col md:items-end">
-                  <span className="text-slate-400">Abrir detalhes</span>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-50 text-violet-600 transition-transform group-hover:translate-x-1">
+                <div className="flex shrink-0 items-center gap-2 text-xs font-bold text-brand md:flex-col md:items-end">
+                  <span className="text-fg-sub">Abrir detalhes</span>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand/10 text-brand transition-transform group-hover:translate-x-1">
                     <ChevronRight size={16} />
                   </div>
                 </div>
@@ -403,8 +399,8 @@ function CustomerSupportPage() {
       {selectedTicket && (
         <div className="fixed inset-0 z-50">
           <button className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm" onClick={() => setSelectedTicket(null)} />
-          <aside className="absolute right-0 top-0 flex h-full w-full max-w-2xl flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl">
-            <header className="border-b border-slate-100 bg-slate-950 px-6 py-4 text-white">
+          <aside className="absolute right-0 top-0 flex h-full w-full max-w-2xl flex-col overflow-hidden border-l border-border bg-bg-sub shadow-v2-xl">
+            <header className="border-b border-border bg-fg px-6 py-4 text-white">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-violet-300">
@@ -417,7 +413,8 @@ function CustomerSupportPage() {
                 </div>
                 <button
                   onClick={() => setSelectedTicket(null)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/15"
+                  aria-label="Fechar detalhes do chamado"
+                  className="flex h-9 w-9 items-center justify-center rounded-v2 bg-white/10 text-white hover:bg-white/15"
                 >
                   <X size={18} />
                 </button>
@@ -441,7 +438,7 @@ function CustomerSupportPage() {
                 ))}
               </div>
 
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="card-v2 mt-4 p-4">
                 <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Processo do chamado</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {STATUS_FLOW.map((step) => {
@@ -464,14 +461,14 @@ function CustomerSupportPage() {
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="card-v2 mt-4 p-4">
                 <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Descrição inicial do problema</p>
                 <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">
                   {selectedTicket.description || 'Sem descrição informada.'}
                 </p>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="card-v2 mt-4 p-4">
                 <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">
                   <Paperclip size={14} /> Prints e anexos
                 </p>
@@ -483,7 +480,7 @@ function CustomerSupportPage() {
                         type="button"
                         onClick={() => void handleDownloadAttachment(attachment.id)}
                         disabled={attachment.status === 'REJECTED'}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition-all hover:border-violet-300 hover:bg-violet-50 disabled:opacity-50"
+                        className="flex items-center justify-between gap-2 rounded-v2 border border-border bg-bg-sub p-3 text-left transition-all hover:border-brand/30 hover:bg-brand/5 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <span className="min-w-0">
                           <span className="block truncate text-xs font-bold text-slate-800">{attachment.originalName}</span>
@@ -492,7 +489,7 @@ function CustomerSupportPage() {
                             {attachment.status === 'CLEAN' ? 'Verificado' : attachment.status === 'QUARANTINED' ? 'Em verificação' : 'Bloqueado'}
                           </span>
                         </span>
-                        <Download size={14} className="shrink-0 text-violet-600" />
+                        <Download size={14} className="shrink-0 text-brand" />
                       </button>
                     ))}
                   </div>
@@ -546,14 +543,14 @@ function CustomerSupportPage() {
             </div>
 
             {(selectedTicket.status !== 'RESOLVED' && selectedTicket.status !== 'CLOSED') ? (
-              <div className="border-t border-slate-200 bg-white p-4 md:p-6 space-y-3">
+              <div className="space-y-3 border-t border-border bg-bg-elev p-4 md:p-6">
                 <label className="block text-xs font-bold text-slate-700">Adicionar nova resposta ou informação complementar</label>
                 <textarea
                   rows={3}
                   placeholder="Escreva sua mensagem aqui..."
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm font-medium outline-none transition-all focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
+                  className="input-v2 min-h-24 w-full resize-none p-3"
                 />
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[11px] text-slate-400">Sua resposta será enviada diretamente à equipe de suporte.</span>
@@ -561,7 +558,7 @@ function CustomerSupportPage() {
                     type="button"
                     onClick={handleSendReply}
                     disabled={sendingReply || !replyText.trim()}
-                    className="flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-violet-500/20 transition-all hover:bg-violet-700 disabled:opacity-50"
+                    className="btn-v2-primary disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Send size={14} />
                     {sendingReply ? 'Enviando...' : 'Enviar resposta'}
@@ -570,15 +567,15 @@ function CustomerSupportPage() {
                 <div className="flex flex-wrap gap-2 pt-2">
                   <button
                     type="button"
-                    onClick={handleCloseTicket}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+                    onClick={() => setShowCloseConfirm(true)}
+                    className="btn-v2-outline"
                   >
                     Encerrar chamado
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowModal(true)}
-                    className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-black text-violet-700 hover:bg-violet-100"
+                    className="btn-v2-outline border-brand/20 bg-brand/10 text-brand"
                   >
                     Abrir novo chamado
                   </button>
@@ -590,14 +587,14 @@ function CustomerSupportPage() {
                   <button
                     type="button"
                     onClick={handleReopenTicket}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+                    className="btn-v2-outline"
                   >
                     Reabrir chamado
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowModal(true)}
-                    className="rounded-xl bg-violet-600 px-4 py-2 text-xs font-black text-white hover:bg-violet-700"
+                    className="btn-v2-primary"
                   >
                     Abrir novo chamado
                   </button>
@@ -619,6 +616,7 @@ function CustomerSupportPage() {
               category: data.category as any,
               title: data.title.trim(),
               description: data.description.trim(),
+              impact: data.priority,
             });
             for (const file of data.files) {
               await api.support.uploadAttachment(ticket.id, file);
@@ -633,6 +631,21 @@ function CustomerSupportPage() {
           }
         }}
       />
+      {showCloseConfirm && selectedTicket && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[3px]">
+          <div className="card-v2 w-full max-w-md bg-bg-elev p-6 shadow-v2-xl">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-600"><CheckCircle2 size={18} /></span>
+              <div><h2 className="text-sm font-black text-fg">Encerrar este chamado?</h2><p className="mt-1 text-xs leading-5 text-fg-mut">Você poderá reabrir o chamado depois se precisar enviar novas informações.</p></div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setShowCloseConfirm(false)} className="btn-v2-outline">Continuar atendendo</button>
+              <button type="button" onClick={() => void handleCloseTicket()} className="btn-v2-primary bg-emerald-600 hover:bg-emerald-700">Encerrar chamado</button>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
     </div>
   );
 }

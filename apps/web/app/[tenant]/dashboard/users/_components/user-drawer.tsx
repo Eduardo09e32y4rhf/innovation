@@ -167,8 +167,8 @@ export function UserDrawer({
     <div className="fixed inset-0 z-50">
       <button className="absolute inset-0 bg-slate-950/30" onClick={onClose} />
 
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[520px] flex-col overflow-y-auto border-l border-slate-200 bg-white shadow-2xl">
-        <header className="sticky top-0 z-10 border-b border-slate-100 bg-white px-6 py-4">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-[520px] flex-col overflow-y-auto border-l border-border bg-bg-elev shadow-v2-xl">
+        <header className="sticky top-0 z-10 border-b border-border bg-bg-elev px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-black text-slate-900">Detalhes do usuário</h3>
@@ -176,7 +176,8 @@ export function UserDrawer({
             </div>
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              aria-label="Fechar detalhes do usuário"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-fg-mut transition-colors hover:bg-bg-sub hover:text-fg"
             >
               <X size={18} />
             </button>
@@ -213,7 +214,7 @@ export function UserDrawer({
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="form-control"
+                  className="input-v2"
                 />
               </div>
               <div>
@@ -222,7 +223,7 @@ export function UserDrawer({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="form-control"
+                  className="input-v2"
                 />
               </div>
               <div>
@@ -230,7 +231,7 @@ export function UserDrawer({
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as UserRole)}
-                  className="form-control"
+                  className="input-v2"
                 >
                   {availableRoles.map((r) => (
                     <option key={r} value={r}>
@@ -243,7 +244,7 @@ export function UserDrawer({
               {currentRole === 'DEV' && (
                 <div>
                   <label className="mb-1 block text-xs font-bold text-slate-700">Empresa</label>
-                  <input type="text" value={user.company?.name ?? '-'} disabled className="form-control bg-slate-50" />
+                  <input type="text" value={user.company?.name ?? '-'} disabled className="input-v2 bg-bg-sub" />
                 </div>
               )}
 
@@ -254,7 +255,7 @@ export function UserDrawer({
                     type="text"
                     value={user.lastActiveAt ? new Date(user.lastActiveAt).toLocaleString('pt-BR') : 'Nunca acessou'}
                     disabled
-                    className="form-control bg-slate-50"
+                    className="input-v2 bg-bg-sub"
                   />
                 </div>
                 <div>
@@ -263,7 +264,7 @@ export function UserDrawer({
                     type="text"
                     value={user.createdAt ? new Date(user.createdAt).toLocaleString('pt-BR') : '-'}
                     disabled
-                    className="form-control bg-slate-50"
+                    className="input-v2 bg-bg-sub"
                   />
                 </div>
               </div>
@@ -280,7 +281,7 @@ export function UserDrawer({
                   type="button"
                   onClick={handleSaveGeneral}
                   disabled={isSaving || !geralDirty}
-                  className="crystal-button w-full disabled:cursor-not-allowed disabled:opacity-50"
+                  className="btn-v2-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSaving ? 'Salvando...' : 'Salvar alterações'}
                 </button>
@@ -364,7 +365,7 @@ export function UserDrawer({
                         setIsCustomPerms(false);
                         setCustomPerms(getDefaultPermissions(user.role));
                       }}
-                      className="text-xs font-bold text-teal-600 hover:underline"
+                      className="text-xs font-bold text-brand hover:underline"
                     >
                       Restaurar padrão
                     </button>
@@ -372,7 +373,7 @@ export function UserDrawer({
                   <button
                     onClick={handleSavePerms}
                     disabled={isSaving || !permsDirty}
-                    className="crystal-button px-6 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="btn-v2-primary px-6 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isSaving ? 'Salvando...' : 'Salvar permissões'}
                   </button>
@@ -424,13 +425,13 @@ export function UserDrawer({
               <div className="flex flex-col gap-3">
                 <button
                   onClick={onResetPassword}
-                  className="btn-outline flex items-center justify-center gap-2"
+                  className="btn-v2-outline flex items-center justify-center gap-2"
                 >
                   <KeyRound size={14} /> Redefinir senha temporária
                 </button>
                 <button
                   onClick={onToggleBlock}
-                  className={`btn-outline flex items-center justify-center gap-2 ${
+                  className={`btn-v2-outline flex items-center justify-center gap-2 ${
                     user.isActive === false ? 'text-emerald-600' : 'text-rose-600'
                   }`}
                 >
@@ -489,7 +490,7 @@ export function UserDrawer({
                           onClose();
                         }
                       }}
-                      className="btn-outline flex items-center justify-center gap-2 text-teal-600"
+                      className="btn-v2-outline flex items-center justify-center gap-2 text-brand"
                     >
                       <LinkIcon size={14} />
                       Abrir cadastro do funcionário
@@ -510,7 +511,7 @@ export function UserDrawer({
                         router.push(`/${tenant}/dashboard/employees`);
                         onClose();
                       }}
-                      className="crystal-button mt-3 flex w-full items-center justify-center gap-2"
+                      className="btn-v2-primary mt-3 flex w-full items-center justify-center gap-2"
                     >
                       Ir para Funcionários
                     </button>

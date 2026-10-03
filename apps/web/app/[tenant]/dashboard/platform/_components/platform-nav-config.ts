@@ -1,33 +1,38 @@
+import { Activity, BarChart3, Building2, Calculator, ClipboardSignature, CreditCard, FileKey2, Headset, LayoutDashboard, Megaphone, ReceiptText, ScrollText, ShieldCheck, TicketPercent, UsersRound, type LucideIcon } from 'lucide-react';
+
 export type PlatformNavGroup = {
   key: string;
   label: string;
+  description: string;
   href: string;
   matchPrefixes: string[];
+  icon: LucideIcon;
 };
 
 export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
-  { key: 'overview', label: 'Visão Geral', href: '', matchPrefixes: [] },
-  { key: 'finance', label: 'Financeiro', href: '/finance', matchPrefixes: ['/finance'] },
-  { key: 'contracts', label: 'Contratos', href: '/contracts', matchPrefixes: ['/contracts', '/proposals'] },
-  { key: 'subscriptions', label: 'Assinaturas e Planos', href: '/subscriptions', matchPrefixes: ['/subscriptions', '/plans'] },
-  {
-    key: 'configuration',
-    label: 'Configuração Administrativa',
-    href: '/configuration',
-    matchPrefixes: ['/configuration', '/companies', '/permissions', '/access', '/coupons', '/whatsapp'],
-  },
-  {
-    key: 'audit',
-    label: 'Auditoria e Logs',
-    href: '/audit',
-    matchPrefixes: ['/audit'],
-  },
+  { key: 'overview', label: 'Visão geral', description: 'Saúde do ecossistema', href: '', matchPrefixes: [], icon: LayoutDashboard },
+  { key: 'intelligence', label: 'Inteligência', description: 'Riscos e sinais da base', href: '/intelligence', matchPrefixes: ['/intelligence'], icon: Activity },
+  { key: 'companies', label: 'Empresas', description: 'Clientes e operação', href: '/companies', matchPrefixes: ['/companies'], icon: Building2 },
+  { key: 'finance', label: 'Financeiro', description: 'Receita, cobrança e caixa', href: '/finance', matchPrefixes: ['/finance'], icon: CreditCard },
+  { key: 'accounting', label: 'Contabilidade', description: 'Correções e notas por empresa', href: '/accounting', matchPrefixes: ['/accounting'], icon: Calculator },
+  { key: 'contracts', label: 'Contratos', description: 'Ciclo contratual', href: '/contracts', matchPrefixes: ['/contracts'], icon: ClipboardSignature },
+  { key: 'proposals', label: 'Propostas', description: 'Pipeline comercial', href: '/proposals', matchPrefixes: ['/proposals'], icon: ScrollText },
+  { key: 'subscriptions', label: 'Assinaturas', description: 'Recorrência e clientes', href: '/subscriptions', matchPrefixes: ['/subscriptions'], icon: ReceiptText },
+  { key: 'plans', label: 'Planos', description: 'Produtos e limites', href: '/plans', matchPrefixes: ['/plans'], icon: BarChart3 },
+  { key: 'configuration', label: 'Configuração', description: 'Hub administrativo', href: '/configuration', matchPrefixes: ['/configuration'], icon: FileKey2 },
+  { key: 'permissions', label: 'Permissões', description: 'Perfis e políticas', href: '/permissions', matchPrefixes: ['/permissions'], icon: ShieldCheck },
+  { key: 'access', label: 'Acessos DEV', description: 'Sessões técnicas', href: '/access', matchPrefixes: ['/access'], icon: UsersRound },
+  { key: 'coupons', label: 'Cupons', description: 'Incentivos comerciais', href: '/coupons', matchPrefixes: ['/coupons'], icon: TicketPercent },
+  { key: 'whatsapp', label: 'Integrações', description: 'WhatsApp e canais', href: '/whatsapp', matchPrefixes: ['/whatsapp'], icon: Megaphone },
+  { key: 'audit', label: 'Auditoria', description: 'Logs e rastreabilidade', href: '/audit', matchPrefixes: ['/audit'], icon: ShieldCheck },
+  { key: 'support', label: 'Suporte operacional', description: 'Fila, SLA e atendimento', href: '/support', matchPrefixes: ['/support'], icon: Headset },
 ];
 
 export function getPlatformNavGroups(role: string): PlatformNavGroup[] {
-  if (role === 'DEV' || role === 'CEO') return PLATFORM_NAV_GROUPS.filter((group) => group.key !== 'audit');
-  // ADMIN e COMERCIAL não acessam Configuração nem Auditoria
-  return PLATFORM_NAV_GROUPS.filter((group) => group.key !== 'configuration' && group.key !== 'audit');
+  if (role === 'DEV') return PLATFORM_NAV_GROUPS;
+  if (role === 'CEO') return PLATFORM_NAV_GROUPS.filter((group) => !['access', 'support'].includes(group.key));
+  // Comercial e Admin acessam a operação comercial, sem governança técnica.
+  return PLATFORM_NAV_GROUPS.filter((group) => !['accounting', 'configuration', 'permissions', 'access', 'coupons', 'whatsapp', 'audit', 'intelligence', 'support'].includes(group.key));
 }
 
 export function resolvePlatformActive(base: string, pathname: string, groups: PlatformNavGroup[]) {

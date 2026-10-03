@@ -52,7 +52,7 @@ export function UserFilters({
             placeholder="Buscar por nome ou e-mail..."
             value={filters.search}
             onChange={(e) => update('search', e.target.value)}
-            className="form-control pl-10"
+            className="input-v2 pl-10"
           />
         </div>
 
@@ -62,7 +62,7 @@ export function UserFilters({
             <select
               value={filters.company}
               onChange={(e) => update('company', e.target.value)}
-              className="form-control pl-10"
+              className="input-v2 pl-10"
             >
               <option value="">Todas as empresas</option>
               {companies.map((company) => (
@@ -81,7 +81,7 @@ export function UserFilters({
           <select
             value={filters.role}
             onChange={(e) => update('role', e.target.value)}
-            className="form-control pl-10"
+            className="input-v2 pl-10"
           >
             <option value="">Todos os perfis</option>
             {availableRoles.map((role) => (
@@ -97,7 +97,7 @@ export function UserFilters({
           <select
             value={filters.status}
             onChange={(e) => update('status', e.target.value)}
-            className="form-control pl-10"
+            className="input-v2 pl-10"
           >
             <option value="">Todos os status</option>
             <option value="ativos">Ativos</option>
@@ -111,7 +111,7 @@ export function UserFilters({
           <select
             value={filters.link}
             onChange={(e) => update('link', e.target.value)}
-            className="form-control pl-10"
+            className="input-v2 pl-10"
           >
             <option value="">Todos (Vínculo)</option>
             <option value="com">Com funcionário</option>
@@ -122,7 +122,7 @@ export function UserFilters({
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="btn-outline ml-auto inline-flex h-10 items-center gap-2 px-4 text-xs"
+            className="btn-v2-outline ml-auto inline-flex h-10 items-center gap-2 px-4 text-xs"
           >
             <X size={14} />
             Limpar

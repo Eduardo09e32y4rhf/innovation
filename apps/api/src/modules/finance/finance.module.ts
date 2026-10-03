@@ -10,9 +10,11 @@ import { FinanceNotificationService } from './finance-notification.service';
 import { PlatformFinanceService } from './platform-finance.service';
 import { PricingService } from './pricing.service';
 import { QueueModule } from '../queue/queue.module';
+import { TimeTrackModule } from '../time-track/time-track.module';
 
 @Module({
   imports: [
+    TimeTrackModule,
     forwardRef(() => QueueModule),
     BullModule.registerQueue(
       { name: 'whatsapp-send' },

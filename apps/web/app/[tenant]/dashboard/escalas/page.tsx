@@ -15,11 +15,11 @@ import { LoadingState, ErrorState, EmptyState } from '@/app/components/data-stat
 import { cn } from '@/app/lib/cn';
 
 const PIPELINE_STEPS = [
-  { key: 'OPEN',      label: 'ApuraÃ§Ã£o'   },
+  { key: 'OPEN',      label: 'ApuraÃƒÂ§ÃƒÂ£o'   },
   { key: 'DRAFT',     label: 'Rascunho'   },
   { key: 'TREATMENT', label: 'Tratamento' },
-  { key: 'IN_REVIEW', label: 'RevisÃ£o'    },
-  { key: 'APPROVED',  label: 'AprovaÃ§Ã£o'  },
+  { key: 'IN_REVIEW', label: 'RevisÃƒÂ£o'    },
+  { key: 'APPROVED',  label: 'AprovaÃƒÂ§ÃƒÂ£o'  },
   { key: 'CLOSED',    label: 'Fechado'    },
 ];
 
@@ -28,6 +28,7 @@ export default function EscalasOverviewPage() {
   const router = useRouter();
   const tenant = params.tenant as string;
   const { user } = useAuth();
+  const role = String(user?.profile ?? user?.role ?? '').toUpperCase();
 
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -68,9 +69,9 @@ export default function EscalasOverviewPage() {
       .map((o: any) => ({
         id: `occ-${o.id}`,
         type: 'occurrence',
-        title: 'OcorrÃªncia pendente',
-        description: o.reason || 'NÃ£o informado',
-        responsible: o.employeeName || 'NÃ£o informado',
+        title: 'OcorrÃƒÂªncia pendente',
+        description: o.reason || 'NÃƒÂ£o informado',
+        responsible: o.employeeName || 'NÃƒÂ£o informado',
         time: o.date || today,
         icon: AlertCircle,
         accent: 'warning' as const,
@@ -80,8 +81,8 @@ export default function EscalasOverviewPage() {
       id: `swap-${s.id}`,
       type: 'swap',
       title: 'Troca de escala',
-      description: 'Aguardando aprovaÃ§Ã£o do gestor',
-      responsible: s.requesterName || 'NÃ£o informado',
+      description: 'Aguardando aprovaÃƒÂ§ÃƒÂ£o do gestor',
+      responsible: s.requesterName || 'NÃƒÂ£o informado',
       time: s.createdAt?.split('T')[0] || today,
       icon: RefreshCw,
       accent: 'info' as const,
@@ -91,8 +92,8 @@ export default function EscalasOverviewPage() {
       id: `track-${pt.id}`,
       type: 'track',
       title: 'Ponto pendente',
-      description: 'Requer aprovaÃ§Ã£o',
-      responsible: pt.employeeName || 'NÃ£o informado',
+      description: 'Requer aprovaÃƒÂ§ÃƒÂ£o',
+      responsible: pt.employeeName || 'NÃƒÂ£o informado',
       time: pt.date || today,
       icon: UserCheck,
       accent: 'brand' as const,
@@ -103,28 +104,28 @@ export default function EscalasOverviewPage() {
       .slice(0, 5);
   }, [occurrences, swaps, pendingTracks, tenant, today]);
 
-  let ctaText = 'Ver CalendÃ¡rio';
+  let ctaText = 'Ver CalendÃƒÂ¡rio';
   let ctaLink = `/${tenant}/dashboard/escalas/calendario`;
-  if (user?.role === 'FUNCIONARIO') ctaText = 'Bater Ponto', ctaLink = `/${tenant}/dashboard/escalas/ponto`;
-  else if (user?.role === 'GESTOR') ctaText = 'Aprovar PendÃªncias', ctaLink = `/${tenant}/dashboard/escalas/ocorrencias`;
-  else if (['ADMIN', 'RH', 'DEV'].includes(user?.role || '')) ctaText = 'Preparar Fechamento', ctaLink = `/${tenant}/dashboard/escalas/fechamento`;
+  if (role === 'FUNCIONARIO') ctaText = 'Bater Ponto', ctaLink = `/${tenant}/dashboard/escalas/ponto`;
+  else if (role === 'GESTOR') ctaText = 'Aprovar PendÃƒÂªncias', ctaLink = `/${tenant}/dashboard/escalas/ocorrencias`;
+  else if (['ADMIN', 'RH', 'DEV'].includes(role)) ctaText = 'Preparar Fechamento', ctaLink = `/${tenant}/dashboard/escalas/fechamento`;
 
   let currentStepIndex = PIPELINE_STEPS.findIndex((s) => s.key === stats.closingStatus);
   if (currentStepIndex === -1) currentStepIndex = 0;
 
-  if (isLoading) return <LoadingState label="Carregando visÃ£o geral..." />;
-  if (isError)   return <ErrorState message="Erro ao carregar dados da visÃ£o geral." />;
+  if (isLoading) return <LoadingState label="Carregando visÃƒÂ£o geral..." />;
+  if (isError)   return <ErrorState message="Erro ao carregar dados da visÃƒÂ£o geral." />;
 
   return (
     <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)] flex flex-col gap-5">
-      {/* â”€â”€ Sub-header com CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Sub-header com CTA Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         className="card-v2 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <p className="text-sm font-medium text-fg-mut">
-          Acompanhe em tempo real o status da jornada e as pendÃªncias da competÃªncia{' '}
+          Acompanhe em tempo real o status da jornada e as pendÃƒÂªncias da competÃƒÂªncia{' '}
           <span className="font-black text-fg">{currentMonth}</span>.
         </p>
         <button
@@ -136,17 +137,17 @@ export default function EscalasOverviewPage() {
         </button>
       </motion.div>
 
-      {/* â”€â”€ KPIs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ KPIs Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <KpiTile delay={0.02} title="Colaboradores"   value={stats.totalEmployees}       icon={Users}      accent="info"    hint="Total ativos na escala" />
         <KpiTile delay={0.06} title="Presentes hoje"  value={stats.presentTodayCount}    icon={UserCheck}  accent="success" hint="Com registro hoje" />
-        <KpiTile delay={0.10} title="AusÃªncias"       value={stats.absencesCount}        icon={UserMinus}  accent="danger"  hint="Sem registro hoje" />
-        <KpiTile delay={0.14} title="OcorrÃªncias"     value={stats.pendingOccurrences}   icon={AlertCircle} accent="warning" hint="Aguardando tratamento" />
-        <KpiTile delay={0.18} title="Trocas"          value={stats.pendingSwaps}         icon={RefreshCw}  accent="info"    hint="Aguardando aprovaÃ§Ã£o" />
-        <KpiTile delay={0.22} title="CompetÃªncia"     value={PIPELINE_STEPS[currentStepIndex]?.label || 'Aberta'} icon={FileText} accent="brand" hint="Status do fechamento" small />
+        <KpiTile delay={0.10} title="AusÃƒÂªncias"       value={stats.absencesCount}        icon={UserMinus}  accent="danger"  hint="Sem registro hoje" />
+        <KpiTile delay={0.14} title="OcorrÃƒÂªncias"     value={stats.pendingOccurrences}   icon={AlertCircle} accent="warning" hint="Aguardando tratamento" />
+        <KpiTile delay={0.18} title="Trocas"          value={stats.pendingSwaps}         icon={RefreshCw}  accent="info"    hint="Aguardando aprovaÃƒÂ§ÃƒÂ£o" />
+        <KpiTile delay={0.22} title="CompetÃƒÂªncia"     value={PIPELINE_STEPS[currentStepIndex]?.label || 'Aberta'} icon={FileText} accent="brand" hint="Status do fechamento" small />
       </section>
 
-      {/* â”€â”€ Pipeline + Lista de atenÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Pipeline + Lista de atenÃƒÂ§ÃƒÂ£o Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Pipeline */}
         <motion.div
@@ -196,7 +197,7 @@ export default function EscalasOverviewPage() {
           </div>
         </motion.div>
 
-        {/* Lista de atenÃ§Ã£o */}
+        {/* Lista de atenÃƒÂ§ÃƒÂ£o */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -205,20 +206,20 @@ export default function EscalasOverviewPage() {
         >
           <div className="flex items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
             <h3 className="text-sm font-black tracking-tight text-fg">
-              Lista de atenÃ§Ã£o
+              Lista de atenÃƒÂ§ÃƒÂ£o
             </h3>
             <Link
               href={`/${tenant}/dashboard/escalas/ocorrencias`}
               className="text-[11px] font-black text-brand-600 hover:underline"
             >
-              Ver tudo â†’
+              Ver tudo Ã¢â€ â€™
             </Link>
           </div>
 
           <div className="flex-1 overflow-y-auto">
             {attentionItems.length === 0 ? (
               <div className="p-8">
-                <EmptyState message="Nenhuma pendÃªncia crÃ­tica requer sua atenÃ§Ã£o no momento." />
+                <EmptyState message="Nenhuma pendÃƒÂªncia crÃƒÂ­tica requer sua atenÃƒÂ§ÃƒÂ£o no momento." />
               </div>
             ) : (
               <ul className="divide-y divide-border/50">
@@ -241,7 +242,7 @@ export default function EscalasOverviewPage() {
                         <div className="min-w-0">
                           <p className="truncate text-sm font-bold text-fg">{item.title}</p>
                           <p className="truncate text-xs text-fg-mut">
-                            {item.responsible} â€¢ {item.description}
+                            {item.responsible} Ã¢â‚¬Â¢ {item.description}
                           </p>
                         </div>
                       </div>
@@ -263,9 +264,9 @@ export default function EscalasOverviewPage() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    COMPONENTES INTERNOS
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 
 function KpiTile({
   title, value, icon: Icon, accent = 'brand', hint, delay = 0, small = false,

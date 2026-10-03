@@ -482,6 +482,33 @@ export interface CompanyBillingResult {
   usage?: { users: number; maxUsers: number; employees: number; maxEmployees: number };
 }
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; activeCompanies: number; suspendedCompanies: number; pastDueCompanies: number; }
+export interface AccountingCompanyRow {
+  id: string; name: string; document?: string | null; status: string; billingStatus?: string;
+  closings: number; closingsInReview: number; payrolls: number; payrollsPending: number;
+  invoices: number; invoicesOverdue: number; invoiceTotal: number;
+}
+export interface AccountingClosing {
+  id: string; companyId: string; status: string; periodStart: string; periodEnd: string;
+  salaryBase?: number | string; grossPay?: number | string; netPay?: number | string;
+  overtime50?: number | string; overtime100?: number | string; nightShift?: number | string;
+  absenceMinutes?: number; lateMinutes?: number; earlyLeaveMinutes?: number; updatedAt: string;
+  company?: { name: string }; employee?: { name: string; position?: string | null };
+  adjustments?: Array<{ id: string; field: string; oldValue: string; newValue: string; reason: string; createdAt: string }>;
+}
+export interface AccountingPayroll {
+  id: string; companyId: string; status: string; baseSalary: number | string; grossSalary: number | string;
+  netSalary: number | string; inssAmount: number | string; irrfAmount: number | string; fgtsAmount: number | string;
+  overtimeAmount?: number | string; nightShiftAmount?: number | string; observations?: string | null; updatedAt: string;
+  employee?: { name: string; position?: string | null };
+}
+export interface AccountingOverview {
+  period: { year: number; month: number; key: string };
+  metrics: { companies: number; closings: number; closingsInReview: number; payrolls: number; payrollsPending: number; invoiceTotal: number; invoicesOverdue: number; invoicesWithoutFiscalNumber: number };
+  companies: AccountingCompanyRow[];
+  recentClosings: AccountingClosing[];
+  recentPayrolls: AccountingPayroll[];
+  recentInvoices: PlatformInvoice[];
+}
 export interface CreatePlatformCompanyInput {
   name: string; document: string; slug: string;
   maxUsers?: number; maxEmployees?: number; planId?: string;
@@ -797,6 +824,13 @@ export const api = {
       delete: (id: string) => request<{ id: string }>(`/finance/platform/invoices/${id}`, { method: 'DELETE' }),
       downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to'> = {}) =>
         downloadRequest(`/finance/platform/statements/pdf${makeQuery(query)}`),
+    },
+    accounting: {
+      overview: (month?: string) => request<AccountingOverview>(`/finance/accounting/overview${makeQuery({ month })}`),
+      closings: (companyId: string, month?: string) => request<AccountingClosing[]>(`/finance/accounting/companies/${companyId}/closings${makeQuery({ month })}`),
+      payroll: (companyId: string, month?: string) => request<AccountingPayroll[]>(`/finance/accounting/companies/${companyId}/payroll${makeQuery({ month })}`),
+      adjustClosing: (id: string, input: { field: string; newValue: number; reason: string }) => request<AccountingClosing>(`/finance/accounting/time-closings/${id}/adjust`, { method: 'PATCH', body: input }),
+      correctPayroll: (id: string, input: Record<string, unknown>) => request<AccountingPayroll>(`/finance/accounting/payroll/${id}`, { method: 'PATCH', body: input }),
     },
   },
 

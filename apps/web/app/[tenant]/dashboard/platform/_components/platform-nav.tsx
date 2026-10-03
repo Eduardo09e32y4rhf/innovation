@@ -9,20 +9,22 @@ export function PlatformNav({ base, groups }: { base: string; groups: PlatformNa
   const { group: activeGroup } = resolvePlatformActive(base, pathname, groups);
 
   return (
-    <nav className="flex flex-col gap-1 w-full" aria-label="Navegacao da plataforma">
+    <nav className="flex w-full gap-2 overflow-x-auto pb-1 lg:flex-col" aria-label="Navegação da plataforma">
       {groups.map((group) => {
         const isActive = activeGroup?.key === group.key;
+        const Icon = group.icon;
         return (
           <Link
             key={group.key}
             href={`${base}${group.href}`}
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all ${
+            className={`group flex min-w-[210px] items-center gap-3 rounded-v2 border px-3 py-3 text-left transition-all lg:min-w-0 ${
               isActive
-                ? 'bg-white text-violet-700 shadow-sm border border-slate-200'
-                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 border border-transparent'
+                ? 'border-brand/20 bg-brand/10 text-brand shadow-v2-sm'
+                : 'border-transparent text-fg-mut hover:bg-bg-sub hover:text-fg'
             }`}
           >
-            {group.label}
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-v2 ${isActive ? 'bg-brand text-white' : 'bg-bg-sub text-fg-sub group-hover:text-fg'}`}><Icon size={16} /></span>
+            <span className="min-w-0"><span className="block truncate text-xs font-black">{group.label}</span><span className="mt-0.5 block truncate text-[10px] font-medium opacity-70">{group.description}</span></span>
           </Link>
         );
       })}

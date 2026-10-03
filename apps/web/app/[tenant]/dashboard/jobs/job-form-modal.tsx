@@ -85,7 +85,7 @@ export function JobFormModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[3px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="job-form-title"
@@ -93,17 +93,17 @@ export function JobFormModal({
         if (event.currentTarget === event.target && !saving) onClose();
       }}
     >
-      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-5 py-4">
+      <div className="card-v2 max-h-[92vh] w-full max-w-2xl overflow-y-auto bg-bg-elev shadow-v2-xl">
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-bg-elev px-5 py-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+            <span className="flex h-10 w-10 items-center justify-center rounded-v2 bg-brand/10 text-brand">
               <Briefcase size={19} />
             </span>
             <div>
-              <h3 id="job-form-title" className="text-base font-black text-slate-950">
+              <h3 id="job-form-title" className="text-base font-black text-fg">
                 {job ? 'Editar vaga' : 'Criar nova vaga'}
               </h3>
-              <p className="text-xs font-medium text-slate-500">
+              <p className="text-xs font-medium text-fg-mut">
                 Defina as informações exibidas no portal de carreiras.
               </p>
             </div>
@@ -112,7 +112,7 @@ export function JobFormModal({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="btn-icon"
+            className="btn-v2-outline flex h-9 w-9 items-center justify-center p-0"
             aria-label="Fechar"
           >
             <X size={16} />
@@ -129,7 +129,7 @@ export function JobFormModal({
                 autoFocus
                 value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                className="form-control"
+                className="input-v2"
                 placeholder="Ex.: Analista de Recursos Humanos"
                 maxLength={120}
                 required
@@ -143,7 +143,7 @@ export function JobFormModal({
               <input
                 value={form.location}
                 onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
-                className="form-control"
+                className="input-v2"
                 placeholder="São Paulo, SP ou Remoto"
                 maxLength={120}
               />
@@ -156,7 +156,7 @@ export function JobFormModal({
               <select
                 value={form.employmentType}
                 onChange={(event) => setForm((current) => ({ ...current, employmentType: event.target.value }))}
-                className="form-control"
+                className="input-v2"
               >
                 <option value="CLT">CLT</option>
                 <option value="PJ">Pessoa jurídica</option>
@@ -173,7 +173,7 @@ export function JobFormModal({
               <input
                 value={form.salaryRange}
                 onChange={(event) => setForm((current) => ({ ...current, salaryRange: event.target.value }))}
-                className="form-control"
+                className="input-v2"
                 placeholder="Ex.: R$ 3.500 a R$ 4.500"
                 maxLength={80}
               />
@@ -188,7 +188,7 @@ export function JobFormModal({
                 onChange={(event) =>
                   setForm((current) => ({ ...current, status: event.target.value as JobStatus }))
                 }
-                className="form-control"
+                className="input-v2"
               >
                 <option value="OPEN">Aberta e publicada</option>
                 <option value="DRAFT">Rascunho</option>
@@ -203,7 +203,7 @@ export function JobFormModal({
               <textarea
                 value={form.description}
                 onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                className="form-control min-h-36 resize-y py-3"
+                className="input-v2 min-h-36 resize-y py-3"
                 placeholder="Descreva responsabilidades, requisitos e diferenciais..."
                 maxLength={6000}
                 required
@@ -220,7 +220,7 @@ export function JobFormModal({
               <input
                 value={benefitsText}
                 onChange={(event) => setBenefitsText(event.target.value)}
-                className="form-control"
+                className="input-v2"
                 placeholder="Vale-refeição, Plano de saúde, Auxílio home office"
               />
               <span className="mt-1 block text-[10px] font-medium text-slate-400">
@@ -230,16 +230,16 @@ export function JobFormModal({
           </div>
 
           {error && (
-            <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">
+            <p className="rounded-v2 border border-danger/20 bg-danger/10 p-3 text-xs font-bold text-danger">
               {error}
             </p>
           )}
 
-          <footer className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
-            <button type="button" onClick={onClose} disabled={saving} className="btn-outline">
+          <footer className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end">
+            <button type="button" onClick={onClose} disabled={saving} className="btn-v2-outline">
               Cancelar
             </button>
-            <button type="submit" disabled={saving} className="crystal-button min-w-32">
+            <button type="submit" disabled={saving} className="btn-v2-primary min-w-32 disabled:cursor-not-allowed disabled:opacity-60">
               {saving ? <Loader2 size={14} className="animate-spin" /> : null}
               {saving ? 'Salvando...' : job ? 'Salvar alterações' : 'Criar vaga'}
             </button>

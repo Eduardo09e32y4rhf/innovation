@@ -56,19 +56,19 @@ export function UserSummaryCards({ rows, usage }: UserSummaryCardsProps) {
       {cards.map((card, i) => (
         <div
           key={i}
-          className="ops-card flex flex-col justify-center rounded-[14px] border border-slate-200 bg-white p-5"
+          className="card-v2 flex flex-col justify-center p-5"
         >
           <div className="flex items-start gap-4">
             <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border border-slate-200 bg-slate-50 ${card.iconColor}`}
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-v2 border border-border bg-bg-sub ${card.iconColor}`}
             >
               <card.icon size={20} />
             </div>
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-fg-mut">
                 {card.title}
               </p>
-              <p className="mt-1 text-2xl font-black text-slate-900">{card.value}</p>
+              <p className="mt-1 text-2xl font-black text-fg">{card.value}</p>
             </div>
           </div>
         </div>

@@ -4,9 +4,11 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { CreditCard, ExternalLink, FileText, Download, CheckCircle2, AlertTriangle, ArrowRight, Activity, Users, Shield, Zap } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export function CompanyFinanceSection({ tenant }: { tenant: string }) {
   const [isChangingPlan, setIsChangingPlan] = useState(false);
+  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
 
   const { data: plans } = useQuery(
     () => api.request<any[]>('/auth/public-plans'),
@@ -25,7 +27,6 @@ export function CompanyFinanceSection({ tenant }: { tenant: string }) {
 
   const changePlan = useMutation(
     async (planId: string) => {
-      if (!confirm('Deseja realmente alterar o plano da sua empresa? Isso pode gerar novas cobranças proporcionais.')) return;
       return api.request('/finance/company/change-plan', {
         method: 'POST',
         body: { planId },
@@ -33,12 +34,12 @@ export function CompanyFinanceSection({ tenant }: { tenant: string }) {
     },
     {
       onSuccess: () => {
-        alert('Plano alterado com sucesso!');
+        toast.success('Plano alterado com sucesso.');
         setIsChangingPlan(false);
         refetchBilling();
         refetchInvoices();
       },
-      onError: (err: any) => alert(err?.message || String(err) || 'Erro ao alterar plano'),
+      onError: (err: any) => toast.error(err?.message || String(err) || 'Erro ao alterar plano'),
     }
   );
 
@@ -59,7 +60,7 @@ export function CompanyFinanceSection({ tenant }: { tenant: string }) {
       refetchBilling();
       refetchInvoices();
     } catch (err: any) {
-      alert(err?.message || String(err) || 'Erro ao processar pagamento');
+      toast.error(err?.message || String(err) || 'Erro ao processar pagamento');
     }
   }
 
@@ -73,23 +74,23 @@ export function CompanyFinanceSection({ tenant }: { tenant: string }) {
   };
 
   if (!billing) return (
-    <div className="flex h-40 items-center justify-center rounded-[18px] border border-slate-200 bg-white">
-      <p className="text-sm font-bold text-slate-400">Carregando financeiro...</p>
+    <div className="card-v2 flex h-40 items-center justify-center">
+      <p className="text-sm font-bold text-fg-sub">Carregando financeiro...</p>
     </div>
   );
 
   return (
-    <section className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-6 py-5">
+    <section className="card-v2 overflow-hidden">
+      <div className="border-b border-border bg-bg-sub/70 px-6 py-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-md shadow-emerald-500/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-v2 bg-emerald-500 text-white shadow-v2-sm">
             <CreditCard size={19} />
           </div>
           <div>
-            <h3 className="text-sm font-black text-slate-950">
+            <h3 className="text-sm font-black text-fg">
               Gestão Financeira
             </h3>
-            <p className="text-xs font-medium text-slate-500">
+            <p className="text-xs font-medium text-fg-mut">
               Gerencie sua assinatura, pagamentos e notas fiscais
             </p>
           </div>
@@ -153,7 +154,7 @@ export function CompanyFinanceSection({ tenant }: { tenant: string }) {
                 <button
                   type="button"
                   onClick={payInvoice}
-                  className="flex h-9 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white transition hover:bg-emerald-700 shadow-sm"
+                  className="btn-v2-primary h-9 bg-emerald-600 px-4 hover:bg-emerald-700"
                 >
                   <Zap size={14} /> Pagar Fatura Aberta
                 </button>
@@ -161,7 +162,7 @@ export function CompanyFinanceSection({ tenant }: { tenant: string }) {
               <button
                 type="button"
                 onClick={() => setIsChangingPlan(!isChangingPlan)}
-                className={`flex h-9 items-center gap-2 rounded-lg border px-4 text-xs font-bold transition ${isChangingPlan ? 'border-violet-600 text-violet-700 bg-violet-50' : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
+                className={`btn-v2-outline h-9 px-4 ${isChangingPlan ? 'border-brand text-brand bg-brand/10' : ''}`}
               >
                 {isChangingPlan ? 'Cancelar Troca' : 'Alterar Plano'}
               </button>
@@ -216,10 +217,10 @@ export function CompanyFinanceSection({ tenant }: { tenant: string }) {
               {plans?.filter(p => !p.isHidden).map((plan) => (
                 <div 
                   key={plan.id}
-                  className={`relative flex flex-col justify-between overflow-hidden rounded-[14px] border-2 p-5 transition-all ${
+                    className={`card-v2 relative flex flex-col justify-between overflow-hidden border-2 p-5 transition-all ${
                     billing.plan?.id === plan.id 
                       ? 'border-emerald-500 bg-emerald-50/30' 
-                      : 'border-slate-200 bg-white hover:border-slate-300'
+                      : 'border-border bg-bg-elev hover:border-brand/40'
                   }`}
                 >
                   {billing.plan?.id === plan.id && (
@@ -262,17 +263,32 @@ export function CompanyFinanceSection({ tenant }: { tenant: string }) {
                   <button
                     type="button"
                     disabled={billing.plan?.id === plan.id || changePlan.loading}
-                    onClick={() => changePlan.mutate(plan.id)}
-                    className={`flex h-10 w-full items-center justify-center gap-2 rounded-[10px] text-xs font-black transition-all ${
+                    onClick={() => setPendingPlanId(plan.id)}
+                    className={`flex h-10 w-full items-center justify-center gap-2 rounded-v2 text-xs font-black transition-all ${
                       billing.plan?.id === plan.id
                         ? 'bg-emerald-100 text-emerald-700 cursor-default'
-                        : 'bg-slate-900 text-white hover:bg-slate-800 shadow-md hover:shadow-lg'
+                        : 'bg-fg text-white hover:opacity-90 shadow-v2-sm'
                     }`}
                   >
                     {billing.plan?.id === plan.id ? 'Seu Plano' : (changePlan.loading ? 'Processando...' : 'Mudar para este')}
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {pendingPlanId && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[3px]">
+            <div className="card-v2 w-full max-w-md bg-bg-elev p-6 shadow-v2-xl">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand"><CreditCard size={18} /></span>
+                <div><h2 className="text-sm font-black text-fg">Confirmar alteração de plano?</h2><p className="mt-1 text-xs leading-5 text-fg-mut">A mudança pode gerar cobranças proporcionais e alterar os limites de usuários e colaboradores.</p></div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button type="button" onClick={() => setPendingPlanId(null)} disabled={changePlan.loading} className="btn-v2-outline">Cancelar</button>
+                <button type="button" onClick={() => { const planId = pendingPlanId; setPendingPlanId(null); changePlan.mutate(planId); }} disabled={changePlan.loading} className="btn-v2-primary disabled:cursor-not-allowed disabled:opacity-60">{changePlan.loading ? 'Processando...' : 'Confirmar alteração'}</button>
+              </div>
             </div>
           </div>
         )}

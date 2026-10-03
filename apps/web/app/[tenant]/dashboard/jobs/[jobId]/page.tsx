@@ -78,6 +78,7 @@ export default function JobPipelinePage() {
   const [downloadingResumeId, setDownloadingResumeId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [candidateToHire, setCandidateToHire] = useState<JobApplication | null>(null);
 
   const job = useMemo(() => (jobs.data ?? []).find((item) => item.id === jobId) ?? null, [jobId, jobs.data]);
   const rows = applications.data ?? [];
@@ -99,11 +100,12 @@ export default function JobPipelinePage() {
 
   if (!canAccess) {
     return (
-      <div className="mx-auto max-w-3xl py-16">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
-          <Briefcase className="mx-auto text-amber-600" size={30} />
-          <h1 className="mt-3 text-lg font-black text-amber-950">Acesso restrito ao recrutamento</h1>
-          <p className="mt-2 text-sm font-medium text-amber-800">Seu perfil não possui acesso ao funil de candidatos.</p>
+      <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
+        <div className="card-v2 mx-auto max-w-2xl p-8 text-center">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-v2 bg-brand/10 text-brand"><Briefcase size={26} /></span>
+          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.16em] text-brand">Recrutamento</p>
+          <h1 className="mt-1 text-xl font-black text-fg">Acesso restrito ao funil</h1>
+          <p className="mt-2 text-sm font-medium text-fg-mut">Seu perfil não possui acesso ao funil de candidatos.</p>
         </div>
       </div>
     );
@@ -171,7 +173,6 @@ export default function JobPipelinePage() {
   };
 
   const hire = async (application: JobApplication) => {
-    if (!window.confirm(`Contratar ${application.candidate.name} e iniciar a admissão? Os dados serão usados para criar o colaborador em onboarding.`)) return;
     setHiringId(application.id);
     try {
       const result = await jobsApi.hire(application.id);
@@ -215,8 +216,8 @@ export default function JobPipelinePage() {
   if (jobs.error || applications.error) return <ErrorState message={jobs.error || applications.error || 'Falha ao carregar o funil.'} onRetry={refresh} />;
   if (!job) {
     return (
-      <div className="space-y-5">
-        <Link href={`/${tenant}/dashboard/jobs`} className="btn-outline w-fit">
+        <div className="w-full space-y-5 px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
+          <Link href={`/${tenant}/dashboard/jobs`} className="btn-v2-outline w-fit">
           <ArrowLeft size={14} /> Voltar para vagas
         </Link>
         <EmptyState message="Vaga não encontrada ou removida." />
@@ -225,47 +226,48 @@ export default function JobPipelinePage() {
   }
 
   return (
-    <div className="mx-auto w-full space-y-5">
-      <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 xl:flex-row xl:items-center xl:justify-between">
+    <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
+      <div className="flex flex-col gap-5">
+      <header className="card-v2 flex flex-col gap-4 p-5 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <Link href={`/${tenant}/dashboard/jobs`} className="btn-icon mt-0.5 shrink-0" aria-label="Voltar para vagas">
+          <Link href={`/${tenant}/dashboard/jobs`} className="btn-v2-outline mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center p-0" aria-label="Voltar para vagas">
             <ArrowLeft size={15} />
           </Link>
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-teal-600">Funil de recrutamento</p>
-            <h1 className="truncate text-2xl font-black text-slate-950">{job.title}</h1>
-            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium text-slate-500">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-brand">Funil de recrutamento</p>
+            <h1 className="truncate text-2xl font-black text-fg">{job.title}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-medium text-fg-mut">
               <span className="inline-flex items-center gap-1"><MapPin size={12} /> {job.location || 'Local não informado'}</span>
               <span className="inline-flex items-center gap-1"><Users size={12} /> {rows.length} candidatura{rows.length === 1 ? '' : 's'}</span>
             </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={copyLink} className="btn-outline">
+          <button type="button" onClick={copyLink} className="btn-v2-outline">
             <Copy size={14} /> Copiar link público
           </button>
-          <button type="button" onClick={refresh} className="btn-outline">
+          <button type="button" onClick={refresh} className="btn-v2-outline">
             <RefreshCw size={14} /> Atualizar
           </button>
         </div>
       </header>
 
-      <section className="flex items-center justify-between gap-4 rounded-xl border border-violet-100 bg-gradient-to-r from-violet-50 to-teal-50 px-4 py-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-          <GripVertical size={15} className="text-violet-600" />
+      <section className="card-v2 flex items-center justify-between gap-4 border-brand/20 bg-brand/5 px-4 py-3">
+        <div className="flex items-center gap-2 text-xs font-bold text-fg-mut">
+          <GripVertical size={15} className="text-brand" />
           Arraste os cartões entre as colunas ou altere a etapa no dossiê do candidato.
         </div>
         {updatingId && (
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-violet-700">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-brand">
             <Loader2 size={12} className="animate-spin" /> Salvando
           </span>
         )}
       </section>
 
       {selectedIds.size > 0 && (
-        <section className="sticky top-4 z-40 flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-900 px-5 py-3 shadow-2xl">
+        <section className="sticky top-4 z-40 flex items-center justify-between gap-4 rounded-v2 border border-border bg-fg px-5 py-3 shadow-v2-xl">
           <div className="flex items-center gap-3 text-xs font-bold text-white">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-500 text-white shadow-sm">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white shadow-sm">
               {selectedIds.size}
             </span>
             candidatos selecionados
@@ -277,7 +279,7 @@ export default function JobPipelinePage() {
                 key={col.status}
                 onClick={() => handleBulkStatusChange(col.status)}
                 disabled={bulkUpdating}
-                className="rounded-lg bg-white/10 px-3 py-1.5 text-[10px] font-bold text-white transition-colors hover:bg-white/20 disabled:opacity-50"
+                className="inline-flex h-8 items-center rounded-v2 bg-white/10 px-3 text-[10px] font-bold text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {col.label}
               </button>
@@ -285,7 +287,7 @@ export default function JobPipelinePage() {
             <div className="mx-2 h-4 w-px bg-white/20" />
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="text-[10px] font-bold text-slate-400 hover:text-white"
+              className="inline-flex h-8 items-center rounded-v2 px-2 text-[10px] font-bold text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
             >
               Cancelar
             </button>
@@ -301,14 +303,14 @@ export default function JobPipelinePage() {
             return (
               <div
                 key={column.status}
-                className="min-h-[520px] rounded-2xl border border-slate-200 bg-slate-100/70 p-2"
+                className="min-h-[520px] rounded-v2 border border-border bg-bg-sub/70 p-2"
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={() => {
                   const application = rows.find((item) => item.id === draggingId);
                   if (application) void changeStatus(application, column.status);
                 }}
               >
-                <header className={`mb-2 rounded-xl border border-white/80 p-3 ${column.header}`}>
+                  <header className={`mb-2 rounded-v2 border border-white/80 p-3 ${column.header}`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span className={`h-2 w-2 rounded-full ${column.accent}`} />
@@ -324,8 +326,8 @@ export default function JobPipelinePage() {
 
                 <div className="space-y-2">
                   {items.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-300 bg-white/50 px-3 py-8 text-center">
-                      <p className="text-[10px] font-bold text-slate-400">Solte candidatos aqui</p>
+                    <div className="rounded-v2 border border-dashed border-border bg-bg-elev/50 px-3 py-8 text-center">
+                      <p className="text-[10px] font-bold text-fg-sub">Solte candidatos aqui</p>
                     </div>
                   ) : (
                     items.map((application) => (
@@ -363,9 +365,24 @@ export default function JobPipelinePage() {
           if (!hiringId) setSelected(null);
         }}
         onStatusChange={(status) => (selected ? changeStatus(selected, status) : Promise.resolve())}
-        onHire={() => (selected ? hire(selected) : Promise.resolve())}
+        onHire={() => { if (selected) setCandidateToHire(selected); return Promise.resolve(); }}
         onDownloadResume={() => (selected ? downloadResume(selected) : Promise.resolve())}
       />
+      {candidateToHire && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[3px]">
+          <div className="card-v2 w-full max-w-md bg-bg-elev p-6 shadow-v2-xl">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand"><UserCheck size={18} /></span>
+              <div><h2 className="text-sm font-black text-fg">Iniciar admissão?</h2><p className="mt-1 text-xs leading-5 text-fg-mut">{candidateToHire.candidate.name} será convertido em colaborador e enviado para onboarding e conferência do RH.</p></div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setCandidateToHire(null)} disabled={Boolean(hiringId)} className="btn-v2-outline">Cancelar</button>
+              <button type="button" onClick={() => { const candidate = candidateToHire; setCandidateToHire(null); void hire(candidate); }} disabled={Boolean(hiringId)} className="btn-v2-primary"><UserCheck size={14} /> Confirmar admissão</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
     </div>
   );
 }
@@ -395,8 +412,8 @@ function CandidateCard({
       draggable={!disabled}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className={`group relative rounded-xl border bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
-        selected ? 'border-violet-500 ring-1 ring-violet-500' : 'border-slate-200 hover:border-violet-300'
+      className={`group relative rounded-v2 border bg-bg-elev p-3 shadow-v2-sm transition-all hover:-translate-y-0.5 hover:shadow-v2-md ${
+        selected ? 'border-brand ring-1 ring-brand' : 'border-border hover:border-brand/40'
       } ${disabled ? 'opacity-60' : ''}`}
     >
       <div className="absolute left-3 top-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -404,7 +421,7 @@ function CandidateCard({
           type="checkbox"
           checked={selected}
           onChange={onToggleSelection}
-          className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
+          className="h-4 w-4 cursor-pointer rounded border-border text-brand focus:ring-brand"
         />
       </div>
       <div
@@ -418,10 +435,10 @@ function CandidateCard({
       >
         <div className="flex items-start justify-between gap-2 pl-6">
           <div className="min-w-0">
-            <h3 className="truncate text-xs font-black text-slate-950">{candidate.name}</h3>
-            <p className="mt-0.5 truncate text-[10px] font-medium text-slate-500">{candidate.email || 'E-mail não informado'}</p>
+            <h3 className="truncate text-xs font-black text-fg">{candidate.name}</h3>
+            <p className="mt-0.5 truncate text-[10px] font-medium text-fg-mut">{candidate.email || 'E-mail não informado'}</p>
           </div>
-          <GripVertical size={14} className="shrink-0 text-slate-300 group-hover:text-violet-500" />
+          <GripVertical size={14} className="shrink-0 text-fg-sub group-hover:text-brand" />
         </div>
 
       {score != null ? (
@@ -435,16 +452,16 @@ function CandidateCard({
           </div>
         </div>
       ) : (
-        <p className="mt-3 inline-flex items-center gap-1 rounded-lg bg-slate-50 px-2 py-1 text-[9px] font-bold text-slate-500">
+        <p className="mt-3 inline-flex items-center gap-1 rounded-v2 bg-bg-sub px-2 py-1 text-[9px] font-bold text-fg-mut">
           <BrainCircuit size={11} /> Análise pendente
         </p>
       )}
 
       {candidate.aiSummary && (
-        <p className="mt-2 line-clamp-3 text-[10px] leading-4 text-slate-600">{candidate.aiSummary}</p>
+        <p className="mt-2 line-clamp-3 text-[10px] leading-4 text-fg-mut">{candidate.aiSummary}</p>
       )}
 
-      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-[9px] font-bold text-slate-400">
+      <div className="mt-3 flex items-center justify-between border-t border-border pt-2 text-[9px] font-bold text-fg-sub">
         <span>{new Intl.DateTimeFormat('pt-BR').format(new Date(application.createdAt))}</span>
         <span className="inline-flex items-center gap-1 text-violet-700">
           Ver dossiê <ArrowRight size={10} />

@@ -52,7 +52,7 @@ export function UserActionsMenu({
     <div className="relative flex items-center gap-2" ref={menuRef}>
       <button
         onClick={() => onEdit(user)}
-        className="btn-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
+        className="btn-v2-outline inline-flex h-8 items-center gap-2 px-3 text-[11px]"
       >
         <Edit3 size={12} />
         Editar
@@ -60,19 +60,20 @@ export function UserActionsMenu({
 
       <button
         onClick={() => setOpen(!open)}
-        className="btn-outline flex h-8 w-8 items-center justify-center p-0"
+        aria-label={`Mais ações para ${user.name}`}
+        className="btn-v2-outline flex h-8 w-8 items-center justify-center p-0"
       >
         <MoreHorizontal size={14} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-48 rounded-[8px] border border-slate-200 bg-white py-1 shadow-xl">
+        <div className="absolute right-0 top-10 z-50 w-52 rounded-v2 border border-border bg-bg-elev py-1 shadow-v2-xl">
           <button
             onClick={() => {
               setOpen(false);
               onResetPassword(user);
             }}
-            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-fg-mut transition-colors hover:bg-bg-sub hover:text-fg"
           >
             <KeyRound size={14} /> Redefinir senha
           </button>
@@ -82,7 +83,7 @@ export function UserActionsMenu({
               setOpen(false);
               onToggleBlock(user);
             }}
-            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-fg-mut transition-colors hover:bg-bg-sub hover:text-fg"
           >
             {isBlocked ? (
               <>
@@ -100,7 +101,7 @@ export function UserActionsMenu({
               setOpen(false);
               onDownloadTerm(user);
             }}
-            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-fg-mut transition-colors hover:bg-bg-sub hover:text-fg"
           >
             <FileText size={14} /> Baixar termo
           </button>
@@ -110,19 +111,19 @@ export function UserActionsMenu({
               setOpen(false);
               onHistory(user);
             }}
-            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-fg-mut transition-colors hover:bg-bg-sub hover:text-fg"
           >
             <History size={14} /> Ver histórico
           </button>
 
-          <div className="my-1 border-t border-slate-100" />
+          <div className="my-1 border-t border-border" />
 
           <button
             onClick={() => {
               setOpen(false);
               onDelete(user);
             }}
-            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-medium text-rose-600 hover:bg-rose-50"
+            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-bold text-danger transition-colors hover:bg-danger/10"
           >
             <Trash2 size={14} /> Excluir acesso
           </button>

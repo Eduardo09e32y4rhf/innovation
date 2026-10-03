@@ -342,16 +342,18 @@ export default function PlatformSupportPage() {
   if (!isDev) return null;
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-7xl flex-col gap-6 p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
+      <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <header className="card-v2 relative flex flex-col gap-4 overflow-hidden p-5 sm:p-6 md:flex-row md:items-center md:justify-between">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-brand/10 blur-3xl" />
         <div>
-          <h1 className="flex items-center gap-3 text-2xl font-black tracking-tight text-slate-900">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-600 text-white shadow-lg shadow-purple-500/20">
+          <h1 className="relative flex items-center gap-3 text-2xl font-black tracking-tight text-fg">
+            <div className="flex h-11 w-11 items-center justify-center rounded-v2 bg-brand text-white shadow-v2-md">
               <Headset size={24} />
             </div>
             Central de Suporte Operacional
           </h1>
-          <p className="mt-1 text-sm font-medium text-slate-500">
+          <p className="relative mt-1 text-sm font-medium text-fg-mut">
             Triagem, SLA e atendimento corporativo de todos os chamados da plataforma.
           </p>
         </div>
@@ -360,19 +362,19 @@ export default function PlatformSupportPage() {
           <button
             type="button"
             onClick={loadTickets}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-900 bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-lg shadow-slate-900/15 transition-all hover:bg-slate-800"
+            className="btn-v2-primary"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Atualizar
           </button>
-          <div className="inline-flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3.5 py-2 shadow-sm">
-            <div className="h-2 w-2 rounded-full animate-pulse bg-purple-600" />
-            <span className="text-xs font-bold text-purple-900">{pendingCount} Pendentes</span>
+          <div className="chip-brand inline-flex items-center gap-2 px-3.5 py-2">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-brand" />
+            <span className="text-xs font-bold">{pendingCount} pendentes</span>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/90 p-2 shadow-sm">
+      <div className="card-v2 bg-bg-sub/70 p-2">
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
           {triageTabs.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -411,7 +413,7 @@ export default function PlatformSupportPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+      <div className="card-v2 flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:max-w-xl">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -419,7 +421,7 @@ export default function PlatformSupportPage() {
             placeholder="Buscar por numero do chamado, assunto ou empresa..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm font-medium outline-none transition-all focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10"
+            className="input-v2 h-11 w-full pl-10"
           />
         </div>
         <div className="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-600">
@@ -428,7 +430,7 @@ export default function PlatformSupportPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div className="card-v2 flex-1 overflow-hidden">
         {loading ? (
           <div className="flex h-64 items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-purple-600" />
@@ -860,6 +862,7 @@ export default function PlatformSupportPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

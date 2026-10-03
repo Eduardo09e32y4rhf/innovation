@@ -20,9 +20,9 @@ import { cn } from '@/app/lib/cn';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    PAGE
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 
 export default function EmployeesPage() {
   const params = useParams();
@@ -75,8 +75,8 @@ export default function EmployeesPage() {
     if (employee.status === 'TERMINATED') return;
     setConfirmDialog({
       open: true,
-      title: 'Desligar funcionÃ¡rio',
-      description: `Desligar ${normalizeDisplayName(employee.name)}? O cadastro serÃ¡ marcado como desligado.`,
+      title: 'Desligar funcionÃƒÂ¡rio',
+      description: `Desligar ${normalizeDisplayName(employee.name)}? O cadastro serÃƒÂ¡ marcado como desligado.`,
       confirmText: 'Desligar',
       variant: 'danger',
       action: async () => { await terminate.mutate(employee.id).catch(() => {}); },
@@ -88,15 +88,15 @@ export default function EmployeesPage() {
     setPromptInput('');
     setPromptDialog({
       open: true,
-      title: 'Arquivar ou excluir funcionÃ¡rio',
-      description: `Para confirmar a exclusÃ£o de ${expected}, digite o nome abaixo:`,
+      title: 'Arquivar ou excluir funcionÃƒÂ¡rio',
+      description: `Para confirmar a exclusÃƒÂ£o de ${expected}, digite o nome abaixo:`,
       expected,
       action: async () => {
         const result = await remove.mutate(employee.id).catch(() => null);
         if (result?.archived) {
-          setAlertDialog({ open: true, title: 'FuncionÃ¡rio Arquivado', message: 'FuncionÃ¡rio arquivado com seguranÃ§a. O histÃ³rico foi preservado e o acesso foi bloqueado.' });
+          setAlertDialog({ open: true, title: 'FuncionÃƒÂ¡rio Arquivado', message: 'FuncionÃƒÂ¡rio arquivado com seguranÃƒÂ§a. O histÃƒÂ³rico foi preservado e o acesso foi bloqueado.' });
         } else if (result?.deleted) {
-          setAlertDialog({ open: true, title: 'FuncionÃ¡rio Removido', message: 'FuncionÃ¡rio removido definitivamente porque nÃ£o possuÃ­a histÃ³rico vinculado.' });
+          setAlertDialog({ open: true, title: 'FuncionÃƒÂ¡rio Removido', message: 'FuncionÃƒÂ¡rio removido definitivamente porque nÃƒÂ£o possuÃƒÂ­a histÃƒÂ³rico vinculado.' });
         }
       },
     });
@@ -105,27 +105,27 @@ export default function EmployeesPage() {
   async function handleDownloadFicha(employee: Employee) {
     setDownloadingId(employee.id);
     try { await downloadEmployeePdf(employee, 'record'); }
-    catch (e) { setAlertDialog({ open: true, title: 'Erro de Download', message: e instanceof Error ? e.message : 'NÃ£o foi possÃ­vel baixar a ficha.' }); }
+    catch (e) { setAlertDialog({ open: true, title: 'Erro de Download', message: e instanceof Error ? e.message : 'NÃƒÂ£o foi possÃƒÂ­vel baixar a ficha.' }); }
     finally { setDownloadingId(null); }
   }
 
   async function handleDownloadSheet(employee: Employee) {
     setDownloadingId(employee.id);
     try { await downloadEmployeePdf(employee, 'point-sheet', currentMonth()); }
-    catch { setAlertDialog({ open: true, title: 'Erro de Download', message: 'NÃ£o foi possÃ­vel baixar a folha deste funcionÃ¡rio.' }); }
+    catch { setAlertDialog({ open: true, title: 'Erro de Download', message: 'NÃƒÂ£o foi possÃƒÂ­vel baixar a folha deste funcionÃƒÂ¡rio.' }); }
     finally { setDownloadingId(null); }
   }
 
   async function handleDownloadOcorrencias(employee: Employee) {
     setDownloadingId(employee.id);
     try { await downloadEmployeePdf(employee, 'occurrences', currentMonth()); }
-    catch { setAlertDialog({ open: true, title: 'Erro de Download', message: 'NÃ£o foi possÃ­vel baixar a ficha de ocorrÃªncias.' }); }
+    catch { setAlertDialog({ open: true, title: 'Erro de Download', message: 'NÃƒÂ£o foi possÃƒÂ­vel baixar a ficha de ocorrÃƒÂªncias.' }); }
     finally { setDownloadingId(null); }
   }
 
   return (
     <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
-      {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Header Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <header className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
           <p className="mb-1 text-[11px] font-black uppercase tracking-[0.22em] text-brand-600">
@@ -135,7 +135,7 @@ export default function EmployeesPage() {
             Cadastro da equipe
           </h1>
           <p className="mt-2 max-w-3xl text-[clamp(0.875rem,0.85rem+0.25vw,1rem)] font-medium text-fg-mut">
-            Gerencie informaÃ§Ãµes, documentos e acessos dos funcionÃ¡rios.
+            Gerencie informaÃƒÂ§ÃƒÂµes, documentos e acessos dos funcionÃƒÂ¡rios.
           </p>
         </div>
         {canEdit && (
@@ -152,24 +152,24 @@ export default function EmployeesPage() {
               className="btn-v2-primary"
             >
               <UserPlus size={15} />
-              Novo funcionÃ¡rio
+              Novo funcionÃƒÂ¡rio
             </Link>
           </div>
         )}
       </header>
 
-      {/* â”€â”€ KPIs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ KPIs Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <KpiTile title="Ativos"      value={activeCount}      icon={Users}       accent="success" />
         <KpiTile title="Inativos"    value={inactiveCount}    icon={UserMinus}   accent="warning" />
         <KpiTile title="Desligados"  value={terminatedCount}  icon={XCircle}     accent="danger" />
       </section>
 
-      {/* â”€â”€ Busca â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Busca Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="card-v2 mt-4 flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
         <label className="flex flex-1 flex-col gap-1">
           <span className="text-[10px] font-black uppercase tracking-widest text-fg-sub">
-            Pesquisar por nome, CPF, matrÃ­cula, gestor ou departamento
+            Pesquisar por nome, CPF, matrÃƒÂ­cula, gestor ou departamento
           </span>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-sub" size={14} strokeWidth={2.5} />
@@ -189,28 +189,28 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* â”€â”€ ConteÃºdo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ ConteÃƒÂºdo Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="mt-5">
         {loading ? (
-          <LoadingState label="Carregando funcionÃ¡rios..." />
+          <LoadingState label="Carregando funcionÃƒÂ¡rios..." />
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : employees.length === 0 ? (
-          <EmptyState message={isGestor ? 'Nenhum funcionÃ¡rio na sua equipe.' : 'Nenhum funcionÃ¡rio cadastrado. Clique em Novo para comeÃ§ar.'} />
+          <EmptyState message={isGestor ? 'Nenhum funcionÃƒÂ¡rio na sua equipe.' : 'Nenhum funcionÃƒÂ¡rio cadastrado. Clique em Novo para comeÃƒÂ§ar.'} />
         ) : filteredEmployees.length === 0 ? (
-          <EmptyState message="Nenhum funcionÃ¡rio encontrado para a pesquisa." />
+          <EmptyState message="Nenhum funcionÃƒÂ¡rio encontrado para a pesquisa." />
         ) : (
           <div className="card-v2 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-left">
                 <thead>
                   <tr className="border-b border-border/60 bg-bg-sub/50">
-                    {['FuncionÃ¡rio', 'MatrÃ­cula', 'Gestor', 'Departamento', 'Cargo', 'Status', 'Acesso', canEdit ? 'AÃ§Ãµes' : '']
+                    {['FuncionÃƒÂ¡rio', 'MatrÃƒÂ­cula', 'Gestor', 'Departamento', 'Cargo', 'Status', 'Acesso', canEdit || isGestor ? 'Ações' : '']
                       .filter(Boolean)
                       .map((h) => (
                         <th key={h} className={cn(
                           'px-4 py-3 text-[10px] font-black uppercase tracking-[0.14em] text-fg-sub',
-                          h === 'AÃ§Ãµes' && 'text-right',
+                          h === 'AÃƒÂ§ÃƒÂµes' && 'text-right',
                         )}>
                           {h}
                         </th>
@@ -230,14 +230,14 @@ export default function EmployeesPage() {
                             <p className="text-sm font-bold text-fg">{normalizeDisplayName(employee.name)}</p>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-xs font-medium text-fg-mut">{employee.registration || 'â€”'}</td>
-                        <td className="px-4 py-3 text-xs font-medium text-fg-mut">{managerName || 'â€”'}</td>
+                        <td className="px-4 py-3 text-xs font-medium text-fg-mut">{employee.registration || 'Ã¢â‚¬â€'}</td>
+                        <td className="px-4 py-3 text-xs font-medium text-fg-mut">{managerName || 'Ã¢â‚¬â€'}</td>
                         <td className="px-4 py-3">
                           {employee.department ? (
                             <span className="chip">{employee.department}</span>
-                          ) : <span className="text-xs text-fg-sub">â€”</span>}
+                          ) : <span className="text-xs text-fg-sub">Ã¢â‚¬â€</span>}
                         </td>
-                        <td className="px-4 py-3 text-xs font-medium text-fg-mut">{employee.position || 'â€”'}</td>
+                        <td className="px-4 py-3 text-xs font-medium text-fg-mut">{employee.position || 'Ã¢â‚¬â€'}</td>
                         <td className="px-4 py-3"><StatusBadge status={employee.status} /></td>
                         <td className="px-4 py-3"><AccessBadge employee={employee} /></td>
                         {(canEdit || isGestor) && (
@@ -255,7 +255,7 @@ export default function EmployeesPage() {
                                   onClick={() => router.push(`/${tenant}/dashboard/time-track?employeeId=${employee.id}`)}
                                   icon={Clock3} label="Ponto" />
                               )}
-                              <IconBtn onClick={() => setSelectedEmployeeId(employee.id)} icon={FolderOpen} label="DossiÃª" />
+                              <IconBtn onClick={() => setSelectedEmployeeId(employee.id)} icon={FolderOpen} label="DossiÃƒÂª" />
                               {canEdit && (
                                 <>
                                   <Link
@@ -293,7 +293,7 @@ export default function EmployeesPage() {
         )}
       </section>
 
-      {/* â”€â”€ Drawer dossiÃª â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Drawer dossiÃƒÂª Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <EmployeeDossierDrawer
         employeeId={selectedEmployeeId}
         dossier={dossierQuery.data as EmployeeDossier | undefined}
@@ -302,7 +302,7 @@ export default function EmployeesPage() {
         onClose={() => setSelectedEmployeeId(null)}
       />
 
-      {/* â”€â”€ DiÃ¡logos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ DiÃƒÂ¡logos Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <ConfirmDialog
         isOpen={confirmDialog.open}
         onClose={() => setConfirmDialog((c) => ({ ...c, open: false }))}
@@ -368,9 +368,9 @@ export default function EmployeesPage() {
   );
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
    COMPONENTES INTERNOS
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
 
 function KpiTile({
   title, value, icon: Icon, accent = 'brand',
@@ -435,8 +435,8 @@ function AccessBadge({ employee }: { employee: Employee }) {
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; dot: string; label: string }> = {
     ACTIVE:     { cls: 'chip chip-success',  dot: 'bg-emerald-500', label: 'Ativo' },
-    ONBOARDING: { cls: 'chip chip-warning',  dot: 'bg-amber-500',   label: 'Em admissÃ£o' },
-    INACTIVE:   { cls: 'chip',               dot: 'bg-slate-400',   label: 'FÃ©rias' },
+    ONBOARDING: { cls: 'chip chip-warning',  dot: 'bg-amber-500',   label: 'Em admissÃƒÂ£o' },
+    INACTIVE:   { cls: 'chip',               dot: 'bg-slate-400',   label: 'FÃƒÂ©rias' },
     SUSPENDED:  { cls: 'chip chip-warning',  dot: 'bg-amber-500',   label: 'Afastado' },
     TERMINATED: { cls: 'chip chip-danger',   dot: 'bg-rose-500',    label: 'Desligado' },
   };
@@ -449,7 +449,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-/* â”€â”€ Drawer DossiÃª â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Drawer DossiÃƒÂª Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 function EmployeeDossierDrawer({
   employeeId, dossier, loading, error, onClose,
@@ -476,13 +476,13 @@ function EmployeeDossierDrawer({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[11px] font-black uppercase tracking-[0.24em] text-brand-600">
-                DossiÃª do colaborador
+                DossiÃƒÂª do colaborador
               </p>
               <h3 className="truncate text-xl font-black text-fg">
                 {employee ? normalizeDisplayName(employee.name) : 'Carregando...'}
               </h3>
               <p className="mt-1 text-xs text-fg-mut">
-                ASO, histÃ³rico recente, fÃ©rias e impacto de arquivamento em um Ãºnico painel.
+                ASO, histÃƒÂ³rico recente, fÃƒÂ©rias e impacto de arquivamento em um ÃƒÂºnico painel.
               </p>
             </div>
             <button
@@ -495,7 +495,7 @@ function EmployeeDossierDrawer({
         </div>
 
         <div className="space-y-6 px-5 py-5">
-          {loading && <LoadingState label="Carregando dossiÃª do funcionÃ¡rio..." />}
+          {loading && <LoadingState label="Carregando dossiÃƒÂª do funcionÃƒÂ¡rio..." />}
           {!loading && error && <ErrorState message={error} onRetry={() => window.location.reload()} />}
 
           {!loading && !error && employee && (
@@ -503,8 +503,8 @@ function EmployeeDossierDrawer({
               <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <DossierStat icon={<ShieldCheck size={16} />} label="Status"      value={EMPLOYEE_STATUS_LABEL[employee.status] ?? employee.status} />
                 <DossierStat icon={<HeartPulse size={16} />}  label="ASOs"        value={String(asoRecords.length)} />
-                <DossierStat icon={<CalendarDays size={16} />} label="FÃ©rias"     value={String(vacations.length)} />
-                <DossierStat icon={<Clock3 size={16} />}      label="OcorrÃªncias" value={String(occurrences.length)} />
+                <DossierStat icon={<CalendarDays size={16} />} label="FÃƒÂ©rias"     value={String(vacations.length)} />
+                <DossierStat icon={<Clock3 size={16} />}      label="OcorrÃƒÂªncias" value={String(occurrences.length)} />
               </section>
 
               <section className="card-v2 p-4">
@@ -518,16 +518,16 @@ function EmployeeDossierDrawer({
                   <InfoLine label="CPF"          value={maskCpf(employee.cpf)} />
                   <InfoLine label="E-mail"       value={maskEmail(employee.email)} />
                   <InfoLine label="Telefone"     value={maskPhone(employee.phone)} />
-                  <InfoLine label="MatrÃ­cula"    value={employee.registration || 'â€”'} />
-                  <InfoLine label="Cargo"        value={employee.position || 'â€”'} />
-                  <InfoLine label="Departamento" value={employee.department || 'â€”'} />
-                  <InfoLine label="AdmissÃ£o"     value={formatDate(employee.admissionDate)} />
+                  <InfoLine label="MatrÃƒÂ­cula"    value={employee.registration || 'Ã¢â‚¬â€'} />
+                  <InfoLine label="Cargo"        value={employee.position || 'Ã¢â‚¬â€'} />
+                  <InfoLine label="Departamento" value={employee.department || 'Ã¢â‚¬â€'} />
+                  <InfoLine label="AdmissÃƒÂ£o"     value={formatDate(employee.admissionDate)} />
                   <InfoLine label="Desligamento" value={formatDate(employee.terminationDate)} />
                 </div>
               </section>
 
               <section className="card-v2 p-4">
-                <h4 className="mb-3 text-sm font-black text-fg">SaÃºde ocupacional e ASO</h4>
+                <h4 className="mb-3 text-sm font-black text-fg">SaÃƒÂºde ocupacional e ASO</h4>
                 {asoRecords.length === 0 ? (
                   <p className="text-xs text-fg-sub">Nenhum ASO registrado para este colaborador.</p>
                 ) : (
@@ -539,7 +539,7 @@ function EmployeeDossierDrawer({
                           <div>
                             <p className="text-sm font-bold text-fg">{record.asoType}</p>
                             <p className="text-xs text-fg-mut">
-                              Exame: {fmtDate(record.examDate)} â€¢ Vencimento: {fmtDate(record.dueDate)} â€¢ ClÃ­nica: {record.clinicName || 'NÃ£o informada'}
+                              Exame: {fmtDate(record.examDate)} Ã¢â‚¬Â¢ Vencimento: {fmtDate(record.dueDate)} Ã¢â‚¬Â¢ ClÃƒÂ­nica: {record.clinicName || 'NÃƒÂ£o informada'}
                             </p>
                           </div>
                           <span className={cn('inline-flex rounded-v2-sm border px-2 py-1 text-[10px] font-black', alert.cls)}>
@@ -554,18 +554,18 @@ function EmployeeDossierDrawer({
 
               <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <div className="card-v2 p-4">
-                  <h4 className="mb-3 text-sm font-black text-fg">FÃ©rias recentes</h4>
+                  <h4 className="mb-3 text-sm font-black text-fg">FÃƒÂ©rias recentes</h4>
                   {vacations.length === 0 ? (
-                    <p className="text-xs text-fg-sub">Nenhuma solicitaÃ§Ã£o de fÃ©rias encontrada.</p>
+                    <p className="text-xs text-fg-sub">Nenhuma solicitaÃƒÂ§ÃƒÂ£o de fÃƒÂ©rias encontrada.</p>
                   ) : (
                     <div className="space-y-2">
                       {vacations.slice(0, 5).map((vacation: any) => (
                         <div key={vacation.id} className="rounded-v2-md border border-border/60 px-3 py-2">
                           <p className="text-sm font-bold text-fg">
-                            {formatDate(vacation.startDate)} atÃ© {formatDate(vacation.endDate)}
+                            {formatDate(vacation.startDate)} atÃƒÂ© {formatDate(vacation.endDate)}
                           </p>
                           <p className="text-xs text-fg-mut">
-                            Status: {vacation.status} â€¢ Dias: {vacation.days ?? 'â€”'}
+                            Status: {vacation.status} Ã¢â‚¬Â¢ Dias: {vacation.days ?? 'Ã¢â‚¬â€'}
                           </p>
                         </div>
                       ))}
@@ -574,13 +574,13 @@ function EmployeeDossierDrawer({
                 </div>
 
                 <div className="card-v2 p-4">
-                  <h4 className="mb-3 text-sm font-black text-fg">Batidas e ocorrÃªncias recentes</h4>
+                  <h4 className="mb-3 text-sm font-black text-fg">Batidas e ocorrÃƒÂªncias recentes</h4>
                   <div className="space-y-2">
                     {recentTimeTracks.slice(0, 5).map((row) => (
                       <div key={row.id} className="rounded-v2-md border border-border/60 px-3 py-2">
                         <p className="text-sm font-bold text-fg">{formatDate(row.date)}</p>
                         <p className="text-xs text-fg-mut">
-                          Entrada {formatTime(row.entry)} â€¢ SaÃ­da {formatTime(row.exit)} â€¢ Saldo {formatMinutes(row.dailyBalance ?? 0)}
+                          Entrada {formatTime(row.entry)} Ã¢â‚¬Â¢ SaÃƒÂ­da {formatTime(row.exit)} Ã¢â‚¬Â¢ Saldo {formatMinutes(row.dailyBalance ?? 0)}
                         </p>
                       </div>
                     ))}
@@ -593,17 +593,17 @@ function EmployeeDossierDrawer({
 
               <section className="rounded-v2-lg border border-amber-300/60 bg-amber-500/8 p-4">
                 <h4 className="mb-2 text-sm font-black text-amber-900 dark:text-amber-200">
-                  PolÃ­tica de exclusÃ£o segura
+                  PolÃƒÂ­tica de exclusÃƒÂ£o segura
                 </h4>
                 <p className="text-xs text-amber-900/90 dark:text-amber-100/80">
-                  Quando existe histÃ³rico vinculado, a remoÃ§Ã£o definitiva Ã© bloqueada e o cadastro Ã© arquivado para preservar rastreabilidade legal e operacional.
+                  Quando existe histÃƒÂ³rico vinculado, a remoÃƒÂ§ÃƒÂ£o definitiva ÃƒÂ© bloqueada e o cadastro ÃƒÂ© arquivado para preservar rastreabilidade legal e operacional.
                 </p>
                 {impact && (
                   <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <InfoChip label="Ponto"       value={String(impact.timeTracks)} />
-                    <InfoChip label="FÃ©rias"      value={String(impact.vacations)} />
+                    <InfoChip label="FÃƒÂ©rias"      value={String(impact.vacations)} />
                     <InfoChip label="ASO"         value={String(impact.asoRecords)} />
-                    <InfoChip label="OcorrÃªncias" value={String(impact.timeOccurrences)} />
+                    <InfoChip label="OcorrÃƒÂªncias" value={String(impact.timeOccurrences)} />
                   </div>
                 )}
               </section>
@@ -631,7 +631,7 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-v2-md border border-border/60 bg-bg-sub/40 px-3 py-2">
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-fg-sub">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-fg">{value || 'â€”'}</p>
+      <p className="mt-1 text-sm font-semibold text-fg">{value || 'Ã¢â‚¬â€'}</p>
     </div>
   );
 }
@@ -647,23 +647,23 @@ function InfoChip({ label, value }: { label: string; value: string }) {
   );
 }
 
-/* â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Ã¢â€â‚¬Ã¢â€â‚¬ Helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
 
 function fmtDate(v?: string | null) {
-  if (!v) return 'â€”';
+  if (!v) return 'Ã¢â‚¬â€';
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? 'â€”' : d.toLocaleDateString('pt-BR');
+  return Number.isNaN(d.getTime()) ? 'Ã¢â‚¬â€' : d.toLocaleDateString('pt-BR');
 }
 
 function maskCpf(value?: string | null) {
   const digits = (value ?? '').replace(/\D/g, '');
-  if (!digits) return 'â€”';
-  if (digits.length < 11) return value ?? 'â€”';
+  if (!digits) return 'Ã¢â‚¬â€';
+  if (digits.length < 11) return value ?? 'Ã¢â‚¬â€';
   return `${digits.slice(0, 3)}.***.***-${digits.slice(-2)}`;
 }
 
 function maskEmail(value?: string | null) {
-  if (!value) return 'â€”';
+  if (!value) return 'Ã¢â‚¬â€';
   const [name, domain] = value.split('@');
   if (!domain) return value;
   const visible = name.slice(0, 2);
@@ -672,8 +672,8 @@ function maskEmail(value?: string | null) {
 
 function maskPhone(value?: string | null) {
   const digits = (value ?? '').replace(/\D/g, '');
-  if (!digits) return 'â€”';
-  if (digits.length < 4) return value ?? 'â€”';
+  if (!digits) return 'Ã¢â‚¬â€';
+  if (digits.length < 4) return value ?? 'Ã¢â‚¬â€';
   return `(**) *****-${digits.slice(-4)}`;
 }
 
@@ -688,7 +688,7 @@ async function downloadEmployeePdf(
   month?: string,
 ) {
   const token = readAuthSession().token;
-  if (!token) throw new Error('SessÃ£o expirada. FaÃ§a login novamente.');
+  if (!token) throw new Error('SessÃƒÂ£o expirada. FaÃƒÂ§a login novamente.');
 
   const query = month ? `?month=${encodeURIComponent(month)}` : '';
   const response = await fetch(`${API_URL}/employees/${employee.id}/documents/${document}.pdf${query}`, {
@@ -700,7 +700,7 @@ async function downloadEmployeePdf(
     const message =
       payload && typeof payload === 'object' && 'message' in payload
         ? String(payload.message)
-        : 'NÃ£o foi possÃ­vel gerar o documento oficial.';
+        : 'NÃƒÂ£o foi possÃƒÂ­vel gerar o documento oficial.';
     throw new Error(message);
   }
 
@@ -730,7 +730,7 @@ function getAsoAlert(_status: string, expirationDate?: string | null): { label: 
   }
   const diff = (exp.getTime() - today.getTime()) / 86400000;
   if (diff <= 30) {
-    return { label: 'PrÃ³ximo do vencimento', cls: 'border-amber-300 bg-amber-500/10 text-amber-700' };
+    return { label: 'PrÃƒÂ³ximo do vencimento', cls: 'border-amber-300 bg-amber-500/10 text-amber-700' };
   }
-  return { label: 'VÃ¡lido', cls: 'border-emerald-300 bg-emerald-500/10 text-emerald-700' };
+  return { label: 'VÃƒÂ¡lido', cls: 'border-emerald-300 bg-emerald-500/10 text-emerald-700' };
 }

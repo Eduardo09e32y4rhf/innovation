@@ -142,7 +142,7 @@ export function UserCreateModal({
   if (done) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-[2px]">
-        <div className="w-full max-w-md overflow-hidden rounded-[16px] bg-white shadow-2xl">
+        <div className="card-v2 w-full max-w-md overflow-hidden bg-bg-elev shadow-v2-xl">
           <div className="p-8 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
               <CheckCircle2 size={32} className="text-emerald-500" />
@@ -158,14 +158,14 @@ export function UserCreateModal({
               </p>
             </div>
             <div className="mt-6 flex justify-center gap-3">
-              <button onClick={handleClose} className="btn btn-outline">
+              <button onClick={handleClose} className="btn-v2-outline">
                 Fechar
               </button>
               <button
                 onClick={() => {
                   resetForm();
                 }}
-                className="btn btn-primary"
+                className="btn-v2-primary"
               >
                 Criar outro
               </button>
@@ -179,15 +179,16 @@ export function UserCreateModal({
   /* ── Formulário ── */
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-[2px]">
-      <div className="w-full max-w-md overflow-hidden rounded-[14px] bg-white shadow-2xl">
-        <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+      <div className="card-v2 w-full max-w-md overflow-hidden bg-bg-elev shadow-v2-xl">
+        <header className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
             <h3 className="text-sm font-black text-slate-900">Novo usuario</h3>
             <p className="text-xs text-slate-500">Cadastre um novo acesso para sua equipe</p>
           </div>
           <button
             onClick={handleClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Fechar cadastro de usuário"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-fg-mut transition-colors hover:bg-bg-sub hover:text-fg"
           >
             <X size={16} />
           </button>
@@ -209,7 +210,7 @@ export function UserCreateModal({
                 <select
                   value={companyId}
                   onChange={(e) => setCompanyId(e.target.value)}
-                  className="form-control"
+                  className="input-v2"
                   required
                 >
                   <option value="">Selecione a empresa...</option>
@@ -232,7 +233,7 @@ export function UserCreateModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="form-control"
+                className="input-v2"
               />
             </div>
 
@@ -246,7 +247,7 @@ export function UserCreateModal({
                   if (emailError) setEmailError('');
                 }}
                 required
-                className={`form-control transition-colors ${emailError ? 'border-rose-400 ring-2 ring-rose-200 focus:border-rose-500' : ''}`}
+                className={`input-v2 transition-colors ${emailError ? 'border-danger ring-2 ring-danger/20 focus:border-danger' : ''}`}
               />
               {emailError && (
                 <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-rose-600">
@@ -261,7 +262,7 @@ export function UserCreateModal({
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as UserRole)}
-                className="form-control"
+                className="input-v2"
               >
                 {availableRoles.map((r) => (
                   <option key={r} value={r}>
@@ -291,7 +292,7 @@ export function UserCreateModal({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="form-control"
+                    className="input-v2"
                   />
                   {password && <PasswordStrengthBar password={password} />}
                 </div>
@@ -302,7 +303,7 @@ export function UserCreateModal({
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    className="form-control"
+                    className="input-v2"
                   />
                   {confirmPassword && confirmPassword !== password && (
                     <p className="mt-1 text-[10px] font-bold text-rose-600">Senhas não coincidem</p>
@@ -330,11 +331,11 @@ export function UserCreateModal({
               type="button"
               onClick={handleClose}
               disabled={loading}
-              className="btn btn-outline"
+              className="btn-v2-outline"
             >
               Cancelar
             </button>
-            <button type="submit" disabled={loading} className="btn btn-primary">
+            <button type="submit" disabled={loading} className="btn-v2-primary">
               {loading ? 'Criando...' : 'Criar usuario'}
             </button>
           </div>

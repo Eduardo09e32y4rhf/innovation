@@ -142,19 +142,19 @@ export function EmployeePasswordResetSection() {
   }
 
   return (
-    <section className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-6 py-5">
+    <section className="card-v2 overflow-hidden">
+      <div className="border-b border-border bg-bg-sub/70 px-6 py-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-v2 bg-brand/10 text-brand">
             <KeyRound size={19} />
           </div>
 
           <div>
-            <h3 className="text-sm font-black text-slate-950">
+            <h3 className="text-sm font-black text-fg">
               Redefinir senha de funcionário
             </h3>
 
-            <p className="text-xs font-medium text-slate-500">
+            <p className="text-xs font-medium text-fg-mut">
               Busque pelo nome ou pela matrícula.
             </p>
           </div>
@@ -189,7 +189,7 @@ export function EmployeePasswordResetSection() {
               setSuccess('');
             }}
             placeholder="Digite o nome ou a matrícula..."
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
+            className="input-v2 h-11 w-full pl-10"
           />
         </div>
 
@@ -296,7 +296,7 @@ export function EmployeePasswordResetSection() {
                 type="button"
                 disabled={!valid || saving}
                 onClick={resetPassword}
-                className="h-10 rounded-xl bg-violet-600 px-5 text-xs font-black text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-v2-primary h-10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving
                   ? 'Redefinindo...'
@@ -311,7 +311,7 @@ export function EmployeePasswordResetSection() {
                   setNewPassword('');
                   setConfirmPassword('');
                 }}
-                className="h-10 rounded-xl border border-slate-200 px-5 text-xs font-black text-slate-600 hover:bg-slate-50"
+                className="btn-v2-outline h-10 px-5"
               >
                 Cancelar
               </button>
@@ -352,7 +352,7 @@ function PasswordField({
           type={show ? 'text' : 'password'}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="h-11 w-full rounded-xl border border-slate-200 px-4 pr-11 text-sm font-semibold outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
+          className="input-v2 h-11 w-full pr-11"
         />
 
         <button

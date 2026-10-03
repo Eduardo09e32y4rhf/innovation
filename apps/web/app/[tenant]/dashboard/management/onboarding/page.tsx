@@ -1,21 +1,23 @@
-﻿'use client';
+'use client';
 
-import { useState } from 'react';
+import { UserRoundPlus } from 'lucide-react';
 import { EmptyState } from '@/app/components/data-states';
 
 export default function OnboardingPage() {
   return (
-    <div className="space-y-6">
-      <header className="page-header items-center">
+    <div className="flex flex-col gap-5">
+      <header className="card-v2 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Gestão</p>
-          <h1 className="text-2xl font-black text-slate-950">Onboarding Digital</h1>
-          <p className="mt-1 text-sm font-medium text-slate-500">Acompanhe a admissão e integração de novos colaboradores.</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-brand-600">Integração</p>
+          <h2 className="mt-1 text-xl font-black tracking-tight text-fg">Onboarding digital</h2>
+          <p className="mt-1 text-sm font-medium text-fg-mut">Acompanhe a admissão e a integração de novos colaboradores.</p>
         </div>
-        <button type="button" className="crystal-button">Novo Onboarding</button>
+        <button type="button" className="btn-v2-primary shrink-0">
+          <UserRoundPlus size={15} /> Novo onboarding
+        </button>
       </header>
-      
-      <div className="rounded-2xl border border-slate-200 bg-white">
+
+      <div className="card-v2 min-h-[260px] p-5">
         <EmptyState message="Nenhum processo de onboarding ativo." />
       </div>
     </div>

@@ -78,9 +78,9 @@ export function CandidateDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby="candidate-drawer-title"
-        className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col overflow-hidden border-l border-slate-200 bg-slate-50 shadow-2xl"
+        className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col overflow-hidden border-l border-border bg-bg-sub shadow-v2-xl"
       >
-        <header className="border-b border-slate-200 bg-slate-950 px-5 py-5 text-white">
+        <header className="border-b border-border bg-fg px-5 py-5 text-white">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-sm font-black">
@@ -104,7 +104,7 @@ export function CandidateDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/15 text-slate-300 hover:bg-white/10 hover:text-white"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-v2 border border-white/15 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
               aria-label="Fechar"
             >
               <X size={16} />
@@ -113,7 +113,7 @@ export function CandidateDrawer({
         </header>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section className="card-v2 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <label className="flex-1">
                 <span className="mb-1.5 block text-[10px] font-black uppercase tracking-wide text-slate-500">
@@ -123,7 +123,7 @@ export function CandidateDrawer({
                   value={currentStatus}
                   disabled={updating || hiring}
                   onChange={(event) => onStatusChange(event.target.value as ApplicationStatus)}
-                  className="form-control"
+                  className="input-v2"
                 >
                   {STATUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -132,7 +132,7 @@ export function CandidateDrawer({
                   ))}
                 </select>
               </label>
-              <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-600">
+              <div className="flex items-center gap-2 rounded-v2 bg-bg-sub px-3 py-2.5 text-xs font-bold text-fg-mut">
                 {updating ? <Loader2 size={14} className="animate-spin text-violet-600" /> : <ArrowRight size={14} />}
                 {updating ? 'Atualizando etapa...' : 'Alteração salva no funil'}
               </div>
@@ -140,7 +140,7 @@ export function CandidateDrawer({
           </section>
 
           <section className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="card-v2 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <UserRound size={15} className="text-teal-600" />
                 <h3 className="text-xs font-black uppercase tracking-wide text-slate-800">Contato</h3>
@@ -157,7 +157,7 @@ export function CandidateDrawer({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="card-v2 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <CalendarDays size={15} className="text-violet-600" />
                 <h3 className="text-xs font-black uppercase tracking-wide text-slate-800">Candidatura</h3>
@@ -175,7 +175,7 @@ export function CandidateDrawer({
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm">
+          <section className="card-v2 overflow-hidden border-accent/20">
             <header className="flex items-center justify-between gap-3 bg-gradient-to-r from-violet-50 to-teal-50 px-4 py-3">
               <div className="flex items-center gap-2">
                 <BrainCircuit size={16} className="text-violet-700" />
@@ -184,7 +184,7 @@ export function CandidateDrawer({
               {candidate.aiScore != null ? (
                 <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">{score}% aderente</span>
               ) : (
-                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-bold text-slate-500">
+                <span className="chip px-3 py-1 text-[10px] font-bold">
                   Análise pendente
                 </span>
               )}
@@ -224,7 +224,7 @@ export function CandidateDrawer({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section className="card-v2 p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <FileText size={16} className="text-teal-600" />
@@ -240,7 +240,7 @@ export function CandidateDrawer({
                   type="button"
                   onClick={onDownloadResume}
                   disabled={downloadingResume}
-                  className="btn-outline-nubank"
+                  className="btn-v2-outline"
                 >
                   {downloadingResume ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
                   {downloadingResume ? 'Baixando...' : 'Baixar currículo'}
@@ -252,7 +252,7 @@ export function CandidateDrawer({
           </section>
 
           {candidate.coverLetter && (
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <section className="card-v2 p-4">
               <div className="mb-2 flex items-center gap-2">
                 <Briefcase size={15} className="text-slate-500" />
                 <h3 className="text-xs font-black uppercase tracking-wide text-slate-800">Apresentação</h3>
@@ -274,13 +274,13 @@ export function CandidateDrawer({
           </section>
         </div>
 
-        <footer className="border-t border-slate-200 bg-white p-4 sm:p-5">
+        <footer className="border-t border-border bg-bg-elev p-4 sm:p-5">
           {currentStatus !== 'HIRED' ? (
             <button
               type="button"
               onClick={onHire}
               disabled={hiring || updating}
-              className="crystal-button h-11 w-full text-sm"
+              className="btn-v2-primary h-11 w-full text-sm"
             >
               {hiring ? <Loader2 size={16} className="animate-spin" /> : <Rocket size={16} />}
               {hiring ? 'Criando colaborador em onboarding...' : 'Contratar e iniciar admissão'}

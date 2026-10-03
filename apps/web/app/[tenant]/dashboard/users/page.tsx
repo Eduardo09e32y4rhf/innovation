@@ -14,7 +14,6 @@ import { UsersTable } from './_components/users-table';
 import { UserDrawer } from './_components/user-drawer';
 import { UserCreateModal } from './_components/user-create-modal';
 import { UserPasswordResetModal } from './_components/user-password-reset-modal';
-import { ActionBar, PageHeader } from '@/app/components/ui';
 
 // ─── Modal de confirmação reutilizável ────────────────────────────────────────
 interface ConfirmModalProps {
@@ -28,28 +27,28 @@ interface ConfirmModalProps {
   onCancel: () => void;
 }
 
-function ConfirmModal({ isOpen, title, description, confirmLabel, confirmClass = 'bg-rose-600 text-white hover:bg-rose-700', loading, onConfirm, onCancel }: ConfirmModalProps) {
+function ConfirmModal({ isOpen, title, description, confirmLabel, confirmClass = 'bg-danger text-white hover:opacity-90', loading, onConfirm, onCancel }: ConfirmModalProps) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]">
-      <div className="w-full max-w-sm rounded-[16px] bg-white p-6 shadow-2xl">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[3px]">
+      <div className="card-v2 w-full max-w-sm bg-bg-elev p-6 shadow-v2-xl">
         <div className="mb-4 flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50">
-            <AlertTriangle size={18} className="text-rose-500" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger/10">
+            <AlertTriangle size={18} className="text-danger" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-slate-950">{title}</h3>
-            <p className="mt-1 text-xs text-slate-600">{description}</p>
+            <h3 className="text-sm font-black text-fg">{title}</h3>
+            <p className="mt-1 text-xs text-fg-mut">{description}</p>
           </div>
         </div>
         <div className="flex justify-end gap-3">
-          <button onClick={onCancel} disabled={loading} className="btn-outline px-5">
+          <button onClick={onCancel} disabled={loading} className="btn-v2-outline px-5">
             Cancelar
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`inline-flex items-center rounded-[10px] px-5 py-2 text-xs font-black shadow-sm transition-all disabled:opacity-60 ${confirmClass}`}
+            className={`inline-flex h-10 items-center rounded-v2 px-5 text-xs font-black shadow-v2-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 ${confirmClass}`}
           >
             {loading ? 'Aguarde...' : confirmLabel}
           </button>
@@ -94,6 +93,7 @@ export default function UsersPage() {
   const { user: currentUser } = useAuth();
   const currentRole = (currentUser?.profile ?? currentUser?.role)?.toUpperCase();
   const availableRoles = getAvailableRoles(currentRole);
+  const canCreateUsers = ['DEV', 'CEO', 'ADMIN', 'RH'].includes(currentRole ?? '');
   
   const users = useQuery(() => api.users.list(), []);
   const usage = useQuery(() => api.users.usage(), []);
@@ -274,17 +274,20 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="mx-auto w-full space-y-5 overflow-x-hidden">
-      <PageHeader
-        eyebrow="Usuários"
-        title="Usuários e acessos"
-        subtitle="Gerencie acessos, perfis e segurança da sua equipe."
-        actions={(
-          <button onClick={() => setCreateOpen(true)} className="crystal-button">
-            <UserPlus size={14} /> Novo usuário
-          </button>
-        )}
-      />
+    <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
+      <div className="flex flex-col gap-5">
+        <header className="card-v2 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-brand">Administração</p>
+            <h1 className="mt-1 text-xl font-black tracking-tight text-fg">Usuários e acessos</h1>
+            <p className="mt-1 text-xs text-fg-mut">Gerencie perfis, segurança e permissões da sua equipe.</p>
+          </div>
+          {canCreateUsers && (
+            <button onClick={() => setCreateOpen(true)} className="btn-v2-primary shrink-0">
+              <UserPlus size={15} /> Novo usuário
+            </button>
+          )}
+        </header>
 
       {users.loading ? (
         <LoadingState label="Carregando usuários..." />
@@ -294,7 +297,7 @@ export default function UsersPage() {
         <>
           <UserSummaryCards rows={rows} usage={usage.data} />
 
-          <ActionBar>
+          <div className="card-v2 p-4">
             <UserFilters
               filters={filters}
               onChange={setFilters}
@@ -302,7 +305,7 @@ export default function UsersPage() {
               showCompanyFilter={showCompanyFilter}
               availableRoles={availableRoles}
             />
-          </ActionBar>
+          </div>
 
           {filteredRows.length === 0 ? (
             <EmptyState message="Nenhum usuário encontrado." />
@@ -323,14 +326,14 @@ export default function UsersPage() {
         </>
       )}
 
-        <UserCreateModal
+        {canCreateUsers && <UserCreateModal
           isOpen={createOpen}
           onClose={() => setCreateOpen(false)}
           availableRoles={availableRoles}
           currentRole={currentRole}
           companies={companyOptions}
           onSubmit={handleCreateSubmit}
-        />
+        />}
 
       <UserPasswordResetModal
         isOpen={resetModalOpen}
@@ -385,10 +388,10 @@ export default function UsersPage() {
         }
         confirmClass={
           confirmAction?.type === 'delete'
-            ? 'bg-rose-600 text-white hover:bg-rose-700'
+            ? 'bg-danger text-white hover:opacity-90'
             : confirmAction?.user.isActive === false
               ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-              : 'bg-rose-600 text-white hover:bg-rose-700'
+              : 'bg-danger text-white hover:opacity-90'
         }
         onConfirm={() => {
           if (!confirmAction) return;
@@ -397,6 +400,7 @@ export default function UsersPage() {
         }}
         onCancel={() => setConfirmAction(null)}
       />
+      </div>
     </div>
   );
 }

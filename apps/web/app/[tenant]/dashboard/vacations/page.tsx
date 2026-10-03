@@ -3,9 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Plus, X, Calendar, Clock, AlertCircle, FileText, Download, History, RefreshCw, AlertTriangle, Timer, ThumbsDown } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
-import { PageHeader } from '@/app/components/platform-ui';
-import { ActionBar } from '@/app/components/ui/action-bar';
-import { Button } from '@/app/components/ui/button';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { API_URL, api, type CreateVacationInput, type Employee, type VacationStatus } from '@/app/lib/api';
@@ -16,7 +13,7 @@ import { hasPermission } from '@/app/lib/permissions';
 
 const MAX_VACATION_DAYS = 30;
 
-// ─── ELIGIBILITY HELPERS ────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ ELIGIBILITY HELPERS ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 
 function monthDiff(start: Date, end: Date): number {
   return (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) +
@@ -31,15 +28,15 @@ interface EligibilityInfo {
   remainingYearsText: string;
   eligibilityDate: string;
   admissionDateStr: string;
-  // Período Concessivo: quanto falta para 1a e 11 meses (prazo fatal)
-  concessivePeriodMonths: number;  // Total de meses desde admissão
+  // PerÃƒÆ’Ã‚Â­odo Concessivo: quanto falta para 1a e 11 meses (prazo fatal)
+  concessivePeriodMonths: number;  // Total de meses desde admissÃƒÆ’Ã‚Â£o
   concessiveDeadlineText: string;  // Quanto tempo falta para o prazo fatal
   isConcessiveUrgent: boolean;     // Janela de alerta no fim do prazo concessivo
-  isConcessiveWarning: boolean;    // Passou de 9m20d no período concessivo (alerta RH)
+  isConcessiveWarning: boolean;    // Passou de 9m20d no perÃƒÆ’Ã‚Â­odo concessivo (alerta RH)
   mustTakeAll: boolean;            // Regra operacional antiga removida
-  canSellDays: boolean;            // Pode vender até 10 dias (Abono Pecuniário)
+  canSellDays: boolean;            // Pode vender atÃƒÆ’Ã‚Â© 10 dias (Abono PecuniÃƒÆ’Ã‚Â¡rio)
   canFraction: boolean;            // Pode fracionar em parcelas
-  isCritical: boolean;             // Passou de 10 meses no período concessivo
+  isCritical: boolean;             // Passou de 10 meses no perÃƒÆ’Ã‚Â­odo concessivo
 }
 
 function calcEligibility(admissionDateStr: string): EligibilityInfo | null {
@@ -48,7 +45,7 @@ function calcEligibility(admissionDateStr: string): EligibilityInfo | null {
     const admission = new Date(admissionDateStr);
     if (Number.isNaN(admission.getTime())) return null;
 
-    // Meses desde a admissão
+    // Meses desde a admissÃƒÆ’Ã‚Â£o
     const totalMonths = monthDiff(admission, now);
 
     // Data de elegibilidade (1 ano)
@@ -67,11 +64,11 @@ function calcEligibility(admissionDateStr: string): EligibilityInfo | null {
 
     const isEligible = totalMonths >= 12;
 
-    // Período Concessivo: começa quando o funcionário completa 12 meses
-    // Prazo concessivo máximo: 12 meses apos o periodo aquisitivo
-    const concessiveMonths = isEligible ? totalMonths - 12 : 0; // meses dentro do período concessivo
+    // PerÃƒÆ’Ã‚Â­odo Concessivo: comeÃƒÆ’Ã‚Â§a quando o funcionÃƒÆ’Ã‚Â¡rio completa 12 meses
+    // Prazo concessivo mÃƒÆ’Ã‚Â¡ximo: 12 meses apos o periodo aquisitivo
+    const concessiveMonths = isEligible ? totalMonths - 12 : 0; // meses dentro do perÃƒÆ’Ã‚Â­odo concessivo
     
-    // Calcular o prazo fatal: 23 meses desde admissão (1a11m)
+    // Calcular o prazo fatal: 23 meses desde admissÃƒÆ’Ã‚Â£o (1a11m)
     const fatalDeadline = new Date(admission);
     fatalDeadline.setMonth(fatalDeadline.getMonth() + 23);
     const msToFatal = Math.max(0, fatalDeadline.getTime() - now.getTime());
@@ -119,6 +116,7 @@ function calcEligibility(admissionDateStr: string): EligibilityInfo | null {
 export default function VacationsPage() {
   const { user } = useAuth();
   const canApprove = hasPermission(user, 'vacations.approve');
+  const canRequest = canApprove || hasPermission(user, 'vacations.request_own') || hasPermission(user, 'vacations.request_team');
   const isGestor = !hasPermission(user, 'users.manage_employees') && hasPermission(user, 'vacations.request_team');
 
   const vacations = useQuery(() => api.vacations.list(), []);
@@ -243,7 +241,7 @@ export default function VacationsPage() {
     return employees.data.map(emp => {
       if (!emp.admissionDate) return null;
       const el = calcEligibility(emp.admissionDate);
-      // Mostrar alerta a partir de 9 meses e 20 dias do período concessivo (conforme CLT)
+      // Mostrar alerta a partir de 9 meses e 20 dias do perÃƒÆ’Ã‚Â­odo concessivo (conforme CLT)
       if (!el || !el.isConcessiveWarning) return null;
       const usedDays = vacationDaysByEmployee.get(emp.id) || 0;
       const totalEarned = Math.floor(el.monthsSinceAdmission / 12) * 30;
@@ -258,39 +256,42 @@ export default function VacationsPage() {
   const displayRows = tab === 'active' ? activeRows : tab === 'rejected' ? rejectedRows : historyRows;
 
   return (
-    <div className="app-page">
-      <div className="app-page-content flex flex-col gap-6">
-        <PageHeader 
-          title={isGestor ? 'Férias da equipe' : 'Solicitações'}
-          subtitle="Gerenciamento e aprovação de férias"
-          action={
-            <Button onClick={() => setOpen(true)} variant="primary" size="md">
-              <Plus size={14} /> Nova solicitação
-            </Button>
-          }
-        />
-
+    <div className="w-full px-[var(--page-pad-x)] py-[var(--page-pad-y)]">
+      <div className="flex flex-col gap-5">        <header className="flex flex-col gap-4 pb-1 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.22em] text-brand-600">BenefÃƒÂ­cios</p>
+            <h1 className="text-[clamp(1.75rem,1.5rem+1.4vw,2.25rem)] font-black tracking-tight text-fg">
+              {isGestor ? 'FÃƒÂ©rias da equipe' : 'SolicitaÃƒÂ§ÃƒÂµes'}
+            </h1>
+            <p className="mt-2 text-sm font-medium text-fg-mut">Gerenciamento e aprovaÃƒÂ§ÃƒÂ£o de fÃƒÂ©rias</p>
+          </div>
+          {canRequest && (
+            <button onClick={() => setOpen(true)} className="btn-v2-primary shrink-0">
+              <Plus size={15} /> Nova solicitaÃƒÂ§ÃƒÂ£o
+            </button>
+          )}
+        </header>
       {/* Stats Cards */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-4">
         <StatCard label="Pendentes" value={pendingCount} icon={Clock} color="amber" />
         <StatCard label="Aprovadas" value={approvedCount} icon={Check} color="emerald" />
-        <StatCard label="Concluídas" value={completedCount} icon={RefreshCw} color="brand" />
+        <StatCard label="ConcluÃƒÆ’Ã‚Â­das" value={completedCount} icon={RefreshCw} color="brand" />
         <StatCard label="Rejeitadas" value={rejectedCount} icon={X} color="rose" />
       </section>
 
       {updateStatus.error && (
-        <p className="rounded-[10px] border border-rose-200 bg-rose-50 px-5 py-3 text-xs text-rose-700">{updateStatus.error}</p>
+        <p className="rounded-v2-md border border-rose-200 bg-rose-50 px-5 py-3 text-xs text-rose-700">{updateStatus.error}</p>
       )}
 
       {/* Tabs */}
-      {!vacations.loading && !vacations.error && rows.length > 0 && (
-        <ActionBar className="items-start">
-          <div className="tab-bar min-w-0 max-w-full overflow-x-auto" role="tablist" aria-label="Vacation views">
-            <button onClick={() => setTab('active')} className={tab === 'active' ? 'tab-item-active' : 'tab-item'}>Ativas ({activeRows.length})</button>
-            <button onClick={() => setTab('rejected')} className={tab === 'rejected' ? 'tab-item-active' : 'tab-item'}>Recusadas ({rejectedRows.length})</button>
-            <button onClick={() => setTab('history')} className={tab === 'history' ? 'tab-item-active' : 'tab-item'}>Histórico ({historyRows.length})</button>
+      {!vacations.loading && !vacations.error && (rows.length > 0 || canApprove || canRequest) && (
+        <div className="card-v2 flex flex-col items-start gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 max-w-full gap-1 overflow-x-auto no-scrollbar" role="tablist" aria-label="Vacation views">
+            <button onClick={() => setTab('active')} className={tab === 'active' ? 'rounded-v2-md bg-brand-600 px-3 py-2 text-xs font-bold text-white' : 'rounded-v2-md px-3 py-2 text-xs font-bold text-fg-mut hover:bg-bg-sub'}>Ativas ({activeRows.length})</button>
+            <button onClick={() => setTab('rejected')} className={tab === 'rejected' ? 'rounded-v2-md bg-brand-600 px-3 py-2 text-xs font-bold text-white' : 'rounded-v2-md px-3 py-2 text-xs font-bold text-fg-mut hover:bg-bg-sub'}>Recusadas ({rejectedRows.length})</button>
+            <button onClick={() => setTab('history')} className={tab === 'history' ? 'rounded-v2-md bg-brand-600 px-3 py-2 text-xs font-bold text-white' : 'rounded-v2-md px-3 py-2 text-xs font-bold text-fg-mut hover:bg-bg-sub'}>HistÃƒÆ’Ã‚Â³rico ({historyRows.length})</button>
             {canApprove && (
-              <button onClick={() => setTab('alerts')} className={tab === 'alerts' ? 'tab-item-active' : 'tab-item'}>
+              <button onClick={() => setTab('alerts')} className={tab === 'alerts' ? 'rounded-v2-md bg-brand-600 px-3 py-2 text-xs font-bold text-white' : 'rounded-v2-md px-3 py-2 text-xs font-bold text-fg-mut hover:bg-bg-sub'}>
                 <AlertTriangle size={13} strokeWidth={3} /> Avisos ({alertEmployees.length})
               </button>
             )}
@@ -298,27 +299,27 @@ export default function VacationsPage() {
           {/* Bulk actions */}
           {canApprove && tab === 'active' && selectedRows.length > 0 && (
             <div className="flex shrink-0 gap-2">
-              <Button onClick={handleBulkApprove} variant="success" size="sm">
+              <button onClick={handleBulkApprove} className="btn-v2 h-9 rounded-v2-md bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700">
                 <Check size={13} strokeWidth={2.5} />
                 Aprovar {selectedRows.length} selecionada(s)
-              </Button>
+              </button>
             </div>
           )}
-        </ActionBar>
+        </div>
       )}
 
       {tab === 'alerts' ? (
-        <section className="overflow-hidden rounded-[18px] border border-amber-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+        <section className="overflow-hidden rounded-v2-xl border border-amber-200/60 bg-bg-elev shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
           <div className="border-b border-amber-100 bg-amber-50/50 px-5 py-4">
-            <h3 className="text-sm font-black text-amber-900">Avisos de Férias Obrigatórias (CLT)</h3>
-            <p className="mt-1 text-xs text-amber-700">Funcionários com período concessivo avançado. A CLT exige que as férias sejam concedidas até 11 meses após o período aquisitivo — após isso, a empresa paga em dobro.</p>
+            <h3 className="text-sm font-black text-amber-900">Avisos de FÃƒÆ’Ã‚Â©rias ObrigatÃƒÆ’Ã‚Â³rias (CLT)</h3>
+            <p className="mt-1 text-xs text-amber-700">FuncionÃƒÆ’Ã‚Â¡rios com perÃƒÆ’Ã‚Â­odo concessivo avanÃƒÆ’Ã‚Â§ado. A CLT exige que as fÃƒÆ’Ã‚Â©rias sejam concedidas atÃƒÆ’Ã‚Â© 11 meses apÃƒÆ’Ã‚Â³s o perÃƒÆ’Ã‚Â­odo aquisitivo ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â apÃƒÆ’Ã‚Â³s isso, a empresa paga em dobro.</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left">
               <thead>
-                <tr className="bg-white text-[10px] font-black uppercase tracking-[0.14em] text-slate-600 border-b border-slate-100">
-                  <th className="px-6 py-4">Funcionário</th>
-                  <th className="px-6 py-4">Admissão</th>
+                <tr className="bg-bg-elev text-[10px] font-black uppercase tracking-[0.14em] text-fg-mut border-b border-border/60">
+                  <th className="px-6 py-4">FuncionÃƒÆ’Ã‚Â¡rio</th>
+                  <th className="px-6 py-4">AdmissÃƒÆ’Ã‚Â£o</th>
                   <th className="px-6 py-4">Meses de Casa</th>
                   <th className="px-6 py-4">Prazo Concessivo</th>
                   <th className="px-6 py-4 text-right">Saldo Restante</th>
@@ -326,7 +327,7 @@ export default function VacationsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {alertEmployees.length === 0 && (
-                  <tr><td colSpan={5} className="p-8 text-center text-sm font-semibold text-slate-500">Nenhum alerta de férias pendentes. Todos os funcionários estão dentro do prazo.</td></tr>
+                  <tr><td colSpan={5} className="p-8 text-center text-sm font-semibold text-fg-sub">Nenhum alerta de fÃƒÆ’Ã‚Â©rias pendentes. Todos os funcionÃƒÆ’Ã‚Â¡rios estÃƒÆ’Ã‚Â£o dentro do prazo.</td></tr>
                 )}
                 {alertEmployees.map((emp: any) => {
                   const { el } = emp;
@@ -338,31 +339,31 @@ export default function VacationsPage() {
                     ? 'bg-gradient-to-br from-orange-500 to-amber-600'
                     : 'bg-gradient-to-br from-amber-500 to-orange-500';
                   return (
-                    <tr key={emp.id} className="group transition-all duration-200 hover:bg-slate-50/40">
+                    <tr key={emp.id} className="group transition-all duration-200 hover:bg-bg-sub/40">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-[10px] text-sm font-black text-white shadow-sm ${bgClass}`}>
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-v2-md text-sm font-black text-white shadow-sm ${bgClass}`}>
                             {emp.name?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div>
-                            <p className="text-sm font-black text-slate-950">{normalizeDisplayName(emp.name) ?? '—'}</p>
+                            <p className="text-sm font-black text-fg">{normalizeDisplayName(emp.name) ?? 'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â'}</p>
                             {isUrgent && (
                               <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-0.5">
                                 <AlertTriangle size={10} strokeWidth={2.5} />
-                                URGENTE — prazo concessivo em fase final
+                                URGENTE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â prazo concessivo em fase final
                               </p>
                             )}
                             {!isUrgent && isCritical && (
                               <p className="text-[10px] font-bold text-orange-600 flex items-center gap-1 mt-0.5">
                                 <AlertTriangle size={10} strokeWidth={2.5} />
-                                10º mês — Notificação obrigatória (CLT)
+                                10Ãƒâ€šÃ‚Âº mÃƒÆ’Ã‚Âªs ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â NotificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o obrigatÃƒÆ’Ã‚Â³ria (CLT)
                               </p>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-xs font-semibold text-slate-600">{formatDate(emp.admissionDate)}</td>
-                      <td className="px-6 py-4 text-xs font-semibold text-slate-600">{el.monthsSinceAdmission} meses</td>
+                      <td className="px-6 py-4 text-xs font-semibold text-fg-mut">{formatDate(emp.admissionDate)}</td>
+                      <td className="px-6 py-4 text-xs font-semibold text-fg-mut">{el.monthsSinceAdmission} meses</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black ${
                           isUrgent ? 'bg-rose-100 text-rose-800 border border-rose-200' :
@@ -385,25 +386,25 @@ export default function VacationsPage() {
           </div>
         </section>
       ) : vacations.loading ? (
-        <LoadingState label="Carregando solicitações..." />
+        <LoadingState label="Carregando solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes..." />
       ) : vacations.error ? (
         <ErrorState message={vacations.error} onRetry={vacations.refetch} />
       ) : rows.length === 0 ? (
-        <EmptyState message="Nenhuma solicitação de férias registrada." />
+        <EmptyState message="Nenhuma solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o de fÃƒÆ’Ã‚Â©rias registrada." />
       ) : (
-        <section className="overflow-hidden rounded-[18px] border border-slate-200/60 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+        <section className="overflow-hidden rounded-v2-xl border border-border/60 bg-bg-elev shadow-[0_12px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-left">
               <thead>
-                <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.14em] text-slate-600">
-                  {canApprove && tab === 'active' && <th className="px-4 py-4 w-10"><input type="checkbox" checked={selectedRows.length === activeRows.length} onChange={handleSelectAll} className="h-4 w-4 rounded border-slate-300 text-[var(--color-brand)] focus:ring-[var(--color-brand)]" /></th>}
-                  <th className="px-6 py-4">Funcionário</th>
-                  <th className="px-6 py-4">Período</th>
+                <tr className="bg-gradient-to-r from-slate-100 to-slate-50 text-[10px] font-black uppercase tracking-[0.14em] text-fg-mut">
+                  {canApprove && tab === 'active' && <th className="w-10 px-4 py-4"><input type="checkbox" checked={activeRows.length > 0 && selectedRows.length === activeRows.length} onChange={handleSelectAll} disabled={activeRows.length === 0} aria-label="Selecionar fÃ©rias pendentes" className="h-4 w-4 rounded border-border text-brand-600 focus:ring-brand-500 disabled:opacity-40" /></th>}
+                  <th className="px-6 py-4">FuncionÃƒÆ’Ã‚Â¡rio</th>
+                  <th className="px-6 py-4">PerÃƒÆ’Ã‚Â­odo</th>
                   <th className="px-6 py-4">Dias</th>
                   <th className="px-6 py-4">Saldo</th>
-                  <th className="px-6 py-4">Período Aquisitivo</th>
+                  <th className="px-6 py-4">PerÃƒÆ’Ã‚Â­odo Aquisitivo</th>
                   <th className="px-6 py-4">Status</th>
-                  {canApprove && tab === 'active' && <th className="px-6 py-4 text-right">Aprovação</th>}
+                  {canApprove && tab === 'active' && <th className="px-6 py-4 text-right">AprovaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o</th>}
                   {tab === 'history' && <th className="px-6 py-4 text-right">Recibo</th>}
                 </tr>
               </thead>
@@ -413,10 +414,10 @@ export default function VacationsPage() {
                     PENDING: 'bg-amber-50 text-amber-700 border-amber-200/60',
                     APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
                     REJECTED: 'bg-rose-50 text-rose-700 border-rose-200/60',
-                    CANCELLED: 'bg-slate-100 text-slate-600 border-slate-200/60',
+                    CANCELLED: 'bg-bg-sub text-fg-mut border-border/60',
                     COMPLETED: 'bg-teal-50 text-teal-700 border-teal-200/60',
                   };
-                  const statusClass = statusColors[row.status] || 'bg-slate-50 text-slate-600 border-slate-200/60';
+                  const statusClass = statusColors[row.status] || 'bg-bg-sub text-fg-mut border-border/60';
                   
                   // Balance calculation
                   const usedDays = vacationDaysByEmployee.get(row.employeeId) || 0;
@@ -424,7 +425,7 @@ export default function VacationsPage() {
                   const conflict = tab === 'active' && row.status === 'PENDING' ? hasConflict(row.employeeId, row.startDate, row.endDate) : { conflict: false };
 
                   return (
-                    <tr key={row.id} className={`group transition-all duration-200 hover:bg-slate-50/40 ${conflict.conflict ? 'bg-rose-50/30' : ''}`}>
+                    <tr key={row.id} className={`group transition-all duration-200 hover:bg-bg-sub/40 ${conflict.conflict ? 'bg-rose-50/30' : ''}`}>
                       {canApprove && tab === 'active' && (
                         <td className="px-4 py-4">
                           <input 
@@ -442,7 +443,7 @@ export default function VacationsPage() {
                             {row.employee?.name?.charAt(0).toUpperCase() || '?'}
                           </div>
                           <div>
-                            <p className="text-sm font-black text-slate-950">{normalizeDisplayName(row.employee?.name) ?? '—'}</p>
+                            <p className="text-sm font-black text-fg">{normalizeDisplayName(row.employee?.name) ?? 'ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â'}</p>
                             {conflict.conflict && (
                               <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-1">
                                 <AlertTriangle size={10} strokeWidth={2.5} />
@@ -454,12 +455,12 @@ export default function VacationsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <Calendar size={14} className="text-slate-400" />
-                          <span className="text-sm font-semibold text-slate-700">{formatPeriod(row.startDate, row.endDate)}</span>
+                          <Calendar size={14} className="text-fg-sub" />
+                          <span className="text-sm font-semibold text-fg-mut">{formatPeriod(row.startDate, row.endDate)}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center rounded-[8px] border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-900">
+                        <span className="inline-flex items-center rounded-[8px] border border-border bg-bg-elev px-3 py-1.5 text-xs font-black text-fg">
                           {row.daysUsed}d
                         </span>
                       </td>
@@ -476,7 +477,7 @@ export default function VacationsPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-600">{row.acquisitionPeriod}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-fg-mut">{row.acquisitionPeriod}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center rounded-[8px] border px-3 py-1.5 text-[11px] font-black ${statusClass}`}>
                           <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
@@ -543,14 +544,14 @@ export default function VacationsPage() {
       )}
 
       {receiptError && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-md rounded-[14px] border border-rose-200 bg-white p-4 shadow-xl">
+        <div className="fixed bottom-6 right-6 z-50 max-w-md rounded-v2-lg border border-rose-200 bg-bg-elev p-4 shadow-xl">
           <div className="flex items-start gap-3">
             <AlertCircle className="mt-0.5 shrink-0 text-rose-600" size={18} />
             <div>
-              <p className="text-xs font-black text-slate-900">Recibo nao emitido</p>
+              <p className="text-xs font-black text-fg">Recibo nao emitido</p>
               <p className="mt-1 text-xs font-semibold text-rose-700">{receiptError}</p>
             </div>
-            <button onClick={() => setReceiptError(null)} className="text-slate-400 hover:text-slate-700">
+            <button onClick={() => setReceiptError(null)} className="text-fg-sub hover:text-fg-mut">
               <X size={16} />
             </button>
           </div>
@@ -561,31 +562,31 @@ export default function VacationsPage() {
   );
 }
 
-// ─── STAT CARD ───────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ STAT CARD ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: number; icon: React.ElementType; color: string }) {
   const colorMap: Record<string, string> = {
-    amber: 'from-amber-500 to-orange-600 shadow-amber-500/25',
-    emerald: 'from-emerald-500 to-teal-600 shadow-[var(--shadow-sm)]',
-    brand: 'bg-[var(--color-brand)] shadow-[var(--shadow-sm)]',
-    rose: 'from-rose-500 to-pink-600 shadow-[var(--shadow-sm)]',
+    amber: 'text-amber-600',
+    emerald: 'text-emerald-600',
+    brand: 'text-brand-600',
+    rose: 'text-rose-600',
   };
   return (
-    <div className="group relative overflow-hidden rounded-[16px] border border-slate-200/60 bg-gradient-to-br from-white to-slate-50/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-      <div className="flex items-center justify-between">
+    <div className="card-v2 relative overflow-hidden p-4 transition hover:-translate-y-0.5 hover:shadow-v2-md">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">{label}</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">{value}</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-fg-mut">{label}</p>
+          <p className="mt-2 text-3xl font-black tracking-tight text-fg tabular-nums">{value}</p>
         </div>
-        <div className={`flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] ${colorMap[color]} text-white`}>
-          <Icon size={20} strokeWidth={2.5} className="text-white" />
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-v2-md bg-bg-sub ${colorMap[color] || 'text-brand-600'}`}>
+          <Icon size={16} strokeWidth={2.4} />
         </div>
       </div>
     </div>
   );
 }
 
-// ─── PERIOD CONFLICT CHECK ─────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ PERIOD CONFLICT CHECK ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 
 function diffDays(start: string, end: string): number {
   if (!start || !end) return 0;
@@ -617,10 +618,10 @@ function NewVacationModal({
   const remainingDays = MAX_VACATION_DAYS - daysUsed;
   const exceedsBalance = days > remainingDays;
 
-  // Regra CLT: máximo 30 dias por solicitação
+  // Regra CLT: mÃƒÆ’Ã‚Â¡ximo 30 dias por solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
   const exceedsMaxPeriod = days > 30;
 
-  // Regra CLT: antecedência mínima de 45 dias
+  // Regra CLT: antecedÃƒÆ’Ã‚Âªncia mÃƒÆ’Ã‚Â­nima de 45 dias
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const startDateObj = form.startDate ? new Date(form.startDate + 'T00:00:00') : null;
@@ -633,13 +634,13 @@ function NewVacationModal({
     v.status !== 'REJECTED' && v.status !== 'CANCELLED' &&
     new Date(form.startDate) <= new Date(v.endDate) && new Date(form.endDate) >= new Date(v.startDate)
   );
-  const conflictMessage = conflict ? `Conflito: ${formatPeriod(conflict.startDate, conflict.endDate)} já registrado.` : null;
+  const conflictMessage = conflict ? `Conflito: ${formatPeriod(conflict.startDate, conflict.endDate)} jÃƒÆ’Ã‚Â¡ registrado.` : null;
 
   // Eligibility check: 12 months from admission
   const selectedEmployee = employees.find(e => e.id === form.employeeId);
   const eligibility = selectedEmployee?.admissionDate ? calcEligibility(selectedEmployee.admissionDate) : null;
   
-  // Abono pecuniário (venda de 10 dias) - só antes do 11º mês concessivo
+  // Abono pecuniÃƒÆ’Ã‚Â¡rio (venda de 10 dias) - sÃƒÆ’Ã‚Â³ antes do 11Ãƒâ€šÃ‚Âº mÃƒÆ’Ã‚Âªs concessivo
   const [sellDays, setSellDays] = useState(false);
   const effectiveDays = sellDays ? days + 10 : days; // Conta os dias vendidos no total consumido
 
@@ -653,11 +654,11 @@ function NewVacationModal({
       const payload: CreateVacationInput = {
         employeeId: form.employeeId,
         acquisitionPeriod: form.acquisitionPeriod,
-        // Enviar como YYYY-MM-DDTHH:mm:ss sem UTC para não mudar o dia
+        // Enviar como YYYY-MM-DDTHH:mm:ss sem UTC para nÃƒÆ’Ã‚Â£o mudar o dia
         startDate: form.startDate + 'T12:00:00.000Z',
         endDate: form.endDate + 'T12:00:00.000Z',
         daysUsed: days,
-        observation: [observation, sellDays ? 'Abono pecuniário (venda de 10 dias) solicitado.' : ''].filter(Boolean).join(' ') || undefined,
+        observation: [observation, sellDays ? 'Abono pecuniÃƒÆ’Ã‚Â¡rio (venda de 10 dias) solicitado.' : ''].filter(Boolean).join(' ') || undefined,
       };
       return api.vacations.create(payload);
     },
@@ -670,23 +671,23 @@ function NewVacationModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-[18px] border border-slate-200/60 bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-v2-xl border border-border/60 bg-bg-elev p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-base font-black text-slate-950">Nova solicitação de férias</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors"><X size={18} /></button>
+          <h3 className="text-base font-black text-fg">Nova solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o de fÃƒÆ’Ã‚Â©rias</h3>
+          <button onClick={onClose} className="text-fg-sub hover:text-fg-mut transition-colors"><X size={18} /></button>
         </div>
 
         {create.error && (
-          <p className="mb-4 rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-700">{create.error}</p>
+          <p className="mb-4 rounded-v2-md border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-700">{create.error}</p>
         )}
 
         <div className="space-y-4">
-          <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Funcionário</span>
+          <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-fg-mut">
+            <span>FuncionÃƒÆ’Ã‚Â¡rio</span>
             <select
               value={form.employeeId}
               onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))}
-              className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
+              className="h-11 w-full rounded-v2-md border border-border bg-bg-elev px-4 text-sm font-semibold text-fg shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
             >
               <option value="">Selecione...</option>
               {employees.map((emp) => (
@@ -696,18 +697,18 @@ function NewVacationModal({
           </label>
 
           {form.employeeId && eligibility && !eligibility.isEligible && (
-            <div className="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3">
+            <div className="rounded-v2-md border border-amber-200 bg-amber-50 px-4 py-3">
               <div className="flex items-start gap-2">
                 <Timer size={16} className="text-amber-600 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-xs font-bold text-amber-800">
-                    Não elegível para férias — Contador regressivo
+                    NÃƒÆ’Ã‚Â£o elegÃƒÆ’Ã‚Â­vel para fÃƒÆ’Ã‚Â©rias ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Contador regressivo
                   </p>
                   <p className="mt-1 text-[11px] font-semibold text-amber-700">
-                    Admissão em {formatDate(eligibility.admissionDateStr)} · {eligibility.monthsSinceAdmission} meses de casa
+                    AdmissÃƒÆ’Ã‚Â£o em {formatDate(eligibility.admissionDateStr)} Ãƒâ€šÃ‚Â· {eligibility.monthsSinceAdmission} meses de casa
                   </p>
                   <p className="mt-1 text-[11px] font-black text-amber-800">
-                    Elegível a partir de {formatDate(eligibility.eligibilityDate)} · Faltam {eligibility.remainingYearsText}
+                    ElegÃƒÆ’Ã‚Â­vel a partir de {formatDate(eligibility.eligibilityDate)} Ãƒâ€šÃ‚Â· Faltam {eligibility.remainingYearsText}
                   </p>
                 </div>
               </div>
@@ -715,7 +716,7 @@ function NewVacationModal({
           )}
 
           {form.employeeId && eligibility && eligibility.isEligible && (
-            <div className={`rounded-[10px] border px-4 py-3 ${
+            <div className={`rounded-v2-md border px-4 py-3 ${
               eligibility.isConcessiveUrgent
                 ? 'border-rose-200 bg-rose-50'
                 : eligibility.isCritical
@@ -733,23 +734,23 @@ function NewVacationModal({
                     eligibility.isConcessiveUrgent ? 'text-rose-800' : eligibility.isCritical ? 'text-orange-800' : 'text-emerald-800'
                   }`}>
                     {eligibility.isConcessiveUrgent
-                      ? '⚠️ URGENTE — prazo concessivo em fase final'
+                      ? 'ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â URGENTE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â prazo concessivo em fase final'
                       : eligibility.isCritical
-                      ? 'Alerta: 10º mês — notificação obrigatória emitida ao RH'
-                      : 'Elegível para férias'}
+                      ? 'Alerta: 10Ãƒâ€šÃ‚Âº mÃƒÆ’Ã‚Âªs ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â notificaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o obrigatÃƒÆ’Ã‚Â³ria emitida ao RH'
+                      : 'ElegÃƒÆ’Ã‚Â­vel para fÃƒÆ’Ã‚Â©rias'}
                   </p>
                   <p className={`mt-1 text-[11px] font-semibold ${
                     eligibility.isConcessiveUrgent ? 'text-rose-700' : eligibility.isCritical ? 'text-orange-700' : 'text-emerald-700'
                   }`}>
-                    Admissão em {formatDate(eligibility.admissionDateStr)} · {eligibility.monthsSinceAdmission} meses de casa
+                    AdmissÃƒÆ’Ã‚Â£o em {formatDate(eligibility.admissionDateStr)} Ãƒâ€šÃ‚Â· {eligibility.monthsSinceAdmission} meses de casa
                   </p>
                   {eligibility.isEligible && (
-                    <p className="mt-0.5 text-[11px] font-black text-slate-700">
-                      Período concessivo: {eligibility.concessiveDeadlineText}
+                    <p className="mt-0.5 text-[11px] font-black text-fg-mut">
+                      PerÃƒÆ’Ã‚Â­odo concessivo: {eligibility.concessiveDeadlineText}
                     </p>
                   )}
                   {eligibility.mustTakeAll && (
-                    <p className="mt-1 text-[11px] font-black text-rose-800">O prazo está no fim, mas o fracionamento continua sujeito à aprovação do RH.</p>
+                    <p className="mt-1 text-[11px] font-black text-rose-800">O prazo estÃƒÆ’Ã‚Â¡ no fim, mas o fracionamento continua sujeito ÃƒÆ’Ã‚Â  aprovaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o do RH.</p>
                   )}
                 </div>
               </div>
@@ -757,9 +758,9 @@ function NewVacationModal({
           )}
 
           {form.employeeId && (
-            <div className="rounded-[10px] border border-teal-200/60 bg-gradient-to-br from-teal-50 to-cyan-50 p-3">
+            <div className="rounded-v2-md border border-teal-200/60 bg-gradient-to-br from-teal-50 to-cyan-50 p-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-600">Saldo de dias</p>
+                <p className="text-xs font-semibold text-fg-mut">Saldo de dias</p>
                 <p className={`text-sm font-black ${remainingDays >= 0 ? 'text-teal-700' : 'text-rose-700'}`}>
                   {daysUsed} usados / {remainingDays} restantes
                 </p>
@@ -773,27 +774,27 @@ function NewVacationModal({
             </div>
           )}
 
-          <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Período aquisitivo</span>
+          <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-fg-mut">
+            <span>PerÃƒÆ’Ã‚Â­odo aquisitivo</span>
             <input
               value={form.acquisitionPeriod}
               onChange={(e) => setForm((f) => ({ ...f, acquisitionPeriod: e.target.value }))}
-              className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
+              className="h-11 w-full rounded-v2-md border border-border bg-bg-elev px-4 text-sm font-semibold text-fg shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
             />
           </label>
 
           <div className="grid grid-cols-2 gap-3">
-            <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-slate-600">
-              <span>Início</span>
+            <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-fg-mut">
+              <span>InÃƒÆ’Ã‚Â­cio</span>
               <input
                 type="date"
                 min={minStartDateStr}
                 value={form.startDate}
                 onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-                className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
+                className="h-11 w-full rounded-v2-md border border-border bg-bg-elev px-4 text-sm font-semibold text-fg shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
               />
             </label>
-            <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-slate-600">
+            <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-fg-mut">
               <span>Fim</span>
               <input
                 type="date"
@@ -801,32 +802,32 @@ function NewVacationModal({
                 max={form.startDate ? (() => { const d = new Date(form.startDate + 'T00:00:00'); d.setDate(d.getDate() + 29); return d.toISOString().slice(0, 10); })() : undefined}
                 value={form.endDate}
                 onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-                className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
+                className="h-11 w-full rounded-v2-md border border-border bg-bg-elev px-4 text-sm font-semibold text-fg shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
               />
             </label>
           </div>
-          <p className="text-[10px] font-semibold text-slate-500">* Mínimo 45 dias de antecedência (CLT) · Máximo 30 dias por solicitação</p>
+          <p className="text-[10px] font-semibold text-fg-sub">* MÃƒÆ’Ã‚Â­nimo 45 dias de antecedÃƒÆ’Ã‚Âªncia (CLT) Ãƒâ€šÃ‚Â· MÃƒÆ’Ã‚Â¡ximo 30 dias por solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o</p>
 
           {tooClose && form.startDate && (
-            <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3">
+            <div className="rounded-v2-md border border-rose-200 bg-rose-50 px-4 py-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} className="text-rose-600 shrink-0" />
-                <p className="text-xs font-semibold text-rose-700">Antecedência insuficiente: a CLT exige mínimo 45 dias. Faltam {45 - daysUntilStart} dias para atingir o prazo mínimo.</p>
+                <p className="text-xs font-semibold text-rose-700">AntecedÃƒÆ’Ã‚Âªncia insuficiente: a CLT exige mÃƒÆ’Ã‚Â­nimo 45 dias. Faltam {45 - daysUntilStart} dias para atingir o prazo mÃƒÆ’Ã‚Â­nimo.</p>
               </div>
             </div>
           )}
 
           {exceedsMaxPeriod && (
-            <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3">
+            <div className="rounded-v2-md border border-rose-200 bg-rose-50 px-4 py-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} className="text-rose-600 shrink-0" />
-                <p className="text-xs font-semibold text-rose-700">Período excede o limite máximo de 30 dias por solicitação (CLT).</p>
+                <p className="text-xs font-semibold text-rose-700">PerÃƒÆ’Ã‚Â­odo excede o limite mÃƒÆ’Ã‚Â¡ximo de 30 dias por solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o (CLT).</p>
               </div>
             </div>
           )}
 
           {conflictMessage && (
-            <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3">
+            <div className="rounded-v2-md border border-rose-200 bg-rose-50 px-4 py-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} className="text-rose-600 shrink-0" />
                 <p className="text-xs font-semibold text-rose-700">{conflictMessage}</p>
@@ -835,22 +836,22 @@ function NewVacationModal({
           )}
 
           {exceedsBalance && (
-            <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3">
+            <div className="rounded-v2-md border border-rose-200 bg-rose-50 px-4 py-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} className="text-rose-600 shrink-0" />
-                <p className="text-xs font-semibold text-rose-700">Saldo insuficiente: {days} dias solicitados, apenas {remainingDays} disponíveis.</p>
+                <p className="text-xs font-semibold text-rose-700">Saldo insuficiente: {days} dias solicitados, apenas {remainingDays} disponÃƒÆ’Ã‚Â­veis.</p>
               </div>
             </div>
           )}
 
-          <div className="rounded-[10px] border border-teal-200/60 bg-gradient-to-br from-teal-50 to-cyan-50 p-4">
-            <p className="text-xs font-semibold text-slate-600">Total de dias</p>
+          <div className="rounded-v2-md border border-teal-200/60 bg-gradient-to-br from-teal-50 to-cyan-50 p-4">
+            <p className="text-xs font-semibold text-fg-mut">Total de dias</p>
             <p className="mt-1 text-lg font-black text-teal-700">{days} {days === 1 ? 'dia' : 'dias'}</p>
           </div>
 
-          {/* Abono Pecuniário: segue a regra legal e depende da elegibilidade */}
+          {/* Abono PecuniÃƒÆ’Ã‚Â¡rio: segue a regra legal e depende da elegibilidade */}
           {eligibility?.canSellDays && days > 0 && (
-            <label className="flex items-center gap-3 rounded-[10px] border border-indigo-200 bg-indigo-50 px-4 py-3 cursor-pointer">
+            <label className="flex items-center gap-3 rounded-v2-md border border-indigo-200 bg-indigo-50 px-4 py-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={sellDays}
@@ -858,29 +859,29 @@ function NewVacationModal({
                 className="h-4 w-4 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
               />
               <div>
-                <p className="text-xs font-bold text-indigo-800">Solicitar Abono Pecuniário (Venda de 10 dias)</p>
-                <p className="text-[10px] font-semibold text-indigo-600 mt-0.5">O funcionário recebe 10 dias de férias convertidos em pécunia (valor em dinheiro), conforme CLT Art. 143.</p>
+                <p className="text-xs font-bold text-indigo-800">Solicitar Abono PecuniÃƒÆ’Ã‚Â¡rio (Venda de 10 dias)</p>
+                <p className="text-[10px] font-semibold text-indigo-600 mt-0.5">O funcionÃƒÆ’Ã‚Â¡rio recebe 10 dias de fÃƒÆ’Ã‚Â©rias convertidos em pÃƒÆ’Ã‚Â©cunia (valor em dinheiro), conforme CLT Art. 143.</p>
               </div>
             </label>
           )}
 
-          <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-slate-600">
-            <span>Observação (opcional)</span>
+          <label className="space-y-2 block text-xs font-bold uppercase tracking-wider text-fg-mut">
+            <span>ObservaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o (opcional)</span>
             <input
               value={observation}
               onChange={(e) => setObservation(e.target.value)}
-              placeholder="Motivo ou informação complementar"
-              className="h-11 w-full rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
+              placeholder="Motivo ou informaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o complementar"
+              className="h-11 w-full rounded-v2-md border border-border bg-bg-elev px-4 text-sm font-semibold text-fg shadow-sm outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
             />
           </label>
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
-          <button onClick={onClose} className="btn-outline-premium h-10 rounded-[10px] px-5 text-xs font-black">Cancelar</button>
+          <button onClick={onClose} className="btn-outline-premium h-10 rounded-v2-md px-5 text-xs font-black">Cancelar</button>
           <button
             onClick={() => valid && create.mutate().catch(() => {})}
             disabled={!valid || create.loading}
-            className="crystal-button h-10 rounded-[10px] bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/30 active:translate-y-0 disabled:opacity-60"
+            className="crystal-button h-10 rounded-v2-md bg-gradient-to-r from-teal-500 to-cyan-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-500/30 active:translate-y-0 disabled:opacity-60"
           >
             {create.loading ? 'Enviando...' : 'Solicitar'}
           </button>
@@ -890,7 +891,7 @@ function NewVacationModal({
   );
 }
 
-// ─── PDF UTILITIES ───────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ PDF UTILITIES ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 
 function employeeOptionLabel(employee: Employee) {
   const registration = employee.registration || employee.id.slice(0, 8).toUpperCase();

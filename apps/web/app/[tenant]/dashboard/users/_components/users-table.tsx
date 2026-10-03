@@ -66,11 +66,11 @@ export function UsersTable({
   onDelete,
 }: UsersTableProps) {
   return (
-    <div className="ops-card overflow-hidden rounded-[14px] border border-slate-200 bg-white">
+    <div className="card-v2 overflow-hidden">
       <div className="overflow-x-auto p-5">
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-slate-100 text-[11px] font-medium text-slate-500">
+            <tr className="border-b border-border text-[11px] font-medium text-fg-mut">
               <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Usuário</th>
               {showCompanyColumn && (
                 <th className="pb-3 pr-4 font-semibold uppercase tracking-wider">Empresa</th>
@@ -102,7 +102,7 @@ export function UsersTable({
               return (
                 <tr
                   key={user.id}
-                  className="group cursor-pointer border-b border-slate-50 text-xs transition-colors hover:bg-slate-50/50 last:border-0"
+                  className="group cursor-pointer border-b border-border/70 text-xs transition-colors hover:bg-bg-sub last:border-0"
                   onClick={(e) => {
                     // Prevenir clique na linha se o clique for nos botões de ação
                     if ((e.target as HTMLElement).closest('button')) return;
@@ -111,14 +111,14 @@ export function UsersTable({
                 >
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-black text-slate-600">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-bg-sub text-[11px] font-black text-fg-mut">
                         {initials}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900">
+                        <p className="font-bold text-fg">
                           {normalizeDisplayName(user.name)}
                         </p>
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[11px] text-fg-mut">
                           {user.employee?.registration
                             ? `Matrícula ${user.employee.registration}`
                             : 'Sem funcionário vinculado'}
@@ -128,13 +128,13 @@ export function UsersTable({
                   </td>
 
                   {showCompanyColumn && (
-                    <td className="py-3 pr-4 font-medium text-slate-700">
+                    <td className="py-3 pr-4 font-medium text-fg-mut">
                       {user.company?.name ?? '-'}
                     </td>
                   )}
 
                   <td className="py-3 pr-4">
-                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black uppercase text-slate-600">
+                    <span className="chip inline-flex px-2 py-1 text-[10px] font-black uppercase">
                       {ROLE_LABEL[user.role] ?? user.role}
                     </span>
                   </td>
@@ -147,7 +147,7 @@ export function UsersTable({
                     </span>
                   </td>
 
-                  <td className="py-3 pr-4 font-medium text-slate-600">
+                  <td className="py-3 pr-4 font-medium text-fg-mut">
                     {formatLastActive(user.lastActiveAt)}
                   </td>
 
