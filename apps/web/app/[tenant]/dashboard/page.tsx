@@ -181,8 +181,8 @@ function DashboardContent({ tenant }: { tenant: string }) {
   }
 
   const rolePresentation: Record<string, { eyebrow: string; title: string; description: string }> = {
-    CEO: { eyebrow: 'Dashboard CEO', title: 'Vis�o global da plataforma', description: 'M�tricas, finan�as e opera��o centralizada.' },
-    CONTABIL: { eyebrow: 'Dashboard Cont�bil', title: 'Vis�o financeira da plataforma', description: 'Assinaturas, MRR, churn e fluxo de recebimentos.' },
+    CEO: { eyebrow: 'Dashboard CEO', title: 'Visão global da plataforma', description: 'Métricas, finanças e operação centralizada.' },
+    CONTABIL: { eyebrow: 'Dashboard Contábil', title: 'Visão financeira da plataforma', description: 'Assinaturas, MRR, churn e fluxo de recebimentos.' },
     DEV: { eyebrow: 'Dashboard Dev',      title: 'Visão global da plataforma', description: 'Empresas, acessos, faturamento e saúde operacional em um só lugar.' },
     ADMIN:    { eyebrow: 'Dashboard Administrador', title: 'Controle completo da empresa', description: 'Pessoas, usuários, jornada e fechamento sob sua administração.' },
     RH:       { eyebrow: 'Dashboard RH',        title: 'Gestão de pessoas em tempo real', description: 'Cadastros, férias, ocorrências e fechamento para o time de RH.' },
@@ -267,9 +267,9 @@ function DashboardContent({ tenant }: { tenant: string }) {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 text-brand-600">
             <FileText size={32} />
           </div>
-          <h2 className="text-xl font-black text-fg">Vis�o Cont�bil Financeira</h2>
+          <h2 className="text-xl font-black text-fg">Visão Contábil Financeira</h2>
           <p className="mt-2 max-w-md text-sm text-fg-mut mx-auto">
-            Este � o painel de opera��es financeiras. Utilize o atalho acima para gerenciar o fluxo de assinaturas e faturamento.
+            Este é o painel de operações financeiras. Utilize o atalho acima para gerenciar o fluxo de assinaturas e faturamento.
           </p>
         </div>
       </div>
