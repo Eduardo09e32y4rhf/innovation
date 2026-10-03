@@ -13,6 +13,7 @@ module.exports = {
         'fg-mut': 'rgb(var(--fg-muted) / <alpha-value>)',
         'fg-sub': 'rgb(var(--fg-subtle) / <alpha-value>)',
         border: 'rgb(var(--border) / <alpha-value>)',
+        'border-strong': 'rgb(var(--border-strong) / <alpha-value>)',
         brand: Object.fromEntries([50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((n) => [n, `rgb(var(--brand-${n}) / <alpha-value>)`])),
         accent: { 400: 'rgb(var(--accent-400) / <alpha-value>)', 500: 'rgb(var(--accent-500) / <alpha-value>)', 600: 'rgb(var(--accent-600) / <alpha-value>)' },
         danger: 'rgb(var(--danger) / <alpha-value>)',
