@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AlertTriangle, CalendarDays, Clock3, Download, FileText, FolderOpen, HeartPulse, MoreHorizontal, Search, ShieldCheck, UserMinus, UserPlus, Users } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Clock3, Download, FileText, FolderOpen, HeartPulse, Key, Lock, LockOpen, MoreHorizontal, RotateCcw, Search, ShieldCheck, UserMinus, UserPlus, Users } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button, ConfirmDialog, Drawer, Modal, PageHeader } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -13,6 +13,8 @@ import { readAuthSession } from '@/app/lib/auth-session';
 import { EMPLOYEE_STATUS_LABEL, VACATION_STATUS_LABEL, formatDate, formatMinutes, formatTime } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { matchesEmployee } from './employee-filters';
+import { EmployeeAccessModal } from './_components/employee-access-modal';
+import { toast } from 'sonner';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 const monthNow = () => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`; };
@@ -39,6 +41,10 @@ export default function EmployeesPage() {
   const [confirmationName, setConfirmationName] = useState('');
   const [feedback, setFeedback] = useState('');
   const [actionError, setActionError] = useState('');
+  const [accessModalEmployee, setAccessModalEmployee] = useState<string | null>(null);
+  const blockUser = useMutation((id: string) => api.employees.bulkAccess({ employeeIds: [id], action: 'block' }), { onSuccess: () => { employeesQuery.refetch(); toast.success('Acesso bloqueado'); } });
+  const unblockUser = useMutation((id: string) => api.employees.bulkAccess({ employeeIds: [id], action: 'unblock' }), { onSuccess: () => { employeesQuery.refetch(); toast.success('Acesso desbloqueado'); } });
+  const resetPassword = useMutation((id: string) => api.employees.bulkAccess({ employeeIds: [id], action: 'reset-password' }), { onSuccess: () => { employeesQuery.refetch(); toast.success('Senha resetada'); } });
   const terminate = useMutation((id: string) => api.employees.terminate(id), { onSuccess: () => employeesQuery.refetch() });
   const remove = useMutation((id: string) => api.employees.delete(id), { onSuccess: () => employeesQuery.refetch() });
   const dossierQuery = useQuery(() => api.employees.dossier(selectedEmployeeId ?? ''), [selectedEmployeeId], { enabled: !!selectedEmployeeId });
@@ -73,11 +79,23 @@ export default function EmployeesPage() {
   }
 
   function employeeActions(employee: Employee) {
+    const hasAccess = !!employee.userId && !!employee.user;
+    const isAccessActive = hasAccess && employee.user?.isActive;
+
     return <div className="flex flex-wrap items-center gap-2">
       <Button type="button" variant="outline" onClick={() => setSelectedEmployeeId(employee.id)} aria-label={`Abrir dossiê de ${normalizeDisplayName(employee.name)}`}><FolderOpen size={18} aria-hidden="true" /> Dossiê</Button>
       <details className="relative" onKeyDown={event => { if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}>
         <summary className="btn btn-outline btn-md cursor-pointer list-none" aria-label={`Ações de ${normalizeDisplayName(employee.name)}`}><MoreHorizontal size={18} aria-hidden="true" /> Ações</summary>
         <div className="relative z-20 mt-2 flex w-full min-w-[210px] flex-col gap-1 rounded-xl border border-border bg-bg-elev p-2 shadow-lg md:absolute md:right-0 md:w-64" onClick={event => { const details = event.currentTarget.closest('details'); if (details) details.open = false; }}>
+          {canEdit && <>
+            <Button type="button" variant="ghost" className="justify-start" onClick={() => setAccessModalEmployee(employee.id)}><Key size={18} aria-hidden="true" /> Criar acesso</Button>
+            {hasAccess && <>
+              <Button type="button" variant="ghost" className="justify-start" disabled={isAccessActive ? blockUser.loading : unblockUser.loading} onClick={() => (isAccessActive ? blockUser.mutate(employee.id) : unblockUser.mutate(employee.id))}>
+                {isAccessActive ? <><Lock size={18} aria-hidden="true" /> Bloquear acesso</> : <><LockOpen size={18} aria-hidden="true" /> Desbloquear acesso</>}
+              </Button>
+              <Button type="button" variant="ghost" className="justify-start" disabled={resetPassword.loading} onClick={() => resetPassword.mutate(employee.id)}><RotateCcw size={18} aria-hidden="true" /> Redefinir senha</Button>
+            </>}
+          </>}
           {canDownloadSheet && canEdit && <>
             <Button type="button" variant="ghost" className="justify-start" disabled={!!downloadingId} onClick={() => download(employee, 'record')}><FileText size={18} aria-hidden="true" /> Ficha cadastral (PDF)</Button>
             <Button type="button" variant="ghost" className="justify-start" disabled={!!downloadingId} onClick={() => download(employee, 'point-sheet')}><Download size={18} aria-hidden="true" /> Folha de ponto (PDF)</Button>
@@ -173,6 +191,7 @@ export default function EmployeesPage() {
         }}>Confirmar {deletionQuery.data?.deletionImpact.total ? 'arquivamento' : 'exclusão'}</Button></div>
       </div>
     </Modal>
+    {accessModalEmployee && <EmployeeAccessModal employeeId={accessModalEmployee} onClose={() => setAccessModalEmployee(null)} onSuccess={() => { setAccessModalEmployee(null); employeesQuery.refetch(); }} />}
   </div>;
 }
 
