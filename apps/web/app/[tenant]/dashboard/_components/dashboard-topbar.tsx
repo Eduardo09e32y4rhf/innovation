@@ -1,35 +1,169 @@
 'use client';
 
-import { Bell, ChevronDown, LogOut, Menu, Search, Settings2 } from 'lucide-react';
-import { useAuth } from '@/app/contexts/AuthContext';
-import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Search,
+  Settings2,
+} from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { cn } from '@/app/lib/cn';
 
-export function DashboardTopbar({ onMenu }: { onMenu?: () => void }) {
-  const { user, company, logout } = useAuth();
+export function DashboardTopbar({
+  onMenu,
+}: {
+  onMenu?: () => void;
+}) {
   const router = useRouter();
   const params = useParams();
-  const tenant = String(params?.tenant ?? company?.slug ?? company?.id ?? user?.companyId ?? 'empresa');
+  const { user, company, logout } = useAuth();
+
   const [profileOpen, setProfileOpen] = useState(false);
-  const initials = (user?.name || user?.email || 'U').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+
+  const tenant = String(
+    params?.tenant ||
+      company?.slug ||
+      company?.id ||
+      user?.companyId ||
+      'empresa',
+  );
+
+  const initials = (user?.name || user?.email || 'U')
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+
+  function goTo(path: string) {
+    router.push(`/${tenant}${path}`);
+    setProfileOpen(false);
+  }
+
+  function handleLogout() {
+    logout();
+    router.push('/login');
+  }
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 items-center gap-3 bg-[var(--background)]/85 px-4 backdrop-blur-xl sm:px-8">
-      <button type="button" aria-label="Abrir menu" onClick={onMenu} className="btn-icon border-0 bg-white shadow-sm lg:hidden"><Menu size={20} /></button>
-      <div className="relative hidden max-w-xl flex-1 md:block">
-        <Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input aria-label="Buscar" placeholder="Buscar pessoas, escalas, férias..." className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-700 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 dark:border-white/10 dark:bg-white/5 dark:text-white" />
-      </div>
-      <div className="ml-auto flex items-center gap-2">
-        <button aria-label="Notificações" onClick={() => router.push(`/${tenant}/dashboard/notifications`)} className="btn-icon border-0 bg-white text-slate-500 shadow-sm hover:text-violet-600 dark:bg-white/5 dark:text-slate-300"><Bell size={19} /></button>
-        <div className="relative">
-          <button type="button" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen(!profileOpen)} className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 shadow-sm dark:border-white/10 dark:bg-white/5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 text-xs font-black text-white">{initials}</span><ChevronDown size={15} className="hidden text-slate-400 sm:block" />
+    <header className="sticky top-0 z-30 mb-4 pt-3">
+      <div className="glass flex h-[64px] items-center gap-2 rounded-v2-2xl px-2 shadow-v2-sm sm:px-3">
+        {/* BotÃ£o mobile */}
+        <button
+          type="button"
+          aria-label="Abrir menu"
+          onClick={onMenu}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-v2-md border border-border bg-bg-elev text-fg-mut transition hover:border-brand-300 hover:text-brand-600 lg:hidden"
+        >
+          <Menu size={19} />
+        </button>
+
+        {/* Busca */}
+        <div className="relative w-full max-w-[422px]">
+          <Search
+            size={16}
+            strokeWidth={2}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-sub"
+          />
+
+          <input
+            type="search"
+            aria-label="Buscar"
+            placeholder="Buscar pessoas, escalas, fÃ©rias..."
+            className="input-v2 h-10 !pl-10 !text-[12px] !font-semibold !bg-bg-sub/60 focus:!bg-bg-elev"
+          />
+        </div>
+
+        {/* AÃ§Ãµes da direita */}
+        <div className="ml-auto flex items-center gap-2">
+          {/* NotificaÃ§Ãµes */}
+          <button
+            type="button"
+            aria-label="NotificaÃ§Ãµes"
+            onClick={() => goTo('/dashboard/notifications')}
+            className="relative flex h-10 w-10 items-center justify-center rounded-v2-md border border-border bg-bg-elev text-fg-mut transition hover:border-brand-300 hover:text-brand-600"
+          >
+            <Bell size={18} strokeWidth={1.8} />
           </button>
-          {profileOpen && <><div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} /><div role="menu" className="absolute right-0 top-14 z-50 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl dark:border-white/10 dark:bg-slate-900"><div className="border-b border-slate-100 px-3 py-3 dark:border-white/10"><p className="truncate text-sm font-black text-slate-900 dark:text-white">{user?.name || 'Usuário'}</p><p className="truncate text-xs text-slate-500">{user?.email}</p></div><button onClick={() => { setProfileOpen(false); router.push(`/${tenant}/dashboard/settings`); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-slate-600 hover:bg-violet-50 hover:text-violet-700 dark:text-slate-300 dark:hover:bg-white/10"><Settings2 size={15} /> Configurações</button><button onClick={() => { logout(); router.push('/login'); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-rose-600 hover:bg-rose-50"><LogOut size={15} /> Sair</button></div></>}
+
+          {/* Perfil */}
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="Abrir perfil"
+              aria-haspopup="menu"
+              aria-expanded={profileOpen}
+              onClick={() => setProfileOpen((v) => !v)}
+              className="flex h-10 items-center gap-2 rounded-v2-md border border-border bg-bg-elev px-2 transition hover:border-brand-300"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-v2-sm bg-gradient-to-br from-brand-500 to-brand-700 text-[11px] font-black text-white">
+                {initials}
+              </span>
+
+              <ChevronDown
+                size={15}
+                className={cn(
+                  'text-fg-sub transition-transform duration-200',
+                  profileOpen && 'rotate-180',
+                )}
+              />
+            </button>
+
+            {profileOpen && (
+              <>
+                <button
+                  type="button"
+                  aria-label="Fechar menu"
+                  className="fixed inset-0 z-40 h-full w-full cursor-default"
+                  onClick={() => setProfileOpen(false)}
+                />
+
+                <div
+                  role="menu"
+                  className={cn(
+                    'absolute right-0 top-12 z-50 w-60 overflow-hidden rounded-v2-lg',
+                    'border border-border bg-bg-elev p-1.5 shadow-v2-xl',
+                    'animate-in fade-in slide-in-from-top-2 duration-150',
+                  )}
+                >
+                  <div className="border-b border-border/60 px-3 py-3">
+                    <p className="truncate text-sm font-black text-fg">
+                      {user?.name || 'UsuÃ¡rio'}
+                    </p>
+                    <p className="truncate text-xs text-fg-mut">
+                      {user?.email}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => goTo('/dashboard/settings')}
+                    className="flex w-full items-center gap-2 rounded-v2-md px-3 py-2.5 text-left text-[13px] font-bold text-fg-mut transition hover:bg-brand-500/8 hover:text-brand-700"
+                  >
+                    <Settings2 size={16} />
+                    ConfiguraÃ§Ãµes
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2 rounded-v2-md px-3 py-2.5 text-left text-[13px] font-bold text-danger transition hover:bg-danger/10"
+                  >
+                    <LogOut size={16} />
+                    Sair
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>
   );
 }
-

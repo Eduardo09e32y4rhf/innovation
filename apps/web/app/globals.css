@@ -322,3 +322,35 @@
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
+/* Design system v2 */
+@layer base {
+  :root {
+    --brand-50: 250 245 255; --brand-100: 243 232 255; --brand-200: 233 213 255;
+    --brand-300: 216 180 254; --brand-400: 192 132 252; --brand-500: 168 85 247;
+    --brand-600: 138 5 190; --brand-700: 114 4 158; --brand-800: 88 28 135; --brand-900: 59 7 100;
+    --accent-400: 45 212 191; --accent-500: 20 184 166; --accent-600: 13 148 136;
+    --bg: 250 250 252; --bg-elevated: 255 255 255; --bg-subtle: 244 244 247;
+    --fg: 15 23 42; --fg-muted: 100 116 139; --fg-subtle: 148 163 184;
+    --border: 226 232 240; --border-strong: 203 213 225;
+    --danger: 244 63 94; --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 24px; --r-2xl: 32px; --r-3xl: 40px;
+    --sidebar-w: 264px;
+    --shadow-xs: 0 1px 2px rgb(15 23 42 / .04); --shadow-sm: 0 1px 3px rgb(15 23 42 / .06), 0 1px 2px rgb(15 23 42 / .06);
+    --shadow-md: 0 4px 6px rgb(15 23 42 / .07), 0 2px 4px rgb(15 23 42 / .06); --shadow-lg: 0 10px 15px rgb(15 23 42 / .08), 0 4px 6px rgb(15 23 42 / .06); --shadow-xl: 0 20px 25px rgb(15 23 42 / .1), 0 8px 10px rgb(15 23 42 / .08);
+  }
+  .dark { --bg: 9 9 11; --bg-elevated: 24 24 27; --bg-subtle: 39 39 42; --fg: 250 250 250; --fg-muted: 161 161 170; --fg-subtle: 113 113 122; --border: 39 39 42; --border-strong: 63 63 70; --danger: 251 113 133; }
+  html, body { background: rgb(var(--bg)); color: rgb(var(--fg)); }
+}
+
+@layer components {
+  .card-v2 { @apply rounded-v2-xl border border-border bg-bg-elev shadow-v2-sm; }
+  .glass { background: rgb(var(--bg-elevated) / .72); backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgb(var(--border) / .65); }
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full bg-bg-sub px-3 py-1 text-xs font-semibold text-fg-mut; }
+  .chip-brand { background: rgb(var(--brand-500) / .12); color: rgb(var(--brand-700)); }
+  .chip-accent { background: rgb(var(--accent-500) / .14); color: rgb(var(--accent-600)); }
+  .chip-warning { @apply bg-amber-500/10 text-amber-700; }
+  .chip-success { @apply bg-emerald-500/10 text-emerald-700; }
+  .chip-danger { @apply bg-rose-500/10 text-rose-700; }
+  .btn-v2-outline { @apply inline-flex h-10 items-center justify-center gap-2 rounded-v2-md border border-border bg-bg-elev px-4 text-[13px] font-semibold text-fg transition hover:border-border-strong hover:bg-bg-sub; }
+  .input-v2 { @apply h-10 w-full rounded-v2-md border border-border bg-bg-elev px-3 text-sm text-fg outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10; }
+}
+
