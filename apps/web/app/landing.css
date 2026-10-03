@@ -1,0 +1,41 @@
+/* Landing page — animações. Tudo respeita prefers-reduced-motion. */
+.lp-reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); transition-delay: var(--lp-delay, 0ms); }
+.lp-reveal.is-visible { opacity: 1; transform: none; }
+
+@keyframes lp-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes lp-float-slow { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-8px) rotate(1deg); } }
+@keyframes lp-orbit { to { transform: rotate(360deg); } }
+@keyframes lp-orbit-rev { to { transform: rotate(-360deg); } }
+@keyframes lp-marquee { to { transform: translateX(-50%); } }
+@keyframes lp-pulse-ring { 0% { transform: scale(.9); opacity: .6; } 100% { transform: scale(1.5); opacity: 0; } }
+@keyframes lp-gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes lp-glow { 0%,100% { opacity: .55; } 50% { opacity: .95; } }
+@keyframes lp-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes lp-pop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
+
+.lp-float { animation: lp-float 6s ease-in-out infinite; }
+.lp-float-slow { animation: lp-float-slow 8s ease-in-out infinite; }
+.lp-orbit { animation: lp-orbit 28s linear infinite; }
+.lp-orbit-rev { animation: lp-orbit-rev 40s linear infinite; }
+.lp-marquee { animation: lp-marquee 38s linear infinite; width: max-content; }
+.lp-marquee:hover { animation-play-state: paused; }
+.lp-ring { animation: lp-pulse-ring 2.6s ease-out infinite; }
+.lp-glow { animation: lp-glow 5s ease-in-out infinite; }
+.lp-gradient-bg { background-size: 200% 200%; animation: lp-gradient 12s ease infinite; }
+.lp-bar { transform-origin: left; animation: lp-bar 1.2s cubic-bezier(.2,.7,.2,1) both; }
+.lp-pop { animation: lp-pop .5s cubic-bezier(.2,.7,.2,1) both; }
+
+.lp-grid-bg {
+  background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 30%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, #000 30%, transparent 75%);
+}
+.lp-card { transition: transform .3s ease, border-color .3s ease, background-color .3s ease, box-shadow .3s ease; }
+.lp-card:hover { transform: translateY(-4px); border-color: rgba(192,132,252,.55); background-color: rgba(255,255,255,.09); box-shadow: 0 18px 50px -18px rgba(139,0,197,.55); }
+.lp-text-gradient { background: linear-gradient(90deg, #e9d5ff, #c084fc 45%, #7dd3fc); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-reveal { opacity: 1; transform: none; transition: none; }
+  .lp-float, .lp-float-slow, .lp-orbit, .lp-orbit-rev, .lp-marquee, .lp-ring, .lp-glow, .lp-gradient-bg, .lp-bar, .lp-pop { animation: none; }
+}
