@@ -11,7 +11,6 @@ import { api, type PlatformCompany } from '@/app/lib/api';
 import { CompanyManageModal } from './_components/company-manage-modal';
 import { AccountingView } from './_hub/accounting-view';
 import { CompaniesView } from './_hub/companies-view';
-import { FinanceView } from './_hub/finance-view';
 import { errorText } from './_hub/format';
 import { AuditView, CommercialView, SettingsView, SupportView } from './_hub/more-views';
 import { OverviewView } from './_hub/overview-view';
@@ -91,9 +90,8 @@ function Hub() {
       </nav>
 
       <main>
-        {tab === 'resumo' && <OverviewView companyId={companyId} onOpenCompany={openCompany} onTab={(next) => update({ tab: next })} />}
+        {tab === 'resumo' && <OverviewView companyId={companyId} onOpenCompany={openCompany} onTab={(next) => (next === 'financeiro' ? router.push(`/${tenant}/dashboard/faturas`) : update({ tab: next }))} />}
         {tab === 'empresas' && <CompaniesView onOpenCompany={openCompany} />}
-        {tab === 'financeiro' && <FinanceView companyId={companyId} role={role} />}
         {tab === 'contabilidade' && <AccountingView companyId={companyId} canEdit={canEditAccounting} onOpenCompany={openCompany} />}
         {tab === 'comercial' && <CommercialView companyId={companyId} base={base} />}
         {tab === 'suporte' && <SupportView companyId={companyId} base={base} />}

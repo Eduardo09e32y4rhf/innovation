@@ -52,6 +52,7 @@ export class JwtAuthGuard implements CanActivate {
         name: freshUser.name,
         companyId: payload.ghostMode ? payload.companyId : freshUser.companyId,
         role,
+        customPermissions: freshUser.customPermissions,
         ghostMode: payload.ghostMode || false,
         onboardingState: freshUser.onboardingState ?? null,
       };

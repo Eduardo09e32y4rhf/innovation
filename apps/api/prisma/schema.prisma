@@ -399,6 +399,7 @@ model Company {
   financeConfig       CompanyFinanceConfig?
   financeNotifLogs    FinanceNotificationLog[]
   subscription        CompanySubscription?
+  invoiceAdjustments  InvoiceAdjustment[]
   couponRedemptions   CouponRedemption[]
   manualContracts     ManualContract[]
 
@@ -1821,6 +1822,7 @@ model PlatformInvoice {
 
   company Company       @relation(fields: [companyId], references: [id])
   plan    PlatformPlan? @relation(fields: [planId], references: [id])
+  adjustments InvoiceAdjustment[]
 
   @@index([companyId, status, dueDate])
   @@index([deletedAt])
@@ -2158,6 +2160,8 @@ model CompanySubscription {
   couponType          String?
   couponValue         Decimal?  @db.Decimal(10, 2)
   couponCyclesLeft    Int?
+  /// Plano que passa a valer no proximo ciclo (downgrade agendado pela aba Faturas).
+  pendingPlanId       String?   @db.Uuid
   billingPaused       Boolean   @default(false)
   billingPausedAt     DateTime?
   billingPausedBy     String?   @db.Uuid
@@ -3085,4 +3089,32 @@ model RefreshSession {
   @@index([userId, revokedAt])
   @@index([family])
   @@index([expiresAt])
+}
+enum InvoiceAdjustmentType {
+  DISCOUNT
+  RECURRING_DISCOUNT
+  FREE_DAYS
+  PARTIAL_REFUND
+  PRORATION
+  FISCAL_ATTACHED
+}
+
+/// Livro de ajustes financeiros da aba Faturas (desconto, dias gratis, reembolso parcial, rateio, NF anexada).
+model InvoiceAdjustment {
+  id          String                @id @default(uuid()) @db.Uuid
+  companyId   String                @db.Uuid
+  invoiceId   String?               @db.Uuid
+  type        InvoiceAdjustmentType
+  amount      Decimal?              @db.Decimal(10, 2)
+  days        Int?
+  reason      String
+  createdById String?               @db.Uuid
+  metadata    Json?
+  createdAt   DateTime              @default(now())
+
+  company Company          @relation(fields: [companyId], references: [id])
+  invoice PlatformInvoice? @relation(fields: [invoiceId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@index([invoiceId])
 }

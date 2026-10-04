@@ -447,11 +447,33 @@ export type PlatformBillingType = 'UNDEFINED' | 'PIX' | 'BOLETO' | 'CREDIT_CARD'
 export interface PlatformInvoice {
   id: string; companyId: string; planId?: string | null; description?: string | null;
   amount: number | string; dueDate: string; status: PlatformInvoiceStatus; billingType: PlatformBillingType;
-  asaasPaymentId?: string | null; invoiceUrl?: string | null; paidAt?: string | null;
+  asaasPaymentId?: string | null; invoiceUrl?: string | null; paidAt?: string | null; provider?: string | null; mpPaymentId?: string | null; receiptUrl?: string | null;
+  invoiceNumber?: string | null; invoiceSeries?: string | null; invoiceStatus?: string | null; nfeStatus?: string | null; fiscalPdfUrl?: string | null; fiscalXmlUrl?: string | null; invoiceAuthorizedAt?: string | null;
   createdAt: string; updatedAt: string;
   company: { id: string; name: string; legalName?: string | null; document?: string | null; asaasCustomerId?: string | null };
   plan?: { id: string; name: string } | null;
 }
+export interface InvoiceAdjustment {
+  id: string; companyId: string; invoiceId?: string | null; createdAt: string; reason: string;
+  type: 'DISCOUNT' | 'RECURRING_DISCOUNT' | 'FREE_DAYS' | 'PARTIAL_REFUND' | 'PRORATION' | 'FISCAL_ATTACHED';
+  amount?: number | string | null; days?: number | null; metadata?: Record<string, unknown> | null;
+}
+export interface PlanQuote {
+  currentPlan?: string; nextPlan: string; currentTotal: number; nextTotal: number; kind: 'UPGRADE' | 'DOWNGRADE';
+  prorationAmount: number; remainingDays: number; cycleDays: number; effectiveAt?: string | null;
+}
+
+export interface SeatsQuote {
+  currentSeats: number; nextSeats: number; currentTotal: number; nextTotal: number; kind: 'UPGRADE' | 'DOWNGRADE' | 'SEM_MUDANCA';
+  prorationAmount: number; remainingDays: number; cycleDays: number; periodEnd?: string | null; downgradeEffectiveAt?: string | null;
+}
+export interface FaturasCompaniesQuery { page?: number; limit?: number; search?: string; status?: string; billingStatus?: string }
+export interface FaturasCompanyRow {
+  id: string; name: string; document?: string | null; status: string; billingStatus: string; plan: string;
+  subscription?: { status: string; seatQuantity: number; nextDueDate?: string | null; billingPaused: boolean; couponType?: string | null; couponValue?: number | null; couponCyclesLeft?: number | null } | null;
+  open: { total: number; count: number }; overdue: { total: number; count: number };
+}
+export interface FaturasCompanyList { items: FaturasCompanyRow[]; pagination: { page: number; limit: number; total: number; pages: number } }
 export interface PlatformFinanceSummary {
   totals: { billed: number; received: number; open: number; overdue: number; canceled: number };
   count: number; conversionRate: number;
@@ -917,6 +939,32 @@ export const api = {
     checkout: () => request<CompanyBillingResult>('/finance/company/checkout', { method: 'POST', silent: true, keepSessionOn401: true, timeoutMs: 25000 }),
     changeSeats: (seatQuantity: number) => request<{ changed: boolean; scheduled: boolean; seatQuantity: number; pendingSeatQuantity?: number | null; effectiveAt?: string | null }>('/finance/company/change-seats', { method: 'POST', body: { seatQuantity } }),
     changePlan: (planId: string) => request<{ message: string }>('/finance/company/change-plan', { method: 'POST', body: { planId } }),
+  },
+  faturas: {
+    empresaStatus: () => request<CompanyBillingResult>('/faturas/empresa/status', { silent: true, keepSessionOn401: true, timeoutMs: 10000 }),
+    empresaInvoices: () => request<PlatformInvoice[]>('/faturas/empresa/invoices', { silent: true, keepSessionOn401: true }),
+    empresaCheckout: () => request<CompanyBillingResult>('/faturas/empresa/checkout', { method: 'POST', silent: true, keepSessionOn401: true, timeoutMs: 25000 }),
+    summary: (query: Pick<PlatformInvoiceQuery, 'from' | 'to' | 'companyId'> = {}) => request<PlatformFinanceSummary>(`/faturas/plataforma/summary${makeQuery(query)}`),
+    companies: (query: FaturasCompaniesQuery = {}) => request<FaturasCompanyList>(`/faturas/plataforma/companies${makeQuery(query)}`),
+    companyInvoices: (companyId: string) => request<PlatformInvoice[]>(`/faturas/plataforma/companies/${companyId}/invoices`),
+    adjustments: (companyId: string) => request<InvoiceAdjustment[]>(`/faturas/plataforma/companies/${companyId}/adjustments`),
+    charge: (input: CreatePlatformInvoiceInput) => request<PlatformInvoice>('/faturas/plataforma/invoices', { method: 'POST', body: input }),
+    cancelInvoice: (id: string, reason: string) => request<{ id: string }>(`/faturas/plataforma/invoices/${id}`, { method: 'DELETE', body: { reason } }),
+    discountInvoice: (id: string, input: { kind: 'PERCENT' | 'FIXED'; value: number; reason: string }) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/discount`, { method: 'POST', body: input }),
+    refundPartial: (id: string, input: { amount: number; reason: string }) => request<InvoiceAdjustment>(`/faturas/plataforma/invoices/${id}/refund-partial`, { method: 'POST', body: input }),
+    refundFull: (id: string, reason: string) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/refund`, { method: 'POST', body: { reason } }),
+    attachFiscal: (id: string, input: { reason: string; invoiceNumber?: string; fiscalPdfUrl?: string; fiscalXmlUrl?: string; receiptUrl?: string }) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/fiscal`, { method: 'POST', body: input }),
+    recurringDiscount: (companyId: string, input: { kind: 'PERCENT' | 'FIXED'; value: number; cycles: number; reason: string }) => request<{ total: number; discountPerCycle: number; cycles: number; providerSynced: boolean }>(`/faturas/plataforma/companies/${companyId}/recurring-discount`, { method: 'POST', body: input }),
+    freeDays: (companyId: string, input: { days: number; reason: string }) => request<{ nextDueDate: string; movedInvoices: number; providerSynced: boolean }>(`/faturas/plataforma/companies/${companyId}/free-days`, { method: 'POST', body: input }),
+    quoteSeats: (companyId: string, seatQuantity: number) => request<SeatsQuote>(`/faturas/plataforma/companies/${companyId}/seats/quote?seatQuantity=${seatQuantity}`),
+    changeSeats: (companyId: string, input: { seatQuantity: number; reason: string }) => request<{ prorationAmount: number; scheduled?: boolean }>(`/faturas/plataforma/companies/${companyId}/seats`, { method: 'POST', body: input }),
+    pauseBilling: (companyId: string) => request<unknown>(`/faturas/plataforma/companies/${companyId}/billing/pause`, { method: 'POST' }),
+    quotePlan: (companyId: string, planId: string) => request<PlanQuote>(`/faturas/plataforma/companies/${companyId}/plan/quote?planId=${planId}`),
+    changePlan: (companyId: string, input: { planId: string; reason: string }) => request<{ scheduled: boolean; prorationAmount: number }>(`/faturas/plataforma/companies/${companyId}/plan`, { method: 'POST', body: input }),
+    syncInvoice: (id: string) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/sync`, { method: 'POST' }),
+    downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to' | 'companyId'> = {}) => downloadRequest(`/faturas/plataforma/statements/pdf${makeQuery(query)}`),
+    plans: () => request<Array<{ id: string; name: string; isActive?: boolean; commitmentMonths?: number }>>('/platform/plans'),
+    resumeBilling: (companyId: string) => request<unknown>(`/faturas/plataforma/companies/${companyId}/billing/resume`, { method: 'POST' }),
   },
   proposals: {
     list: () => request<any[]>('/proposals'),

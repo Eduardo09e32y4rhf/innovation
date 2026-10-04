@@ -20,7 +20,14 @@ export type Permission =
   | 'admin.manage_rh'
   | 'admin.delete_employees'
   | 'platform.manage'
-  | 'platform.view_finance';
+  | 'platform.view_finance'
+  | 'faturas.ver'
+  | 'faturas.pagar'
+  | 'faturas.nf_anexar'
+  | 'faturas.cobrar'
+  | 'faturas.desconto'
+  | 'faturas.reembolsar'
+  | 'faturas.todas_empresas';
 
 export const PERMISSIONS_LABELS: Record<Permission, string> = {
   'time_tracking.clock_in': 'Bater ponto',
@@ -40,9 +47,23 @@ export const PERMISSIONS_LABELS: Record<Permission, string> = {
   'users.view_employee_files': 'Ver Ficha do Funcionário',
   'admin.manage_rh': 'Gerenciar acessos do RH',
   'admin.delete_employees': 'Deletar/Demitir funcionários',
-  'platform.manage': 'Acessar aba Plataforma / Gestão Superior',
-  'platform.view_finance': 'Visualizar financeiro da Plataforma'
+  'platform.manage': 'Acessar aba Plataforma / Gestão Superior'
+,
+  'platform.view_finance': 'Visualizar financeiro da Plataforma',
+  'faturas.ver': 'Faturas: ver faturas, comprovantes e notas fiscais',
+  'faturas.pagar': 'Faturas: pagar faturas em aberto',
+  'faturas.nf_anexar': 'Faturas: anexar nota fiscal e comprovante',
+  'faturas.cobrar': 'Faturas: gerar cobranças, trocar plano e cancelar',
+  'faturas.desconto': 'Faturas: dar desconto, cupom e dias grátis',
+  'faturas.reembolsar': 'Faturas: reembolsar pagamentos',
+  'faturas.todas_empresas': 'Faturas: ver todas as empresas (visão plataforma)'
 };
+
+const FATURAS_EMPRESA: Permission[] = ['faturas.ver', 'faturas.pagar'];
+const FATURAS_TUDO: Permission[] = [
+  'faturas.ver', 'faturas.pagar', 'faturas.nf_anexar', 'faturas.cobrar',
+  'faturas.desconto', 'faturas.reembolsar', 'faturas.todas_empresas'
+];
 
 const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
   'funcionario': [
@@ -70,7 +91,8 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'users.manage_employees',
     'users.view_employee_files',
     'platform.manage',
-    'platform.view_finance'
+    'platform.view_finance',
+    ...FATURAS_EMPRESA
   ],
   'admin': [
     'time_tracking.clock_in',
@@ -91,7 +113,8 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'admin.manage_rh',
     'admin.delete_employees',
     'platform.manage',
-    'platform.view_finance'
+    'platform.view_finance',
+    ...FATURAS_EMPRESA
   ],
   'dev': [
     'time_tracking.clock_in',
@@ -112,7 +135,8 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'admin.manage_rh',
     'admin.delete_employees',
     'platform.manage',
-    'platform.view_finance'
+    'platform.view_finance',
+    ...FATURAS_TUDO
   ],
   'ceo': [
     'time_tracking.view_all',
@@ -127,16 +151,22 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'admin.manage_rh',
     'admin.delete_employees',
     'platform.manage',
-    'platform.view_finance'
+    'platform.view_finance',
+    ...FATURAS_TUDO
   ],
   'contabil': [
     'time_tracking.view_all',
     'settings.change_own_password',
-    'platform.view_finance'
+    'platform.view_finance',
+    'faturas.ver',
+    'faturas.nf_anexar',
+    'faturas.todas_empresas'
   ],
   'comercial': [
     'settings.change_own_password',
-    'platform.view_finance'
+    'platform.view_finance',
+    'faturas.ver',
+    'faturas.todas_empresas'
   ],
   'consulta': [
     'time_tracking.view_all',

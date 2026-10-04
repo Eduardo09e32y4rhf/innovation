@@ -64,21 +64,21 @@ export class FinanceController {
   }
 
   @Post('platform/invoices')
-  @Roles('DEV', 'CEO', 'CONTABIL')
+  @Roles('DEV', 'CEO')
   @Audited({ action: 'INVOICE_CREATED', entity: 'PlatformInvoice' })
   create(@Body() dto: CreatePlatformInvoiceDto) {
     return this.service.create(dto);
   }
 
   @Patch('platform/invoices/:id')
-  @Roles('DEV', 'CEO', 'CONTABIL')
+  @Roles('DEV', 'CEO')
   @Audited({ action: 'INVOICE_UPDATED', entity: 'PlatformInvoice' })
   update(@Param('id') id: string, @Body() dto: UpdatePlatformInvoiceDto) {
     return this.service.update(id, dto);
   }
 
   @Post('platform/invoices/:id/sync')
-  @Roles('DEV', 'CEO', 'CONTABIL')
+  @Roles('DEV', 'CEO')
   @Audited({ action: 'INVOICE_SYNCED', entity: 'PlatformInvoice' })
   sync(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
     return this.service.sync(id, actor);

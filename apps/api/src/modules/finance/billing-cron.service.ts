@@ -139,6 +139,37 @@ export class BillingCronService {
     }
   }
 
+  /** Aplica downgrades de plano agendados pela aba Faturas quando o ciclo atual termina. */
+  @Cron('15 2 * * *')
+  @CronLock('billing.applyScheduledPlanChanges', 3600)
+  async applyScheduledPlanChanges() {
+    const now = new Date();
+    const subscriptions = await this.prisma.companySubscription.findMany({
+      where: {
+        pendingPlanId: { not: null },
+        OR: [{ currentPeriodEnd: { lte: now } }, { currentPeriodEnd: null, nextDueDate: { lte: now } }],
+      },
+      include: { company: { select: { asaasSubscriptionId: true } } },
+    });
+    for (const subscription of subscriptions) {
+      try {
+        const plan = subscription.pendingPlanId ? await this.prisma.platformPlan.findUnique({ where: { id: subscription.pendingPlanId } }) : null;
+        if (!plan) { await this.prisma.companySubscription.update({ where: { id: subscription.id }, data: { pendingPlanId: null } }); continue; }
+        const quote = this.pricing.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, subscription.seatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price });
+        const asaasSubscriptionId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
+        if (asaasSubscriptionId && this.asaas.isConfigured()) await this.asaas.updateSubscription(asaasSubscriptionId, { value: quote.total });
+        await this.prisma.$transaction([
+          this.prisma.company.update({ where: { id: subscription.companyId }, data: { platformPlanId: plan.id } }),
+          this.prisma.companySubscription.update({
+            where: { id: subscription.id },
+            data: { planId: plan.id, pendingPlanId: null, pricingVersion: plan.pricingVersion, baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, discountPercent: plan.discountPercent },
+          }),
+        ]);
+      } catch (error) {
+        this.logger.error(`Falha ao aplicar troca de plano agendada da empresa ${subscription.companyId}: ${String(error)}`);
+      }
+    }
+  }
   // Gera uma proposta recuperável cinco dias antes do fim do trial.
   @Cron('30 3 * * *')
   @CronLock('billing.createTrialConversionProposals', 3600)
@@ -293,6 +324,8 @@ export class BillingCronService {
             where: { id: company.id },
             data: { status: 'SUSPENDED', billingStatus: 'CANCELED', isActive: false, suspensionReason: 'cancelamento_por_inadimplencia' },
           });
+          // Cancelamento definitivo: a assinatura recorrente no Mercado Pago não pode continuar cobrando.
+          await this.platformFinance.cancelMercadoPagoSubscription(company.id);
         } else if (stage === 'BLOCK' && !suspendedByDebt) {
           this.logger.warn(`Empresa ${company.id} com fatura atrasada há ${diffDays} dias. Bloqueando...`);
           await this.prisma.company.update({
@@ -324,8 +357,6 @@ export class BillingCronService {
       const reminderDaysBefore = parseInt(process.env.FINANCE_NOTIFICATION_REMINDER_DAYS_BEFORE ?? '3', 10);
       const overdueDays = (process.env.FINANCE_NOTIFICATION_OVERDUE_DAYS ?? '1,5,10')
         .split(',')
-          // Cancelamento definitivo: a assinatura recorrente no Mercado Pago não pode continuar cobrando.
-          await this.platformFinance.cancelMercadoPagoSubscription(company.id);
         .map(d => parseInt(d.trim(), 10))
         .filter(d => !isNaN(d));
 
