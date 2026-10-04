@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { clearAuthSession, readAuthSession, readParsedAuthSession } from './auth-session';
 import { resetAllQueryStates } from '@/app/hooks/use-data';
@@ -334,6 +334,9 @@ export interface AppUser {
   id: string; name: string; email: string; role: UserRole;
   companyId: string; isActive?: boolean; createdAt?: string; customPermissions?: string[];
   lastActiveAt?: string | null;
+  blockedAt?: string | null;
+  blockedReason?: string | null;
+  canceledAt?: string | null;
   forcePasswordChange?: boolean;
   failedLoginAttempts?: number;
   passwordChangedAt?: string | null;
@@ -351,7 +354,12 @@ export interface AppUser {
   };
 }
 export interface UsersUsage { used: number; max: number; }
-export interface CreateUserInput { name: string; email: string; password?: string; role?: UserRole; customPermissions?: string[] | null; companyId?: string; }
+export interface LinkableEmployee { id: string; name: string; email?: string | null; registration?: string | null; position?: string | null; department?: string | null }
+export interface ActivityChange { field: string; from: string | null; to: string | null }
+export interface ActivityItem { id: string; at: string; ip: string | null; type: 'PAGE' | 'LOGIN' | 'CHANGE' | 'SECURITY' | 'ACCESS'; title: string; target: string | null; changes: ActivityChange[]; by: string | null }
+export interface UserActivity { user: { id: string; name: string; email: string; registration: string | null; role: UserRole }; days: number; total: number; truncated: boolean; generatedAt: string; items: ActivityItem[] }
+export type CreatedUser = AppUser & { temporaryPassword?: string; temporaryPasswordExpiresAt?: string }
+export interface CreateUserInput { name: string; email: string; password?: string; role?: UserRole; customPermissions?: string[] | null; companyId?: string; employeeId?: string; }
 export interface UpdateUserInput extends Partial<CreateUserInput> { isActive?: boolean; forcePasswordChange?: boolean; }
 
 export interface WhatsappStatus {
@@ -747,7 +755,15 @@ export const api = {
     list: () => request<AppUser[]>('/users'),
     usage: () => request<UsersUsage>('/users/usage'),
     get: (id: string) => request<AppUser>(`/users/${id}`),
-    create: (input: CreateUserInput) => request<AppUser>('/users', { method: 'POST', body: input }),
+    create: (input: CreateUserInput) => request<CreatedUser>('/users', { method: 'POST', body: input }),
+    linkableEmployees: (search: string, companyId?: string) => request<LinkableEmployee[]>(`/users/linkable-employees${makeQuery({ search, companyId })}`),
+    linkEmployee: (id: string, employeeId: string | null) => request<AppUser>(`/users/${id}/employee`, { method: 'PUT', body: { employeeId } }),
+    block: (id: string, reason?: string) => request<AppUser>(`/users/${id}/block`, { method: 'POST', body: { reason } }),
+    unblock: (id: string) => request<AppUser>(`/users/${id}/unblock`, { method: 'POST' }),
+    cancel: (id: string, reason?: string) => request<AppUser>(`/users/${id}/cancel`, { method: 'POST', body: { reason } }),
+    activity: (id: string, query: { days?: number; since?: string; limit?: number } = {}) => request<UserActivity>(`/users/${id}/activity${makeQuery(query)}`, { silent: true }),
+    activityPdf: (id: string, days = 30) => downloadRequest(`/users/${id}/activity/pdf?days=${days}`),
+    pageView: (path: string) => request<void>('/users/activity/page-view', { method: 'POST', body: { path }, silent: true }),
     update: (id: string, input: UpdateUserInput) => request<AppUser>(`/users/${id}`, { method: 'PATCH', body: input }),
     delete: (id: string) => request<void>(`/users/${id}`, { method: 'DELETE' }),
     resetPassword: (id: string, body: { newPassword: string }) => request<AppUser>(`/users/${id}/reset-password`, { method: 'POST', body }),

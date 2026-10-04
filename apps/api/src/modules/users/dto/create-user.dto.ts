@@ -1,4 +1,4 @@
-﻿import { IsArray, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
+import { IsArray, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, MinLength } from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
@@ -8,9 +8,11 @@ export class CreateUserDto {
   @IsEmail()
   email!: string;
 
+  /** Opcional: sem senha o servidor gera uma provisória forte. */
+  @IsOptional()
   @IsString()
   @MinLength(10)
-  password!: string;
+  password?: string;
 
   @IsOptional()
   @IsIn(['DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'])

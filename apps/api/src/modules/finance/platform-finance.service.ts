@@ -7,6 +7,9 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
+import { MercadoPagoService } from './mercadopago.service';
+import { couponDiscount } from '../coupons/coupon-rules';
+import { PaymentProviderService } from './payment-provider.service';
 import { CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
 
 @Injectable()
@@ -17,7 +20,59 @@ export class PlatformFinanceService {
     private readonly prisma: PrismaService,
     private readonly asaas: AsaasService,
     private readonly pricingService: PricingService,
+    private readonly mercadoPago: MercadoPagoService,
+    private readonly providers: PaymentProviderService,
   ) {}
+
+  /** Cupom de desconto vigente na assinatura (null quando acabou ou não existe). */
+  private subscriptionCoupon(subscription?: { couponType?: string | null; couponValue?: unknown; couponCyclesLeft?: number | null } | null) {
+    if (!subscription?.couponType) return null;
+    if (subscription.couponCyclesLeft !== null && subscription.couponCyclesLeft !== undefined && subscription.couponCyclesLeft <= 0) return null;
+    return couponDiscount({ type: subscription.couponType, value: subscription.couponValue });
+  }
+
+  /** Cria a fatura local e o link de pagamento do Mercado Pago (Pix, cartão e saldo MP). */
+  private async createMercadoPagoInvoice(input: { companyId: string; planId?: string | null; description: string; amount: number; dueDate: Date; payerEmail?: string; pricingSnapshot?: Prisma.InputJsonValue }) {
+    if (!this.mercadoPago.isConfigured()) throw new BadRequestException('A integracao Mercado Pago nao esta configurada.');
+    const invoice = await this.prisma.platformInvoice.create({
+      data: {
+        companyId: input.companyId, planId: input.planId ?? undefined, description: input.description, amount: input.amount, dueDate: input.dueDate,
+        status: 'OPEN', billingType: 'UNDEFINED', provider: 'MERCADOPAGO', pricingSnapshot: input.pricingSnapshot,
+      },
+    });
+    try {
+      const preference = await this.mercadoPago.createCheckoutPreference({ title: input.description, amount: input.amount, externalReference: `inv:${invoice.id}`, payerEmail: input.payerEmail });
+      const url = this.mercadoPago.mode() === 'sandbox' ? preference.sandbox_init_point ?? preference.init_point : preference.init_point;
+      return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { invoiceUrl: url, mpPreferenceId: preference.id } });
+    } catch (error) {
+      await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: 'CANCELED', deletedAt: new Date() } }).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  private async ensureMercadoPagoOnboarding(company: any, amount: number, actor?: JwtUser) {
+    const admin = company.users[0];
+    if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
+    let invoice = await this.prisma.platformInvoice.findFirst({
+      where: { companyId: company.id, deletedAt: null, provider: 'MERCADOPAGO', status: { in: ['OPEN', 'OVERDUE'] }, invoiceUrl: { not: null } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!invoice) {
+      const dueDate = new Date();
+      dueDate.setUTCDate(dueDate.getUTCDate() + 1);
+      const plan = company.platformPlan;
+      invoice = await this.createMercadoPagoInvoice({
+        companyId: company.id, planId: plan?.id, description: 'Mensalidade Innovation RH - avulsa', amount, dueDate, payerEmail: admin.email,
+        pricingSnapshot: { source: 'AUTOMATIC', provider: 'MERCADOPAGO', seatQuantity: company.subscription?.seatQuantity ?? null, pricingVersion: company.subscription?.pricingVersion ?? plan?.pricingVersion ?? null, total: amount },
+      });
+    }
+    await this.prisma.company.update({
+      where: { id: company.id },
+      data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PENDING_PAYMENT', suspensionReason: 'aguardando_primeiro_pagamento' },
+    });
+    await this.audit(company.id, 'ONBOARDING_PAYMENT_READY', { amount, provider: 'MERCADOPAGO', invoiceId: invoice.id }, actor, 'Billing', invoice.id);
+    return { active: false, paymentUrl: invoice.invoiceUrl, invoice };
+  }
 
   private audit(companyId: string, action: string, metadata: Record<string, unknown>, actor?: JwtUser, entity = 'Billing', entityId?: string) {
     return this.prisma.auditLog.create({
@@ -179,8 +234,10 @@ export class PlatformFinanceService {
       return { active: true, paymentUrl: null, invoice: null };
     }
 
+    const activeProvider = await this.providers.active();
+
     if (company.billingStatus === 'TRIAL') {
-      if (!this.asaas.isConfigured()) {
+      if (activeProvider === 'MERCADOPAGO' || !this.asaas.isConfigured()) {
         await this.audit(company.id, 'ONBOARDING_TRIAL_READY', {
           trialEndsAt: company.trialEndsAt ?? null,
           reason: 'asaas_not_configured',
@@ -201,6 +258,7 @@ export class PlatformFinanceService {
           userMonthlyPrice: plan.userMonthlyPrice,
           price: plan.price,
         },
+        this.subscriptionCoupon(company.subscription),
       ) : null;
       const amount = pricing?.total ?? Number(plan?.price ?? 0);
       const subscriptionId = amount > 0 ? await this.createRecurringSubscription(company, customerId, amount, company.trialEndsAt) : null;
@@ -227,11 +285,13 @@ export class PlatformFinanceService {
           userMonthlyPrice: plan.userMonthlyPrice,
           price: plan.price,
         },
+        this.subscriptionCoupon(company.subscription),
       );
       amount = pricing.total;
     }
 
     if (amount <= 0) return { active: true, paymentUrl: null, invoice: null };
+    if (activeProvider === 'MERCADOPAGO') return this.ensureMercadoPagoOnboarding(company, amount, actor);
     if (!this.asaas.isConfigured()) {
       throw new BadRequestException('A integracao Asaas nao esta configurada.');
     }
@@ -309,9 +369,17 @@ export class PlatformFinanceService {
             userMonthlyPrice: plan.userMonthlyPrice,
             price: plan.price,
           },
+          this.subscriptionCoupon(company.subscription),
         );
     const amount = quote?.total ?? Number(plan.price);
     if (amount <= 0) return { configured: true, created: false };
+
+    if ((await this.providers.active()) === 'MERCADOPAGO' && this.mercadoPago.isConfigured() && company.users[0]) {
+      const invoice = await this.createMercadoPagoInvoice({
+        companyId, planId: plan.id, description: `Mensalidade Contrato Digital - ${company.name}`, amount, dueDate: nextDueDate, payerEmail: company.users[0].email,
+      });
+      return { configured: true, created: true, invoiceId: invoice.id, provider: 'MERCADOPAGO' };
+    }
 
     if (!this.asaas.isConfigured() || !company.document || !company.users[0]) {
       await this.prisma.platformInvoice.create({
@@ -401,6 +469,24 @@ export class PlatformFinanceService {
         }
       } catch (error) {
         this.logger.warn(`Falha no polling da cobranca ${invoice.asaasPaymentId}: ${String(error)}`);
+      }
+    }
+
+    // Mercado Pago: mesmo fallback caso o webhook atrase (busca o pagamento pela referência da fatura).
+    if (invoice && invoice.provider === 'MERCADOPAGO' && this.mercadoPago.isConfigured() && company.status !== 'ACTIVE') {
+      try {
+        const payment = await this.mercadoPago.findPaymentForInvoice(invoice.id, invoice.mpPaymentId);
+        if (payment && this.mercadoPago.mapStatus(payment.status) === 'PAID') {
+          const [updatedInvoice, updatedCompany] = await this.prisma.$transaction([
+            this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: 'PAID', paidAt: invoice.paidAt ?? new Date(), mpPaymentId: String(payment.id) } }),
+            this.prisma.company.update({ where: { id: companyId }, data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null } }),
+          ]);
+          invoice = updatedInvoice;
+          company.status = updatedCompany.status;
+          company.billingStatus = updatedCompany.billingStatus;
+        }
+      } catch (error) {
+        this.logger.warn(`Falha no polling do Mercado Pago da fatura ${invoice.id}: ${String(error)}`);
       }
     }
 
@@ -529,6 +615,7 @@ export class PlatformFinanceService {
       (company.platformPlan.commitmentMonths as any) || 1,
       subscription.seatQuantity,
       { baseMonthlyPrice: company.platformPlan.baseMonthlyPrice, userMonthlyPrice: company.platformPlan.userMonthlyPrice, price: company.platformPlan.price },
+      this.subscriptionCoupon(subscription),
     );
     const subscriptionId = await this.createRecurringSubscription({ ...company, subscription: { ...subscription, asaasSubscriptionId: null } }, customerId, quote.total);
     if (!subscriptionId) throw new BadRequestException('O Asaas nao confirmou a nova assinatura.');
@@ -563,7 +650,8 @@ export class PlatformFinanceService {
     }
 
     const commitmentMonths = subscription.plan.commitmentMonths as 1 | 3 | 6 | 12;
-    const quote = this.pricingService.calculate(commitmentMonths, nextSeatQuantity);
+    const plan = subscription.plan;
+    const quote = this.pricingService.calculate(commitmentMonths, nextSeatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price }, this.subscriptionCoupon(subscription));
 
     if (nextSeatQuantity < subscription.seatQuantity) {
       const updated = await this.prisma.companySubscription.update({
@@ -1197,6 +1285,7 @@ export class PlatformFinanceService {
 
   async sync(id: string, actor?: JwtUser) {
     const invoice = await this.findActive(id);
+    if (invoice.provider === 'MERCADOPAGO') return this.syncMercadoPago(invoice, actor);
     if (!invoice.asaasPaymentId) throw new BadRequestException('Esta fatura e somente local.');
     const payment = await this.asaas.getCharge(invoice.asaasPaymentId);
     const status = this.mapAsaasStatus(payment.status) ?? invoice.status;
@@ -1215,6 +1304,19 @@ export class PlatformFinanceService {
       nextStatus: updated.status,
       asaasPaymentId: invoice.asaasPaymentId,
     }, actor, 'Billing', invoice.id);
+    return updated;
+  }
+
+  private async syncMercadoPago(invoice: { id: string; companyId: string; status: InvoiceStatus; paidAt: Date | null; mpPaymentId: string | null }, actor?: JwtUser) {
+    const payment = await this.mercadoPago.findPaymentForInvoice(invoice.id, invoice.mpPaymentId);
+    if (!payment) throw new BadRequestException('Nenhum pagamento encontrado no Mercado Pago para esta fatura.');
+    const status = this.mercadoPago.mapStatus(payment.status);
+    const updated = await this.prisma.platformInvoice.update({
+      where: { id: invoice.id },
+      data: { status, mpPaymentId: String(payment.id), paidAt: status === 'PAID' ? invoice.paidAt ?? new Date() : invoice.paidAt },
+      include: { company: { select: { id: true, name: true } }, plan: { select: { id: true, name: true } } },
+    });
+    await this.audit(invoice.companyId, 'INVOICE_SYNCED', { invoiceId: invoice.id, previousStatus: invoice.status, nextStatus: updated.status, provider: 'MERCADOPAGO', mpPaymentId: invoice.mpPaymentId }, actor, 'Billing', invoice.id);
     return updated;
   }
 
@@ -1250,7 +1352,14 @@ export class PlatformFinanceService {
     const paidAt = invoice.paidAt || new Date();
     const daysSincePayment = (new Date().getTime() - paidAt.getTime()) / (1000 * 3600 * 24);
 
-    if (invoice.asaasPaymentId && daysSincePayment <= 7) {
+    if (invoice.provider === 'MERCADOPAGO' && invoice.mpPaymentId && daysSincePayment <= 7) {
+      try {
+        await this.mercadoPago.refund(invoice.mpPaymentId);
+      } catch (error) {
+        this.logger.error(`Falha ao estornar a fatura ${id} no Mercado Pago: ${String(error)}`);
+        throw new BadRequestException('O Mercado Pago recusou o pedido de estorno. Verifique o saldo ou estorne manualmente.');
+      }
+    } else if (invoice.asaasPaymentId && daysSincePayment <= 7) {
       try {
         await this.asaas.refundPayment(invoice.asaasPaymentId);
       } catch (error) {

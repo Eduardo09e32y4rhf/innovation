@@ -38,7 +38,7 @@ describe('Core closure contracts', () => {
     }
     expect(statuses).toContain('IMMUTABLE_CONTRACT_STATUSES');
     expect(controller).toContain('@UseGuards(JwtAuthGuard, RolesGuard)');
-    expect(controller).toContain("@Roles('DEV', 'COMERCIAL')");
+    expect(controller).toContain("@Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')");
     expect(controller).toContain("@Get(':id/history')");
     expect(controller).toContain("@Get(':id/transitions')");
     expect(controller).toContain("@Patch(':id/status')");

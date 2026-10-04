@@ -3,6 +3,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { Audited } from '../platform-audit/audited.decorator';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateManualContractDto } from './dto/create-manual-contract.dto';
 import { UpdateManualContractDto } from './dto/update-manual-contract.dto';
@@ -10,7 +11,7 @@ import { TransitionManualContractDto } from './dto/transition-manual-contract.dt
 import { ManualContractsService } from './manual-contracts.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'COMERCIAL')
+@Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
 @Controller('manual-contracts')
 export class ManualContractsController {
   constructor(private readonly service: ManualContractsService) {}
@@ -39,25 +40,29 @@ export class ManualContractsController {
   }
 
   @Post()
-  @Roles('DEV', 'COMERCIAL')
+  @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
+  @Audited({ action: 'CONTRACT_CREATED', entity: 'ManualContract' })
   create(@CurrentUser() actor: JwtUser, @Body() dto: CreateManualContractDto) {
     return this.service.create(dto, actor.sub || (actor as any).id);
   }
 
   @Patch(':id')
-  @Roles('DEV', 'COMERCIAL')
+  @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
+  @Audited({ action: 'CONTRACT_UPDATED', entity: 'ManualContract' })
   update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateManualContractDto) {
     return this.service.update(id, dto, actor.sub || (actor as any).id);
   }
 
   @Patch(':id/status')
-  @Roles('DEV', 'COMERCIAL')
+  @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
+  @Audited({ action: 'CONTRACT_STATUS_CHANGED', entity: 'ManualContract', reasonField: 'reason' })
   transition(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: TransitionManualContractDto) {
     return this.service.transition(id, dto, actor.sub || (actor as any).id);
   }
 
   @Delete(':id')
-  @Roles('DEV', 'COMERCIAL')
+  @Roles('DEV', 'CEO')
+  @Audited({ action: 'CONTRACT_DELETED', entity: 'ManualContract' })
   remove(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
     return this.service.delete(id, actor.sub || (actor as any).id);
   }

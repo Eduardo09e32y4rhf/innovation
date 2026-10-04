@@ -32,6 +32,7 @@ import { EscalaModule } from './modules/schedule/escala.module';
 import { ScheduleHubModule } from './modules/schedule-hub/schedule-hub.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { PlatformHubModule } from './modules/platform-hub/platform-hub.module';
+import { PlatformAuditModule } from './modules/platform-audit/platform-audit.module';
 import { TenantGuard } from './common/guards/tenant.guard';
 import { SubscriptionActiveGuard } from './common/guards/subscription.guard';
 import { ManualContractsModule } from './modules/manual-contracts/manual-contracts.module';
@@ -98,6 +99,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     ScheduleHubModule,
     AccountingModule,
     PlatformHubModule,
+    PlatformAuditModule,
     ManualContractsModule,
     CouponsModule,
     SupportModule,

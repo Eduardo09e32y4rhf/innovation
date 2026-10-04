@@ -16,6 +16,7 @@ import { WorkspaceRouteGate } from './_components/shell-v2/route-gate';
 import type { SidebarMode } from './_components/shell-v2/sidebar';
 import { resolveUserRole } from '@/app/lib/user-role';
 import { readParsedAuthSession } from '@/app/lib/auth-session';
+import { api } from '@/app/lib/api';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -40,6 +41,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const tenant = pathname.split('/')[1];
     router.replace(`/${tenant}/dashboard/settings?billing=1`);
   }, [billingBlocked, isAdmin, pathname, router]);
+
+  // Histórico de acessos: registra cada página aberta (sem bloquear a navegação; falhas são ignoradas).
+  useEffect(() => {
+    if (!user?.id || !pathname) return;
+    const timer = window.setTimeout(() => { void api.users.pageView(pathname).catch(() => undefined); }, 400);
+    return () => window.clearTimeout(timer);
+  }, [pathname, user?.id]);
 
   // Fecha o menu mobile ao navegar
   useEffect(() => { setMobileMenuOpen(false); }, [pathname]);

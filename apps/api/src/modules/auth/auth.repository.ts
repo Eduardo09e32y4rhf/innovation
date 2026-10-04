@@ -1,3 +1,4 @@
+import { checkCouponEligibility } from '../coupons/coupon-rules';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { emptyToNull, normalizeDisplayName } from '../../common/utils/text-normalization';
@@ -125,6 +126,35 @@ export class AuthRepository {
         },
       });
       return { applied: true as const, trialEndsAt };
+    }, { isolationLevel: 'Serializable' });
+  }
+
+  /** Resgate atômico de cupom de desconto (PERCENT/FIXED): reconfere regras, conta o uso e grava o desconto na assinatura. */
+  redeemDiscountCoupon(data: {
+    companyId: string; couponId: string; documentHash: string; planId: string; seatQuantity: number; status: string;
+    pricingVersion?: string | null; baseMonthlyPrice?: unknown; userMonthlyPrice?: unknown; discountPercent?: unknown;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const coupon = await tx.promotionCoupon.findUnique({ where: { id: data.couponId } });
+      const check = checkCouponEligibility(coupon, { planId: data.planId, seats: data.seatQuantity });
+      if (!coupon || !check.ok) return { applied: false as const, reason: check.ok ? 'COUPON_INVALID' : check.code };
+      const redemptionHash = `D:${coupon.id}:${data.documentHash}`;
+      if (await tx.couponRedemption.findUnique({ where: { documentHash: redemptionHash } })) return { applied: false as const, reason: 'COUPON_ALREADY_USED' };
+      // Incremento condicional: duas requisições simultâneas não passam do limite.
+      const counted = await tx.promotionCoupon.updateMany({
+        where: { id: coupon.id, ...(coupon.maxRedemptions !== null ? { redemptionCount: { lt: coupon.maxRedemptions } } : {}) },
+        data: { redemptionCount: { increment: 1 } },
+      });
+      if (!counted.count) return { applied: false as const, reason: 'COUPON_LIMIT_REACHED' };
+      await tx.couponRedemption.create({ data: { couponId: coupon.id, companyId: data.companyId, documentHash: redemptionHash } });
+      const { documentHash: _hash, couponId: _coupon, ...subscription } = data;
+      const couponFields = { couponId: coupon.id, couponType: coupon.type, couponValue: coupon.value, couponCyclesLeft: coupon.durationCycles };
+      await tx.companySubscription.upsert({
+        where: { companyId: data.companyId },
+        create: { ...(subscription as any), ...couponFields },
+        update: { ...(subscription as any), ...couponFields },
+      });
+      return { applied: true as const };
     }, { isolationLevel: 'Serializable' });
   }
 

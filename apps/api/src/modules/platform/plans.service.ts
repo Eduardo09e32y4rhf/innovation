@@ -1,5 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+
+const PLAN_FIELDS = ['code', 'name', 'description', 'price', 'cycle', 'commitmentMonths', 'discountPercent', 'baseMonthlyPrice', 'userMonthlyPrice', 'asaasCycle', 'displayOrder', 'isRecommended', 'pricingVersion', 'maxUsers', 'maxEmployees', 'activeModules', 'isActive', 'isFree', 'isHidden'] as const;
 
 @Injectable()
 export class PlatformPlansService {
@@ -49,7 +51,13 @@ export class PlatformPlansService {
     };
   }
   private normalizePlanPayload(data: any, creating: boolean) {
-    const payload = { ...data };
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new BadRequestException('Dados do plano invalidos.');
+    // Somente campos conhecidos: chaves extras viravam erro 500 do Prisma.
+    const payload: any = {};
+    for (const key of PLAN_FIELDS) if (data[key] !== undefined) payload[key] = data[key];
+    if (creating && (typeof payload.name !== 'string' || payload.name.trim().length < 2)) throw new BadRequestException('Informe o nome do plano.');
+    if (payload.cycle !== undefined && !['MONTHLY', 'QUARTERLY', 'SEMIANNUALLY', 'YEARLY', 'CUSTOM'].includes(payload.cycle)) throw new BadRequestException('Ciclo de cobranca invalido.');
+    if (payload.activeModules !== undefined && (!Array.isArray(payload.activeModules) || payload.activeModules.some((m: unknown) => typeof m !== 'string'))) throw new BadRequestException('Modulos invalidos.');
     if (payload.price !== undefined || payload.isFree === true || creating) {
       const price = payload.isFree ? 0 : this.moneyToNumber(payload.price);
       if (!payload.isFree && (!Number.isFinite(price) || price <= 0)) {
@@ -92,6 +100,8 @@ export class PlatformPlansService {
     if (plan.isActive) {
       throw new BadRequestException('Desative o plano antes de excluir permanentemente.');
     }
+    const inUse = await this.prisma.companySubscription.count({ where: { planId: id } }) + await this.prisma.company.count({ where: { platformPlanId: id } });
+    if (inUse > 0) throw new ConflictException('Ha ' + inUse + ' empresa(s)/assinatura(s) neste plano. Migre-as antes de excluir.');
     return this.prisma.platformPlan.delete({ where: { id } });
   }
 

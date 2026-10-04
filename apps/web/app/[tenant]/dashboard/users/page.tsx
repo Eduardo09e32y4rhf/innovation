@@ -1,204 +1,128 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { RefreshCw, UserPlus, Users } from 'lucide-react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { toast } from 'sonner';
+import { Pencil, Plus, RefreshCw, Search } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button, PageHeader } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
-import { API_URL, api, type AppUser, type CreateUserInput } from '@/app/lib/api';
-import { readAuthSession } from '@/app/lib/auth-session';
-import { UserSummaryCards } from './_components/user-summary-cards';
-import { UserFilters, type UserFilterState } from './_components/user-filters';
-import { UsersTable } from './_components/users-table';
-import { UserDrawer, type UserDrawerTab } from './_components/user-drawer';
-import { UserCreateModal } from './_components/user-create-modal';
-import { UserPasswordResetModal } from './_components/user-password-reset-modal';
-import { AccessConfirmDialog } from './_components/access-confirm-dialog';
-import { USER_ROLES, availableUserRoles, userAccessPolicy } from './_components/access-policy';
+import { api, type AppUser } from '@/app/lib/api';
+import { resolveUserRole } from '@/app/lib/user-role';
+import { CreateUserModal } from './_v2/create-modal';
+import { ROLE_INFO, STATUS_LABEL, STATUS_STYLE, accessStatus, canOpenPage, rolesFor, type AccessStatus } from './_v2/policy';
+import { UserEditor } from './_v2/user-editor';
 
-const emptyFilters: UserFilterState = { search: '', role: '', status: '', link: '', company: '' };
-const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const norm = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const PAGE_SIZE = 25;
+type StatusFilter = 'TODOS' | AccessStatus;
 
 export default function UsersPage() {
-  const tenant = String(useParams()?.tenant ?? '');
-  const { user: currentUser, company, loading: authLoading, refreshUser } = useAuth();
-  const currentRole = (currentUser?.role || currentUser?.profile || '').toUpperCase();
-  const canRead = ['DEV', 'CEO', 'ADMIN', 'RH'].includes(currentRole);
-  const canManageEmployees = ['DEV', 'ADMIN', 'RH'].includes(currentRole);
-  const availableRoles = availableUserRoles(currentRole);
-  const users = useQuery(() => api.users.list(), [currentRole, company?.id], { enabled: canRead });
-  const usage = useQuery(() => api.users.usage(), [company?.id], { enabled: canRead });
-  const companies = useQuery(() => api.platform.listCompanies({ limit: 1000 }).then(result => result.data), [], { enabled: currentRole === 'DEV' });
-  const [filters, setFilters] = useState<UserFilterState>(emptyFilters);
+  const { user: me, company, loading: authLoading } = useAuth();
+  const role = resolveUserRole(me);
+  const allowed = canOpenPage(role);
+  const isDev = role === 'DEV';
+
+  const users = useQuery(() => api.users.list(), [role, company?.id], { enabled: allowed });
+  const usage = useQuery(() => api.users.usage(), [company?.id], { enabled: allowed });
+  const companies = useQuery(() => api.platform.listCompanies({ limit: 1000 }).then((result) => result.data), [], { enabled: isDev });
+
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<StatusFilter>('TODOS');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [companyFilter, setCompanyFilter] = useState('');
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<UserDrawerTab>('geral');
-  const [selected, setSelected] = useState<AppUser | null>(null);
-  const [resetOpen, setResetOpen] = useState(false);
-  const [returnToDrawer, setReturnToDrawer] = useState(false);
-  const [confirmation, setConfirmation] = useState<{ type: 'block' | 'delete'; user: AppUser } | null>(null);
-  const [confirmLoading, setConfirmLoading] = useState(false);
-  const confirmBusy = useRef(false);
-  const [confirmError, setConfirmError] = useState('');
-  const [downloading, setDownloading] = useState(false);
-  const downloadBusy = useRef(false);
-  useEffect(() => {
-    setFilters(emptyFilters); setPage(1); setSelected(null); setCreateOpen(false);
-    setDrawerOpen(false); setResetOpen(false); setConfirmation(null); setReturnToDrawer(false);
-  }, [currentUser?.id, company?.id, currentRole]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => setPage(1), [search, status, roleFilter, companyFilter]);
+
   const rows = users.data ?? [];
-  const companyOptions = companies.data ?? [];
-  const filtered = rows.filter(user => {
-    if (filters.search && !normalize(`${user.name} ${user.email}`).includes(normalize(filters.search.trim()))) return false;
-    if (filters.role && user.role !== filters.role) return false;
-    if (filters.company && user.companyId !== filters.company) return false;
-    if (filters.status === 'ativos' && user.isActive === false) return false;
-    if (filters.status === 'bloqueados' && user.isActive !== false) return false;
-    if (filters.status === 'pendente' && !user.forcePasswordChange) return false;
-    if (filters.link === 'com' && !user.employee?.id) return false;
-    if (filters.link === 'sem' && user.employee?.id) return false;
+  const counts = useMemo(() => {
+    const result: Record<StatusFilter, number> = { TODOS: rows.length, ATIVO: 0, BLOQUEADO: 0, CANCELADO: 0 };
+    for (const row of rows) result[accessStatus(row)] += 1;
+    return result;
+  }, [rows]);
+
+  const filtered = useMemo(() => rows.filter((row) => {
+    if (search && !norm(`${row.name} ${row.email} ${row.company?.name ?? ''} ${row.employee?.registration ?? ''}`).includes(norm(search.trim()))) return false;
+    if (status !== 'TODOS' && accessStatus(row) !== status) return false;
+    if (roleFilter && row.role !== roleFilter) return false;
+    if (companyFilter && row.companyId !== companyFilter) return false;
     return true;
-  });
-  const pageCount = Math.max(1, Math.ceil(filtered.length / 20));
-  const currentPage = Math.min(page, pageCount);
-  const visible = filtered.slice((currentPage - 1) * 20, currentPage * 20);
-  const scope = currentRole === 'DEV' ? 'Lista global de usuários autorizados. Licenças referem-se à empresa atual.' : 'Usuários da empresa atual.';
-  function openUser(user: AppUser, tab: UserDrawerTab = 'geral') {
-    if (!userAccessPolicy(currentRole, currentUser?.id, user).read) return;
-    setSelected(user); setDrawerTab(tab); setDrawerOpen(true);
-  }
-  function openReset(user: AppUser, fromDrawer = false) {
-    if (!userAccessPolicy(currentRole, currentUser?.id, user).reset) return;
-    setSelected(user); setReturnToDrawer(fromDrawer); setDrawerOpen(false); setResetOpen(true);
-  }
-  function closeReset() {
-    setResetOpen(false);
-    if (returnToDrawer) { setDrawerTab('seguranca'); setDrawerOpen(true); }
-    else setSelected(null);
-    setReturnToDrawer(false);
-  }
-  function confirm(type: 'block' | 'delete', user: AppUser, fromDrawer = false) {
-    const policy = userAccessPolicy(currentRole, currentUser?.id, user);
-    if (!policy[type]) return;
-    setReturnToDrawer(fromDrawer); setDrawerOpen(false); setConfirmation({ type, user }); setConfirmError('');
-  }
-  function closeConfirmation() {
-    if (confirmBusy.current) return;
-    setConfirmation(null); setConfirmError('');
-    if (returnToDrawer) { setDrawerTab('seguranca'); setDrawerOpen(true); }
-    setReturnToDrawer(false);
-  }
-  async function execute() {
-    if (!confirmation || confirmBusy.current) return;
-    const { user, type } = confirmation;
-    if (!userAccessPolicy(currentRole, currentUser?.id, user)[type]) return;
-    confirmBusy.current = true; setConfirmLoading(true); setConfirmError('');
-    try {
-      if (type === 'delete') {
-        await api.users.delete(user.id);
-        toast.success('Acesso desativado. Os registros foram preservados.');
-        if (selected?.id === user.id) { setSelected(null); setReturnToDrawer(false); }
-      } else {
-        const updated = await api.users.update(user.id, { isActive: user.isActive === false });
-        if (selected?.id === user.id) setSelected({ ...user, ...updated });
-        toast.success(user.isActive === false ? 'Acesso desbloqueado.' : 'Acesso bloqueado.');
-        if (returnToDrawer) { setDrawerTab('seguranca'); setDrawerOpen(true); }
-      }
-      users.refetch(); usage.refetch(); setConfirmation(null); setReturnToDrawer(false);
-    } catch (err) { setConfirmError(err instanceof Error ? err.message : 'Não foi possível atualizar o acesso.'); }
-    finally { confirmBusy.current = false; setConfirmLoading(false); }
-  }
-  async function downloadTerm(user: AppUser) {
-    if (downloadBusy.current || !userAccessPolicy(currentRole, currentUser?.id, user).download) return;
-    downloadBusy.current = true; setDownloading(true);
-    try {
-      const response = await fetch(`${API_URL}/legal/terms/download/${encodeURIComponent(user.id)}`, {
-        headers: { Authorization: `Bearer ${readAuthSession().token || ''}` }, cache: 'no-store',
-      });
-      if (!response.ok) throw new Error(response.status === 404 ? 'Termo não disponível para esta conta ou ainda não aceito.' : 'Não foi possível baixar o termo.');
-      const url = URL.createObjectURL(await response.blob());
-      const anchor = document.createElement('a');
-      anchor.href = url; anchor.download = `Termo_De_Uso_${user.id}.pdf`;
-      document.body.appendChild(anchor); anchor.click(); anchor.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (err) { toast.error(err instanceof Error ? err.message : 'Não foi possível baixar o termo.'); }
-    finally { downloadBusy.current = false; setDownloading(false); }
-  }
-  async function create(data: CreateUserInput) {
-    if (!canRead) throw new Error('Seu perfil não pode criar usuários.');
-    await api.users.create(data); users.refetch(); usage.refetch();
-  }
-  async function saveGeneral(data: Partial<AppUser>) {
-    if (!selected || !userAccessPolicy(currentRole, currentUser?.id, selected).edit) throw new Error('Edição não autorizada.');
-    const updated = await api.users.update(selected.id, data);
-    setSelected({ ...selected, ...updated }); users.refetch();
-    if (selected.id === currentUser?.id) await refreshUser();
-  }
-  async function savePermissions(customPermissions: string[] | null) {
-    if (!selected || !userAccessPolicy(currentRole, currentUser?.id, selected).permissions) throw new Error('Edição de permissões não autorizada.');
-    const updated = await api.users.update(selected.id, { customPermissions });
-    setSelected({ ...selected, ...updated }); users.refetch();
-  }
-  const description = confirmation?.type === 'delete'
-    ? `O acesso de ${confirmation.user.name} será desativado e a troca de senha ficará pendente. Os registros e o vínculo com funcionário serão preservados.`
-    : confirmation?.user.isActive === false ? 'O usuário voltará a poder acessar o sistema, sujeito à política de senha.'
-      : 'O acesso às rotas autenticadas será bloqueado até a conta ser desbloqueada.';
-  return <div className="app-page"><div className="app-page-content space-y-5">
-    <PageHeader title="Usuários" subtitle="Gerencie acessos, perfis e permissões."
-      actions={canRead ? <div className="flex flex-wrap gap-3">
-        <Button type="button" variant="outline" onClick={() => { users.refetch(); usage.refetch(); if (currentRole === 'DEV') companies.refetch(); }} disabled={users.loading}>
-          <RefreshCw size={18} aria-hidden="true" />Atualizar
-        </Button>
-        <Button type="button" onClick={() => setCreateOpen(true)} disabled={currentRole === 'DEV' && (!companyOptions.length || companies.loading)}>
-          <UserPlus size={18} aria-hidden="true" />Novo usuário
-        </Button>
-      </div> : undefined} />
-    {authLoading ? <LoadingState label="Carregando perfil..." /> : !canRead ? <p role="alert" className="card-v2 p-5 text-sm text-fg-mut">Seu perfil não pode consultar ou administrar usuários.</p> : <>
-      <p className="text-sm text-fg-mut">{scope}</p>
-      {canManageEmployees && <Link href={`/${tenant}/dashboard/employees/new`} className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm hover:bg-blue-100 transition-colors">
-        <Users size={20} className="text-blue-600" />
-        <div className="flex-1"><p className="font-medium text-blue-900">Criar novo funcionário</p><p className="text-xs text-blue-700">Vai criar um funcionário com acesso automático ao painel. Para usuários sem vínculo com funcionário, crie aqui.</p></div>
-        <span className="text-blue-600 font-medium">→</span>
-      </Link>}
-      {companies.error && currentRole === 'DEV' && <ErrorState message={`Não foi possível carregar as empresas: ${companies.error}`} onRetry={companies.refetch} />}
-      {users.loading && !users.data ? <LoadingState label="Carregando usuários..." /> : users.error ? <ErrorState message={users.error} onRetry={users.refetch} /> : <>
-        <UserSummaryCards rows={rows} usage={usage.data ?? null} />
-        {usage.error && <p role="status" className="text-sm text-amber-800">Não foi possível consultar as licenças. Atualize para tentar novamente.</p>}
-        <div className="card-v2 p-4"><UserFilters filters={filters} onChange={value => { setFilters(value); setPage(1); }}
-          companies={companyOptions} showCompanyFilter={currentRole === 'DEV'} availableRoles={USER_ROLES.filter(role => rows.some(user => user.role === role) || availableRoles.includes(role))} /></div>
-        {users.loading && <p role="status" className="text-sm text-fg-mut">Atualizando usuários...</p>}
-        {downloading && <p role="status" className="text-sm text-fg-mut">Baixando termo...</p>}
-        {!filtered.length ? <EmptyState message={rows.length ? 'Nenhum usuário corresponde aos filtros.' : 'Nenhum usuário cadastrado.'} /> :
-          <UsersTable rows={visible} currentRole={currentRole} currentUserId={currentUser?.id} showCompanyColumn={currentRole === 'DEV'}
-            canManageRow={(role, target) => availableUserRoles(role).includes(target as AppUser['role'])}
-            onEdit={user => openUser(user)} onResetPassword={user => openReset(user)} onToggleBlock={user => confirm('block', user)}
-            onDownloadTerm={downloadTerm} onHistory={user => openUser(user, 'seguranca')} onDelete={user => confirm('delete', user)} />}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p role="status" className="text-sm text-fg-mut">{filtered.length} usuário(s) encontrado(s){filtered.length > 0 ? ` · Página ${currentPage} de ${pageCount}` : ''}</p>
-          {pageCount > 1 && <div className="flex gap-3"><Button type="button" variant="outline" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Anterior</Button>
-            <Button type="button" variant="outline" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>Próxima</Button></div>}
+  }), [rows, search, status, roleFilter, companyFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const current = Math.min(page, pageCount);
+  const visible = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+  const selected: AppUser | null = rows.find((row) => row.id === selectedId) ?? null;
+
+  if (authLoading || !me) return <LoadingState label="Carregando…" />;
+  if (!allowed) return <section className="card-v2 m-4 p-5"><h1 className="text-xl font-semibold">Acesso restrito</h1><p className="mt-2 text-sm text-fg-sub">Seu perfil não gerencia usuários.</p></section>;
+
+  const companyOptions = companies.data ?? [];
+  const seatsFull = usage.data ? usage.data.used >= usage.data.max : false;
+
+  return (
+    <div className="mx-auto w-full max-w-[1100px] space-y-5 px-3 py-4 sm:px-5 lg:px-6">
+      <PageHeader title="Usuários" subtitle={isDev ? 'Todos os acessos da plataforma, por empresa.' : 'Quem acessa a sua empresa e com qual visão.'}
+        actions={<div className="flex flex-wrap items-center gap-2">
+          {usage.data && <span className={`rounded-full border px-3 py-1 text-xs font-medium ${seatsFull ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-border text-fg-sub'}`}>{usage.data.used} de {usage.data.max} licenças</span>}
+          <Button variant="outline" onClick={() => { void users.refetch(); void usage.refetch(); }} aria-label="Atualizar lista"><RefreshCw size={15} aria-hidden="true" /></Button>
+          <Button onClick={() => setCreateOpen(true)}><Plus size={16} aria-hidden="true" /> Novo acesso</Button>
+        </div>} />
+
+      <div className="card-v2 space-y-3 p-3 sm:p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative min-w-[220px] flex-1">
+            <Search size={16} className="absolute left-3 top-3.5 text-fg-sub" aria-hidden="true" />
+            <input className="input-v2 min-h-11 w-full pl-9" placeholder="Buscar por nome, e-mail, empresa ou matrícula" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Buscar usuários" />
+          </label>
+          <select className="input-v2 min-h-11" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Filtrar por visão">
+            <option value="">Todas as visões</option>{(isDev ? (Object.keys(ROLE_INFO) as (keyof typeof ROLE_INFO)[]) : rolesFor(role)).map((r) => <option key={r} value={r}>{ROLE_INFO[r].label}</option>)}
+          </select>
+          {isDev && <select className="input-v2 min-h-11" value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)} aria-label="Filtrar por empresa"><option value="">Todas as empresas</option>{companyOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
         </div>
-      </>}
-    </>}
-    {canRead && <UserCreateModal isOpen={createOpen} onClose={() => setCreateOpen(false)} availableRoles={availableRoles} currentRole={currentRole} companies={companyOptions} onSubmit={create} />}
-    <UserPasswordResetModal isOpen={resetOpen} user={selected} onClose={closeReset} onSubmit={async password => {
-      if (!selected || !userAccessPolicy(currentRole, currentUser?.id, selected).reset) throw new Error('Reset não autorizado.');
-      const updated = await api.users.resetPassword(selected.id, { newPassword: password });
-      setSelected({ ...selected, ...updated }); users.refetch(); toast.success('Senha temporária definida.');
-    }} />
-    <UserDrawer isOpen={drawerOpen} user={selected} currentRole={currentRole} currentUserId={currentUser?.id} contextCompanyId={company?.id ?? currentUser?.companyId}
-      initialTab={drawerTab} availableRoles={availableRoles} onClose={() => { setDrawerOpen(false); setSelected(null); }}
-      onSaveGeneral={saveGeneral} onSavePermissions={savePermissions}
-      onResetPassword={() => { if (selected) openReset(selected, true); }} onToggleBlock={() => { if (selected) confirm('block', selected, true); }} />
-    <AccessConfirmDialog isOpen={!!confirmation} isLoading={confirmLoading} onClose={closeConfirmation} onConfirm={execute}
-      title={confirmation?.type === 'delete' ? `Excluir acesso de ${confirmation.user.name}?` : `${confirmation?.user.isActive === false ? 'Desbloquear' : 'Bloquear'} acesso de ${confirmation?.user.name ?? ''}?`}
-      description={confirmError ? `${description} Erro: ${confirmError}` : description}
-      confirmText={confirmation?.type === 'delete' ? 'Excluir acesso' : confirmation?.user.isActive === false ? 'Desbloquear acesso' : 'Bloquear acesso'}
-      variant={confirmation?.type === 'block' && confirmation.user.isActive === false ? 'primary' : 'danger'} />
-  </div></div>;
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Situação do acesso">
+          {(['TODOS', 'ATIVO', 'BLOQUEADO', 'CANCELADO'] as StatusFilter[]).map((item) => (
+            <button key={item} type="button" aria-pressed={status === item} onClick={() => setStatus(item)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium ${status === item ? 'border-purple-600 bg-purple-50 text-purple-700' : 'border-border text-fg-sub hover:bg-bg-sub'}`}>
+              {item === 'TODOS' ? 'Todos' : `${STATUS_LABEL[item]}s`} · {counts[item]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {users.error && <ErrorState message={users.error} onRetry={users.refetch} />}
+      {users.loading && !users.data ? <LoadingState label="Carregando usuários…" /> : filtered.length === 0 ? <EmptyState message="Nenhum usuário encontrado." /> : (
+        <>
+          <ul className="card-v2 divide-y divide-border">
+            {visible.map((row) => {
+              const state = accessStatus(row);
+              return (
+                <li key={row.id} className="flex items-center gap-3 px-4 py-3">
+                  <span aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-100 text-sm font-semibold text-purple-700">{row.name.trim().charAt(0).toUpperCase()}</span>
+                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setSelectedId(row.id)}>
+                    <span className="block truncate text-sm font-semibold text-fg">{row.name}</span>
+                    <span className="block truncate text-xs text-fg-sub">{row.company?.name ?? '—'}</span>
+                  </button>
+                  <span className={`hidden rounded-full border px-2.5 py-0.5 text-xs font-medium sm:inline-block ${STATUS_STYLE[state]}`}>{STATUS_LABEL[state]}</span>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedId(row.id)}><Pencil size={14} aria-hidden="true" /> Editar</Button>
+                </li>
+              );
+            })}
+          </ul>
+          {pageCount > 1 && (
+            <nav aria-label="Paginação" className="flex items-center justify-between text-sm text-fg-sub">
+              <span>{filtered.length} usuário(s) · página {current} de {pageCount}</span>
+              <span className="flex gap-2"><Button variant="outline" size="sm" disabled={current <= 1} onClick={() => setPage(current - 1)}>Anterior</Button><Button variant="outline" size="sm" disabled={current >= pageCount} onClick={() => setPage(current + 1)}>Próxima</Button></span>
+            </nav>
+          )}
+        </>
+      )}
+
+      <UserEditor user={selected} isOpen={Boolean(selected)} onClose={() => setSelectedId(null)} actorRole={role} actorId={me.id} onChanged={() => { void users.refetch(); void usage.refetch(); }} />
+      <CreateUserModal isOpen={createOpen} onClose={() => setCreateOpen(false)} roles={rolesFor(role)} isDev={isDev}
+        companies={companyOptions.map((c) => ({ id: c.id, name: c.name }))} defaultCompanyId={company?.id} onCreated={() => { void users.refetch(); void usage.refetch(); }} />
+    </div>
+  );
 }

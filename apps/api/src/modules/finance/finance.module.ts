@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+﻿import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { AsaasService } from './asaas.service';
 import { AsaasWebhookController } from './asaas-webhook.controller';
@@ -6,6 +6,10 @@ import { AsaasWebhookProcessorService, AsaasWebhookWorker } from './asaas-webhoo
 import { BillingCronService } from './billing-cron.service';
 import { CompanyBillingController } from './company-billing.controller';
 import { FinanceController } from './finance.controller';
+import { IntegrationsController } from './integrations.controller';
+import { MercadoPagoService } from './mercadopago.service';
+import { MercadoPagoWebhookController } from './mercadopago-webhook.controller';
+import { PaymentProviderService } from './payment-provider.service';
 import { FinanceNotificationService } from './finance-notification.service';
 import { PlatformFinanceService } from './platform-finance.service';
 import { PricingService } from './pricing.service';
@@ -23,6 +27,8 @@ import { TimeTrackModule } from '../time-track/time-track.module';
   ],
   providers: [
     AsaasService,
+    MercadoPagoService,
+    PaymentProviderService,
     AsaasWebhookProcessorService,
     AsaasWebhookWorker,
     BillingCronService,
@@ -34,7 +40,9 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     FinanceController,
     CompanyBillingController,
     AsaasWebhookController,
+    MercadoPagoWebhookController,
+    IntegrationsController,
   ],
-  exports: [AsaasService, PlatformFinanceService, FinanceNotificationService, PricingService],
+  exports: [AsaasService, MercadoPagoService, PaymentProviderService, PlatformFinanceService, FinanceNotificationService, PricingService],
 })
 export class FinanceModule {}

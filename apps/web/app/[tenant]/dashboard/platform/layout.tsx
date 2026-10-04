@@ -16,8 +16,9 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   const base = `/${tenant}/dashboard/platform`;
   const isHub = pathname.replace(/\/+$/, '') === base;
   const allowed = Boolean(TAB_POLICY[role]);
-  // Subpáginas especializadas (planos, cupons, contratos...) são do time comercial/DEV/CEO; a Contabilidade só usa o hub.
-  const specialist = ['DEV', 'CEO', 'COMERCIAL'].includes(role);
+  // Subpáginas especializadas: DEV/CEO/COMERCIAL abrem todas; a Contabilidade abre as financeiras (planos, cupons, contratos, cobrança, assinaturas e auditoria).
+  const section = pathname.slice(base.length).split('/').filter(Boolean)[0] ?? '';
+  const specialist = ['DEV', 'CEO', 'COMERCIAL'].includes(role) || (role === 'CONTABIL' && ['plans', 'coupons', 'contracts', 'finance', 'subscriptions', 'audit'].includes(section));
 
   if (!user) return <p role="status" className="p-4 text-sm text-fg-mut">Carregando acesso à Plataforma...</p>;
   if (!allowed || (!isHub && !specialist)) {

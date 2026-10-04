@@ -8,11 +8,12 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { AuditLogsQueryDto, CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
 import { PlatformFinanceService } from './platform-finance.service';
+import { Audited } from '../platform-audit/audited.decorator';
 import { PrismaService } from '../../database/prisma.service';
 import { TimeClosingService } from '../time-track/time-closing.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'CEO', 'COMERCIAL')
+@Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
 @Controller('finance')
 export class FinanceController {
   constructor(
@@ -44,12 +45,14 @@ export class FinanceController {
 
   @Post('platform/companies/:companyId/billing/pause')
   @Roles('DEV', 'CEO')
+  @Audited({ action: 'BILLING_PAUSED', entity: 'Subscription' })
   pauseBilling(@Param('companyId') companyId: string, @CurrentUser() actor: JwtUser) {
     return this.service.pauseBilling(companyId, actor);
   }
 
   @Post('platform/companies/:companyId/billing/resume')
   @Roles('DEV', 'CEO')
+  @Audited({ action: 'BILLING_RESUMED', entity: 'Subscription' })
   resumeBilling(@Param('companyId') companyId: string, @CurrentUser() actor: JwtUser) {
     return this.service.resumeBilling(companyId, actor);
   }
@@ -61,19 +64,22 @@ export class FinanceController {
   }
 
   @Post('platform/invoices')
-  @Roles('DEV', 'CEO')
+  @Roles('DEV', 'CEO', 'CONTABIL')
+  @Audited({ action: 'INVOICE_CREATED', entity: 'PlatformInvoice' })
   create(@Body() dto: CreatePlatformInvoiceDto) {
     return this.service.create(dto);
   }
 
   @Patch('platform/invoices/:id')
-  @Roles('DEV', 'CEO')
+  @Roles('DEV', 'CEO', 'CONTABIL')
+  @Audited({ action: 'INVOICE_UPDATED', entity: 'PlatformInvoice' })
   update(@Param('id') id: string, @Body() dto: UpdatePlatformInvoiceDto) {
     return this.service.update(id, dto);
   }
 
   @Post('platform/invoices/:id/sync')
-  @Roles('DEV', 'CEO')
+  @Roles('DEV', 'CEO', 'CONTABIL')
+  @Audited({ action: 'INVOICE_SYNCED', entity: 'PlatformInvoice' })
   sync(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
     return this.service.sync(id, actor);
   }
@@ -162,12 +168,14 @@ export class FinanceController {
 
   @Delete('platform/invoices/:id')
   @Roles('DEV', 'CEO')
+  @Audited({ action: 'INVOICE_CANCELED', entity: 'PlatformInvoice' })
   remove(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
     return this.service.remove(id, actor);
   }
 
   @Post('platform/invoices/:id/refund')
   @Roles('DEV', 'CEO')
+  @Audited({ action: 'INVOICE_REFUNDED', entity: 'PlatformInvoice' })
   refund(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
     return this.service.requestRefund(id, undefined, actor);
   }

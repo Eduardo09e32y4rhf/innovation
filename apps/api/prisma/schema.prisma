@@ -444,11 +444,15 @@ model User {
   customPermissions     Json?
   onboardingState       CEOOnboardingState?
   onboardingCompletedAt DateTime?
+  /// Acesso bloqueado (reversivel) ou cancelado (definitivo). Ambos mantem isActive=false.
+  blockedAt             DateTime?
+  blockedReason         String?
+  canceledAt            DateTime?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 
   company                Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  commercialCompanies    Company[]               @relation("CommercialOwner")
+  commercialCompanies   Company[]               @relation("CommercialOwner")
   employee               Employee?
   temporaryCredential    TemporaryCredential?
   ceoProfile             CEOProfile?
@@ -1187,6 +1191,8 @@ model AuditLog {
   @@index([companyId])
   @@index([companyId, entity])
   @@index([userId])
+  @@index([userId, createdAt])
+  @@index([entity, entityId, createdAt])
 }
 
 model WhatsappInstance {
@@ -1782,6 +1788,9 @@ model PlatformInvoice {
   status          InvoiceStatus @default(OPEN)
   billingType     String        @default("UNDEFINED")
   asaasPaymentId  String?       @unique
+  provider        String        @default("ASAAS")
+  mpPaymentId     String?       @unique
+  mpPreferenceId  String?
   invoiceUrl      String?
   paidAt          DateTime?
   deletedAt       DateTime?
@@ -2092,6 +2101,14 @@ model ScheduleSwapRequest {
   @@map("schedule_swap_requests")
 }
 
+/// Configuracoes globais da plataforma (ex.: provedor de pagamento ativo).
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
+
 model AsaasWebhookEvent {
   id           String    @id @default(cuid())
   asaasEventId String    @unique
@@ -2127,6 +2144,11 @@ model CompanySubscription {
   discountPercent     Decimal?  @db.Decimal(5, 2)
   asaasCustomerId     String?
   asaasSubscriptionId String?
+  /// Cupom de desconto vigente (PERCENT/FIXED). cyclesLeft null = sem fim.
+  couponId            String?   @db.Uuid
+  couponType          String?
+  couponValue         Decimal?  @db.Decimal(10, 2)
+  couponCyclesLeft    Int?
   billingPaused       Boolean   @default(false)
   billingPausedAt     DateTime?
   billingPausedBy     String?   @db.Uuid
@@ -2146,6 +2168,15 @@ model PromotionCoupon {
   code            String    @unique
   description     String?
   trialDays       Int       @default(30)
+  /// TRIAL_DAYS | PERCENT | FIXED
+  type            String    @default("TRIAL_DAYS")
+  /// PERCENT: 0-100 (%); FIXED: valor em R$ descontado por ciclo cobrado.
+  value           Decimal?  @db.Decimal(10, 2)
+  /// Quantos ciclos de cobranca o desconto vale (null = enquanto a assinatura existir).
+  durationCycles  Int?
+  allowedPlanIds  String[]  @default([])
+  minSeats        Int?
+  createdBy       String?   @db.Uuid
   startsAt        DateTime?
   expiresAt       DateTime?
   maxRedemptions  Int?
@@ -2998,4 +3029,30 @@ model ScheduleRequest {
   @@index([companyId, status])
   @@index([requesterEmployeeId])
   @@index([peerEmployeeId])
+}
+
+/// Log global da plataforma (append-only, encadeado por hash). Nao tem FK para permitir registrar acoes sem empresa.
+model PlatformAuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  seq       BigInt   @unique @default(autoincrement())
+  actorId   String?  @db.Uuid
+  actorRole String?
+  action    String
+  entity    String
+  entityId  String?
+  companyId String?  @db.Uuid
+  before    Json?
+  after     Json?
+  reason    String?
+  ip        String?
+  userAgent String?
+  prevHash  String
+  hash      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@index([actorId])
+  @@index([companyId])
+  @@index([action])
 }

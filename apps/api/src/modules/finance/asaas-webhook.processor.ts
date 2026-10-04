@@ -2,7 +2,9 @@ import { Process, Processor } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
 import type { Job } from 'bull';
 import { PrismaService } from '../../database/prisma.service';
+import { AsaasService } from './asaas.service';
 import { FinanceNotificationService, FinanceNotificationType } from './finance-notification.service';
+import { PricingService } from './pricing.service';
 
 type InvoiceStatus = 'OPEN' | 'PAID' | 'OVERDUE' | 'CANCELED';
 
@@ -62,6 +64,8 @@ export class AsaasWebhookProcessorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: FinanceNotificationService,
+    private readonly asaas: AsaasService,
+    private readonly pricing: PricingService,
   ) {}
 
   async processStoredEvent(eventId: string) {
@@ -136,6 +140,8 @@ export class AsaasWebhookProcessorService {
       ...(Object.keys(companyData).length ? [this.prisma.company.update({ where: { id: company.id }, data: companyData })] : []),
     ]);
 
+    if (status === 'PAID' && existing?.status !== 'PAID') await this.advanceCouponCycle(company.id);
+
     const type = PAYMENT_EVENT_MAP[event];
     if (type) {
       await this.notifications.notify({
@@ -148,6 +154,29 @@ export class AsaasWebhookProcessorService {
         billingType: payment.billingType,
         paymentUrl: payment.invoiceUrl,
       });
+    }
+  }
+
+  /** Conta um ciclo pago do cupom; quando acaba, remove o desconto e volta a assinatura do Asaas para o preço cheio. */
+  private async advanceCouponCycle(companyId: string) {
+    const subscription = await this.prisma.companySubscription.findUnique({ where: { companyId }, include: { plan: true, company: { select: { asaasSubscriptionId: true } } } });
+    if (!subscription?.couponType || subscription.couponCyclesLeft === null || subscription.couponCyclesLeft <= 0) return;
+    const left = subscription.couponCyclesLeft - 1;
+    if (left > 0) {
+      await this.prisma.companySubscription.update({ where: { companyId }, data: { couponCyclesLeft: left } });
+      return;
+    }
+    const remoteId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
+    try {
+      if (remoteId && subscription.plan && this.asaas.isConfigured()) {
+        const full = this.pricing.calculate((subscription.plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, subscription.seatQuantity, { baseMonthlyPrice: subscription.plan.baseMonthlyPrice, userMonthlyPrice: subscription.plan.userMonthlyPrice, price: subscription.plan.price });
+        await this.asaas.updateSubscription(remoteId, { value: full.total });
+      }
+      await this.prisma.companySubscription.update({ where: { companyId }, data: { couponCyclesLeft: 0, couponType: null, couponValue: null } });
+      this.logger.log('Cupom da empresa ' + companyId + ' acabou: assinatura voltou ao preco cheio.');
+    } catch (error) {
+      // Mantém o contador em 1 para tentar de novo no próximo pagamento.
+      this.logger.error('Falha ao restaurar o preco cheio da empresa ' + companyId + ': ' + String(error));
     }
   }
 

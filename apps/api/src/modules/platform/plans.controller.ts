@@ -3,9 +3,10 @@ import { PlatformPlansService } from './plans.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Audited } from '../platform-audit/audited.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'COMERCIAL')
+@Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
 @Controller('platform/plans')
 export class PlatformPlansController {
   constructor(private readonly service: PlatformPlansService) {}
@@ -16,7 +17,8 @@ export class PlatformPlansController {
   }
 
   @Post()
-  @Roles('DEV')
+  @Roles('DEV', 'CEO', 'CONTABIL')
+  @Audited({ action: 'PLAN_CREATED', entity: 'PlatformPlan' })
   create(@Body() body: any) {
     return this.service.create(body);
   }
@@ -27,14 +29,16 @@ export class PlatformPlansController {
   }
 
   @Patch(':id')
-  @Roles('DEV')
+  @Roles('DEV', 'CEO', 'CONTABIL')
+  @Audited({ action: 'PLAN_UPDATED', entity: 'PlatformPlan' })
   update(@Param('id') id: string, @Body() body: any) {
     return this.service.update(id, body);
   }
 
   /** Soft-delete: desativa o plano (não remove do banco) */
   @Delete(':id')
-  @Roles('DEV')
+  @Roles('DEV', 'CEO')
+  @Audited({ action: 'PLAN_DEACTIVATED', entity: 'PlatformPlan' })
   deactivate(@Param('id') id: string) {
     return this.service.deactivate(id);
   }
@@ -42,6 +46,7 @@ export class PlatformPlansController {
   /** Hard-delete: remove permanentemente (só funciona se o plano já estiver inativo) */
   @Delete(':id/permanent')
   @Roles('DEV')
+  @Audited({ action: 'PLAN_DELETED_PERMANENTLY', entity: 'PlatformPlan' })
   deletePermanent(@Param('id') id: string) {
     return this.service.deletePermanent(id);
   }

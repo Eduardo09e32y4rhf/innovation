@@ -20,6 +20,10 @@ const safeUserSelect = {
   customPermissions: true,
   onboardingState: true,
   onboardingCompletedAt: true,
+  blockedAt: true,
+  blockedReason: true,
+  canceledAt: true,
+  company: { select: { name: true } },
   employee: {
     select: {
       id: true,
@@ -47,12 +51,7 @@ export class UsersRepository {
 
   listAll() {
     return this.prisma.user.findMany({
-      select: {
-        ...safeUserSelect,
-        company: {
-          select: { name: true },
-        },
-      },
+      select: safeUserSelect,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -263,6 +262,60 @@ export class UsersRepository {
           select: safeUserSelect,
         }),
       };
+    });
+  }
+
+  findEmployeeForLink(companyId: string, employeeId: string) {
+    return this.prisma.employee.findFirst({
+      where: { id: employeeId, companyId },
+      select: { id: true, name: true, email: true, registration: true, userId: true },
+    });
+  }
+
+  /** Funcionários da empresa ainda sem usuário (candidatos a vínculo). */
+  findLinkableEmployees(companyId: string, search: string) {
+    const term = search.trim();
+    return this.prisma.employee.findMany({
+      where: {
+        companyId,
+        userId: null,
+        status: { not: 'TERMINATED' },
+        ...(term ? { OR: [{ name: { contains: term, mode: 'insensitive' } }, { email: { contains: term, mode: 'insensitive' } }, { registration: { contains: term, mode: 'insensitive' } }] } : {}),
+      },
+      select: { id: true, name: true, email: true, registration: true, position: true, department: true },
+      orderBy: { name: 'asc' },
+      take: 20,
+    });
+  }
+
+  /** Vincula (ou desvincula, com employeeId = null) o usuário a um funcionário. */
+  async setEmployeeLink(companyId: string, userId: string, employeeId: string | null) {
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.employee.findFirst({ where: { companyId, userId }, select: { id: true, name: true, registration: true } });
+      if (current && current.id !== employeeId) await tx.employee.updateMany({ where: { companyId, id: current.id }, data: { userId: null } });
+      if (employeeId) {
+        const result = await tx.employee.updateMany({ where: { companyId, id: employeeId, OR: [{ userId: null }, { userId }] }, data: { userId } });
+        if (!result.count) throw new ConflictException('Este funcionario ja esta vinculado a outro usuario.');
+      }
+      return { previous: current };
+    });
+  }
+
+  /** Bloqueio (reversivel), cancelamento (definitivo) e reativacao. */
+  async setAccessState(companyId: string, userId: string, state: 'BLOCK' | 'UNBLOCK' | 'CANCEL', reason?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const data =
+        state === 'BLOCK' ? { isActive: false, blockedAt: now, blockedReason: reason ?? null, passwordChangedAt: now }
+        : state === 'CANCEL' ? { isActive: false, canceledAt: now, blockedAt: null, blockedReason: reason ?? null, forcePasswordChange: true, passwordChangedAt: now, resetPasswordCode: null, resetPasswordExpires: null }
+        : { isActive: true, blockedAt: null, blockedReason: null, canceledAt: null, failedLoginAttempts: 0 };
+      const result = await tx.user.updateMany({ where: { id: userId, companyId }, data });
+      if (!result.count) return { count: 0, user: null };
+      if (state === 'CANCEL') {
+        await tx.employee.updateMany({ where: { companyId, userId }, data: { userId: null } });
+        await tx.temporaryCredential.deleteMany({ where: { userId } });
+      }
+      return { count: result.count, user: await tx.user.findFirst({ where: { id: userId, companyId }, select: safeUserSelect }) };
     });
   }
 

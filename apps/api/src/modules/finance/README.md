@@ -50,3 +50,18 @@ Deploy migration `20260717120000_complete_platform_finance` before releasing the
 7. Refund, deletion or chargeback suspends access again.
 
 Configure the public webhook URL as `https://YOUR_DOMAIN/api/finance/webhook/asaas` and use the exact same token stored in `ASAAS_WEBHOOK_TOKEN` (or the legacy `ASAAS_WEBHOOK_SECRET`).
+## Provedores de pagamento (Asaas e Mercado Pago)
+
+O provedor ativo vem de `PlatformSetting` (`billing.provider`), depois de `PAYMENT_PROVIDER`, e por fim `ASAAS`.
+
+| | Asaas | Mercado Pago |
+|---|---|---|
+| Variaveis | `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` | `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET` (+ `MERCADOPAGO_PUBLIC_KEY`) |
+| Webhook | `POST /api/finance/webhook/asaas` (cabecalho `asaas-access-token`) | `POST /api/finance/webhook/mercadopago` (assinatura `x-signature`, evento Pagamentos) |
+| Cobranca | assinatura recorrente + avulsa | link Checkout Pro (Pix, cartao, saldo) por fatura |
+
+Painel: `GET /api/finance/integrations/health?test=1` (DEV/CEO/CONTABIL) mostra o que falta e testa a credencial do Mercado Pago;
+`PUT /api/finance/integrations/provider` `{ "provider": "MERCADOPAGO" }` (DEV/CEO) alterna o provedor; so aceita se as credenciais estiverem configuradas.
+
+O webhook do Mercado Pago nunca confia no corpo: valida a assinatura e reconsulta o pagamento na API antes de liberar a empresa.
+Com Mercado Pago ativo nao ha assinatura recorrente automatica: cada ciclo gera uma nova fatura com link de pagamento.

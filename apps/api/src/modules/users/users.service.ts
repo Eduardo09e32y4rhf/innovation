@@ -83,7 +83,7 @@ export class UsersService {
     return user;
   }
 
-  async create(companyId: string, actor: JwtUser, dto: CreateUserDto) {
+  async create(companyId: string, actor: JwtUser, dto: CreateUserDto, meta?: { ip?: string; userAgent?: string }) {
     this.assertRoleChangeAllowed(actor, dto.role);
 
     if (dto.customPermissions) {
@@ -122,14 +122,24 @@ export class UsersService {
       });
     }
 
+    // Senha provisória opcional: sem ela o sistema gera uma forte, exibida uma única vez ao criador.
+    const temporaryPassword = dto.password || this.generateTemporaryPassword();
+    this.assertStrongPassword(temporaryPassword);
+    if (dto.employeeId) {
+      const employee = await this.repository.findEmployeeForLink(targetCompanyId, dto.employeeId);
+      if (!employee) throw new NotFoundException('Funcionario nao encontrado nesta empresa.');
+      if (employee.userId) throw new ConflictException('Este funcionario ja possui um usuario vinculado.');
+    }
+
     const created = await this.repository.createWithEmployeeSync({
       companyId: targetCompanyId,
       name: normalizeDisplayName(dto.name),
       email,
-      passwordHash: await bcrypt.hash(dto.password, 12),
+      passwordHash: await bcrypt.hash(temporaryPassword, 12),
       role: dto.role ?? 'FUNCIONARIO',
+      employeeId: dto.employeeId,
       temporaryPassword: {
-        value: dto.password,
+        value: temporaryPassword,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       },
       ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
@@ -150,13 +160,93 @@ export class UsersService {
         role: created.role,
         isActive: created.isActive,
         employeeLinked: Boolean((created as any).employee?.id),
+        requestedBy: actor.email,
       },
+      ...this.metaFields(meta),
     });
 
-    return created;
+    return { ...created, temporaryPassword, temporaryPasswordExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) };
   }
 
-  async update(companyId: string, actor: JwtUser, id: string, dto: UpdateUserDto) {
+  private metaFields(meta?: { ip?: string; userAgent?: string }) {
+    return { ipAddress: meta?.ip, userAgent: meta?.userAgent?.slice(0, 300) };
+  }
+
+  /** Funcionários sem usuário, para atrelar a um acesso. DEV pode escolher a empresa. */
+  async linkableEmployees(companyId: string, actor: JwtUser, search: string, targetCompanyId?: string) {
+    const scope = actor.role === 'DEV' && targetCompanyId ? targetCompanyId : companyId;
+    return this.repository.findLinkableEmployees(scope, search ?? '');
+  }
+
+  /** Atrela (ou desatrela) o usuário a um funcionário. Não é obrigatório: sem vínculo o usuário acessa só conforme a sua visão. */
+  async linkEmployee(companyId: string, actor: JwtUser, id: string, employeeId: string | null, meta?: { ip?: string; userAgent?: string }) {
+    const user = await this.get(companyId, actor, id);
+    if (user.role && !this.canManageRole(actor.role, user.role)) throw new ForbiddenException('Voce nao tem permissao para alterar este usuario.');
+    let employee: { id: string; name: string; registration: string | null; userId: string | null } | null = null;
+    if (employeeId) {
+      employee = await this.repository.findEmployeeForLink(user.companyId, employeeId);
+      if (!employee) throw new NotFoundException('Funcionario nao encontrado nesta empresa.');
+      if (employee.userId && employee.userId !== id) throw new ConflictException('Este funcionario ja esta vinculado a outro usuario.');
+    }
+    const { previous } = await this.repository.setEmployeeLink(user.companyId, id, employeeId);
+    await this.repository.createAuditLog({
+      companyId: user.companyId,
+      userId: id,
+      action: employeeId ? 'USER_EMPLOYEE_LINKED' : 'USER_EMPLOYEE_UNLINKED',
+      entity: 'User',
+      entityId: id,
+      metadata: {
+        previous: { employeeId: previous ? `${previous.name} (${previous.registration ?? 'sem matricula'})` : null },
+        next: { employeeId: employee ? `${employee.name} (${employee.registration ?? 'sem matricula'})` : null },
+        requestedBy: actor.email,
+      },
+      ...this.metaFields(meta),
+    });
+    return this.get(companyId, actor, id);
+  }
+
+  private async changeAccess(companyId: string, actor: JwtUser, id: string, state: 'BLOCK' | 'UNBLOCK' | 'CANCEL', reason?: string, meta?: { ip?: string; userAgent?: string }) {
+    if (actor.sub === id) throw new ForbiddenException('Nao e permitido bloquear ou cancelar o proprio acesso.');
+    const user = await this.get(companyId, actor, id);
+    if (user.role && !this.canManageRole(actor.role, user.role)) throw new ForbiddenException('Voce nao tem permissao para gerir o acesso deste usuario.');
+    if (state === 'UNBLOCK' && ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'].includes(String(user.role))) {
+      const [used, limits] = await Promise.all([this.repository.countByCompany(user.companyId), this.repository.getCompanyLimits(user.companyId)]);
+      const max = this.resolveMaxUsers(limits);
+      if (used >= max) throw new ForbiddenException({ code: 'SEAT_LIMIT_REACHED', message: 'A empresa utiliza todas as licencas contratadas.', used, limit: max });
+    }
+    const result = await this.repository.setAccessState(user.companyId, id, state, reason?.trim() || undefined);
+    if (!result.count || !result.user) throw new NotFoundException('Usuario nao encontrado');
+    const action = state === 'BLOCK' ? 'USER_BLOCKED' : state === 'CANCEL' ? 'USER_CANCELED' : 'USER_UNBLOCKED';
+    await this.repository.createAuditLog({
+      companyId: user.companyId,
+      userId: id,
+      action,
+      entity: 'User',
+      entityId: id,
+      metadata: {
+        previous: { isActive: user.isActive },
+        next: { isActive: result.user.isActive },
+        reason: reason?.trim() || undefined,
+        requestedBy: actor.email,
+      },
+      ...this.metaFields(meta),
+    });
+    return result.user;
+  }
+
+  block(companyId: string, actor: JwtUser, id: string, reason?: string, meta?: { ip?: string; userAgent?: string }) {
+    return this.changeAccess(companyId, actor, id, 'BLOCK', reason, meta);
+  }
+
+  unblock(companyId: string, actor: JwtUser, id: string, meta?: { ip?: string; userAgent?: string }) {
+    return this.changeAccess(companyId, actor, id, 'UNBLOCK', undefined, meta);
+  }
+
+  cancel(companyId: string, actor: JwtUser, id: string, reason?: string, meta?: { ip?: string; userAgent?: string }) {
+    return this.changeAccess(companyId, actor, id, 'CANCEL', reason, meta);
+  }
+
+  async update(companyId: string, actor: JwtUser, id: string, dto: UpdateUserDto, meta?: { ip?: string; userAgent?: string }) {
     this.assertRoleChangeAllowed(actor, dto.role);
     if (id === actor.sub &&actor.role !== 'DEV' && (dto.isActive === false || (dto.role && dto.role !== actor.role))) {
       throw new ForbiddenException('Voce nao pode desativar a propria conta nem alterar o proprio perfil.');
@@ -174,12 +264,14 @@ export class UsersService {
       ...(password ? { passwordHash: await bcrypt.hash(password, 12) } : {}),
     };
 
-    const result = await this.repository.updateWithEmployeeSync(companyId, id, data);
+    // Usa a empresa DO USUÁRIO alvo (o DEV edita usuários de qualquer empresa).
+    const result = await this.repository.updateWithEmployeeSync(before.companyId, id, data);
     if (!result.count || !result.user) throw new NotFoundException('Usuario nao encontrado');
 
     await this.repository.createAuditLog({
-      companyId,
+      companyId: before.companyId,
       userId: id,
+      ...this.metaFields(meta),
       action: 'USER_UPDATED',
       entity: 'User',
       entityId: id,
@@ -199,6 +291,7 @@ export class UsersService {
           customPermissions: result.user.customPermissions ?? null,
         },
         changedFields: Object.keys(data),
+        requestedBy: actor.email,
       },
     });
 
@@ -324,29 +417,10 @@ export class UsersService {
     return { temporaryPassword, expiresAt };
   }
 
-  async delete(companyId: string, actor: JwtUser, id: string) {
-    if (actor.sub === id) throw new ForbiddenException('Nao e permitido excluir a propria conta.');
-    const user = await this.get(companyId, actor, id);
-    if (user.role && !this.canManageRole(actor.role, user.role)) {
-      throw new ForbiddenException('Voce nao tem permissao para deletar este usuario.');
-    }
-    const result = await this.repository.deactivateWithEmployeeSync(companyId, id);
-    if (!result.count || !result.user) throw new NotFoundException('Usuario nao encontrado');
-
-    await this.repository.createAuditLog({
-      companyId,
-      userId: actor.sub,
-      action: 'USER_DEACTIVATED',
-      entity: 'User',
-      entityId: id,
-      metadata: {
-        previous: { isActive: user.isActive, role: user.role },
-        next: { isActive: false, forcePasswordChange: true },
-        requestedBy: actor.email,
-      },
-    });
-
-    return { deleted: true, deactivated: true };
+  /** Mantido por compatibilidade: DELETE /users/:id cancela o acesso (definitivo). */
+  async delete(companyId: string, actor: JwtUser, id: string, meta?: { ip?: string; userAgent?: string }) {
+    await this.cancel(companyId, actor, id, undefined, meta);
+    return { deleted: true, deactivated: true, canceled: true };
   }
 
   async usage(companyId: string) {

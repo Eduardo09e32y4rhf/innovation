@@ -1,4 +1,4 @@
-﻿import {
+import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
@@ -24,6 +24,7 @@ import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
 import { PricingService } from '../finance/pricing.service';
+import { checkCouponEligibility, couponDiscount } from '../coupons/coupon-rules';
 
 // SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
 const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
@@ -50,19 +51,18 @@ export class AuthService {
   async quotePublicPlan(dto: { planId: string; seatQuantity: number; couponCode?: string }) {
     const plan = await this.repository.findPublicPlan(dto.planId);
     if (!plan) throw new NotFoundException('O plano selecionado nao esta mais disponivel.');
-    const quote = this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, {
+    const pricing = {
       baseMonthlyPrice: plan.baseMonthlyPrice ? Number(plan.baseMonthlyPrice) : undefined,
       userMonthlyPrice: plan.userMonthlyPrice ? Number(plan.userMonthlyPrice) : undefined,
       price: plan.price ? Number(plan.price) : undefined,
-    });
-    if (!dto.couponCode) return { ...quote, trialDays: 0, couponApplied: false };
+    };
+    if (!dto.couponCode) return { ...this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, pricing), trialDays: 0, couponApplied: false };
     const coupon = await this.repository.findCouponByCode(dto.couponCode);
-    const now = new Date();
-    const eligible = Boolean(coupon?.isActive && (!coupon.startsAt || coupon.startsAt <= now) && (!coupon.expiresAt || coupon.expiresAt >= now) && (coupon.maxRedemptions === null || coupon.redemptionCount < coupon.maxRedemptions));
-    if (!eligible || !coupon) throw new BadRequestException({ code: 'COUPON_INVALID', message: 'Cupom invalido, expirado ou indisponivel.' });
-    return { ...quote, trialDays: coupon.trialDays, couponApplied: true };
+    const check = checkCouponEligibility(coupon, { planId: plan.id, seats: dto.seatQuantity });
+    if (!check.ok || !coupon) throw new BadRequestException({ code: check.ok ? 'COUPON_INVALID' : check.code, message: check.ok ? 'Cupom invalido, expirado ou indisponivel.' : check.message });
+    const quote = this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, pricing, couponDiscount(coupon));
+    return { ...quote, trialDays: coupon.type === 'TRIAL_DAYS' ? coupon.trialDays : 0, couponApplied: true, couponType: coupon.type, couponDurationCycles: coupon.durationCycles };
   }
-
   async registerCompany(dto: RegisterCompanyDto) {
     const email = dto.email.trim().toLowerCase();
     const document = dto.document.replace(/\D/g, '');
@@ -82,9 +82,8 @@ export class AuthService {
     }
     const coupon = dto.couponCode ? await this.repository.findCouponByCode(dto.couponCode) : null;
     if (dto.couponCode) {
-      const now = new Date();
-      const eligible = Boolean(coupon?.isActive && (!coupon.startsAt || coupon.startsAt <= now) && (!coupon.expiresAt || coupon.expiresAt >= now) && (coupon.maxRedemptions === null || coupon.redemptionCount < coupon.maxRedemptions));
-      if (!eligible) throw new BadRequestException({ code: 'COUPON_INVALID', message: 'Cupom invalido, expirado ou indisponivel.' });
+      const check = checkCouponEligibility(coupon, { planId: selectedPlan.id, seats: dto.seatQuantity });
+      if (!check.ok) throw new BadRequestException({ code: check.code, message: check.message });
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -114,10 +113,14 @@ export class AuthService {
     let trial = false;
     let trialEndsAt: Date | null = null;
     try {
-      if (coupon) {
-        const secret = process.env.TRIAL_DOCUMENT_HASH_SECRET;
-        if (!secret) throw new InternalServerErrorException('TRIAL_DOCUMENT_HASH_SECRET precisa ser configurado.');
-        const documentHash = createHmac('sha256', secret).update(document).digest('hex');
+      if (coupon && coupon.type !== 'TRIAL_DAYS') {
+        const documentHash = this.documentHash(document);
+        const redemption = await this.repository.redeemDiscountCoupon({ ...subscriptionData, couponId: coupon.id, documentHash, seatQuantity: dto.seatQuantity });
+        if (!redemption.applied) {
+          throw new ConflictException({ code: redemption.reason, message: redemption.reason === 'COUPON_ALREADY_USED' ? 'Este documento ja utilizou este cupom.' : 'Cupom indisponivel.' });
+        }
+      } else if (coupon) {
+        const documentHash = this.documentHash(document);
         const redemption = await this.repository.redeemTrialCoupon({
           ...subscriptionData,
           couponId: coupon.id,
@@ -202,6 +205,12 @@ export class AuthService {
     if (user.failedLoginAttempts > 0) {
       await this.repository.resetFailedLogins(user.id);
     }
+
+    // Histórico de acessos: cada login fica registrado com IP e dispositivo.
+    void this.repository.createAuditLog({
+      companyId: user.companyId, userId: user.id, action: 'LOGIN_SUCCESS', entity: 'Auth', entityId: user.id,
+      metadata: { email: user.email }, ipAddress: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent,
+    }).catch(() => undefined);
 
     return this.buildAuthResponse({ 
       sub: user.id, 
@@ -432,6 +441,13 @@ export class AuthService {
     if (Number.isNaN(changedAt.getTime())) return true;
     const ageMs = Date.now() - changedAt.getTime();
     return ageMs >= PASSWORD_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+  }
+
+  /** Hash estável do documento para impedir reuso de teste/cupom. Sem TRIAL_DOCUMENT_HASH_SECRET usa o segredo do JWT (nunca falha o cadastro). */
+  private documentHash(document: string) {
+    const secret = process.env.TRIAL_DOCUMENT_HASH_SECRET || process.env.JWT_SECRET || process.env.SECRET_KEY;
+    if (!secret) throw new InternalServerErrorException('Segredo de hash de documento nao configurado.');
+    return createHmac('sha256', secret).update(document).digest('hex');
   }
 
   private assertValidDocument(document: string) {
