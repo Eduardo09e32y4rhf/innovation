@@ -3,7 +3,9 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, Res, 
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SkipSubscriptionCheck } from '../../common/decorators/skip-subscription-check.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { FaturasPermissionGuard, RequireFaturasPermission } from '../../common/permissions/require-faturas-permission';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ListPlatformInvoicesDto } from './dto/platform-finance.dto';
@@ -17,7 +19,10 @@ import { PlatformFinanceService } from './platform-finance.service';
  * Aba Faturas. A autorização é por permissão (padrão do perfil ou personalizada), não por perfil fixo,
  * para que a tela de Permissões consiga liberar a aba a outros perfis.
  */
-@UseGuards(JwtAuthGuard, FaturasPermissionGuard)
+// Qualquer perfil pode ter permissao de Faturas (ela e configuravel por perfil e por usuario): o @Roles lista todos
+// e o FaturasPermissionGuard decide de verdade, rota a rota, pela permissao efetiva.
+@UseGuards(JwtAuthGuard, RolesGuard, FaturasPermissionGuard)
+@Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
 @SkipSubscriptionCheck()
 @UseInterceptors(PlainJsonInterceptor)
 @Controller('faturas')

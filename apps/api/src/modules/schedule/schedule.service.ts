@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
-import { saoPauloDayOfWeek, toSaoPauloDateKey } from '../../common/utils/date.utils';
+import { toSaoPauloDateKey } from '../../common/utils/date.utils';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { AssignScheduleDto } from './dto/assign-schedule.dto';
@@ -15,6 +15,8 @@ import { UpdateScheduleCoverageConfigDto } from './dto/schedule-governance.dto';
 
 const CAN_WRITE = ['ADMIN', 'RH', 'DEV'];
 const CAN_APPROVE = ['ADMIN', 'RH', 'GESTOR', 'DEV'];
+
+const utcDateKey = (date: Date) => date.toISOString().slice(0, 10);
 
 @Injectable()
 export class ScheduleService {
@@ -40,15 +42,17 @@ export class ScheduleService {
     actor?: JwtUser,
   ) {
     const { start: startDate, end: endDate } = this.monthBounds(month);
-    const exceptionByDate = new Map(exceptions.map((item) => [toSaoPauloDateKey(item.date), item]));
-    const holidayByDate = new Map(holidays.map((item) => [toSaoPauloDateKey(item.date as Date), item]));
-    const timeTrackByDate = new Map(timeTracks.map((item) => [toSaoPauloDateKey(item.date as Date), item]));
+    // Colunas de data sao gravadas como meia-noite UTC do dia civil (T00:00:00.000Z). A chave e o dia da semana
+    // saem em UTC: converter para Sao Paulo recuaria cada dia em um (01/02 viraria 31/01 e a escala cairia no dia errado).
+    const exceptionByDate = new Map(exceptions.map((item) => [utcDateKey(item.date), item]));
+    const holidayByDate = new Map(holidays.map((item) => [utcDateKey(item.date as Date), item]));
+    const timeTrackByDate = new Map(timeTracks.map((item) => [utcDateKey(item.date as Date), item]));
     const days: any[] = [];
     const cursor = new Date(startDate);
 
     while (cursor < endDate) {
-      const dateStr = toSaoPauloDateKey(cursor);
-      const dow = saoPauloDayOfWeek(cursor);
+      const dateStr = utcDateKey(cursor);
+      const dow = cursor.getUTCDay();
       const userSchedule = userSchedules.find((item) => item.startDate <= cursor && (!item.endDate || item.endDate >= cursor));
       const exception = exceptionByDate.get(dateStr);
       const holiday = holidayByDate.get(dateStr);
@@ -230,7 +234,7 @@ export class ScheduleService {
     const cursor = new Date(startDate);
 
     while (cursor <= validationEnd && violations.length < 50) {
-      const dayOfWeek = saoPauloDayOfWeek(cursor);
+      const dayOfWeek = cursor.getUTCDay();
       for (const rule of rules) {
         const configuredDays = Array.isArray(rule.daysOfWeek) && rule.daysOfWeek.length
           ? rule.daysOfWeek
@@ -259,7 +263,7 @@ export class ScheduleService {
 
         if (available < Number(rule.minimumEmployees)) {
           violations.push({
-            date: toSaoPauloDateKey(cursor),
+            date: utcDateKey(cursor),
             department: rule.department,
             minimumEmployees: Number(rule.minimumEmployees),
             availableEmployees: available,
@@ -271,7 +275,7 @@ export class ScheduleService {
 
     return {
       configured: true,
-      validationEnd: toSaoPauloDateKey(validationEnd),
+      validationEnd: utcDateKey(validationEnd),
       violations,
     };
   }
@@ -389,8 +393,8 @@ export class ScheduleService {
         name: assessment.schedule.name,
       },
       period: {
-        startDate: toSaoPauloDateKey(assessment.startDate),
-        endDate: assessment.endDate ? toSaoPauloDateKey(assessment.endDate) : null,
+        startDate: utcDateKey(assessment.startDate),
+        endDate: assessment.endDate ? utcDateKey(assessment.endDate) : null,
       },
       impact: {
         timeTracks: assessment.affectedTimeTracks,
@@ -402,13 +406,13 @@ export class ScheduleService {
           employeeName: item.employee?.name ?? null,
           scheduleId: item.scheduleId,
           scheduleName: item.schedule?.name ?? null,
-          startDate: toSaoPauloDateKey(item.startDate),
-          endDate: item.endDate ? toSaoPauloDateKey(item.endDate) : null,
+          startDate: utcDateKey(item.startDate),
+          endDate: item.endDate ? utcDateKey(item.endDate) : null,
         })),
         protectedClosings: assessment.protectedClosings.map((closing: any) => ({
           ...closing,
-          periodStart: toSaoPauloDateKey(closing.periodStart),
-          periodEnd: toSaoPauloDateKey(closing.periodEnd),
+          periodStart: utcDateKey(closing.periodStart),
+          periodEnd: utcDateKey(closing.periodEnd),
         })),
         coverage: assessment.coverage,
       },
@@ -508,8 +512,8 @@ export class ScheduleService {
             employeeIds,
             scheduleId: dto.scheduleId,
             scheduleName: assessment.schedule.name,
-            startDate: toSaoPauloDateKey(assessment.startDate),
-            endDate: assessment.endDate ? toSaoPauloDateKey(assessment.endDate) : null,
+            startDate: utcDateKey(assessment.startDate),
+            endDate: assessment.endDate ? utcDateKey(assessment.endDate) : null,
             retroactive: assessment.retroactive,
             affectedTimeTracks: assessment.affectedTimeTracks,
             replacedAssignmentIds: assessment.replacements.map((item: any) => item.id),
