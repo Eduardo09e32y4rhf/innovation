@@ -78,11 +78,15 @@ WHATSAPP/auth_info_baileys/
 *.token
 credentials.json
 secrets.json
-*secret*
-*password*
-*credential*
+# Específicos (curingas como *password* escondiam código legítimo, ex.: password-field.tsx)
+*.secret
+*.secrets
+*.password
+*.passwd
+*.credentials
+secrets.*.json
+*-credentials.json
 *auth.json
-*token*
 google-credentials.json
 service-account-key.json
 
@@ -180,6 +184,22 @@ yarn.lock
 
 # Local external Agent Canvas checkout; do not publish bundled repo/cache.
 agent-canvas/
+
+# Artefatos de teste e2e (gerados)
+tests-e2e/node_modules/
+tests-e2e/screenshots/
+tests-e2e/playwright-report/
+tests-e2e/test-results/
+playwright-report/
+test-results/
+
+# Scripts descartáveis de correção e checkout aninhado antigo
+/apps/api/fix*.js
+/apps/api/update*.js
+/apps/web/fix*.js
+/apps/web/update*.js
+/fix*.js
+/innovation/
 
 # Backups de banco — nunca commitar
 backup_*.sql

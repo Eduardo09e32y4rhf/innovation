@@ -27,14 +27,17 @@ async function bootstrap() {
           }),
         ),
       }),
+      // Loki only when LOKI_HOST is set; avoids connection-error loops otherwise.
+      ...(process.env.LOKI_HOST ? [
       new LokiTransport({
-        host: process.env.LOKI_HOST || 'http://localhost:3100',
+        host: process.env.LOKI_HOST,
         labels: { app: 'innovation-api', env: process.env.NODE_ENV || 'development' },
         json: true,
         format: winston.format.json(),
         replaceTimestamp: true,
         onConnectionError: (err: any) => console.error(err),
-      }),
+      })
+      ] : []),
     ],
   });
 

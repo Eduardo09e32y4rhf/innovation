@@ -1,5 +1,6 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Redis from 'ioredis';
+import { redisConnection } from './redis-config';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -7,11 +8,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private isConnected = false;
 
   constructor() {
-    const host = process.env.REDIS_URL ? new URL(process.env.REDIS_URL).hostname : (process.env.REDIS_HOST || 'localhost');
-    const port = process.env.REDIS_URL ? parseInt(new URL(process.env.REDIS_URL).port || '6379') : parseInt(process.env.REDIS_PORT || '6379');
     this.client = new Redis({
-      host,
-      port,
+      ...redisConnection(),
       lazyConnect: true,
       enableAutoPipelining: true,
       maxRetriesPerRequest: 3,

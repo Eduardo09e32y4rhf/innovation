@@ -50,13 +50,27 @@ export class EmployeesService {
 
   async get(companyId: string, actor: JwtUser, id: string) {
     const employee = await this.repository.findById(companyId, id);
-    if (!this.canAccessEmployee(actor, employee)) throw new NotFoundException('Employee not found');
+    if (!this.canAccessEmployee(actor, employee) || !(await this.canViewRecord(companyId, actor, employee))) throw new NotFoundException('Employee not found');
     return employee;
+  }
+
+  /**
+   * Escopo de leitura de uma ficha: RH/ADMIN/DEV/CONSULTA veem a empresa; GESTOR vê a si e a sua equipe; FUNCIONARIO só a própria.
+   * Qualquer outro perfil (ex.: CEO) não lê fichas individuais. Sempre responde 404 para não revelar existência.
+   */
+  private async canViewRecord(companyId: string, actor: JwtUser, employee: { id?: string; userId?: string | null; managerId?: string | null } | null | undefined) {
+    if (!employee) return false;
+    if (['DEV', 'ADMIN', 'RH', 'CONSULTA'].includes(actor.role)) return true;
+    const mine = await this.repository.findByUserId(companyId, actor.sub, actor.email);
+    if (!mine) return false;
+    if (actor.role === 'FUNCIONARIO') return mine.id === employee.id;
+    if (actor.role === 'GESTOR') return mine.id === employee.id || employee.managerId === mine.id;
+    return false;
   }
 
   async dossier(companyId: string, actor: JwtUser, id: string) {
     const employee = await this.repository.findById(companyId, id);
-    if (!this.canAccessEmployee(actor, employee)) throw new NotFoundException('Employee not found');
+    if (!this.canAccessEmployee(actor, employee) || !(await this.canViewRecord(companyId, actor, employee))) throw new NotFoundException('Employee not found');
     const dossier = await this.repository.getDossier(companyId, id);
     if (!dossier) throw new NotFoundException('Employee not found');
     return dossier;

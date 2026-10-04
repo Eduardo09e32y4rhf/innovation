@@ -32,6 +32,7 @@ import { EscalaModule } from './modules/schedule/escala.module';
 import { ScheduleHubModule } from './modules/schedule-hub/schedule-hub.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { PlatformHubModule } from './modules/platform-hub/platform-hub.module';
+import { redisConnection } from './common/redis/redis-config';
 import { PlatformAuditModule } from './modules/platform-audit/platform-audit.module';
 import { TenantGuard } from './common/guards/tenant.guard';
 import { SubscriptionActiveGuard } from './common/guards/subscription.guard';
@@ -61,10 +62,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     CacheModule.registerAsync({
       isGlobal: true,
       useFactory: async () => ({
-        store: await redisStore({
-          host: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).hostname : (process.env.REDIS_HOST || 'localhost'),
-          port: process.env.REDIS_URL ? parseInt(new URL(process.env.REDIS_URL).port || '6379') : parseInt(process.env.REDIS_PORT || '6379'),
-          ttl: 60000, // 60 seconds default
+        store: await redisStore({ ...redisConnection(), ttl: 60000, // 60 seconds default
         }),
       }),
     }),
