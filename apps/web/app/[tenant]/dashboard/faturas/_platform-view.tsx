@@ -7,10 +7,11 @@ import { toast } from 'sonner';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { hasPermission } from '@/app/lib/permissions';
 import CompanyFicha from './_ficha';
+import { billingLabel, money, shortDate } from './_format';
 import Integration from './_integration';
 
-const brl = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const day = (value?: string | null) => (value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-');
+const brl = money;
+const day = shortDate;
 
 const COMPANY_STATUS: Record<string, string> = { ACTIVE: 'Ativa', SUSPENDED: 'Bloqueada', CANCELLED: 'Cancelada' };
 const BILLING_STATUS: Record<string, string> = {
@@ -49,6 +50,7 @@ export default function PlatformInvoicesView() {
       ]);
       setSummary(s);
       setData(list);
+      setSelected((current) => (current ? list.items.find((item) => item.id === current.id) ?? current : current));
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Não foi possível carregar as empresas.');
     } finally {
@@ -72,12 +74,12 @@ export default function PlatformInvoicesView() {
             <Building2 size={15} aria-hidden="true" />
             <strong className="text-fg">{selected.name}</strong>
             <span>· {COMPANY_STATUS[selected.status] ?? selected.status}</span>
-            <span>· {BILLING_STATUS[selected.billingStatus] ?? selected.billingStatus}</span>
+            <span>· {billingLabel(selected)}</span>
             <span>· Plano {selected.plan}</span>
             {selected.subscription?.billingPaused && <span className="font-semibold text-amber-600">· Cobrança pausada</span>}
           </p>
         </div>
-        <CompanyFicha company={selected} />
+        <CompanyFicha company={selected} onChanged={() => void load()} />
       </div>
     );
   }
@@ -143,7 +145,7 @@ export default function PlatformInvoicesView() {
                 className="cursor-pointer border-t border-line hover:bg-black/5 focus:bg-black/5 focus:outline-none">
                 <td className="p-3"><p className="font-semibold text-fg">{c.name}</p><p className="text-xs text-fg-mut">{c.document ?? 'Sem CNPJ'}</p></td>
                 <td className="p-3 text-fg-sub">{COMPANY_STATUS[c.status] ?? c.status}</td>
-                <td className="p-3 text-fg-sub">{BILLING_STATUS[c.billingStatus] ?? c.billingStatus}{c.subscription?.billingPaused ? ' (pausada)' : ''}</td>
+                <td className="p-3 text-fg-sub">{billingLabel(c)}{c.subscription?.billingPaused ? ' (pausada)' : ''}</td>
                 <td className="p-3 text-fg-sub">{day(c.subscription?.nextDueDate)}</td>
                 <td className="p-3 text-fg">{c.open.count ? `${brl(c.open.total)} (${c.open.count})` : '-'}</td>
                 <td className={`p-3 ${c.overdue.count ? 'font-semibold text-rose-600' : 'text-fg'}`}>{c.overdue.count ? `${brl(c.overdue.total)} (${c.overdue.count})` : '-'}</td>

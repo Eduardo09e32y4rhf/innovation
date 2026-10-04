@@ -357,6 +357,54 @@ export class FaturasAcoesService {
     return { scheduled: false, prorationAmount: invoice ? proration.amount : 0, providerSynced };
   }
 
+  // ---------- ativar assinatura (empresa sem assinatura / em teste) ----------
+
+  /**
+   * Cria a assinatura local de uma empresa que ainda nao tem (ex.: cadastradas na mao ou em teste) e a coloca "Em dia".
+   * Nao cria cliente nem recorrencia no provedor: a primeira fatura (opcional) e o link de pagamento saem pela cobranca avulsa.
+   */
+  async activateSubscription(companyId: string, input: { planId: string; seatQuantity: number; chargeNow: boolean; reason: string }, actor: JwtUser) {
+    await this.assertCompany(actor, companyId);
+    const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { id: true, billingStatus: true } });
+    if (!company) throw new NotFoundException('Empresa nao encontrada.');
+    const existing = await this.prisma.companySubscription.findUnique({ where: { companyId } });
+    if (existing && existing.status !== 'CANCELED') throw new BadRequestException('Esta empresa ja tem assinatura. Use Trocar plano ou Usuarios.');
+    const plan = await this.prisma.platformPlan.findFirst({ where: { id: input.planId, isActive: true } });
+    if (!plan) throw new NotFoundException('Plano nao encontrado ou indisponivel.');
+    if (plan.maxUsers && input.seatQuantity > plan.maxUsers) throw new BadRequestException(`O plano permite no maximo ${plan.maxUsers} usuarios.`);
+
+    const months = plan.commitmentMonths as 1 | 3 | 6 | 12;
+    const quote = this.pricing.calculate(months, input.seatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price });
+    const now = new Date();
+    const end = new Date(now);
+    end.setUTCMonth(end.getUTCMonth() + months);
+    const data = {
+      planId: plan.id, status: 'ACTIVE', seatQuantity: input.seatQuantity, pendingSeatQuantity: null, pendingPlanId: null, cancelAt: null,
+      currentPeriodStart: now, currentPeriodEnd: end, nextDueDate: end, trialEndsAt: null,
+      pricingVersion: plan.pricingVersion, baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, discountPercent: plan.discountPercent,
+    };
+    await this.prisma.$transaction([
+      this.prisma.companySubscription.upsert({ where: { companyId }, create: { companyId, ...data }, update: data }),
+      this.prisma.company.update({
+        where: { id: companyId },
+        data: { platformPlanId: plan.id, billingStatus: 'ACTIVE', status: 'ACTIVE', isActive: true, suspensionReason: null, trialEndsAt: null },
+      }),
+    ]);
+
+    let invoice: { id: string } | null = null;
+    if (input.chargeNow && quote.total > 0) {
+      invoice = await this.finance.createCharge({
+        companyId, planId: plan.id, amount: quote.total, dueDate: new Date(Date.now() + 3 * DAY_MS).toISOString(), billingType: 'UNDEFINED', sendToAsaas: true,
+        description: `Mensalidade ${plan.name} (${input.seatQuantity} usuarios)`,
+      } as CreatePlatformInvoiceDto);
+    }
+    await this.record(actor, {
+      companyId, invoiceId: invoice?.id, type: 'PRORATION', amount: invoice ? quote.total : 0, reason: input.reason,
+      metadata: { kind: 'SUBSCRIPTION_ACTIVATED', planId: plan.id, seatQuantity: input.seatQuantity, previousBillingStatus: company.billingStatus, total: quote.total },
+    });
+    return { activated: true, total: quote.total, invoiceId: invoice?.id ?? null };
+  }
+
   // ---------- cupom cadastrado ----------
 
   private documentHash(document: string) {

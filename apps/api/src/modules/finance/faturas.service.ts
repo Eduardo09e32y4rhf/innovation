@@ -36,6 +36,7 @@ export class FaturasService {
           document: true,
           status: true,
           billingStatus: true,
+          trialEndsAt: true,
           plan: true,
           subscription: {
             select: { status: true, seatQuantity: true, nextDueDate: true, billingPaused: true, couponType: true, couponValue: true, couponCyclesLeft: true },

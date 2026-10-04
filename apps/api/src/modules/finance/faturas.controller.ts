@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { PlainJsonInterceptor } from '../../common/interceptors/plain-json.interceptor';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, Res, UseGuards, UseInterceptors } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SkipSubscriptionCheck } from '../../common/decorators/skip-subscription-check.decorator';
@@ -6,7 +7,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { FaturasPermissionGuard, RequireFaturasPermission } from '../../common/permissions/require-faturas-permission';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ListPlatformInvoicesDto } from './dto/platform-finance.dto';
-import { ApplyCouponDto, CompanyChangePlanDto, CompanyChangeSeatsDto, AttachFiscalDto, CancelSubscriptionDto, CancelInvoiceDto, ChangePlanDto, ChangeSeatsDto, DiscountInvoiceDto, FreeDaysDto, FullRefundDto, ListFaturasCompaniesDto, PartialRefundDto, RecurringDiscountDto } from './dto/faturas.dto';
+import { ActivateSubscriptionDto, ApplyCouponDto, CompanyChangePlanDto, CompanyChangeSeatsDto, AttachFiscalDto, CancelSubscriptionDto, CancelInvoiceDto, ChangePlanDto, ChangeSeatsDto, DiscountInvoiceDto, FreeDaysDto, FullRefundDto, ListFaturasCompaniesDto, PartialRefundDto, RecurringDiscountDto } from './dto/faturas.dto';
 import { CreatePlatformInvoiceDto } from './dto/platform-finance.dto';
 import { FaturasAcoesService } from './faturas-acoes.service';
 import { FaturasService } from './faturas.service';
@@ -18,6 +19,7 @@ import { PlatformFinanceService } from './platform-finance.service';
  */
 @UseGuards(JwtAuthGuard, FaturasPermissionGuard)
 @SkipSubscriptionCheck()
+@UseInterceptors(PlainJsonInterceptor)
 @Controller('faturas')
 export class FaturasController {
   constructor(
@@ -213,5 +215,11 @@ export class FaturasController {
   @RequireFaturasPermission('faturas.cobrar')
   cancelSubscription(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Body() dto: CancelSubscriptionDto) {
     return this.acoes.cancelSubscription(companyId, dto.mode, dto.reason, actor);
+  }
+
+  @Post('plataforma/companies/:companyId/activate-subscription')
+  @RequireFaturasPermission('faturas.cobrar')
+  activateSubscription(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Body() dto: ActivateSubscriptionDto) {
+    return this.acoes.activateSubscription(companyId, dto, actor);
   }
 }

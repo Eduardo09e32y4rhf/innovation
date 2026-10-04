@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Put, UseGuards } from '@nestjs/common';
+import { PlainJsonInterceptor } from '../../common/interceptors/plain-json.interceptor';
+import { Body, Controller, Delete, Get, Param, Put, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ArrayMaxSize, IsArray, IsString } from 'class-validator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -18,6 +19,7 @@ class SetRolePermissionsDto {
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @SkipSubscriptionCheck()
+@UseInterceptors(PlainJsonInterceptor)
 @Controller('faturas/permissoes')
 export class FaturasPermissoesController {
   constructor(private readonly permissions: FaturasPermissionsService) {}

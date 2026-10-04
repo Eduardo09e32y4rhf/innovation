@@ -474,7 +474,7 @@ export interface SeatsQuote {
 }
 export interface FaturasCompaniesQuery { page?: number; limit?: number; search?: string; status?: string; billingStatus?: string }
 export interface FaturasCompanyRow {
-  id: string; name: string; document?: string | null; status: string; billingStatus: string; plan: string;
+  id: string; name: string; document?: string | null; status: string; billingStatus: string; plan: string; trialEndsAt?: string | null;
   subscription?: { status: string; seatQuantity: number; nextDueDate?: string | null; billingPaused: boolean; couponType?: string | null; couponValue?: number | null; couponCyclesLeft?: number | null } | null;
   open: { total: number; count: number }; overdue: { total: number; count: number };
 }
@@ -969,6 +969,7 @@ export const api = {
     syncInvoice: (id: string) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/sync`, { method: 'POST' }),
     downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to' | 'companyId'> = {}) => downloadRequest(`/faturas/plataforma/statements/pdf${makeQuery(query)}`),
     plans: () => request<Array<{ id: string; name: string; isActive?: boolean; commitmentMonths?: number }>>('/platform/plans'),
+    activateSubscription: (companyId: string, input: { planId: string; seatQuantity: number; chargeNow: boolean; reason: string }) => request<{ activated: boolean; total: number; invoiceId: string | null }>(`/faturas/plataforma/companies/${companyId}/activate-subscription`, { method: 'POST', body: input }),
     applyCoupon: (companyId: string, input: { code: string; reason: string }) => request<Record<string, unknown>>(`/faturas/plataforma/companies/${companyId}/coupon`, { method: 'POST', body: input }),
     cancelSubscription: (companyId: string, input: { mode: 'NOW' | 'END_OF_CYCLE'; reason: string }) => request<{ canceled: boolean; cancelAt?: string }>(`/faturas/plataforma/companies/${companyId}/cancel-subscription`, { method: 'POST', body: input }),
     minhasPermissoes: () => request<{ permissions: string[] }>('/faturas/permissoes/minhas', { silent: true, keepSessionOn401: true }),

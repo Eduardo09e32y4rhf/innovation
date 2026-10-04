@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import api, { ApiError, type CompanyBillingResult, type PlatformInvoice } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { hasPermission } from '@/app/lib/permissions';
+import { money, shortDate } from './_format';
 import CompanyPlanActions from './_company-plan';
 
 type Tab = 'abertas' | 'pagas' | 'comprovantes' | 'notas';
@@ -17,8 +18,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'notas', label: 'Notas fiscais' },
 ];
 
-const brl = (value: number | string) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const day = (value?: string | null) => (value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-');
+const brl = money;
+const day = shortDate;
 
 function statusBadge(invoice: PlatformInvoice) {
   if (invoice.status === 'PAID') return <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-600">Paga</span>;

@@ -6,13 +6,14 @@ import api, { ApiError, type FaturasCompanyRow, type InvoiceAdjustment, type Pla
 import { useAuth } from '@/app/contexts/AuthContext';
 import { hasPermission, type Permission } from '@/app/lib/permissions';
 import CompanyInvoicesView from './_company-view';
+import { money } from './_format';
 
 type Dialog =
-  | { kind: 'charge' } | { kind: 'recurring' } | { kind: 'freeDays' } | { kind: 'seats' } | { kind: 'plan' } | { kind: 'coupon' } | { kind: 'cancelSub' }
+  | { kind: 'charge' } | { kind: 'recurring' } | { kind: 'freeDays' } | { kind: 'seats' } | { kind: 'plan' } | { kind: 'coupon' } | { kind: 'cancelSub' } | { kind: 'activate' }
   | { kind: 'discount' | 'refundPartial' | 'refundFull' | 'fiscal' | 'cancel'; invoice: PlatformInvoice };
 
 const TITLES: Record<Dialog['kind'], string> = {
-  charge: 'Nova cobrança avulsa', recurring: 'Desconto recorrente', freeDays: 'Dias grátis', seats: 'Upgrade / downgrade de usuários', plan: 'Trocar de plano', coupon: 'Aplicar cupom', cancelSub: 'Cancelar assinatura',
+  charge: 'Nova cobrança avulsa', recurring: 'Desconto recorrente', freeDays: 'Dias grátis', seats: 'Upgrade / downgrade de usuários', plan: 'Trocar de plano', coupon: 'Aplicar cupom', cancelSub: 'Cancelar assinatura', activate: 'Ativar assinatura',
   discount: 'Desconto nesta fatura', refundPartial: 'Reembolso parcial', refundFull: 'Reembolso total', fiscal: 'Nota fiscal e comprovante', cancel: 'Cancelar fatura',
 };
 
@@ -20,7 +21,7 @@ const TYPE_LABEL: Record<InvoiceAdjustment['type'], string> = {
   DISCOUNT: 'Desconto', RECURRING_DISCOUNT: 'Desconto recorrente', FREE_DAYS: 'Dias grátis', PARTIAL_REFUND: 'Reembolso parcial', PRORATION: 'Rateio / usuários', FISCAL_ATTACHED: 'NF / comprovante',
 };
 
-const brl = (v: number | string | null | undefined) => Number(v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const brl = money;
 const field = 'h-10 w-full rounded-xl border border-line bg-transparent px-3 text-sm text-fg';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -37,13 +38,15 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
   const [planId, setPlanId] = useState('');
   const [planQuote, setPlanQuote] = useState<PlanQuote | null>(null);
   const [mode, setMode] = useState<'NOW' | 'END_OF_CYCLE'>('END_OF_CYCLE');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [chargeNow, setChargeNow] = useState(true);
   const [billingType, setBillingType] = useState<'UNDEFINED' | 'BOLETO' | 'PIX' | 'CREDIT_CARD'>('UNDEFINED');
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => setText((t) => ({ ...t, [key]: e.target.value }));
   const num = (key: string) => Number(String(text[key] ?? '').replace(',', '.'));
   const needsReason = dialog.kind !== 'charge';
 
   useEffect(() => {
-    if (dialog.kind !== 'plan') return;
+    if (dialog.kind !== 'plan' && dialog.kind !== 'activate') return;
     api.faturas.plans().then((list) => setPlans(list.filter((p) => p.isActive !== false))).catch(() => setPlans([]));
   }, [dialog.kind]);
 
@@ -61,7 +64,8 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (needsReason && reason.trim().length < 5) { toast.error('Informe o motivo (mínimo 5 caracteres).'); return; }
+    setErrorMsg(null);
+    if (needsReason && reason.trim().length < 5) { setErrorMsg('Informe o motivo (mínimo 5 caracteres).'); return; }
     setBusy(true);
     try {
       switch (dialog.kind) {
@@ -88,6 +92,10 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
           const r = await api.faturas.cancelSubscription(company.id, { mode, reason });
           toast.success(r.canceled ? 'Assinatura cancelada.' : `Cobranças paradas. O acesso termina em ${r.cancelAt ? new Date(r.cancelAt).toLocaleDateString('pt-BR') : 'fim do ciclo'}.`); break;
         }
+        case 'activate': {
+          const r = await api.faturas.activateSubscription(company.id, { planId, seatQuantity: Math.trunc(num('seats')), chargeNow, reason });
+          toast.success(r.invoiceId ? `Assinatura ativada. Primeira fatura: ${brl(r.total)}.` : 'Assinatura ativada.'); break;
+        }
         case 'plan': {
           const r = await api.faturas.changePlan(company.id, { planId, reason });
           toast.success(r.scheduled ? 'Downgrade agendado para o próximo ciclo.' : r.prorationAmount > 0 ? `Plano alterado. Rateio cobrado: ${brl(r.prorationAmount)}` : 'Plano alterado.'); break;
@@ -109,7 +117,9 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
       onDone();
       onClose();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Não foi possível concluir a ação.');
+      const message = err instanceof ApiError ? err.message : 'Não foi possível concluir a ação.';
+      setErrorMsg(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -135,6 +145,12 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
             <Field label="Valor em R$"><input className={field} inputMode="decimal" required value={text.amount ?? ''} onChange={set('amount')} /></Field>
             <Field label="Vencimento"><input type="date" className={field} required value={text.dueDate ?? ''} onChange={set('dueDate')} /></Field>
           </div>
+        </>)}
+        {dialog.kind === 'activate' && (<>
+          <Field label="Plano"><select className={field} value={planId} onChange={(e) => setPlanId(e.target.value)} required><option value="">Selecione</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+          <Field label="Quantidade de usuários"><input className={field} inputMode="numeric" required value={text.seats ?? ''} onChange={set('seats')} /></Field>
+          <label className="flex items-center gap-2 text-sm text-fg"><input type="checkbox" checked={chargeNow} onChange={(e) => setChargeNow(e.target.checked)} /> Gerar a primeira fatura agora</label>
+          <p className="text-xs text-fg-mut">Coloca a empresa como Em dia com este plano. A cobrança recorrente no provedor não é criada aqui: a primeira fatura gera o link de pagamento.</p>
         </>)}
         {dialog.kind === 'coupon' && <Field label="Código do cupom"><input className={field} required value={text.code ?? ''} onChange={set('code')} /></Field>}
         {dialog.kind === 'cancelSub' && (<>
@@ -184,6 +200,8 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
 
         {needsReason && <Field label="Motivo (fica no registro)"><input className={field} required minLength={5} maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>}
 
+        {errorMsg && <p role="alert" className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm font-medium text-rose-700">{errorMsg}</p>}
+
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" className="btn btn-outline" onClick={onClose} disabled={busy}>Voltar</button>
           <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Aplicando...' : 'Confirmar'}</button>
@@ -193,7 +211,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
   );
 }
 
-export default function CompanyFicha({ company }: { company: FaturasCompanyRow }) {
+export default function CompanyFicha({ company, onChanged }: { company: FaturasCompanyRow; onChanged?: () => void }) {
   const { user } = useAuth();
   const can = (p: Permission) => hasPermission(user, p);
   const [dialog, setDialog] = useState<Dialog | null>(null);
@@ -207,7 +225,9 @@ export default function CompanyFicha({ company }: { company: FaturasCompanyRow }
   }, [company.id]);
   useEffect(() => { void loadHistory(); }, [loadHistory, reloadKey]);
 
-  const refresh = () => setReloadKey((k) => k + 1);
+  const hasSub = Boolean(company.subscription);
+  const refresh = () => { setReloadKey((k) => k + 1); onChanged?.(); };
+  const needSub = hasSub ? undefined : 'Esta empresa ainda não tem assinatura. Ative a assinatura primeiro.';
 
   async function togglePause() {
     try {
@@ -243,14 +263,21 @@ export default function CompanyFicha({ company }: { company: FaturasCompanyRow }
     <div>
       <section className="flex flex-wrap gap-2 px-3 pt-4 sm:px-5 lg:px-6" aria-label="Ações da empresa">
         {can('faturas.cobrar') && <button type="button" className="btn btn-primary text-sm" onClick={() => setDialog({ kind: 'charge' })}>Nova cobrança</button>}
-        {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm" onClick={() => setDialog({ kind: 'seats' })}>Usuários</button>}
-        {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm" onClick={() => setDialog({ kind: 'plan' })}>Trocar plano</button>}
-        {can('faturas.desconto') && <button type="button" className="btn btn-outline text-sm" onClick={() => setDialog({ kind: 'recurring' })}>Desconto recorrente</button>}
-        {can('faturas.desconto') && <button type="button" className="btn btn-outline text-sm" onClick={() => setDialog({ kind: 'freeDays' })}>Dias grátis</button>}
-        {can('faturas.desconto') && <button type="button" className="btn btn-outline text-sm" onClick={() => setDialog({ kind: 'coupon' })}>Cupom</button>}
-        {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm text-rose-700" onClick={() => setDialog({ kind: 'cancelSub' })}>Cancelar assinatura</button>}
-        {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm" onClick={() => void togglePause()}>{pausedNow ? 'Retomar cobrança' : 'Pausar cobrança'}</button>}
+        {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm" disabled={!hasSub} title={needSub} onClick={() => setDialog({ kind: 'seats' })}>Usuários</button>}
+        {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm" disabled={!hasSub} title={needSub} onClick={() => setDialog({ kind: 'plan' })}>Trocar plano</button>}
+        {can('faturas.desconto') && <button type="button" className="btn btn-outline text-sm" disabled={!hasSub} title={needSub} onClick={() => setDialog({ kind: 'recurring' })}>Desconto recorrente</button>}
+        {can('faturas.desconto') && <button type="button" className="btn btn-outline text-sm" disabled={!hasSub} title={needSub} onClick={() => setDialog({ kind: 'freeDays' })}>Dias grátis</button>}
+        {can('faturas.desconto') && <button type="button" className="btn btn-outline text-sm" disabled={!hasSub} title={needSub} onClick={() => setDialog({ kind: 'coupon' })}>Cupom</button>}
+        {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm text-rose-700" disabled={!hasSub} title={needSub} onClick={() => setDialog({ kind: 'cancelSub' })}>Cancelar assinatura</button>}
+        {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm" disabled={!hasSub} title={needSub} onClick={() => void togglePause()}>{pausedNow ? 'Retomar cobrança' : 'Pausar cobrança'}</button>}
       </section>
+
+      {!hasSub && (
+        <div role="status" className="mx-3 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-800 sm:mx-5 lg:mx-6">
+          <span>Esta empresa não tem assinatura ativa. Usuários, plano, descontos, dias grátis, cupom e pausa só funcionam depois de ativar.</span>
+          {can('faturas.cobrar') && <button type="button" className="btn btn-primary text-sm" onClick={() => setDialog({ kind: 'activate' })}>Ativar assinatura</button>}
+        </div>
+      )}
 
       <CompanyInvoicesView companyId={company.id} rowActions={rowActions} reloadKey={reloadKey} />
 

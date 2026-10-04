@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsNumber, IsOptional, IsString, IsUrl, IsUUID, Length, Max, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUrl, IsUUID, Length, Max, MaxLength, Min } from 'class-validator';
 
 export class ListFaturasCompaniesDto {
   @IsOptional()
@@ -114,4 +114,18 @@ export class CompanyChangeSeatsDto {
 export class CompanyChangePlanDto {
   @IsUUID()
   planId!: string;
+}
+
+export class ActivateSubscriptionDto extends ReasonDto {
+  @IsUUID()
+  planId!: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(10_000)
+  seatQuantity!: number;
+
+  @IsBoolean()
+  chargeNow!: boolean;
 }
