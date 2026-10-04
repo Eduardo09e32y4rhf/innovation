@@ -14,7 +14,8 @@ export class AsoService {
     console.error(`[AsoService] ${scope}`, err);
   }
 
-  private async triggerPeriodicAso(companyId: string) {
+  /** Gera ASO periódico pendente para quem venceu. Chamado só pelo cron (SstCron): leituras (GET) não gravam nada. */
+  async triggerPeriodicAso(companyId: string) {
     try {
       const today = new Date();
       const expired = await this.prisma.employeeAsoRecord.findMany({
@@ -53,7 +54,6 @@ export class AsoService {
 
   async list(companyId: string) {
     try {
-      await this.triggerPeriodicAso(companyId);
       return await this.prisma.employeeAsoRecord.findMany({
         where: { companyId },
         include: {
@@ -225,7 +225,7 @@ export class AsoService {
         const updated = await tx.employeeAsoRecord.update({
           where: { id },
           data: {
-            ...editable,
+            ...this.pickEditable(editable),
             status,
             result,
             updatedBy: userId,
@@ -258,6 +258,15 @@ export class AsoService {
       this.safeLog('update', err);
       throw err;
     }
+  }
+
+  /** Lista de campos editáveis: o corpo da requisição nunca escolhe companyId, createdBy etc. */
+  private pickEditable(data: Record<string, any>) {
+    const allowed = ['asoType', 'clinicName', 'doctorName', 'documentNumber', 'attachmentId', 'periodicityMonths', 'restrictions', 'examsPerformed'];
+    const out: Record<string, any> = {};
+    for (const key of allowed) if (data[key] !== undefined) out[key] = data[key];
+    if (data.notes !== undefined || data.observation !== undefined) out.observation = data.notes ?? data.observation;
+    return out;
   }
 
   private normalizeStatus(value?: string) {
@@ -405,7 +414,6 @@ export class AsoService {
 
   async getRhAlerts(companyId: string, actor?: { sub: string; role: string; managerId?: string }) {
     try {
-      await this.triggerPeriodicAso(companyId);
       const today = new Date();
       const in30Days = new Date(today);
       in30Days.setUTCDate(today.getUTCDate() + 30);

@@ -982,6 +982,12 @@ model EmployeeAsoRecord {
   doctorName         String?
   documentNumber     String?
   observation        String?
+  /// Periodicidade (meses) usada para calcular o vencimento: 6, 12 ou 24.
+  periodicityMonths  Int?
+  /// "Apto com restrições": texto livre com as restrições do médico coordenador.
+  restrictions       String?
+  /// Exames complementares realizados (ex.: audiometria, acuidade visual).
+  examsPerformed     Json?
   attachmentId       String?
   createdBy          String?    @db.Uuid
   updatedBy          String?    @db.Uuid
