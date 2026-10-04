@@ -171,7 +171,6 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./alerts.yml:/etc/prometheus/alerts.yml:ro
-      - ./metrics_token:/etc/prometheus/metrics_token:ro
       - innovation_rh_connect_prometheus:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
