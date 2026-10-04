@@ -1,6 +1,8 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Optional, BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
+import { MfaService } from '../auth/mfa.service';
+import { SessionService } from '../auth/session.service';
 import { decryptTemporaryPassword, encryptTemporaryPassword } from '../../common/crypto/temporary-password';
 import type { JwtUser } from '../../common/types/auth.types';
 import { normalizeDisplayName } from '../../common/utils/text-normalization';
@@ -60,7 +62,11 @@ const ROLE_MANAGEMENT: Record<string, string[]> = {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly repository: UsersRepository) {}
+  constructor(
+    private readonly repository: UsersRepository,
+    @Optional() private readonly mfa?: MfaService,
+    @Optional() private readonly sessions?: SessionService,
+  ) {}
 
   async list(companyId: string, actor: JwtUser) {
     if (actor.role === 'DEV') {
@@ -171,6 +177,19 @@ export class UsersService {
 
   private metaFields(meta?: { ip?: string; userAgent?: string }) {
     return { ipAddress: meta?.ip, userAgent: meta?.userAgent?.slice(0, 300) };
+  }
+
+  /** Remove o segundo fator e encerra as sessões (usuário perdeu o aparelho e os códigos). Somente DEV. */
+  async resetMfa(companyId: string, actor: JwtUser, id: string, meta?: { ip?: string; userAgent?: string }) {
+    if (actor.role !== 'DEV') throw new ForbiddenException('Somente DEV pode redefinir a autenticacao em duas etapas.');
+    const user = await this.get(companyId, actor, id);
+    await this.mfa?.reset(id);
+    await this.sessions?.revokeAllForUser(id);
+    await this.repository.createAuditLog({
+      companyId: user.companyId, userId: id, action: 'USER_MFA_RESET', entity: 'User', entityId: id,
+      metadata: { requestedBy: actor.email }, ...this.metaFields(meta),
+    });
+    return { reset: true };
   }
 
   /** Funcionários sem usuário, para atrelar a um acesso. DEV pode escolher a empresa. */

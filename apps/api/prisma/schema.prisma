@@ -448,6 +448,13 @@ model User {
   blockedAt             DateTime?
   blockedReason         String?
   canceledAt            DateTime?
+  /// Verificacao de e-mail, bloqueio progressivo de login e MFA (TOTP).
+  emailVerifiedAt       DateTime?
+  lockedUntil           DateTime?
+  mfaSecretEnc          String?
+  mfaEnabledAt          DateTime?
+  mfaRecoveryHashes     String[]            @default([])
+  refreshSessions       RefreshSession[]
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 
@@ -3055,4 +3062,25 @@ model PlatformAuditLog {
   @@index([actorId])
   @@index([companyId])
   @@index([action])
+}
+
+/// Sessao de login com refresh token rotativo (guardamos so o hash). `family` agrupa a cadeia de rotacoes: reuso de token revogado derruba a familia inteira.
+model RefreshSession {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  family     String    @db.Uuid
+  tokenHash  String    @unique
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedBy String?   @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([family])
+  @@index([expiresAt])
 }

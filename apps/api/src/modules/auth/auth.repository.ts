@@ -213,7 +213,7 @@ export class AuthRepository {
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.user.update({
         where: { id: userId },
-        data: { passwordHash, previousPasswords, passwordChangedAt: new Date(), forcePasswordChange: false, failedLoginAttempts: 0, resetPasswordCode: null, resetPasswordExpires: null, ...(onboardingState ? { onboardingState } : {}) },
+        data: { passwordHash, previousPasswords, passwordChangedAt: new Date(), forcePasswordChange: false, failedLoginAttempts: 0, lockedUntil: null, resetPasswordCode: null, resetPasswordExpires: null, ...(onboardingState ? { onboardingState } : {}) },
       });
       await tx.temporaryCredential.deleteMany({ where: { userId } });
       return updated;
@@ -230,8 +230,16 @@ export class AuthRepository {
   resetFailedLogins(userId: string) {
     return this.prisma.user.update({
       where: { id: userId },
-      data: { failedLoginAttempts: 0 },
+      data: { failedLoginAttempts: 0, lockedUntil: null },
     });
+  }
+
+  setLockedUntil(userId: string, lockedUntil: Date) {
+    return this.prisma.user.update({ where: { id: userId }, data: { lockedUntil } });
+  }
+
+  markEmailVerified(userId: string) {
+    return this.prisma.user.updateMany({ where: { id: userId, emailVerifiedAt: null }, data: { emailVerifiedAt: new Date() } });
   }
 
   setResetCode(userId: string, code: string, expires: Date) {

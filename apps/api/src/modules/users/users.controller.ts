@@ -150,4 +150,10 @@ export class UsersController {
   cancel(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: ReasonDto, @Req() request: any) {
     return this.service.cancel(companyId, actor, id, dto.reason, requestMeta(request));
   }
+
+  @Roles('DEV')
+  @Post(':id/mfa/reset')
+  resetMfa(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Req() request: any) {
+    return this.service.resetMfa(companyId, actor, id, requestMeta(request));
+  }
 }

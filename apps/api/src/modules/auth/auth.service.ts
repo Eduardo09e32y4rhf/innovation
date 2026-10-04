@@ -18,6 +18,10 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterCompanyDto } from './dto/register-company.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { SessionService } from './session.service';
+import { MfaService } from './mfa.service';
+import { MailService } from '../mail/mail.service';
+import { emailVerificationEmail, passwordResetEmail, securityAlertEmail } from '../mail/mail-templates';
 import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 
@@ -31,6 +35,16 @@ const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCas
 const LOGIN_DENIED_MESSAGE = 'Não foi possível entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
 const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
+const MFA_LOGIN_PURPOSE = 'MFA_LOGIN';
+const EMAIL_VERIFY_PURPOSE = 'EMAIL_VERIFY';
+
+export interface RequestMeta { ipAddress?: string; userAgent?: string }
+
+/** Bloqueio progressivo: 5ª falha = 15 min, depois dobra a cada nova falha (30, 60, 120 ... até 24 h). */
+export function lockDurationMs(failedAttempts: number): number {
+  if (failedAttempts < 5) return 0;
+  return Math.min(24 * 60, 15 * 2 ** (failedAttempts - 5)) * 60_000;
+}
 
 @Injectable()
 export class AuthService {
@@ -42,6 +56,9 @@ export class AuthService {
     private readonly notificationsService: NotificationsService,
     private readonly platformFinance: PlatformFinanceService,
     private readonly pricingService: PricingService,
+    private readonly sessions: SessionService,
+    private readonly mfa: MfaService,
+    private readonly mail: MailService,
   ) {}
 
   publicPlans() {
@@ -63,7 +80,7 @@ export class AuthService {
     const quote = this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, pricing, couponDiscount(coupon));
     return { ...quote, trialDays: coupon.type === 'TRIAL_DAYS' ? coupon.trialDays : 0, couponApplied: true, couponType: coupon.type, couponDurationCycles: coupon.durationCycles };
   }
-  async registerCompany(dto: RegisterCompanyDto) {
+  async registerCompany(dto: RegisterCompanyDto, requestMeta?: RequestMeta) {
     const email = dto.email.trim().toLowerCase();
     const document = dto.document.replace(/\D/g, '');
     this.assertValidDocument(document);
@@ -157,6 +174,8 @@ export class AuthService {
       }
     }
 
+    void this.sendVerificationEmail({ id: admin.id, email: admin.email, name: admin.name });
+
     return {
       ...(await this.buildAuthResponse({
         sub: admin.id,
@@ -167,7 +186,7 @@ export class AuthService {
         customPermissions: admin.customPermissions,
         companyStatus: company.status,
         billingStatus: company.billingStatus,
-      }, false)),
+      }, false, requestMeta)),
       paymentUrl: checkout.paymentUrl,
       billingSetupPending,
       trial,
@@ -175,16 +194,14 @@ export class AuthService {
     };
   }
 
-  async login(dto: LoginDto, requestMeta?: { ipAddress?: string; userAgent?: string }) {
+  async login(dto: LoginDto, requestMeta?: RequestMeta) {
     const user = await this.repository.findUserByEmail(dto.email);
     if (!user || !user.isActive) {
       await this.auditInvalidLogin(dto.email, requestMeta);
       throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     }
 
-    if (user.failedLoginAttempts >= 3) {
-      throw new UnauthorizedException('Conta bloqueada por excesso de tentativas. Redefina sua senha.');
-    }
+    this.assertNotLocked(user.lockedUntil);
 
     const role = this.resolveRole(user.email, user.role);
     if (!this.canAccessCompany(user.company, role)) {
@@ -194,35 +211,156 @@ export class AuthService {
 
     const passwordOk = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordOk) {
-      await this.repository.incrementFailedLogins(user.id);
-      await this.auditInvalidLogin(dto.email, requestMeta, user.companyId, user.id);
-      if (user.failedLoginAttempts + 1 >= 3) {
-         throw new UnauthorizedException('Conta bloqueada por excesso de tentativas. Redefina sua senha.');
-      }
+      await this.registerFailure(user, dto.email, requestMeta);
       throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     }
 
-    if (user.failedLoginAttempts > 0) {
-      await this.repository.resetFailedLogins(user.id);
+    // Segundo fator: não entrega sessão; devolve um desafio de 5 minutos.
+    if (user.mfaEnabledAt) {
+      const mfaToken = await this.jwtService.signAsync({ purpose: MFA_LOGIN_PURPOSE, sub: user.id, pwd: new Date(user.passwordChangedAt).getTime() }, { expiresIn: '5m' });
+      return { mfaRequired: true as const, mfaToken, expiresInSeconds: 300 };
     }
+    return this.completeLogin(user, requestMeta);
+  }
+
+  /** Conclui o login (senha — e MFA, se houver — já validados): zera tentativas, registra e cria a sessão. */
+  private async completeLogin(user: any, requestMeta?: RequestMeta) {
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) await this.repository.resetFailedLogins(user.id);
+    const role = this.resolveRole(user.email, user.role);
 
     // Histórico de acessos: cada login fica registrado com IP e dispositivo.
     void this.repository.createAuditLog({
       companyId: user.companyId, userId: user.id, action: 'LOGIN_SUCCESS', entity: 'Auth', entityId: user.id,
-      metadata: { email: user.email }, ipAddress: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent,
+      metadata: { email: user.email, mfa: Boolean(user.mfaEnabledAt) }, ipAddress: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent,
     }).catch(() => undefined);
 
-    return this.buildAuthResponse({ 
-      sub: user.id, 
-      email: user.email, 
-      name: user.name, 
-      companyId: user.companyId, 
-      role, 
+    return this.buildAuthResponse(this.payloadFor(user, role), this.passwordChangeRequired(user), requestMeta);
+  }
+
+  private payloadFor(user: any, role: UserRole): JwtUser {
+    return {
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+      companyId: user.companyId,
+      role,
       customPermissions: user.customPermissions,
       companyStatus: user.company?.status,
       billingStatus: user.company?.billingStatus,
       onboardingState: user.onboardingState ?? null,
-    }, this.passwordChangeRequired(user));
+      // Perfis de plataforma sem MFA ficam limitados às rotas de autenticação até configurar.
+      ...(this.mfa.isEnforcedFor(role) && !user.mfaEnabledAt ? { mfaPending: true } : {}),
+    };
+  }
+
+  private assertNotLocked(lockedUntil?: Date | null) {
+    if (lockedUntil && lockedUntil > new Date()) {
+      const minutes = Math.max(1, Math.ceil((lockedUntil.getTime() - Date.now()) / 60_000));
+      throw new UnauthorizedException({ code: 'ACCOUNT_LOCKED', message: `Muitas tentativas incorretas. Tente novamente em ${minutes} min ou redefina sua senha.` });
+    }
+  }
+
+  /** Conta a falha, aplica bloqueio progressivo e avisa o dono da conta por e-mail. */
+  private async registerFailure(user: any, email: string, requestMeta?: RequestMeta) {
+    const updated = await this.repository.incrementFailedLogins(user.id);
+    await this.auditInvalidLogin(email, requestMeta, user.companyId, user.id);
+    const lockMs = lockDurationMs(updated.failedLoginAttempts);
+    if (!lockMs) return;
+    const until = new Date(Date.now() + lockMs);
+    await this.repository.setLockedUntil(user.id, until);
+    void this.mail.send(user.email, securityAlertEmail({
+      name: user.name, title: 'Conta temporariamente bloqueada',
+      detail: `Houve ${updated.failedLoginAttempts} tentativas de login incorretas. Por segurança a conta ficará bloqueada por ${Math.round(lockMs / 60_000)} minuto(s).`,
+      ip: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent, at: new Date(),
+    }));
+    this.assertNotLocked(until);
+  }
+
+  /** Segunda etapa do login: valida o código do app autenticador (ou um código de recuperação). */
+  async verifyMfaLogin(dto: { mfaToken: string; code?: string; recoveryCode?: string }, requestMeta?: RequestMeta) {
+    let payload: any;
+    try { payload = await this.jwtService.verifyAsync(dto.mfaToken); } catch { throw new UnauthorizedException('Desafio expirado. Entre novamente.'); }
+    if (payload?.purpose !== MFA_LOGIN_PURPOSE || !payload.sub) throw new UnauthorizedException('Desafio invalido.');
+    const user = await this.repository.findUserById(payload.sub);
+    if (!user || !user.isActive || Number(payload.pwd) !== new Date(user.passwordChangedAt).getTime()) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
+    this.assertNotLocked(user.lockedUntil);
+    const role = this.resolveRole(user.email, user.role);
+    if (!this.canAccessCompany(user.company, role)) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
+
+    const ok = await this.mfa.verifyLogin(user.id, { code: dto.code, recoveryCode: dto.recoveryCode });
+    if (!ok) {
+      await this.registerFailure(user, user.email, requestMeta);
+      throw new UnauthorizedException('Codigo invalido.');
+    }
+    return this.completeLogin(user, requestMeta);
+  }
+
+  /** Troca o refresh token (rotação) e devolve um novo access token curto. */
+  async refresh(refreshToken: string | undefined, requestMeta?: RequestMeta) {
+    const rotated = await this.sessions.rotate(refreshToken ?? '', { ip: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent });
+    if (rotated.status === 'reuse') throw new UnauthorizedException({ code: 'SESSION_REUSED', message: 'Sessao encerrada por seguranca. Entre novamente.' });
+    if (rotated.status !== 'ok') throw new UnauthorizedException({ code: 'SESSION_EXPIRED', message: 'Sessao expirada. Entre novamente.' });
+
+    const user = await this.repository.findUserById(rotated.userId);
+    const role = user ? this.resolveRole(user.email, user.role) : null;
+    if (!user || !user.isActive || !role || !this.canAccessCompany(user.company, role)) {
+      await this.sessions.revokeFamily(rotated.userId, rotated.family);
+      throw new UnauthorizedException({ code: 'SESSION_EXPIRED', message: 'Sessao expirada. Entre novamente.' });
+    }
+    return this.buildAuthResponse(this.payloadFor(user, role), this.passwordChangeRequired(user), requestMeta, rotated.token);
+  }
+
+  async logout(refreshToken: string | undefined) {
+    await this.sessions.revokeByToken(refreshToken);
+    return { loggedOut: true };
+  }
+
+  async listSessions(userId: string, refreshToken: string | undefined) {
+    return this.sessions.listActive(userId, await this.sessions.familyOf(refreshToken));
+  }
+
+  async revokeSession(userId: string, family: string) {
+    const count = await this.sessions.revokeFamily(userId, family);
+    if (!count) throw new NotFoundException('Sessao nao encontrada.');
+    return { revoked: true };
+  }
+
+  async revokeOtherSessions(userId: string, refreshToken: string | undefined) {
+    return { revoked: await this.sessions.revokeAllForUser(userId, (await this.sessions.familyOf(refreshToken)) ?? undefined) };
+  }
+
+  async mfaEnable(user: JwtUser, code: string, requestMeta?: RequestMeta, refreshToken?: string) {
+    const { recoveryCodes } = await this.mfa.enable(user.sub, code);
+    const fresh = await this.repository.findUserById(user.sub);
+    if (!fresh) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
+    void this.repository.createAuditLog({ companyId: fresh.companyId, userId: fresh.id, action: 'MFA_ENABLED', entity: 'User', entityId: fresh.id, metadata: {}, ipAddress: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent }).catch(() => undefined);
+    // Novo access token sem a limitação "mfaPending"; a sessão atual (cookie) é mantida.
+    const role = this.resolveRole(fresh.email, fresh.role);
+    const auth = await this.buildAuthResponse(this.payloadFor(fresh, role), this.passwordChangeRequired(fresh), requestMeta, refreshToken);
+    return { ...auth, recoveryCodes };
+  }
+
+  /** Confirma o e-mail pelo link enviado no cadastro. */
+  async verifyEmail(token: string) {
+    let payload: any;
+    try { payload = await this.jwtService.verifyAsync(token); } catch { throw new BadRequestException('Link invalido ou expirado.'); }
+    if (payload?.purpose !== EMAIL_VERIFY_PURPOSE || !payload.sub) throw new BadRequestException('Link invalido ou expirado.');
+    await this.repository.markEmailVerified(payload.sub);
+    return { verified: true };
+  }
+
+  async sendVerificationEmail(user: { id: string; email: string; name: string }) {
+    const token = await this.jwtService.signAsync({ purpose: EMAIL_VERIFY_PURPOSE, sub: user.id, email: user.email }, { expiresIn: '3d' });
+    const base = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+    return this.mail.send(user.email, emailVerificationEmail({ name: user.name, url: `${base}/verify-email?token=${encodeURIComponent(token)}` }));
+  }
+
+  async resendVerification(userId: string) {
+    const user = await this.repository.findUserById(userId);
+    if (!user) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
+    if (user.emailVerifiedAt) return { alreadyVerified: true };
+    const result = await this.sendVerificationEmail(user);
+    return { sent: result.sent };
   }
 
 
@@ -248,6 +386,16 @@ export class AuthService {
       ipAddress: requestMeta.ipAddress,
       userAgent: requestMeta.userAgent,
     });
+
+    // Com e-mail configurado o próprio titular recebe o link (30 min, uso único) — sem depender do RH.
+    if (this.mail.isConfigured()) {
+      const token = await this.jwtService.signAsync({
+        purpose: PASSWORD_RESET_PURPOSE, sub: user.id, email: user.email, passwordChangedAt: new Date(user.passwordChangedAt).getTime(),
+      }, { expiresIn: '30m' });
+      const base = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+      const sent = await this.mail.send(user.email, passwordResetEmail({ name: user.name, url: `${base}/reset-password?token=${encodeURIComponent(token)}`, minutes: 30 }));
+      if (sent.sent) return { requested: true, channel: 'email' as const };
+    }
 
     try {
       // Notifica todos os perfis privilegiados da empresa que podem liberar o código:
@@ -344,6 +492,8 @@ export class AuthService {
     
     const nextPrevious = [user.passwordHash, ...user.previousPasswords].slice(0, 10);
     await this.repository.updatePassword(user.id, passwordHash, nextPrevious);
+    await this.sessions.revokeAllForUser(user.id);
+    void this.mail.send(user.email, securityAlertEmail({ name: user.name, title: 'Sua senha foi redefinida', detail: 'A senha da sua conta foi alterada por meio da recuperação de senha. Todas as sessões foram encerradas.', ip: requestMeta.ipAddress, userAgent: requestMeta.userAgent, at: new Date() }));
     
     await this.repository.createAuditLog({
       companyId: user.companyId,
@@ -374,10 +524,13 @@ export class AuthService {
       billingStatus: freshUser.company?.billingStatus,
       onboardingState: freshUser.onboardingState ?? null,
       passwordChangeRequired: this.passwordChangeRequired(freshUser),
+      emailVerified: Boolean(freshUser.emailVerifiedAt),
+      mfaEnabled: Boolean(freshUser.mfaEnabledAt),
+      mfaEnrollmentRequired: this.mfa.isEnforcedFor(role) && !freshUser.mfaEnabledAt,
     };
   }
 
-  async changePassword(user: JwtUser, dto: ChangePasswordDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
+  async changePassword(user: JwtUser, dto: ChangePasswordDto, requestMeta: { ipAddress?: string; userAgent?: string }, refreshToken?: string) {
     const freshUser = await this.repository.findUserById(user.sub);
     if (!freshUser || !freshUser.isActive) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     const currentOk = await bcrypt.compare(dto.currentPassword, freshUser.passwordHash);
@@ -402,6 +555,9 @@ export class AuthService {
       nextPrevious,
       undefined,
     );
+    // Troca de senha encerra as outras sessões; a atual (cookie) continua.
+    await this.sessions.revokeAllForUser(freshUser.id, (await this.sessions.familyOf(refreshToken)) ?? undefined);
+    void this.mail.send(freshUser.email, securityAlertEmail({ name: freshUser.name, title: 'Sua senha foi alterada', detail: 'A senha da sua conta foi trocada. As outras sessões foram encerradas.', ip: requestMeta.ipAddress, userAgent: requestMeta.userAgent, at: new Date() }));
     
     await this.repository.createAuditLog({
       companyId: freshUser.companyId,
@@ -494,18 +650,22 @@ export class AuthService {
     return Boolean(company && (company.status ?? 'ACTIVE') === 'ACTIVE' && company.billingStatus !== 'CANCELED');
   }
 
-  private async buildAuthResponse(payload: JwtUser, passwordChangeRequired = false) {
+  /** Monta a resposta de autenticação. Sem `existingRefresh`, abre uma sessão nova (refresh token no cookie, nunca no corpo). */
+  private async buildAuthResponse(payload: JwtUser, passwordChangeRequired = false, requestMeta?: RequestMeta, existingRefresh?: string) {
     const company = await this.repository.findCompanyAuthContext(payload.companyId);
     if (!company) throw new UnauthorizedException('Company not found');
 
+    const refreshToken = existingRefresh ?? (await this.sessions.create(payload.sub, { ip: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent })).token;
     return {
       access_token: await this.jwtService.signAsync(payload),
+      refreshToken,
       user: payload,
       company: {
         ...company,
         slug: company.slug || company.id,
       },
       passwordChangeRequired,
+      mfaEnrollmentRequired: Boolean(payload.mfaPending),
     };
   }
   async searchEmployeesForPasswordReset(

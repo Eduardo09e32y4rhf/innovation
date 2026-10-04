@@ -33,9 +33,11 @@ import { ScheduleHubModule } from './modules/schedule-hub/schedule-hub.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { PlatformHubModule } from './modules/platform-hub/platform-hub.module';
 import { redisConnection } from './common/redis/redis-config';
+import { MailModule } from './modules/mail/mail.module';
 import { PlatformAuditModule } from './modules/platform-audit/platform-audit.module';
 import { TenantGuard } from './common/guards/tenant.guard';
 import { SubscriptionActiveGuard } from './common/guards/subscription.guard';
+import { MfaEnrollmentGuard } from './common/guards/mfa-enrollment.guard';
 import { ManualContractsModule } from './modules/manual-contracts/manual-contracts.module';
 import { CouponsModule } from './modules/coupons/coupons.module';
 import { DocumentsModule } from './modules/documents/documents.module';
@@ -98,6 +100,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     AccountingModule,
     PlatformHubModule,
     PlatformAuditModule,
+    MailModule,
     ManualContractsModule,
     CouponsModule,
     SupportModule,
@@ -114,6 +117,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: MfaEnrollmentGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
     { provide: APP_GUARD, useClass: SubscriptionActiveGuard },
   ],

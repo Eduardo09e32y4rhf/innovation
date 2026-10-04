@@ -3,6 +3,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { AuthRepository } from './auth.repository';
 import { AuthService } from './auth.service';
+import { MfaService } from './mfa.service';
+import { SessionService } from './session.service';
 
 import { NotificationsModule } from '../notifications/notifications.module';
 import { FinanceModule } from '../finance/finance.module';
@@ -25,7 +27,7 @@ import { FinanceModule } from '../finance/finance.module';
     FinanceModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthRepository],
-  exports: [JwtModule, AuthService],
+  providers: [AuthService, AuthRepository, SessionService, MfaService],
+  exports: [JwtModule, AuthService, SessionService, MfaService],
 })
 export class AuthModule {}

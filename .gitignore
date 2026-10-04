@@ -200,6 +200,12 @@ test-results/
 /apps/web/update*.js
 /fix*.js
 /innovation/
+/branches_eval.txt
+/merged.txt
+/unmerged.txt
+/clean-logo*.js
+/crop_logo.py
+/rewrite_auth.js
 
 # Backups de banco — nunca commitar
 backup_*.sql
