@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { createHmac } from 'crypto';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
-import { couponDiscount } from '../coupons/coupon-rules';
+import { checkCouponEligibility, couponDiscount } from '../coupons/coupon-rules';
 import { AsaasService } from './asaas.service';
 import { MercadoPagoService } from './mercadopago.service';
 import { PlatformFinanceService } from './platform-finance.service';
@@ -47,20 +48,20 @@ export class FaturasAcoesService {
   }
 
   private async record(
-    actor: JwtUser,
+    actor: JwtUser | undefined,
     entry: { companyId: string; invoiceId?: string; type: Prisma.InvoiceAdjustmentCreateInput['type']; amount?: number; days?: number; reason: string; metadata?: Prisma.InputJsonValue },
   ) {
     const created = await this.prisma.invoiceAdjustment.create({
-      data: { ...entry, createdById: actor.sub },
+      data: { ...entry, createdById: actor?.sub },
     });
     await this.prisma.auditLog.create({
       data: {
         companyId: entry.companyId,
-        userId: actor.sub,
+        userId: actor?.sub,
         action: `FATURAS_${entry.type}`,
         entity: 'InvoiceAdjustment',
         entityId: created.id,
-        metadata: { invoiceId: entry.invoiceId ?? null, amount: entry.amount ?? null, days: entry.days ?? null, reason: entry.reason, actorEmail: actor.email, ...((entry.metadata as object) ?? {}) },
+        metadata: { invoiceId: entry.invoiceId ?? null, amount: entry.amount ?? null, days: entry.days ?? null, reason: entry.reason, actorEmail: actor?.email ?? 'system', ...((entry.metadata as object) ?? {}) },
       },
     });
     return created;
@@ -74,7 +75,7 @@ export class FaturasAcoesService {
 
   async charge(dto: CreatePlatformInvoiceDto, actor: JwtUser) {
     await this.assertCompany(actor, dto.companyId);
-    const invoice = await this.finance.create(dto);
+    const invoice = await this.finance.createCharge(dto);
     await this.prisma.auditLog.create({
       data: { companyId: dto.companyId, userId: actor.sub, action: 'FATURAS_CHARGE_CREATED', entity: 'PlatformInvoice', entityId: invoice.id, metadata: { amount: Number(dto.amount), description: dto.description, actorEmail: actor.email } },
     });
@@ -232,6 +233,7 @@ export class FaturasAcoesService {
   private async seatsContext(companyId: string, seatQuantity: number) {
     const sub = await this.prisma.companySubscription.findUnique({ where: { companyId }, include: { plan: true } });
     if (!sub?.plan) throw new NotFoundException('Assinatura ativa nao encontrada.');
+    if (sub.plan.maxUsers && seatQuantity > sub.plan.maxUsers) throw new BadRequestException(`O plano atual permite no maximo ${sub.plan.maxUsers} usuarios.`);
     const coupon = sub.couponType && !(sub.couponCyclesLeft !== null && sub.couponCyclesLeft <= 0) ? couponDiscount({ type: sub.couponType, value: sub.couponValue }) : null;
     const prices = { baseMonthlyPrice: sub.plan.baseMonthlyPrice, userMonthlyPrice: sub.plan.userMonthlyPrice, price: sub.plan.price };
     const months = sub.plan.commitmentMonths as 1 | 3 | 6 | 12;
@@ -265,7 +267,7 @@ export class FaturasAcoesService {
     let invoice: { id: string; invoiceUrl?: string | null } | null = null;
     if (result.changed && !result.scheduled && proration.amount > 0) {
       const due = new Date(Date.now() + 3 * DAY_MS);
-      invoice = await this.finance.create({
+      invoice = await this.finance.createCharge({
         companyId, planId: sub.planId ?? undefined, amount: proration.amount, dueDate: due.toISOString(), billingType: 'UNDEFINED', sendToAsaas: true,
         description: `Rateio de upgrade: ${previousSeats} para ${seatQuantity} usuarios (${proration.remainingDays} de ${proration.cycleDays} dias)`,
       } as CreatePlatformInvoiceDto);
@@ -300,6 +302,12 @@ export class FaturasAcoesService {
       ? prorateUpgrade({ currentTotal: current.total, nextTotal: upcoming.total, periodStart: sub.currentPeriodStart, periodEnd })
       : { amount: 0, remainingDays: 0, cycleDays: 0 };
     return { sub, next, current, upcoming, upgrade, proration, periodEnd };
+  }
+
+  /** A empresa so pode escolher planos publicos e ativos (nunca os ocultos/internos). */
+  async assertPublicPlan(planId: string) {
+    const plan = await this.prisma.platformPlan.findFirst({ where: { id: planId, isActive: true, isHidden: false }, select: { id: true } });
+    if (!plan) throw new BadRequestException('Plano indisponivel.');
   }
 
   async quotePlan(companyId: string, planId: string, actor: JwtUser) {
@@ -337,7 +345,7 @@ export class FaturasAcoesService {
 
     let invoice: { id: string } | null = null;
     if (proration.amount > 0) {
-      invoice = await this.finance.create({
+      invoice = await this.finance.createCharge({
         companyId, planId: next.id, amount: proration.amount, dueDate: new Date(Date.now() + 3 * DAY_MS).toISOString(), billingType: 'UNDEFINED', sendToAsaas: true,
         description: `Rateio de upgrade para o plano ${next.name} (${proration.remainingDays} de ${proration.cycleDays} dias)`,
       } as CreatePlatformInvoiceDto);
@@ -347,6 +355,127 @@ export class FaturasAcoesService {
       metadata: { kind: 'PLAN_UPGRADE', fromPlanId: sub.planId, toPlanId: next.id, remainingDays: proration.remainingDays, cycleDays: proration.cycleDays, providerSynced },
     });
     return { scheduled: false, prorationAmount: invoice ? proration.amount : 0, providerSynced };
+  }
+
+  // ---------- cupom cadastrado ----------
+
+  private documentHash(document: string) {
+    const secret = process.env.TRIAL_DOCUMENT_HASH_SECRET || process.env.JWT_SECRET || process.env.SECRET_KEY;
+    if (!secret) throw new InternalServerErrorException('Segredo de hash de documento nao configurado.');
+    return createHmac('sha256', secret).update(document).digest('hex');
+  }
+
+  /** Aplica um cupom ja cadastrado (por codigo) numa empresa existente. Cupom de teste vira dias gratis. */
+  async applyCoupon(companyId: string, code: string, reason: string, actor: JwtUser) {
+    await this.assertCompany(actor, companyId);
+    const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { document: true } });
+    const sub = await this.prisma.companySubscription.findUnique({ where: { companyId }, include: { plan: true } });
+    if (!sub?.plan) throw new NotFoundException('Assinatura ativa nao encontrada.');
+    const coupon = await this.prisma.promotionCoupon.findUnique({ where: { code: code.trim().toUpperCase() } });
+    const check = checkCouponEligibility(coupon, { planId: sub.plan.id, seats: sub.seatQuantity });
+    if (!check.ok || !coupon) throw new BadRequestException(check.ok ? 'Cupom invalido, expirado ou indisponivel.' : check.message);
+    const document = (company?.document ?? '').replace(/\D/g, '');
+    if (!document) throw new BadRequestException('A empresa nao tem documento cadastrado para validar o uso do cupom.');
+    const hash = this.documentHash(document);
+    const redemptionHash = coupon.type === 'TRIAL_DAYS' ? hash : `D:${coupon.id}:${hash}`;
+    if (await this.prisma.couponRedemption.findUnique({ where: { documentHash: redemptionHash } })) throw new ConflictException('Esta empresa ja utilizou este cupom.');
+
+    let outcome: Record<string, unknown>;
+    if (coupon.type === 'TRIAL_DAYS') {
+      outcome = { kind: 'TRIAL_DAYS', ...(await this.freeDays(companyId, { days: coupon.trialDays, reason: `Cupom ${coupon.code}: ${reason}` } as FreeDaysDto, actor)) };
+    } else {
+      const discount = couponDiscount(coupon);
+      if (!discount) throw new BadRequestException('Este cupom nao tem desconto aplicavel.');
+      const quote = this.pricing.calculate(sub.plan.commitmentMonths as 1 | 3 | 6 | 12, sub.seatQuantity,
+        { baseMonthlyPrice: sub.plan.baseMonthlyPrice, userMonthlyPrice: sub.plan.userMonthlyPrice, price: sub.plan.price }, discount);
+      if (quote.total <= 0) throw new BadRequestException('O cupom zera a mensalidade.');
+      const providerSynced = await this.syncRecurringAmount(sub, quote.total);
+      await this.prisma.companySubscription.update({
+        where: { companyId },
+        data: { couponId: coupon.id, couponType: coupon.type, couponValue: coupon.value, couponCyclesLeft: coupon.durationCycles },
+      });
+      await this.record(actor, {
+        companyId, type: 'RECURRING_DISCOUNT', amount: quote.couponDiscount, reason,
+        metadata: { couponCode: coupon.code, kind: coupon.type, value: Number(coupon.value), cycles: coupon.durationCycles, newTotal: quote.total, providerSynced },
+      });
+      outcome = { kind: coupon.type, total: quote.total, discountPerCycle: quote.couponDiscount, cycles: coupon.durationCycles, providerSynced };
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const counted = await tx.promotionCoupon.updateMany({
+        where: { id: coupon.id, ...(coupon.maxRedemptions !== null ? { redemptionCount: { lt: coupon.maxRedemptions } } : {}) },
+        data: { redemptionCount: { increment: 1 } },
+      });
+      if (!counted.count) this.logger.warn(`Cupom ${coupon.code} atingiu o limite durante a aplicacao na empresa ${companyId}.`);
+      await tx.couponRedemption.create({ data: { couponId: coupon.id, companyId, documentHash: redemptionHash } });
+    });
+    return outcome;
+  }
+
+  // ---------- cancelar assinatura ----------
+
+  /** Para as cobrancas recorrentes nos provedores (Asaas e Mercado Pago). */
+  private async stopRecurring(companyId: string) {
+    const sub = await this.prisma.companySubscription.findUnique({ where: { companyId }, select: { asaasSubscriptionId: true } });
+    const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { asaasSubscriptionId: true } });
+    const asaasId = sub?.asaasSubscriptionId || company?.asaasSubscriptionId;
+    if (asaasId && this.asaas.isConfigured()) {
+      try { await this.asaas.deleteSubscription(asaasId); }
+      catch (error) {
+        this.logger.error(`ALERTA: nao foi possivel cancelar a assinatura Asaas ${asaasId} da empresa ${companyId}: ${String(error)}`);
+        throw new BadRequestException('O Asaas recusou o cancelamento da assinatura. Tente de novo ou cancele no painel do Asaas.');
+      }
+      await this.prisma.company.update({ where: { id: companyId }, data: { asaasSubscriptionId: null } });
+      await this.prisma.companySubscription.updateMany({ where: { companyId }, data: { asaasSubscriptionId: null } });
+    }
+    await this.finance.cancelMercadoPagoSubscription(companyId);
+  }
+
+  /** Encerra de vez: cancela cobrancas recorrentes e faturas em aberto e bloqueia o acesso. */
+  async finalizeCancellation(companyId: string, reason: string, actor?: JwtUser) {
+    await this.stopRecurring(companyId);
+    const open = await this.prisma.platformInvoice.findMany({ where: { companyId, status: { in: ['OPEN', 'OVERDUE'] }, deletedAt: null }, select: { id: true } });
+    for (const invoice of open) {
+      try { await this.finance.remove(invoice.id, actor); }
+      catch (error) { this.logger.warn(`Nao foi possivel cancelar a fatura ${invoice.id}: ${String(error)}`); }
+    }
+    await this.prisma.company.update({
+      where: { id: companyId },
+      data: { status: 'SUSPENDED', billingStatus: 'CANCELED', isActive: false, suspensionReason: 'cancelamento_pela_plataforma' },
+    });
+    await this.prisma.companySubscription.updateMany({ where: { companyId }, data: { status: 'CANCELED', cancelAt: null, pendingSeatQuantity: null, pendingPlanId: null } });
+    await this.record(actor, { companyId, type: 'SUBSCRIPTION_CANCELED', reason, metadata: { mode: 'NOW', canceledInvoices: open.length } });
+    return { canceled: true, canceledInvoices: open.length };
+  }
+
+  /** NOW cancela ja; END_OF_CYCLE para as cobrancas agora e bloqueia quando o ciclo pago termina (cron). */
+  async cancelSubscription(companyId: string, mode: 'NOW' | 'END_OF_CYCLE', reason: string, actor: JwtUser) {
+    await this.assertCompany(actor, companyId);
+    const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { billingStatus: true } });
+    const sub = await this.prisma.companySubscription.findUnique({ where: { companyId } });
+    if (!company || !sub) throw new NotFoundException('Assinatura nao encontrada.');
+    if (company.billingStatus === 'CANCELED') throw new BadRequestException('A assinatura desta empresa ja esta cancelada.');
+    if (mode === 'NOW') return this.finalizeCancellation(companyId, reason, actor);
+
+    const cancelAt = sub.nextDueDate ?? sub.currentPeriodEnd;
+    if (!cancelAt || cancelAt <= new Date()) throw new BadRequestException('Nao ha ciclo pago em andamento. Use "cancelar agora".');
+    await this.stopRecurring(companyId);
+    await this.prisma.companySubscription.update({ where: { companyId }, data: { cancelAt, pendingSeatQuantity: null, pendingPlanId: null } });
+    await this.record(actor, { companyId, type: 'SUBSCRIPTION_CANCELED', reason, metadata: { mode: 'END_OF_CYCLE', cancelAt: cancelAt.toISOString() } });
+    return { canceled: false, cancelAt };
+  }
+
+  /** Cron: aplica os cancelamentos agendados que chegaram ao fim do ciclo. */
+  async applyScheduledCancellations() {
+    const due = await this.prisma.companySubscription.findMany({
+      where: { cancelAt: { lte: new Date() }, company: { billingStatus: { not: 'CANCELED' } } },
+      select: { companyId: true },
+    });
+    for (const { companyId } of due) {
+      try { await this.finalizeCancellation(companyId, 'Cancelamento agendado para o fim do ciclo'); }
+      catch (error) { this.logger.error(`Falha ao concluir o cancelamento agendado da empresa ${companyId}: ${String(error)}`); }
+    }
+    return due.length;
   }
 
   // ---------- sincronizar / extrato ----------

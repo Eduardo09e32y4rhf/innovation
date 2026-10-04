@@ -91,3 +91,27 @@ export class ChangePlanDto extends ReasonDto {
   @IsUUID()
   planId!: string;
 }
+
+export class ApplyCouponDto extends ReasonDto {
+  @IsString()
+  @Length(2, 60)
+  code!: string;
+}
+
+export class CancelSubscriptionDto extends ReasonDto {
+  @IsIn(['NOW', 'END_OF_CYCLE'])
+  mode!: 'NOW' | 'END_OF_CYCLE';
+}
+
+export class CompanyChangeSeatsDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(10_000)
+  seatQuantity!: number;
+}
+
+export class CompanyChangePlanDto {
+  @IsUUID()
+  planId!: string;
+}

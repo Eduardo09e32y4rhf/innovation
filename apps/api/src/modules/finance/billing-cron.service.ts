@@ -9,6 +9,8 @@ import { FinanceNotificationService } from './finance-notification.service';
 import { AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
 import { PlatformFinanceService } from './platform-finance.service';
+import { FaturasAcoesService } from './faturas-acoes.service';
+import { couponDiscount } from '../coupons/coupon-rules';
 
 @Injectable()
 export class BillingCronService {
@@ -20,6 +22,7 @@ export class BillingCronService {
     private readonly asaas: AsaasService,
     private readonly pricing: PricingService,
     private readonly platformFinance: PlatformFinanceService,
+    private readonly faturasAcoes: FaturasAcoesService,
     private readonly redis: RedisService,
   ) {}
 
@@ -114,14 +117,21 @@ export class BillingCronService {
       const nextSeatQuantity = subscription.pendingSeatQuantity;
       if (!nextSeatQuantity || !subscription.plan) continue;
       try {
+        // Mesmo calculo da troca imediata: precos do plano da empresa e cupom ainda vigente.
+        const coupon = subscription.couponType && !(subscription.couponCyclesLeft !== null && subscription.couponCyclesLeft <= 0)
+          ? couponDiscount({ type: subscription.couponType, value: subscription.couponValue })
+          : null;
         const quote = this.pricing.calculate(
           subscription.plan.commitmentMonths as 1 | 3 | 6 | 12,
           nextSeatQuantity,
+          { baseMonthlyPrice: subscription.plan.baseMonthlyPrice, userMonthlyPrice: subscription.plan.userMonthlyPrice, price: subscription.plan.price },
+          coupon,
         );
         const asaasSubscriptionId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
         if (asaasSubscriptionId && this.asaas.isConfigured()) {
           await this.asaas.updateSubscription(asaasSubscriptionId, { value: quote.total });
         }
+        await this.platformFinance.syncMercadoPagoAmount(subscription.companyId, quote.total);
         await this.prisma.companySubscription.update({
           where: { id: subscription.id },
           data: {
@@ -139,6 +149,13 @@ export class BillingCronService {
     }
   }
 
+  /** Conclui os cancelamentos de assinatura agendados para o fim do ciclo. */
+  @Cron('30 2 * * *')
+  @CronLock('billing.applyScheduledCancellations', 3600)
+  async applyScheduledCancellations() {
+    const count = await this.faturasAcoes.applyScheduledCancellations();
+    if (count > 0) this.logger.log(`${count} cancelamento(s) agendado(s) concluido(s).`);
+  }
   /** Aplica downgrades de plano agendados pela aba Faturas quando o ciclo atual termina. */
   @Cron('15 2 * * *')
   @CronLock('billing.applyScheduledPlanChanges', 3600)
@@ -155,9 +172,10 @@ export class BillingCronService {
       try {
         const plan = subscription.pendingPlanId ? await this.prisma.platformPlan.findUnique({ where: { id: subscription.pendingPlanId } }) : null;
         if (!plan) { await this.prisma.companySubscription.update({ where: { id: subscription.id }, data: { pendingPlanId: null } }); continue; }
-        const quote = this.pricing.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, subscription.seatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price });
+        const quote = this.pricing.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, subscription.seatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price }, subscription.couponType && !(subscription.couponCyclesLeft !== null && subscription.couponCyclesLeft <= 0) ? couponDiscount({ type: subscription.couponType, value: subscription.couponValue }) : null);
         const asaasSubscriptionId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
         if (asaasSubscriptionId && this.asaas.isConfigured()) await this.asaas.updateSubscription(asaasSubscriptionId, { value: quote.total });
+        await this.platformFinance.syncMercadoPagoAmount(subscription.companyId, quote.total);
         await this.prisma.$transaction([
           this.prisma.company.update({ where: { id: subscription.companyId }, data: { platformPlanId: plan.id } }),
           this.prisma.companySubscription.update({

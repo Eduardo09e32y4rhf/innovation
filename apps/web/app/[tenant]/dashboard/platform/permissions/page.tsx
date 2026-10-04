@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useMutation, useQuery } from '../_components/use-platform-query';
 import { request } from '@/app/lib/api';
+import FaturasRolePermissions from './_faturas-roles';
 
 type GlobalRole = 'DEV' | 'ADMIN' | 'COMERCIAL' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
 type PermissionCode =
@@ -333,6 +334,8 @@ export default function GlobalPermissionsPage() {
           </div>
         </section>
       </div>
+
+      <FaturasRolePermissions />
     </div>
   );
 }

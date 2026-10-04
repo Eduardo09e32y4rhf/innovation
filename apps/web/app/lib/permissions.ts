@@ -27,7 +27,8 @@ export type Permission =
   | 'faturas.cobrar'
   | 'faturas.desconto'
   | 'faturas.reembolsar'
-  | 'faturas.todas_empresas';
+  | 'faturas.todas_empresas'
+  | 'faturas.plano';
 
 export const PERMISSIONS_LABELS: Record<Permission, string> = {
   'time_tracking.clock_in': 'Bater ponto',
@@ -56,13 +57,15 @@ export const PERMISSIONS_LABELS: Record<Permission, string> = {
   'faturas.cobrar': 'Faturas: gerar cobranças, trocar plano e cancelar',
   'faturas.desconto': 'Faturas: dar desconto, cupom e dias grátis',
   'faturas.reembolsar': 'Faturas: reembolsar pagamentos',
-  'faturas.todas_empresas': 'Faturas: ver todas as empresas (visão plataforma)'
+  'faturas.todas_empresas': 'Faturas: ver todas as empresas (visão plataforma)',
+  'faturas.plano': 'Faturas: trocar plano e usuários da própria empresa'
 };
 
 const FATURAS_EMPRESA: Permission[] = ['faturas.ver', 'faturas.pagar'];
+const FATURAS_ADMIN: Permission[] = [...FATURAS_EMPRESA, 'faturas.plano'];
 const FATURAS_TUDO: Permission[] = [
   'faturas.ver', 'faturas.pagar', 'faturas.nf_anexar', 'faturas.cobrar',
-  'faturas.desconto', 'faturas.reembolsar', 'faturas.todas_empresas'
+  'faturas.desconto', 'faturas.reembolsar', 'faturas.todas_empresas', 'faturas.plano'
 ];
 
 const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
@@ -114,7 +117,7 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'admin.delete_employees',
     'platform.manage',
     'platform.view_finance',
-    ...FATURAS_EMPRESA
+    ...FATURAS_ADMIN
   ],
   'dev': [
     'time_tracking.clock_in',
@@ -175,8 +178,18 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
   ]
 };
 
+/**
+ * Permissões de Faturas já resolvidas pelo servidor (usuário > perfil definido pelo DEV > padrão).
+ * Enquanto não carregam (null), vale o padrão local acima.
+ */
+let faturasEffective: ReadonlySet<string> | null = null;
+export function setFaturasPermissions(list: readonly string[] | null) {
+  faturasEffective = list ? new Set(list) : null;
+}
+
 export function hasPermission(user: User | null, permission: Permission): boolean {
   if (!user) return false;
+  if (permission.startsWith('faturas.') && faturasEffective) return faturasEffective.has(permission);
 
   if (Array.isArray(user.customPermissions) && user.customPermissions.length > 0) {
     return user.customPermissions.includes(permission);

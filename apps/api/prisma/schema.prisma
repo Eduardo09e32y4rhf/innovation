@@ -2168,6 +2168,8 @@ model CompanySubscription {
   couponCyclesLeft    Int?
   /// Plano que passa a valer no proximo ciclo (downgrade agendado pela aba Faturas).
   pendingPlanId       String?   @db.Uuid
+  /// Cancelamento agendado para o fim do ciclo (aplicado pelo cron).
+  cancelAt            DateTime?
   billingPaused       Boolean   @default(false)
   billingPausedAt     DateTime?
   billingPausedBy     String?   @db.Uuid
@@ -3103,6 +3105,7 @@ enum InvoiceAdjustmentType {
   PARTIAL_REFUND
   PRORATION
   FISCAL_ATTACHED
+  SUBSCRIPTION_CANCELED
 }
 
 /// Livro de ajustes financeiros da aba Faturas (desconto, dias gratis, reembolso parcial, rateio, NF anexada).

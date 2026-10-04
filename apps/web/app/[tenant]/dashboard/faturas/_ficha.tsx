@@ -8,11 +8,11 @@ import { hasPermission, type Permission } from '@/app/lib/permissions';
 import CompanyInvoicesView from './_company-view';
 
 type Dialog =
-  | { kind: 'charge' } | { kind: 'recurring' } | { kind: 'freeDays' } | { kind: 'seats' } | { kind: 'plan' }
+  | { kind: 'charge' } | { kind: 'recurring' } | { kind: 'freeDays' } | { kind: 'seats' } | { kind: 'plan' } | { kind: 'coupon' } | { kind: 'cancelSub' }
   | { kind: 'discount' | 'refundPartial' | 'refundFull' | 'fiscal' | 'cancel'; invoice: PlatformInvoice };
 
 const TITLES: Record<Dialog['kind'], string> = {
-  charge: 'Nova cobrança avulsa', recurring: 'Desconto recorrente', freeDays: 'Dias grátis', seats: 'Upgrade / downgrade de usuários', plan: 'Trocar de plano',
+  charge: 'Nova cobrança avulsa', recurring: 'Desconto recorrente', freeDays: 'Dias grátis', seats: 'Upgrade / downgrade de usuários', plan: 'Trocar de plano', coupon: 'Aplicar cupom', cancelSub: 'Cancelar assinatura',
   discount: 'Desconto nesta fatura', refundPartial: 'Reembolso parcial', refundFull: 'Reembolso total', fiscal: 'Nota fiscal e comprovante', cancel: 'Cancelar fatura',
 };
 
@@ -36,6 +36,8 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
   const [plans, setPlans] = useState<Array<{ id: string; name: string; isActive?: boolean }>>([]);
   const [planId, setPlanId] = useState('');
   const [planQuote, setPlanQuote] = useState<PlanQuote | null>(null);
+  const [mode, setMode] = useState<'NOW' | 'END_OF_CYCLE'>('END_OF_CYCLE');
+  const [billingType, setBillingType] = useState<'UNDEFINED' | 'BOLETO' | 'PIX' | 'CREDIT_CARD'>('UNDEFINED');
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => setText((t) => ({ ...t, [key]: e.target.value }));
   const num = (key: string) => Number(String(text[key] ?? '').replace(',', '.'));
   const needsReason = dialog.kind !== 'charge';
@@ -64,7 +66,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
     try {
       switch (dialog.kind) {
         case 'charge':
-          await api.faturas.charge({ companyId: company.id, description: text.description ?? '', amount: num('amount'), dueDate: text.dueDate ?? '', billingType: 'UNDEFINED', sendToAsaas: true });
+          await api.faturas.charge({ companyId: company.id, description: text.description ?? '', amount: num('amount'), dueDate: text.dueDate ?? '', billingType, sendToAsaas: true });
           toast.success('Cobrança criada.'); break;
         case 'recurring': {
           const r = await api.faturas.recurringDiscount(company.id, { kind, value: num('value'), cycles: Math.trunc(num('cycles')), reason });
@@ -77,6 +79,14 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
         case 'seats': {
           const r = await api.faturas.changeSeats(company.id, { seatQuantity: Math.trunc(num('seats')), reason });
           toast.success(r.prorationAmount > 0 ? `Upgrade aplicado. Rateio cobrado: ${brl(r.prorationAmount)}` : r.scheduled ? 'Redução agendada para o próximo ciclo.' : 'Alteração aplicada.'); break;
+        }
+        case 'coupon': {
+          const r = await api.faturas.applyCoupon(company.id, { code: text.code ?? '', reason });
+          toast.success(r.kind === 'TRIAL_DAYS' ? 'Cupom aplicado: dias grátis concedidos.' : 'Cupom de desconto aplicado.'); break;
+        }
+        case 'cancelSub': {
+          const r = await api.faturas.cancelSubscription(company.id, { mode, reason });
+          toast.success(r.canceled ? 'Assinatura cancelada.' : `Cobranças paradas. O acesso termina em ${r.cancelAt ? new Date(r.cancelAt).toLocaleDateString('pt-BR') : 'fim do ciclo'}.`); break;
         }
         case 'plan': {
           const r = await api.faturas.changePlan(company.id, { planId, reason });
@@ -120,10 +130,16 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
 
         {dialog.kind === 'charge' && (<>
           <Field label="Descrição"><input className={field} required minLength={3} value={text.description ?? ''} onChange={set('description')} /></Field>
+          <Field label="Forma de pagamento (Asaas)"><select className={field} value={billingType} onChange={(e) => setBillingType(e.target.value as typeof billingType)}><option value="UNDEFINED">Cliente escolhe</option><option value="BOLETO">Boleto</option><option value="PIX">Pix</option><option value="CREDIT_CARD">Cartão</option></select></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Valor em R$"><input className={field} inputMode="decimal" required value={text.amount ?? ''} onChange={set('amount')} /></Field>
             <Field label="Vencimento"><input type="date" className={field} required value={text.dueDate ?? ''} onChange={set('dueDate')} /></Field>
           </div>
+        </>)}
+        {dialog.kind === 'coupon' && <Field label="Código do cupom"><input className={field} required value={text.code ?? ''} onChange={set('code')} /></Field>}
+        {dialog.kind === 'cancelSub' && (<>
+          <Field label="Quando cancelar"><select className={field} value={mode} onChange={(e) => setMode(e.target.value as 'NOW' | 'END_OF_CYCLE')}><option value="END_OF_CYCLE">No fim do ciclo já pago</option><option value="NOW">Agora (bloqueia o acesso)</option></select></Field>
+          <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-xs text-rose-700">Para as cobranças recorrentes no Asaas e no Mercado Pago e cancela as faturas em aberto. {mode === 'NOW' ? 'O acesso da empresa é bloqueado imediatamente.' : 'O acesso continua até o fim do ciclo já pago.'}</p>
         </>)}
         {dialog.kind === 'recurring' && (<>
           {discountFields}
@@ -231,6 +247,8 @@ export default function CompanyFicha({ company }: { company: FaturasCompanyRow }
         {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm" onClick={() => setDialog({ kind: 'plan' })}>Trocar plano</button>}
         {can('faturas.desconto') && <button type="button" className="btn btn-outline text-sm" onClick={() => setDialog({ kind: 'recurring' })}>Desconto recorrente</button>}
         {can('faturas.desconto') && <button type="button" className="btn btn-outline text-sm" onClick={() => setDialog({ kind: 'freeDays' })}>Dias grátis</button>}
+        {can('faturas.desconto') && <button type="button" className="btn btn-outline text-sm" onClick={() => setDialog({ kind: 'coupon' })}>Cupom</button>}
+        {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm text-rose-700" onClick={() => setDialog({ kind: 'cancelSub' })}>Cancelar assinatura</button>}
         {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm" onClick={() => void togglePause()}>{pausedNow ? 'Retomar cobrança' : 'Pausar cobrança'}</button>}
       </section>
 

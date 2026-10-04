@@ -10,6 +10,7 @@ import {
   startLocalStorageGuard,
 } from '@/app/lib/auth-session';
 import api from '@/app/lib/api';
+import { setFaturasPermissions } from '@/app/lib/permissions';
 
 export interface User {
   id: string;
@@ -353,6 +354,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     clearStoredSession();
     setError(null);
   }, []);
+
+  // Permissões de Faturas resolvidas pelo servidor (inclui o que o DEV definiu para o perfil). Mudar o estado re-renderiza os consumidores.
+  const [, setFaturasVersion] = useState(0);
+  const customKey = (user?.customPermissions ?? []).join(',');
+  useEffect(() => {
+    if (loading || !token || !user || token === LOCAL_SESSION_TOKEN) { setFaturasPermissions(null); return; }
+    let active = true;
+    api.faturas.minhasPermissoes()
+      .then((result) => { if (active) { setFaturasPermissions(result.permissions); setFaturasVersion((v) => v + 1); } })
+      .catch(() => { /* sem resposta: vale o padrão local do perfil */ });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, token, user?.id, customKey]);
 
   const userRole = (user?.role || user?.profile || '').toUpperCase();
   const isDev = userRole === 'DEV';

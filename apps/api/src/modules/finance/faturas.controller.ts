@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { FaturasPermissionGuard, RequireFaturasPermission } from '../../common/permissions/require-faturas-permission';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ListPlatformInvoicesDto } from './dto/platform-finance.dto';
-import { AttachFiscalDto, CancelInvoiceDto, ChangePlanDto, ChangeSeatsDto, DiscountInvoiceDto, FreeDaysDto, FullRefundDto, ListFaturasCompaniesDto, PartialRefundDto, RecurringDiscountDto } from './dto/faturas.dto';
+import { ApplyCouponDto, CompanyChangePlanDto, CompanyChangeSeatsDto, AttachFiscalDto, CancelSubscriptionDto, CancelInvoiceDto, ChangePlanDto, ChangeSeatsDto, DiscountInvoiceDto, FreeDaysDto, FullRefundDto, ListFaturasCompaniesDto, PartialRefundDto, RecurringDiscountDto } from './dto/faturas.dto';
 import { CreatePlatformInvoiceDto } from './dto/platform-finance.dto';
 import { FaturasAcoesService } from './faturas-acoes.service';
 import { FaturasService } from './faturas.service';
@@ -43,6 +43,33 @@ export class FaturasController {
   @RequireFaturasPermission('faturas.pagar')
   checkout(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.service.ensureCompanyOnboardingBilling(companyId, actor);
+  }
+
+  // ---- Visão da empresa: trocar plano e usuários (com rateio) ----
+  @Get('empresa/seats/quote')
+  @RequireFaturasPermission('faturas.plano')
+  companySeatsQuote(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Query('seatQuantity') seatQuantity: string) {
+    return this.acoes.quoteSeats(companyId, Number(seatQuantity), actor);
+  }
+
+  @Post('empresa/seats')
+  @RequireFaturasPermission('faturas.plano')
+  companyChangeSeats(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CompanyChangeSeatsDto) {
+    return this.acoes.changeSeats(companyId, dto.seatQuantity, 'Alterado pelo administrador da empresa', actor);
+  }
+
+  @Get('empresa/plan/quote')
+  @RequireFaturasPermission('faturas.plano')
+  async companyPlanQuote(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Query('planId', ParseUUIDPipe) planId: string) {
+    await this.acoes.assertPublicPlan(planId);
+    return this.acoes.quotePlan(companyId, planId, actor);
+  }
+
+  @Post('empresa/plan')
+  @RequireFaturasPermission('faturas.plano')
+  async companyChangePlan(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CompanyChangePlanDto) {
+    await this.acoes.assertPublicPlan(dto.planId);
+    return this.acoes.changePlan(companyId, dto.planId, 'Alterado pelo administrador da empresa', actor);
   }
 
   // ---- Visão plataforma (todas as empresas) ----
@@ -174,5 +201,17 @@ export class FaturasController {
   @RequireFaturasPermission('faturas.todas_empresas')
   statementPdf(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto, @Res() res: import('express').Response) {
     return this.service.statementPdf(query, actor.role === 'COMERCIAL' ? actor.sub : undefined, actor, res);
+  }
+
+  @Post('plataforma/companies/:companyId/coupon')
+  @RequireFaturasPermission('faturas.desconto')
+  applyCoupon(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Body() dto: ApplyCouponDto) {
+    return this.acoes.applyCoupon(companyId, dto.code, dto.reason, actor);
+  }
+
+  @Post('plataforma/companies/:companyId/cancel-subscription')
+  @RequireFaturasPermission('faturas.cobrar')
+  cancelSubscription(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Body() dto: CancelSubscriptionDto) {
+    return this.acoes.cancelSubscription(companyId, dto.mode, dto.reason, actor);
   }
 }

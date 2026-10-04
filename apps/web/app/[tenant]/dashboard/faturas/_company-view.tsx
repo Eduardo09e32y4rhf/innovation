@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import api, { ApiError, type CompanyBillingResult, type PlatformInvoice } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { hasPermission } from '@/app/lib/permissions';
+import CompanyPlanActions from './_company-plan';
 
 type Tab = 'abertas' | 'pagas' | 'comprovantes' | 'notas';
 
@@ -35,6 +36,7 @@ function LinkButton({ href, children }: { href?: string | null; children: React.
 export default function CompanyInvoicesView({ companyId, rowActions, reloadKey = 0 }: { companyId?: string; rowActions?: (invoice: PlatformInvoice) => React.ReactNode; reloadKey?: number } = {}) {
   const { user } = useAuth();
   const canPay = !companyId && hasPermission(user, 'faturas.pagar');
+  const canChangePlan = !companyId && hasPermission(user, 'faturas.plano');
   const [tab, setTab] = useState<Tab>('abertas');
   const [invoices, setInvoices] = useState<PlatformInvoice[]>([]);
   const [billing, setBilling] = useState<CompanyBillingResult>();
@@ -95,6 +97,7 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
           <h1 className="flex items-center gap-2 text-xl font-semibold text-fg"><Receipt size={20} aria-hidden="true" /> {companyId ? 'Faturas da empresa' : 'Faturas'}</h1>
           <p className="text-sm text-fg-mut">Faturas, comprovantes e notas fiscais {companyId ? 'desta empresa' : 'da sua empresa'}.</p>
         </div>
+        {canChangePlan && <CompanyPlanActions currentSeats={billing?.subscription?.seatQuantity} onDone={() => void load()} />}
         <button type="button" onClick={() => void load()} disabled={loading} className="btn btn-outline inline-flex items-center gap-1.5 text-sm">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} aria-hidden="true" /> Atualizar
         </button>

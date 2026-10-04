@@ -1300,6 +1300,19 @@ export class PlatformFinanceService {
     });
   }
 
+  /** Cobrança avulsa pelo provedor ativo: no Mercado Pago gera o link de checkout; no Asaas usa o fluxo padrão. */
+  async createCharge(dto: CreatePlatformInvoiceDto) {
+    if ((await this.providers.active()) !== 'MERCADOPAGO') return this.create(dto);
+    const company = await this.prisma.company.findUnique({
+      where: { id: dto.companyId },
+      select: { id: true, users: { where: { role: 'ADMIN', isActive: true }, select: { email: true }, take: 1 } },
+    });
+    if (!company) throw new NotFoundException('Empresa nao encontrada.');
+    return this.createMercadoPagoInvoice({
+      companyId: dto.companyId, planId: dto.planId, description: dto.description, amount: Number(dto.amount),
+      dueDate: new Date(dto.dueDate), payerEmail: company.users[0]?.email,
+    });
+  }
   async update(id: string, dto: UpdatePlatformInvoiceDto) {
     const invoice = await this.findActive(id);
     if (invoice.status === 'PAID' && (dto.amount !== undefined || dto.dueDate !== undefined)) {

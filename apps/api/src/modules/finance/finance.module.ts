@@ -7,6 +7,8 @@ import { BillingCronService } from './billing-cron.service';
 import { CompanyBillingController } from './company-billing.controller';
 import { FaturasAcoesService } from './faturas-acoes.service';
 import { FaturasController } from './faturas.controller';
+import { FaturasPermissoesController } from './faturas-permissoes.controller';
+import { FaturasPermissionsService } from '../../common/permissions/faturas-permissions.service';
 import { FaturasService } from './faturas.service';
 import { FinanceController } from './finance.controller';
 import { IntegrationsController } from './integrations.controller';
@@ -40,10 +42,12 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     PricingService,
     FaturasService,
     FaturasAcoesService,
+    FaturasPermissionsService,
   ],
   controllers: [
     FinanceController,
     FaturasController,
+    FaturasPermissoesController,
     CompanyBillingController,
     AsaasWebhookController,
     MercadoPagoWebhookController,

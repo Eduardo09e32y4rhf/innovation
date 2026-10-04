@@ -458,6 +458,11 @@ export interface InvoiceAdjustment {
   type: 'DISCOUNT' | 'RECURRING_DISCOUNT' | 'FREE_DAYS' | 'PARTIAL_REFUND' | 'PRORATION' | 'FISCAL_ATTACHED';
   amount?: number | string | null; days?: number | null; metadata?: Record<string, unknown> | null;
 }
+export interface FaturasRolePermissions {
+  catalog: string[];
+  roles: Array<{ role: string; permissions: string[]; customized: boolean; locked: boolean }>;
+}
+
 export interface PlanQuote {
   currentPlan?: string; nextPlan: string; currentTotal: number; nextTotal: number; kind: 'UPGRADE' | 'DOWNGRADE';
   prorationAmount: number; remainingDays: number; cycleDays: number; effectiveAt?: string | null;
@@ -964,6 +969,16 @@ export const api = {
     syncInvoice: (id: string) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/sync`, { method: 'POST' }),
     downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to' | 'companyId'> = {}) => downloadRequest(`/faturas/plataforma/statements/pdf${makeQuery(query)}`),
     plans: () => request<Array<{ id: string; name: string; isActive?: boolean; commitmentMonths?: number }>>('/platform/plans'),
+    applyCoupon: (companyId: string, input: { code: string; reason: string }) => request<Record<string, unknown>>(`/faturas/plataforma/companies/${companyId}/coupon`, { method: 'POST', body: input }),
+    cancelSubscription: (companyId: string, input: { mode: 'NOW' | 'END_OF_CYCLE'; reason: string }) => request<{ canceled: boolean; cancelAt?: string }>(`/faturas/plataforma/companies/${companyId}/cancel-subscription`, { method: 'POST', body: input }),
+    minhasPermissoes: () => request<{ permissions: string[] }>('/faturas/permissoes/minhas', { silent: true, keepSessionOn401: true }),
+    rolePermissions: () => request<FaturasRolePermissions>('/faturas/permissoes'),
+    setRolePermissions: (role: string, permissions: string[]) => request<{ role: string; permissions: string[] }>(`/faturas/permissoes/${role}`, { method: 'PUT', body: { permissions } }),
+    resetRolePermissions: (role: string) => request<{ role: string; permissions: string[] }>(`/faturas/permissoes/${role}`, { method: 'DELETE' }),
+    empresaSeatsQuote: (seatQuantity: number) => request<SeatsQuote>(`/faturas/empresa/seats/quote?seatQuantity=${seatQuantity}`),
+    empresaChangeSeats: (seatQuantity: number) => request<{ prorationAmount: number; scheduled?: boolean; prorationInvoice?: { invoiceUrl?: string | null } | null }>('/faturas/empresa/seats', { method: 'POST', body: { seatQuantity } }),
+    empresaPlanQuote: (planId: string) => request<PlanQuote>(`/faturas/empresa/plan/quote?planId=${planId}`),
+    empresaChangePlan: (planId: string) => request<{ scheduled: boolean; prorationAmount: number }>('/faturas/empresa/plan', { method: 'POST', body: { planId } }),
     resumeBilling: (companyId: string) => request<unknown>(`/faturas/plataforma/companies/${companyId}/billing/resume`, { method: 'POST' }),
   },
   proposals: {

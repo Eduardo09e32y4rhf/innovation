@@ -33,6 +33,7 @@ const VALID_PERMISSIONS = [
   'faturas.desconto',
   'faturas.reembolsar',
   'faturas.todas_empresas',
+  'faturas.plano',
   'hr.manage_vacations',
   'hr.approve_vacations',
   'hr.manage_schedules',

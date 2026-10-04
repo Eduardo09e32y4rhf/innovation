@@ -20,7 +20,13 @@ describe('userHasFaturasPermission', () => {
     expect(userHasFaturasPermission({ role: 'ADMIN', customPermissions: ['users.view_team'] }, 'faturas.ver')).toBe(false);
   });
 
+  it('permissões definidas pelo DEV para o perfil substituem o padrão, mas não as personalizadas do usuário', () => {
+    expect(userHasFaturasPermission({ role: 'GESTOR' }, 'faturas.ver', ['faturas.ver'])).toBe(true);
+    expect(userHasFaturasPermission({ role: 'ADMIN' }, 'faturas.pagar', ['faturas.ver'])).toBe(false);
+    expect(userHasFaturasPermission({ role: 'ADMIN', customPermissions: ['faturas.pagar'] }, 'faturas.pagar', ['faturas.ver'])).toBe(true);
+  });
+
   it('DEV sempre passa', () => {
-    expect(userHasFaturasPermission({ role: 'DEV', customPermissions: ['x'] }, 'faturas.reembolsar')).toBe(true);
+    expect(userHasFaturasPermission({ role: 'DEV', customPermissions: ['x'] }, 'faturas.reembolsar', [])).toBe(true);
   });
 });
