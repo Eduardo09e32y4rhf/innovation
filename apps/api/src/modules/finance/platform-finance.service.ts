@@ -50,6 +50,25 @@ export class PlatformFinanceService {
     }
   }
 
+  /**
+   * Assinatura mensal no Mercado Pago. A fatura local fica OPEN com o link do checkout hospedado (init_point);
+   * as cobrancas seguintes chegam pelo webhook (subscription_authorized_payment) e viram faturas pagas.
+   */
+  private async createMercadoPagoSubscriptionInvoice(input: { companyId: string; planId?: string | null; description: string; amount: number; dueDate: Date; payerEmail: string; pricingSnapshot?: Prisma.InputJsonValue }) {
+    if (!this.mercadoPago.isConfigured()) throw new BadRequestException('A integracao Mercado Pago nao esta configurada.');
+    const subscription = await this.mercadoPago.createSubscription({
+      reason: input.description, amount: input.amount, externalReference: `sub:${input.companyId}`, payerEmail: input.payerEmail,
+    });
+    const url = subscription.init_point;
+    if (!subscription.id || !url) throw new BadRequestException('O Mercado Pago nao retornou o link da assinatura.');
+    await this.prisma.companySubscription.updateMany({ where: { companyId: input.companyId }, data: { mpPreapprovalId: subscription.id } });
+    return this.prisma.platformInvoice.create({
+      data: {
+        companyId: input.companyId, planId: input.planId ?? undefined, description: input.description, amount: input.amount, dueDate: input.dueDate,
+        status: 'OPEN', billingType: 'CREDIT_CARD', provider: 'MERCADOPAGO', invoiceUrl: url, pricingSnapshot: input.pricingSnapshot,
+      },
+    });
+  }
   private async ensureMercadoPagoOnboarding(company: any, amount: number, actor?: JwtUser) {
     const admin = company.users[0];
     if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
@@ -61,8 +80,8 @@ export class PlatformFinanceService {
       const dueDate = new Date();
       dueDate.setUTCDate(dueDate.getUTCDate() + 1);
       const plan = company.platformPlan;
-      invoice = await this.createMercadoPagoInvoice({
-        companyId: company.id, planId: plan?.id, description: 'Mensalidade Innovation RH - avulsa', amount, dueDate, payerEmail: admin.email,
+      invoice = await this.createMercadoPagoSubscriptionInvoice({
+        companyId: company.id, planId: plan?.id, description: 'Mensalidade Innovation RH', amount, dueDate, payerEmail: admin.email,
         pricingSnapshot: { source: 'AUTOMATIC', provider: 'MERCADOPAGO', seatQuantity: company.subscription?.seatQuantity ?? null, pricingVersion: company.subscription?.pricingVersion ?? plan?.pricingVersion ?? null, total: amount },
       });
     }

@@ -2151,6 +2151,8 @@ model CompanySubscription {
   discountPercent     Decimal?  @db.Decimal(5, 2)
   asaasCustomerId     String?
   asaasSubscriptionId String?
+  /// Assinatura recorrente no Mercado Pago (preapproval).
+  mpPreapprovalId     String?   @unique
   /// Cupom de desconto vigente (PERCENT/FIXED). cyclesLeft null = sem fim.
   couponId            String?   @db.Uuid
   couponType          String?

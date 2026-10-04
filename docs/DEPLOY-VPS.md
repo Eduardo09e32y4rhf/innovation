@@ -49,3 +49,10 @@ Configuracao unica no GitHub (Settings):
 - **Metricas/alertas:** defina `METRICS_TOKEN` no `.env` (sem ele `/metrics` responde 404) e grave o mesmo valor em `infra/metrics_token` para o Prometheus. Regras em `infra/alerts.yml`: API fora, 5xx, webhook falhando, cron parado (backup/cobranca), pico de login recusado. Para receber os avisos, grave a URL do webhook (Slack/Discord/ntfy) em `infra/webhook_url`; o Alertmanager (`infra/alertmanager.yml`) ja esta no compose de monitoramento.
 - **Uptime:** crie um monitor externo gratuito (UptimeRobot/Better Stack) em `https://SEU-DOMINIO/api/health`, intervalo de 1 min.
 - **Sentry:** crie o projeto e preencha `SENTRY_DSN` no `.env`; a API ja envia erros 500 (com `requestId`) quando o DSN existe. Opcionais: `SENTRY_ENV`, `APP_VERSION`, `SENTRY_TRACES_SAMPLE_RATE`.
+
+## Mercado Pago: assinatura recorrente
+- Com `PAYMENT_PROVIDER=mercadopago`, o cadastro cria uma **assinatura mensal** (preapproval) e devolve o link do checkout hospedado; o cartao e informado na pagina do Mercado Pago.
+- No painel do Mercado Pago (Webhooks) marque os topicos **Pagamentos**, **Planos e assinaturas** (`subscription_preapproval`) e **Pagamento recorrente** (`subscription_authorized_payment`), todos para `https://SEU-DOMINIO/api/finance/webhook/mercadopago`.
+- `APP_URL` precisa estar definido (usado em `back_url`). Aplique a migration `20261006110000_mp_subscription` (`apply-migrations.sh`).
+- Cobranca recusada pelo cartao: a fatura fica aberta/vencida e a regua de inadimplencia (`DUNNING_*`) bloqueia e cancela; ao pagar, o webhook reativa.
+- Ainda falta: trocar o valor da assinatura ao mudar plano/usuarios (`updateSubscriptionAmount` ja existe no servico, falta ligar) e cancelar a assinatura ao cancelar a empresa.

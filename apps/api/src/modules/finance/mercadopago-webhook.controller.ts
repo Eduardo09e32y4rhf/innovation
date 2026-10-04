@@ -39,14 +39,27 @@ export class MercadoPagoWebhookController {
     const dataId = String(queryDataId ?? body?.data?.id ?? '');
 
     this.assertAuthentic({ signature, requestId, dataId });
-    if (type !== 'payment' || !dataId) return { received: true, ignored: true };
+    const isSubscriptionPayment = type === 'subscription_authorized_payment';
+    if (type === 'subscription_preapproval' && dataId && this.mercadoPago.isConfigured()) return this.handlePreapproval(dataId);
+    if ((type !== 'payment' && !isSubscriptionPayment) || !dataId) return { received: true, ignored: true };
     if (!this.mercadoPago.isConfigured()) {
       this.logger.warn('Webhook do Mercado Pago recebido, mas MERCADOPAGO_ACCESS_TOKEN não está configurado.');
       return { received: true, ignored: true };
     }
 
-    const payment = await this.mercadoPago.getPayment(dataId);
-    const invoice = await this.findInvoice(String(payment.id), payment.external_reference);
+    let paymentId = dataId;
+    let preapprovalId: string | undefined;
+    if (isSubscriptionPayment) {
+      // Cobrança recorrente: o aviso traz o id da cobrança autorizada; o pagamento real vem dentro dela.
+      const authorized = await this.mercadoPago.getAuthorizedPayment(dataId);
+      preapprovalId = authorized.preapproval_id;
+      if (!authorized.payment?.id) return { received: true, ignored: true, reason: 'sem_pagamento_ainda' };
+      paymentId = String(authorized.payment.id);
+    }
+
+    const payment = await this.mercadoPago.getPayment(paymentId);
+    const invoice = (await this.findInvoice(String(payment.id), payment.external_reference))
+      ?? (isSubscriptionPayment ? await this.invoiceForSubscriptionCharge(preapprovalId, payment) : null);
     if (!invoice) {
       this.logger.warn(`Pagamento ${payment.id} do Mercado Pago sem fatura vinculada (ref=${payment.external_reference ?? '-'}).`);
       return { received: true, ignored: true };
@@ -83,6 +96,34 @@ export class MercadoPagoWebhookController {
       }).catch((error) => this.logger.warn(`Notificação de pagamento falhou: ${String(error)}`));
     }
     return { received: true, status };
+  }
+
+  /** Fatura aberta da assinatura (a do checkout inicial) ou uma nova para a cobrança mensal que acabou de chegar. */
+  private async invoiceForSubscriptionCharge(preapprovalId: string | undefined, payment: { id: number | string; transaction_amount: number; external_reference?: string | null }) {
+    const sub = preapprovalId
+      ? await this.prisma.companySubscription.findUnique({ where: { mpPreapprovalId: preapprovalId }, select: { companyId: true } })
+      : null;
+    const companyId = sub?.companyId ?? /^sub:([0-9a-f-]{36})$/i.exec(payment.external_reference ?? '')?.[1];
+    if (!companyId) return null;
+    const open = await this.prisma.platformInvoice.findFirst({
+      where: { companyId, provider: 'MERCADOPAGO', deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] }, mpPaymentId: null },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (open) return open;
+    return this.prisma.platformInvoice.create({
+      data: { companyId, description: 'Mensalidade Innovation RH', amount: payment.transaction_amount, dueDate: new Date(), status: 'OPEN', billingType: 'CREDIT_CARD', provider: 'MERCADOPAGO' },
+    });
+  }
+
+  /** Mudanças de estado da assinatura ficam no registro de auditoria; bloqueio/reativação seguem a régua de inadimplência. */
+  private async handlePreapproval(id: string) {
+    const preapproval = await this.mercadoPago.getPreapproval(id);
+    const sub = await this.prisma.companySubscription.findUnique({ where: { mpPreapprovalId: id }, select: { companyId: true } });
+    if (!sub) return { received: true, ignored: true };
+    await this.prisma.auditLog.create({
+      data: { companyId: sub.companyId, action: `MERCADOPAGO_SUBSCRIPTION_${String(preapproval.status).toUpperCase()}`, entity: 'Subscription', entityId: id, metadata: { actorEmail: 'system' } },
+    });
+    return { received: true, subscription: preapproval.status };
   }
 
   private async findInvoice(paymentId: string, externalReference?: string | null) {

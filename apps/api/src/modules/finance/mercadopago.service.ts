@@ -1,4 +1,4 @@
-﻿import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 
@@ -17,6 +17,22 @@ export interface MercadoPagoPreference {
   id: string;
   init_point: string;
   sandbox_init_point?: string;
+}
+
+export interface MercadoPagoPreapproval {
+  id: string;
+  status: string; // pending | authorized | paused | cancelled
+  external_reference?: string | null;
+  init_point?: string;
+  next_payment_date?: string | null;
+  auto_recurring?: { transaction_amount?: number };
+}
+
+export interface MercadoPagoAuthorizedPayment {
+  id: number | string;
+  preapproval_id?: string;
+  status?: string;
+  payment?: { id?: number | string; status?: string };
 }
 
 const API = 'https://api.mercadopago.com';
@@ -49,7 +65,8 @@ export class MercadoPagoService {
   /** Tokens de teste começam com TEST-. */
   mode(): 'sandbox' | 'production' | 'unconfigured' {
     if (!this.isConfigured()) return 'unconfigured';
-    return this.accessToken.startsWith('TEST-') ? 'sandbox' : 'production';
+    // Credenciais de teste novas tambem comecam com APP_USR-: use MERCADOPAGO_SANDBOX=true para declarar o modo de teste.
+    return this.accessToken.startsWith('TEST-') || this.config.get<string>('MERCADOPAGO_SANDBOX') === 'true' ? 'sandbox' : 'production';
   }
 
   private async request<T>(path: string, init: RequestInit & { idempotencyKey?: string } = {}): Promise<T> {
@@ -98,6 +115,46 @@ export class MercadoPagoService {
         ...(input.expiresAt ? { expires: true, expiration_date_to: input.expiresAt.toISOString() } : {}),
       }),
     });
+  }
+
+  /**
+   * Assinatura mensal (preapproval) com checkout hospedado: o cliente informa o cartao na pagina do Mercado Pago.
+   * `externalReference` = `sub:<companyId>`; cada cobranca chega no webhook como subscription_authorized_payment.
+   */
+  createSubscription(input: { reason: string; amount: number; externalReference: string; payerEmail: string; backPath?: string }) {
+    if (!this.appUrl) throw new ServiceUnavailableException('Defina APP_URL para criar assinaturas no Mercado Pago.');
+    return this.request<MercadoPagoPreapproval>('/preapproval', {
+      method: 'POST',
+      idempotencyKey: `sub:${input.externalReference}:${input.amount.toFixed(2)}`,
+      body: JSON.stringify({
+        reason: input.reason,
+        external_reference: input.externalReference,
+        payer_email: input.payerEmail,
+        back_url: `${this.appUrl}${input.backPath || '/login?payment=success'}`,
+        status: 'pending',
+        auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: Number(input.amount.toFixed(2)), currency_id: 'BRL' },
+      }),
+    });
+  }
+
+  getPreapproval(id: string) {
+    return this.request<MercadoPagoPreapproval>(`/preapproval/${encodeURIComponent(id)}`);
+  }
+
+  getAuthorizedPayment(id: string | number) {
+    return this.request<MercadoPagoAuthorizedPayment>(`/authorized_payments/${encodeURIComponent(String(id))}`);
+  }
+
+  /** Muda o valor das proximas cobrancas (troca de plano ou de usuarios). */
+  updateSubscriptionAmount(id: string, amount: number) {
+    return this.request<MercadoPagoPreapproval>(`/preapproval/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ auto_recurring: { transaction_amount: Number(amount.toFixed(2)), currency_id: 'BRL' } }),
+    });
+  }
+
+  cancelSubscription(id: string) {
+    return this.request<MercadoPagoPreapproval>(`/preapproval/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
   }
 
   getPayment(paymentId: string | number) {
