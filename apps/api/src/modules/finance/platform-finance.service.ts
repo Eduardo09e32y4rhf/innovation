@@ -31,6 +31,29 @@ export class PlatformFinanceService {
     return couponDiscount({ type: subscription.couponType, value: subscription.couponValue });
   }
 
+  /** Cancela a assinatura recorrente do Mercado Pago (se houver). Falha só é registrada: o chamador não deve travar por isso. */
+  async cancelMercadoPagoSubscription(companyId: string) {
+    const sub = await this.prisma.companySubscription.findUnique({ where: { companyId }, select: { mpPreapprovalId: true } });
+    if (!sub?.mpPreapprovalId || !this.mercadoPago.isConfigured()) return;
+    try {
+      await this.mercadoPago.cancelSubscription(sub.mpPreapprovalId);
+    } catch (error) {
+      if (!(error instanceof NotFoundException)) {
+        this.logger.error(`ALERTA: nao foi possivel cancelar a assinatura MP ${sub.mpPreapprovalId} da empresa ${companyId}: ${String(error)}`);
+        return;
+      }
+    }
+    await this.prisma.companySubscription.updateMany({ where: { companyId }, data: { mpPreapprovalId: null } });
+    await this.audit(companyId, 'MERCADOPAGO_SUBSCRIPTION_CANCELED_BY_SYSTEM', { preapprovalId: sub.mpPreapprovalId }, undefined, 'Subscription', sub.mpPreapprovalId);
+  }
+
+  /** Atualiza o valor das próximas cobranças da assinatura do Mercado Pago (troca de usuários). Erro aborta a operação: cobrar valor errado é pior. */
+  async syncMercadoPagoAmount(companyId: string, amount: number) {
+    const sub = await this.prisma.companySubscription.findUnique({ where: { companyId }, select: { mpPreapprovalId: true } });
+    if (!sub?.mpPreapprovalId || !this.mercadoPago.isConfigured()) return;
+    await this.mercadoPago.updateSubscriptionAmount(sub.mpPreapprovalId, amount);
+  }
+
   /** Cria a fatura local e o link de pagamento do Mercado Pago (Pix, cartão e saldo MP). */
   private async createMercadoPagoInvoice(input: { companyId: string; planId?: string | null; description: string; amount: number; dueDate: Date; payerEmail?: string; pricingSnapshot?: Prisma.InputJsonValue }) {
     if (!this.mercadoPago.isConfigured()) throw new BadRequestException('A integracao Mercado Pago nao esta configurada.');
@@ -589,6 +612,8 @@ export class PlatformFinanceService {
       throw new BadRequestException('A integracao Asaas nao esta configurada; a pausa nao foi registrada.');
     }
 
+    await this.cancelMercadoPagoSubscription(companyId);
+
     const now = new Date();
     await this.prisma.$transaction([
       this.prisma.companySubscription.update({
@@ -698,6 +723,7 @@ export class PlatformFinanceService {
     if (asaasSubscriptionId && this.asaas.isConfigured()) {
       await this.asaas.updateSubscription(asaasSubscriptionId, { value: quote.total });
     }
+    await this.syncMercadoPagoAmount(companyId, quote.total);
 
     const updated = await this.prisma.companySubscription.update({
       where: { companyId },
@@ -752,6 +778,9 @@ export class PlatformFinanceService {
         this.logger.warn(`Falha ao remover assinatura anterior: ${String(err)}`);
       }
     }
+
+    // A troca de plano cria uma nova assinatura no provedor ativo; a anterior do Mercado Pago deixa de cobrar.
+    await this.cancelMercadoPagoSubscription(companyId);
 
     // Cancel OPEN invoices
     const openInvoices = await this.prisma.platformInvoice.findMany({
@@ -1404,6 +1433,9 @@ export class PlatformFinanceService {
         data: { status: 'ACTIVE', isActive: true, billingStatus: 'CANCELED', suspensionReason: 'cancelamento_aviso_30_dias' },
       });
     }
+
+    // Estorno encerra a relação (suspensa ou cancelada): a assinatura recorrente não pode continuar cobrando.
+    await this.cancelMercadoPagoSubscription(invoice.companyId);
 
     await this.audit(invoice.companyId, 'INVOICE_REFUND_REQUESTED', {
       invoiceId: invoice.id,

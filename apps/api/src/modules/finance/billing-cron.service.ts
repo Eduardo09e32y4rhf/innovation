@@ -324,6 +324,8 @@ export class BillingCronService {
       const reminderDaysBefore = parseInt(process.env.FINANCE_NOTIFICATION_REMINDER_DAYS_BEFORE ?? '3', 10);
       const overdueDays = (process.env.FINANCE_NOTIFICATION_OVERDUE_DAYS ?? '1,5,10')
         .split(',')
+          // Cancelamento definitivo: a assinatura recorrente no Mercado Pago não pode continuar cobrando.
+          await this.platformFinance.cancelMercadoPagoSubscription(company.id);
         .map(d => parseInt(d.trim(), 10))
         .filter(d => !isNaN(d));
 

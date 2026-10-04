@@ -126,7 +126,8 @@ export class MercadoPagoService {
     if (!this.appUrl) throw new ServiceUnavailableException('Defina APP_URL para criar assinaturas no Mercado Pago.');
     return this.request<MercadoPagoPreapproval>('/preapproval', {
       method: 'POST',
-      idempotencyKey: `sub:${input.externalReference}:${input.amount.toFixed(2)}`,
+      // Chave única por chamada: após cancelar/trocar de plano, a mesma empresa e valor precisam gerar uma assinatura nova.
+      idempotencyKey: `sub:${input.externalReference}:${input.amount.toFixed(2)}:${crypto.randomUUID()}`,
       body: JSON.stringify({
         reason: input.reason,
         external_reference: input.externalReference,
