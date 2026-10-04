@@ -1,0 +1,3 @@
+## 2024-05-18 - Improve Password Visibility Toggle Accessibility
+**Learning:** Icon-only buttons for password visibility toggles (`Mostrar senha`/`Ocultar senha`) in auth forms often lack `aria-hidden="true"` on their inner SVGs, leading to redundant and confusing screen reader announcements where both the button's `aria-label` and the inner SVG's default accessible name (or lack thereof) are read out. Additionally, explicit focus styles should be applied for keyboard navigation visibility.
+**Action:** Always add `aria-hidden="true"` to SVG icons inside icon-only buttons that already have a descriptive `aria-label`, to ensure screen readers only announce the intended label. Also ensure they have `focus-visible` styles for better keyboard accessibility.
