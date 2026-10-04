@@ -1,4 +1,4 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 
@@ -89,6 +89,7 @@ export class MercadoPagoService {
       throw new ServiceUnavailableException('Não foi possível comunicar com o Mercado Pago. Tente novamente.');
     }
     const data = await response.json().catch(() => null);
+    if (response.status === 404) throw new NotFoundException('Mercado Pago: recurso não encontrado.');
     if (!response.ok) {
       this.logger.error(`Mercado Pago ${response.status}: ${JSON.stringify(data)}`);
       throw new ServiceUnavailableException(`Mercado Pago: ${(data as { message?: string } | null)?.message || response.statusText || 'falha na requisição'}`);

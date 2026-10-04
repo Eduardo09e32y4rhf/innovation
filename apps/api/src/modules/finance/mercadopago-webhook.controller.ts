@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Headers, HttpCode, Logger, Post, Query } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Headers, HttpCode, Logger, NotFoundException, Post, Query } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { PrismaService } from '../../database/prisma.service';
 import { FinanceNotificationService } from './finance-notification.service';
@@ -35,6 +35,16 @@ export class MercadoPagoWebhookController {
     @Query('type') queryType: string | undefined,
     @Body() body: MercadoPagoNotification,
   ) {
+    try {
+      return await this.process(signature, requestId, queryDataId, queryType, body);
+    } catch (error) {
+      // Id inexistente no Mercado Pago (ex.: "Simular notificação" do painel): confirma o recebimento, sem nova tentativa.
+      if (error instanceof NotFoundException) return { received: true, ignored: true, reason: 'nao_encontrado' };
+      throw error;
+    }
+  }
+
+  private async process(signature: string | undefined, requestId: string | undefined, queryDataId: string | undefined, queryType: string | undefined, body: MercadoPagoNotification) {
     const type = body?.type || body?.topic || queryType;
     const dataId = String(queryDataId ?? body?.data?.id ?? '');
 

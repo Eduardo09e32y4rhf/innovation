@@ -1,10 +1,12 @@
-﻿import { Module, forwardRef } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { AsaasService } from './asaas.service';
 import { AsaasWebhookController } from './asaas-webhook.controller';
 import { AsaasWebhookProcessorService, AsaasWebhookWorker } from './asaas-webhook.processor';
 import { BillingCronService } from './billing-cron.service';
 import { CompanyBillingController } from './company-billing.controller';
+import { FaturasController } from './faturas.controller';
+import { FaturasService } from './faturas.service';
 import { FinanceController } from './finance.controller';
 import { IntegrationsController } from './integrations.controller';
 import { MercadoPagoService } from './mercadopago.service';
@@ -35,9 +37,11 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     PlatformFinanceService,
     FinanceNotificationService,
     PricingService,
+    FaturasService,
   ],
   controllers: [
     FinanceController,
+    FaturasController,
     CompanyBillingController,
     AsaasWebhookController,
     MercadoPagoWebhookController,

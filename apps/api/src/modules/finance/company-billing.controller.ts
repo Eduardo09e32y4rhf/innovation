@@ -18,16 +18,19 @@ export class CompanyBillingController {
   constructor(private readonly service: PlatformFinanceService) {}
 
   @Get('status')
+  @Roles('ADMIN', 'DEV', 'RH')
   status(@CurrentCompany() companyId: string) {
     return this.service.getCompanyBilling(companyId);
   }
 
   @Get('invoices')
+  @Roles('ADMIN', 'DEV', 'RH')
   invoices(@CurrentCompany() companyId: string) {
     return this.service.listCompanyInvoices(companyId);
   }
 
   @Post('checkout')
+  @Roles('ADMIN', 'DEV', 'RH')
   checkout(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.service.ensureCompanyOnboardingBilling(companyId, actor);
   }
