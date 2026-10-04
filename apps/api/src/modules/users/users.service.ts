@@ -123,8 +123,9 @@ export class UsersService {
     }
 
     // Senha provisória opcional: sem ela o sistema gera uma forte, exibida uma única vez ao criador.
+    // Gerada: curta (6), uso único. Informada manualmente: precisa ser forte.
     const temporaryPassword = dto.password || this.generateTemporaryPassword();
-    this.assertStrongPassword(temporaryPassword);
+    if (dto.password) this.assertStrongPassword(temporaryPassword);
     if (dto.employeeId) {
       const employee = await this.repository.findEmployeeForLink(targetCompanyId, dto.employeeId);
       if (!employee) throw new NotFoundException('Funcionario nao encontrado nesta empresa.');
@@ -448,7 +449,9 @@ export class UsersService {
   }
 
   private generateTemporaryPassword() {
-    return `Aa1!${randomBytes(18).toString('hex')}`;
+    // 6 caracteres sem ambíguos (sem 0/O/1/I/L). Vale para um único acesso: a troca obrigatória exige senha forte de 10+.
+    const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    return Array.from(randomBytes(6), (byte) => alphabet[byte % alphabet.length]).join('');
   }
 
   private assertCanRevealTemporaryPassword(actor: JwtUser, user: { id: string; role?: string }) {
