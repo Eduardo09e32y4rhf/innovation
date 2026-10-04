@@ -1,0 +1,29 @@
+groups:
+  - name: innovation
+    rules:
+      - alert: ApiDown
+        expr: up{job="api"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations: { summary: "API fora do ar" }
+      - alert: ApiErrosAltos
+        expr: sum(rate(http_requests_total{status_code=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels: { severity: critical }
+        annotations: { summary: "Mais de 5% das requisicoes com erro 5xx" }
+      - alert: WebhookFalhando
+        expr: increase(webhook_failures_total[15m]) > 0
+        labels: { severity: critical }
+        annotations: { summary: "Webhook de pagamento falhou ({{ $labels.provider }})" }
+      - alert: CronParado_Backup
+        expr: time() - cron_last_success_timestamp_seconds{job="db_backup"} > 90000
+        labels: { severity: critical }
+        annotations: { summary: "Backup diario nao executou nas ultimas 25h" }
+      - alert: CronParado_Cobranca
+        expr: time() - cron_last_success_timestamp_seconds{job="billing_consistency"} > 7500
+        labels: { severity: warning }
+        annotations: { summary: "Auditoria horaria de cobranca parada" }
+      - alert: LoginSuspeito
+        expr: increase(auth_login_failures_total[10m]) > 30
+        labels: { severity: warning }
+        annotations: { summary: "Pico de logins recusados (possivel forca bruta)" }

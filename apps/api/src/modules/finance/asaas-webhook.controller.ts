@@ -1,3 +1,4 @@
+import { webhookFailures } from '../../common/metrics/app-metrics';
 import { Body, Controller, ForbiddenException, Headers, HttpCode, Logger, Post } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { SkipThrottle } from '@nestjs/throttler';
@@ -75,6 +76,7 @@ export class AsaasWebhookController {
         },
       );
     } catch (error) {
+      webhookFailures.inc({ provider: 'asaas' });
       await this.prisma.asaasWebhookEvent.update({
         where: { id: eventId },
         data: { status: 'FAILED', errorMessage: String(error).slice(0, 2000) },

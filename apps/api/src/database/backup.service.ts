@@ -1,3 +1,6 @@
+import { CronLock } from '../common/redis/cron-lock.decorator';
+import { RedisService } from '../common/redis/redis.service';
+import { cronHeartbeat } from '../common/metrics/app-metrics';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { exec } from 'child_process';
@@ -11,7 +14,10 @@ const execAsync = promisify(exec);
 export class BackupService {
   private readonly logger = new Logger(BackupService.name);
 
+  constructor(private readonly redis: RedisService) {}
+
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @CronLock('db.backup', 3600)
   async handleDailyBackup() {
     this.logger.log('Starting daily PostgreSQL backup...');
     
@@ -41,6 +47,7 @@ export class BackupService {
         this.logger.debug(`pg_dump stderr: ${stderr}`);
       }
       
+      cronHeartbeat('db_backup');
       this.logger.log(`Database backup successful: ${filepath}`);
       
       // Keep only last 7 backups

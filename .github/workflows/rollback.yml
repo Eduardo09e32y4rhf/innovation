@@ -1,0 +1,26 @@
+name: Rollback producao
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Tag ou SHA anterior que estava saudavel (ex.: v1.4.2)'
+        required: true
+      restore_db:
+        description: 'Restaurar tambem o ultimo backup do banco (so se a migration corrompeu dados)'
+        type: boolean
+        default: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script_stop: true
+          script: cd ${{ vars.PROD_DIR || '/var/www/innovation' }} && bash scripts/deploy/rollback.sh ${{ inputs.ref }} ${{ inputs.restore_db && '--restore-db' || '' }}
+      - run: curl -fsS --retry 10 --retry-delay 6 "${{ vars.PROD_URL }}/api/health"

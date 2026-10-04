@@ -26,11 +26,12 @@ function GhostInitPageContent() {
       try {
         // Lê token do admin com múltiplas estratégias para garantir compatibilidade
         const session = readAuthSession();
-        const adminToken = 
-          session.token ||
-          window.localStorage.getItem('auth.token') ||
-          window.localStorage.getItem('token') ||
-          window.sessionStorage.getItem('auth.token');
+        let adminToken = session.token;
+        if (!adminToken) {
+          const refreshed = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/auth/refresh`, { method: 'POST', credentials: 'include' });
+          const payload = await refreshed.json().catch(() => null);
+          adminToken = payload?.data?.access_token ?? payload?.access_token ?? null;
+        }
         
         if (!adminToken) throw new Error('Sessão expirada. Feche esta aba e tente novamente estando logado.');
 

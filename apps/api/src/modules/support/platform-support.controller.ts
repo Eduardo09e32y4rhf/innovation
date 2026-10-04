@@ -2,12 +2,15 @@ import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Req } from
 import { SupportService } from './support.service';
 import { SupportRepository } from './support.repository';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportTicketPriority, SupportTicketStatus } from '@prisma/client';
 import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
 import { UpdateSupportStatusDto } from './dto/update-support-status.dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('DEV', 'COMERCIAL')
 @Controller('platform/support')
 export class PlatformSupportController {
   constructor(
@@ -46,6 +49,7 @@ export class PlatformSupportController {
   }
 
   @Patch('tickets/:id/assign')
+  @Roles('DEV')
   async assignTicket(@Req() req: any, @Param('id') id: string, @Body('userId') userId: string) {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { assignedTo: { connect: { id: userId || req.user.sub } } });
@@ -54,6 +58,7 @@ export class PlatformSupportController {
   }
 
   @Patch('tickets/:id/priority')
+  @Roles('DEV')
   async updatePriority(@Req() req: any, @Param('id') id: string, @Body('priority') priority: SupportTicketPriority) {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { priority });
@@ -62,6 +67,7 @@ export class PlatformSupportController {
   }
 
   @Patch('tickets/:id/status')
+  @Roles('DEV')
   async updateStatus(@Req() req: any, @Param('id') id: string, @Body() body: UpdateSupportStatusDto) {
     this.authService.assertCanManageTicket(req.user);
     const status = body.status as SupportTicketStatus;
@@ -78,16 +84,19 @@ export class PlatformSupportController {
   }
 
   @Post('tickets/:id/messages')
+  @Roles('DEV')
   async addMessage(@Req() req: any, @Param('id') id: string, @Body() data: any) {
     return this.supportService.addMessage(req.user, id, data.message, 'PUBLIC');
   }
 
   @Post('tickets/:id/internal-notes')
+  @Roles('DEV')
   async addInternalNote(@Req() req: any, @Param('id') id: string, @Body() data: any) {
     return this.supportService.addMessage(req.user, id, data.message, 'INTERNAL');
   }
 
   @Post('tickets/:id/resolve')
+  @Roles('DEV')
   async resolveTicket(@Req() req: any, @Param('id') id: string) {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { status: 'RESOLVED', resolvedAt: new Date() });
@@ -96,6 +105,7 @@ export class PlatformSupportController {
   }
 
   @Post('tickets/:id/close')
+  @Roles('DEV')
   async closeTicket(@Req() req: any, @Param('id') id: string) {
     return this.supportService.closeTicket(req.user, id);
   }

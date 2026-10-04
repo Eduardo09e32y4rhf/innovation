@@ -11,12 +11,13 @@ type Step = 'identify' | 'password' | 'done';
 
 function ResetForm() {
   const params = useSearchParams();
-  const [step, setStep] = useState<Step>('identify');
+  const directToken = params.get('token') ?? '';
+  const [step, setStep] = useState<Step>(directToken ? 'password' : 'identify');
   const [email, setEmail] = useState(params.get('email') ?? '');
   const [code, setCode] = useState('');
   const [cpf, setCpf] = useState('');
   const [registration, setRegistration] = useState('');
-  const [token, setToken] = useState('');
+  const [token, setToken] = useState(directToken);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);

@@ -4,11 +4,14 @@ import { Response } from 'express';
 import { SupportService } from './support.service';
 import { SupportAttachmentService } from './support-attachment.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateSupportTicketDto } from './dto/create-support-ticket.dto';
 import { AddSupportMessageDto } from './dto/add-support-message.dto';
 import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
 @Controller('support')
 export class SupportController {
   constructor(

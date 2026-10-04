@@ -22,6 +22,7 @@ export interface User {
   companyStatus?: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED';
   billingStatus?: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT';
   onboardingState?: 'INVITED' | 'PASSWORD_CHANGE' | 'FACE_ENROLLMENT' | 'PROFILE_REQUIRED' | 'CONTRACT_PENDING' | 'ACTIVE' | null;
+  mfaEnrollmentRequired?: boolean;
 }
 
 export interface Company {
@@ -41,6 +42,7 @@ interface AuthContextType {
   error: string | null;
   passwordChangeRequired: boolean;
   login: (email: string, password: string) => Promise<void>;
+  verifyMfa: (mfaToken: string, code: string, recoveryCode?: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -76,6 +78,11 @@ const isLocalBrowser = () => {
 
 const canUseLocalSession = () => process.env.NODE_ENV !== 'production' && (LOCAL_SESSION_ENABLED || isLocalBrowser());
 const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || '/api';
+
+export class MfaRequiredError extends Error {
+  mfaToken: string;
+  constructor(mfaToken: string) { super('Informe o código da autenticação em duas etapas.'); this.name = 'MfaRequiredError'; this.mfaToken = mfaToken; }
+}
 
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -125,6 +132,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (!session.token) {
+        // Após um reload, o access token volta do cookie httpOnly por rotação.
+        try {
+          const refreshed = await fetch(`${getApiUrl()}/auth/refresh`, { method: 'POST', credentials: 'include' });
+          if (refreshed.ok) {
+            const payload = await refreshed.json();
+            const authData = payload.data ?? payload;
+            const authUser = authData.user;
+            if (authData.access_token && authUser) {
+              const nextUser: User = {
+                id: authUser.sub, name: authUser.name || authUser.email?.split('@')[0] || 'Usuário', email: authUser.email,
+                profile: String(authUser.role || 'USER').toLowerCase(), companyId: authUser.companyId,
+                customPermissions: Array.isArray(authUser.customPermissions) ? authUser.customPermissions : [],
+                companyStatus: authUser.companyStatus, billingStatus: authUser.billingStatus,
+                mfaEnrollmentRequired: Boolean(authData.mfaEnrollmentRequired || authUser.mfaPending),
+              };
+              setToken(authData.access_token); setUser(nextUser);
+              setCompany(authData.company ?? { id: authUser.companyId, name: authUser.companyId, slug: authUser.companyId });
+              setPasswordChangeRequired(Boolean(authData.passwordChangeRequired));
+            }
+          }
+        } catch { /* usuário anônimo ou API temporariamente indisponível */ }
         if (LOCAL_SESSION_ENABLED) {
           startLocalSession();
         }
@@ -190,6 +218,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         customPermissions: Array.isArray(freshUser.customPermissions) ? freshUser.customPermissions : [],
         companyStatus: freshUser.companyStatus,
         billingStatus: freshUser.billingStatus,
+        mfaEnrollmentRequired: Boolean(freshUser.mfaEnrollmentRequired || freshUser.mfaPending),
       };
       const nextCompany = { ...savedCompany, id: freshUser.companyId || savedCompany.id };
       const mustChangePassword = Boolean(freshUser.passwordChangeRequired);
@@ -226,6 +255,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response = await fetch(`${getApiUrl()}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
         signal: AbortSignal.timeout(15000),
       });
@@ -237,6 +267,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const data = await response.json();
       const authData = data.data ?? data;
+      if (authData.mfaRequired && authData.mfaToken) throw new MfaRequiredError(authData.mfaToken);
       const nextToken = authData.access_token;
       const nextUser: User = {
         id: authData.user.sub,
@@ -247,6 +278,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         customPermissions: Array.isArray(authData.user.customPermissions) ? authData.user.customPermissions : [],
         companyStatus: authData.user.companyStatus,
         billingStatus: authData.user.billingStatus,
+        mfaEnrollmentRequired: Boolean(authData.mfaEnrollmentRequired || authData.user.mfaPending),
       };
       const nextCompany: Company = authData.company ?? {
         id: authData.user.companyId,
@@ -268,11 +300,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const verifyMfa = async (mfaToken: string, code: string, recoveryCode?: string) => {
+    setLoading(true); setError(null);
+    try {
+      const response = await fetch(`${getApiUrl()}/auth/mfa/verify`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ mfaToken, code: code || undefined, recoveryCode: recoveryCode || undefined }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.message || payload?.error?.message || 'Código MFA inválido.');
+      const authData = payload?.data ?? payload;
+      const authUser = authData.user;
+      const nextUser: User = {
+        id: authUser.sub, name: authUser.name || authUser.email?.split('@')[0] || 'Usuário', email: authUser.email,
+        profile: String(authUser.role || 'USER').toLowerCase(), companyId: authUser.companyId,
+        customPermissions: Array.isArray(authUser.customPermissions) ? authUser.customPermissions : [],
+        companyStatus: authUser.companyStatus, billingStatus: authUser.billingStatus,
+      };
+      setToken(authData.access_token); setUser(nextUser);
+      setCompany(authData.company ?? { id: authUser.companyId, name: authUser.companyId, slug: authUser.companyId });
+      setPasswordChangeRequired(Boolean(authData.passwordChangeRequired));
+      resetAllQueryStates();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Não foi possível validar o código MFA.';
+      setError(message); throw err;
+    } finally { setLoading(false); }
+  };
+
   const changePassword = async (currentPassword: string, newPassword: string) => {
     if (!token) throw new Error('Sessão expirada. Faça login novamente.');
     const response = await fetch(`${getApiUrl()}/auth/change-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      credentials: 'include',
       body: JSON.stringify({ currentPassword, newPassword }),
     });
     const payload = await response.json().catch(() => null);
@@ -282,8 +342,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 
   const refreshUser = async () => {
-    if (!token || !company || token === LOCAL_SESSION_TOKEN) return;
-    await refreshStoredUser(token, company);
+    const stored = readParsedAuthSession();
+    const currentToken = stored.token || token;
+    const currentCompany = stored.company || company;
+    if (!currentToken || !currentCompany || currentToken === LOCAL_SESSION_TOKEN) return;
+    if (currentToken !== token) setToken(currentToken);
+    await refreshStoredUser(currentToken, currentCompany);
   };
   const logout = React.useCallback(() => {
     clearStoredSession();
@@ -303,6 +367,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     error,
     passwordChangeRequired,
     login,
+    verifyMfa,
     changePassword,
     logout,
     refreshUser,

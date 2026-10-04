@@ -11,6 +11,10 @@ export class AuthRepository {
     return this.prisma.user.findUnique({ where: { email: email.trim().toLowerCase() }, include: { company: true } });
   }
 
+  findSecurityAlertRecipients(companyId: string) {
+    return this.prisma.user.findMany({ where: { companyId, isActive: true, role: 'ADMIN' }, select: { email: true }, orderBy: { createdAt: 'asc' } });
+  }
+
   findUserById(id: string) {
     return this.prisma.user.findUnique({ where: { id }, include: { company: true } });
   }
@@ -103,10 +107,15 @@ export class AuthRepository {
       const trialEndsAt = new Date(now);
       trialEndsAt.setUTCDate(trialEndsAt.getUTCDate() + data.trialDays);
 
+      // Incremento condicional: duas requisições simultâneas não passam do limite (mesmo padrão do cupom de desconto).
+      const counted = await tx.promotionCoupon.updateMany({
+        where: { id: coupon.id, ...(coupon.maxRedemptions !== null ? { redemptionCount: { lt: coupon.maxRedemptions } } : {}) },
+        data: { redemptionCount: { increment: 1 } },
+      });
+      if (!counted.count) return { applied: false as const, reason: 'COUPON_LIMIT_REACHED' };
       await tx.couponRedemption.create({
         data: { couponId: coupon.id, companyId: data.companyId, documentHash: data.documentHash },
       });
-      await tx.promotionCoupon.update({ where: { id: coupon.id }, data: { redemptionCount: { increment: 1 } } });
       await tx.company.update({
         where: { id: data.companyId },
         data: { status: 'ACTIVE', isActive: true, billingStatus: 'TRIAL', trialEndsAt, suspensionReason: null },

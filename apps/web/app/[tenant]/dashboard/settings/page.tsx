@@ -10,6 +10,7 @@ import { CompanyFinanceSection } from './_components/company-finance-section';
 import { PlatformPlansSection } from './_components/platform-plans-section';
 import { AccessSection } from './_hub/access-section';
 import { AccountSection } from './_hub/account-section';
+import { SessionsSection } from './_hub/sessions-section';
 import { CompanySection } from './_hub/company-section';
 import { DataSection } from './_hub/data-section';
 import { HolidaysSection } from './_hub/holidays-section';
@@ -54,7 +55,7 @@ function Hub() {
         )}
 
         <main className={`min-w-0 ${sections.length > 1 ? '' : 'md:col-span-2'}`}>
-          {active === 'conta' && <AccountSection />}
+          {active === 'conta' && <div className="space-y-4"><AccountSection /><SessionsSection /></div>}
           {active === 'empresa' && <CompanySection canEdit={canEditCompany} />}
           {active === 'feriados' && <HolidaysSection />}
           {active === 'acessos' && <AccessSection tenant={tenant} />}

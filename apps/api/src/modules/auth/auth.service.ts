@@ -11,6 +11,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { timingSafeEqual } from 'node:crypto';
+import { loginFailures } from '../../common/metrics/app-metrics';
 import { createHmac } from 'node:crypto';
 import { AuthRepository } from './auth.repository';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -195,6 +196,10 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, requestMeta?: RequestMeta) {
+    try { return await this.loginInner(dto, requestMeta); } catch (e) { if (e instanceof UnauthorizedException) loginFailures.inc(); throw e; }
+  }
+
+  private async loginInner(dto: LoginDto, requestMeta?: RequestMeta) {
     const user = await this.repository.findUserByEmail(dto.email);
     if (!user || !user.isActive) {
       await this.auditInvalidLogin(dto.email, requestMeta);
@@ -268,7 +273,7 @@ export class AuthService {
     if (!lockMs) return;
     const until = new Date(Date.now() + lockMs);
     await this.repository.setLockedUntil(user.id, until);
-    void this.mail.send(user.email, securityAlertEmail({
+    void this.sendSecurityAlert(user, securityAlertEmail({
       name: user.name, title: 'Conta temporariamente bloqueada',
       detail: `Houve ${updated.failedLoginAttempts} tentativas de login incorretas. Por segurança a conta ficará bloqueada por ${Math.round(lockMs / 60_000)} minuto(s).`,
       ip: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent, at: new Date(),
@@ -277,6 +282,14 @@ export class AuthService {
   }
 
   /** Segunda etapa do login: valida o código do app autenticador (ou um código de recuperação). */
+  private async sendSecurityAlert(user: any, content: ReturnType<typeof securityAlertEmail>) {
+    const admins = typeof this.repository.findSecurityAlertRecipients === 'function'
+      ? await this.repository.findSecurityAlertRecipients(user.companyId)
+      : [];
+    const recipients = admins.length ? admins.map((admin) => admin.email) : [user.email];
+    await Promise.allSettled(recipients.map((recipient) => this.mail.send(recipient, content)));
+  }
+
   async verifyMfaLogin(dto: { mfaToken: string; code?: string; recoveryCode?: string }, requestMeta?: RequestMeta) {
     let payload: any;
     try { payload = await this.jwtService.verifyAsync(dto.mfaToken); } catch { throw new UnauthorizedException('Desafio expirado. Entre novamente.'); }

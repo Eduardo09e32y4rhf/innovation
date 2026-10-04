@@ -2,6 +2,8 @@ import { contentDisposition } from '../../common/pdf/pdf-response';
 import { Body, Controller, Get, Post, Req, Res, UseGuards, Param } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrivacyService } from './privacy.service';
 import { IsNumber, IsOptional, IsString } from 'class-validator';
@@ -12,7 +14,8 @@ export class AcceptTermsDto {
   @IsOptional() @IsString() address?: string;
 }
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
 @Controller('legal')
 export class PrivacyController {
   constructor(private readonly service: PrivacyService) {}

@@ -1,3 +1,4 @@
+import { webhookFailures } from '../../common/metrics/app-metrics';
 import { Process, Processor } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
 import type { Job } from 'bull';
@@ -94,6 +95,7 @@ export class AsaasWebhookProcessorService {
         },
       });
     } catch (error) {
+      webhookFailures.inc({ provider: 'asaas' });
       await this.prisma.asaasWebhookEvent.update({
         where: { id: eventId },
         data: { status: 'FAILED', errorMessage: String(error).slice(0, 2000) },
@@ -113,6 +115,11 @@ export class AsaasWebhookProcessorService {
 
     await this.syncProposal(company.id, event, payment);
     const existing = await this.prisma.platformInvoice.findUnique({ where: { asaasPaymentId: payment.id } });
+    // Evento fora de ordem: uma fatura já paga nunca volta para aberta/vencida (só estorno/cancelamento a altera).
+    if (existing?.status === 'PAID' && (status === 'OPEN' || status === 'OVERDUE')) {
+      this.logger.warn(`Evento ${event} ignorado: fatura ${existing.id} já está paga (fora de ordem).`);
+      return;
+    }
     const invoiceData = {
       companyId: company.id,
       description: payment.description || 'Cobrança Asaas',

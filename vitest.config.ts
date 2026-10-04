@@ -18,7 +18,9 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: ['apps/api/src/**/*.ts'],
-      exclude: ['**/*.spec.ts', '**/*.module.ts', '**/main.ts', '**/*.dto.ts']
+      exclude: ['**/*.spec.ts', '**/*.module.ts', '**/main.ts', '**/*.dto.ts'],
+      // Piso inicial; suba conforme a cobertura real (rode `npm run test:coverage` e ajuste).
+      thresholds: { lines: 15, functions: 15, statements: 15, branches: 10 }
     }
   },
   resolve: {

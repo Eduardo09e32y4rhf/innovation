@@ -61,7 +61,9 @@ export class SupportService {
     if (query?.status) where.status = query.status;
     if (query?.priority) where.priority = query.priority;
     if (query?.category) where.category = query.category;
-    if (query?.companyId) where.companyId = query.companyId;
+    // companyId sempre vem do token para clientes. Apenas DEV pode consultar o
+    // atendimento de outra empresa no painel de plataforma.
+    if (query?.companyId && actor.role === 'DEV') where.companyId = query.companyId;
     if (query?.search) {
       const searchConditions = [
         { title: { contains: query.search, mode: 'insensitive' } },

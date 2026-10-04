@@ -212,3 +212,6 @@ backup_*.sql
 *.dump
 *.backup
 backup_before_recovery.sql
+
+infra/metrics_token
+infra/webhook_url

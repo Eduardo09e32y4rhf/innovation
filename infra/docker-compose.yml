@@ -170,6 +170,8 @@ services:
       - "${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./metrics_token:/etc/prometheus/metrics_token:ro
       - innovation_rh_connect_prometheus:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -206,6 +208,13 @@ services:
       - innovation_rh_network
 
   # ─── Grafana - Dashboard & Visualization ───────────────────────────
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: innovation-rh-connect-alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./webhook_url:/etc/alertmanager/webhook_url:ro
+    restart: unless-stopped
   grafana:
     image: grafana/grafana:latest
     container_name: innovation-rh-connect-grafana

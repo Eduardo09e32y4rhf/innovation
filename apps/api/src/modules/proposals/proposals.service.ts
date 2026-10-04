@@ -73,9 +73,9 @@ export class ProposalsService {
     return updated;
   }
 
-  async getProposalStatus(id: string) {
+  async getProposalStatus(id: string, actor: { companyId: string; role: string }) {
     const proposal = await this.prisma.proposal.findUnique({
-      where: { id },
+      where: { id, ...(actor.role === 'DEV' || actor.role === 'COMERCIAL' ? {} : { companyId: actor.companyId }) },
       include: {
         company: {
           select: { name: true, document: true, asaasCustomerId: true },
@@ -87,9 +87,9 @@ export class ProposalsService {
     return proposal;
   }
 
-  async acceptTerms(id: string, data: AcceptTermsDto, userEmail: string) {
+  async acceptTerms(id: string, data: AcceptTermsDto, userEmail: string, actor: { companyId: string; role: string }) {
     const proposal = await this.prisma.proposal.findUnique({
-      where: { id },
+      where: { id, ...(actor.role === 'DEV' || actor.role === 'COMERCIAL' ? {} : { companyId: actor.companyId }) },
       include: { company: true },
     });
 

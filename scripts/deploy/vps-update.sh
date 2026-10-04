@@ -9,8 +9,12 @@ COMPOSE="docker compose -f docker-compose.prod.yml"
 PREV="$(git rev-parse --short HEAD)"
 
 echo "== 1/6 Código ($PREV → origin/$BRANCH)"
-git fetch origin "$BRANCH"
-git pull --ff-only origin "$BRANCH"
+git fetch --tags origin "$BRANCH"
+if [ -n "${2:-}" ] || [[ "$BRANCH" =~ ^[0-9a-f]{7,40}$ || "$BRANCH" =~ ^v[0-9] ]]; then
+  git checkout --detach "$BRANCH"   # SHA ou tag (usado pelo GitHub Actions)
+else
+  git pull --ff-only origin "$BRANCH"
+fi
 NEW="$(git rev-parse --short HEAD)"
 
 echo "== 2/6 Segredos (.env)"

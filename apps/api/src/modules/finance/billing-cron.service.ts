@@ -1,3 +1,7 @@
+import { dunningConfigFromEnv, dunningStage } from './dunning';
+import { CronLock } from '../../common/redis/cron-lock.decorator';
+import { RedisService } from '../../common/redis/redis.service';
+import { cronHeartbeat } from '../../common/metrics/app-metrics';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma.service';
@@ -16,9 +20,11 @@ export class BillingCronService {
     private readonly asaas: AsaasService,
     private readonly pricing: PricingService,
     private readonly platformFinance: PlatformFinanceService,
+    private readonly redis: RedisService,
   ) {}
 
   @Cron('*/30 * * * *')
+  @CronLock('billing.repairAsaasAssociations', 1500)
   async repairAsaasAssociations() {
     if (!this.asaas.isConfigured()) return;
     const subscriptions = await this.prisma.companySubscription.findMany({
@@ -58,6 +64,7 @@ export class BillingCronService {
   }
 
   @Cron('0 * * * *')
+  @CronLock('billing.auditOperationalConsistency', 3000)
   async auditOperationalConsistency() {
     const [paidWithoutAccess, activeWithOverdue, subscriptionWithoutAsaas, failedWebhooks, failedWhatsapp] = await Promise.all([
       this.prisma.platformInvoice.count({
@@ -78,13 +85,15 @@ export class BillingCronService {
     ]);
 
     const counters = { paidWithoutAccess, activeWithOverdue, subscriptionWithoutAsaas, failedWebhooks, failedWhatsapp };
-    this.logger.log(`CRON_HEARTBEAT billing_consistency ${JSON.stringify(counters)}`);
+    cronHeartbeat('billing_consistency');
+        this.logger.log(`CRON_HEARTBEAT billing_consistency ${JSON.stringify(counters)}`);
     for (const [condition, count] of Object.entries(counters)) {
       if (count > 0) this.logger.error(`OPERATIONAL_ALERT ${JSON.stringify({ condition, count })}`);
     }
   }
 
   @Cron('0 2 * * *')
+  @CronLock('billing.applyScheduledSeatReductions', 3600)
   async applyScheduledSeatReductions() {
     const now = new Date();
     const subscriptions = await this.prisma.companySubscription.findMany({
@@ -132,6 +141,7 @@ export class BillingCronService {
 
   // Gera uma proposta recuperável cinco dias antes do fim do trial.
   @Cron('30 3 * * *')
+  @CronLock('billing.createTrialConversionProposals', 3600)
   async createTrialConversionProposals() {
     const now = new Date();
     const windowStart = new Date(now.getTime() + 4.5 * 24 * 60 * 60 * 1000);
@@ -194,6 +204,7 @@ export class BillingCronService {
 
   // ─── Expiração de Trial — 04:00 diariamente ────────────────────────
   @Cron('0 4 * * *')
+  @CronLock('billing.checkExpiredTrials', 3600)
   async checkExpiredTrials() {
     this.logger.log('Iniciando rotina de verificação de trials expirados...');
     try {
@@ -225,6 +236,7 @@ export class BillingCronService {
   }
 
   @Cron('30 4 * * *')
+  @CronLock('billing.checkExpiredManualContracts', 3600)
   async checkExpiredManualContracts() {
     const now = new Date();
     const expired = await this.prisma.manualContract.findMany({
@@ -244,6 +256,7 @@ export class BillingCronService {
   // ─── Suspensão por inadimplência — 08:00 diariamente ────────────────────────
 
   @Cron('0 8 * * *')
+  @CronLock('billing.checkOverdueInvoices', 3600)
   async checkOverdueInvoices() {
     this.logger.log('Iniciando rotina de verificação de inadimplência...');
 
@@ -255,12 +268,15 @@ export class BillingCronService {
       });
 
       const today = new Date();
+      const dunning = dunningConfigFromEnv();
       const checkedCompanies = new Set<string>();
 
       for (const invoice of overdueInvoices) {
         const company = invoice.company;
 
-        if (company.billingStatus === 'CANCELED' || company.status === 'SUSPENDED' || checkedCompanies.has(company.id)) {
+        // Só a fatura mais antiga de cada empresa define o estágio. Cancelada é definitivo; suspensa por outro motivo não é mexida.
+        const suspendedByDebt = company.status === 'SUSPENDED' && company.suspensionReason === 'inadimplencia';
+        if (company.billingStatus === 'CANCELED' || (company.status === 'SUSPENDED' && !suspendedByDebt) || checkedCompanies.has(company.id)) {
           continue;
         }
 
@@ -269,8 +285,15 @@ export class BillingCronService {
         const dueDate = new Date(invoice.dueDate);
         const timeDiff = today.getTime() - dueDate.getTime();
         const diffDays = Math.floor(timeDiff / (1000 * 3600 * 24));
+        const stage = dunningStage(diffDays, dunning);
 
-        if (diffDays >= 5) {
+        if (stage === 'CANCEL') {
+          this.logger.warn(`Empresa ${company.id} com fatura atrasada há ${diffDays} dias. Cancelando...`);
+          await this.prisma.company.update({
+            where: { id: company.id },
+            data: { status: 'SUSPENDED', billingStatus: 'CANCELED', isActive: false, suspensionReason: 'cancelamento_por_inadimplencia' },
+          });
+        } else if (stage === 'BLOCK' && !suspendedByDebt) {
           this.logger.warn(`Empresa ${company.id} com fatura atrasada há ${diffDays} dias. Bloqueando...`);
           await this.prisma.company.update({
             where: { id: company.id },
@@ -293,6 +316,7 @@ export class BillingCronService {
   // ─── Lembretes de vencimento — 09:00 diariamente ────────────────────────────
 
   @Cron('0 9 * * *')
+  @CronLock('billing.sendPaymentReminders', 3600)
   async sendPaymentReminders() {
     this.logger.log('Iniciando rotina de lembretes de vencimento...');
 

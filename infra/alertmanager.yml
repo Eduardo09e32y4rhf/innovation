@@ -1,0 +1,9 @@
+# Defina ALERT_WEBHOOK_URL (Slack/Discord/Teams/ntfy...) ao subir. Para e-mail, troque por email_configs.
+route:
+  receiver: equipe
+  group_by: [alertname]
+  repeat_interval: 4h
+receivers:
+  - name: equipe
+    webhook_configs:
+      - url_file: /etc/alertmanager/webhook_url

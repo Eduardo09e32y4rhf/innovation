@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+import { reportError } from '../observability';
 
 export interface MappedError {
   status: number;
@@ -74,6 +75,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error(`[${requestId}] ${request?.method} ${request?.url} -> ${mapped.status}\n${detail}`);
       mapped.body.message = `Erro interno. Informe o código ${requestId} ao suporte se persistir.`;
       mapped.body.requestId = requestId;
+      reportError(exception, { requestId, method: request?.method, url: request?.url });
     } else if (mapped.log) {
       this.logger.warn(`${request?.method} ${request?.url} -> ${mapped.status}: ${JSON.stringify(mapped.body)}`);
     }

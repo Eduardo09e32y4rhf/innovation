@@ -1,6 +1,6 @@
 'use client';
 
-import { clearAuthSession, readAuthSession, readParsedAuthSession } from './auth-session';
+import { clearAuthSession, persistAuthSession, readAuthSession, readParsedAuthSession } from './auth-session';
 import { resetAllQueryStates } from '@/app/hooks/use-data';
 
 /**
@@ -60,11 +60,14 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
   const timeoutHandle = timeoutMs ? setTimeout(() => controller?.abort(), timeoutMs) : null;
 
   let res: Response;
+  let retriedAfterRefresh = false;
+  const serializedBody = body !== undefined ? (typeof FormData !== 'undefined' && body instanceof FormData ? body : JSON.stringify(body)) : undefined;
   try {
     res = await fetch(`${API_URL}${path}`, {
       method,
       headers,
-      body: body !== undefined ? (typeof FormData !== 'undefined' && body instanceof FormData ? body : JSON.stringify(body)) : undefined,
+      body: serializedBody,
+      credentials: 'include',
       signal: controller?.signal,
     });
   } catch (err) {
@@ -76,7 +79,26 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
     if (timeoutHandle) clearTimeout(timeoutHandle);
   }
 
-  if (res.status === 401) {
+  if (res.status === 401 && path !== '/auth/refresh') {
+    try {
+      const refresh = await fetch(`${API_URL}/auth/refresh`, { method: 'POST', credentials: 'include' });
+      if (refresh.ok) {
+        const refreshed = await refresh.json().catch(() => null);
+        const nextToken = refreshed?.data?.access_token ?? refreshed?.access_token;
+        if (nextToken && typeof window !== 'undefined') {
+          const session = readParsedAuthSession();
+          if (session.user && session.company) {
+            persistAuthSession(nextToken, session.user, session.company, session.passwordChangeRequired, session.isIsolatedTab);
+          }
+          headers.Authorization = `Bearer ${nextToken}`;
+          res = await fetch(`${API_URL}${path}`, { method, headers, body: serializedBody, credentials: 'include', signal: controller?.signal });
+          retriedAfterRefresh = true;
+        }
+      }
+    } catch { /* cai para o fluxo normal de sessão expirada */ }
+  }
+
+  if (res.status === 401 && !retriedAfterRefresh) {
     if (!keepSessionOn401) {
       clearSession();
       if (!silent && typeof window !== 'undefined') window.location.href = '/login';
@@ -626,6 +648,7 @@ export interface UpdateAsoInput {
   saveClinicPreset?: boolean; clinicCep?: string; clinicAddress?: string;
   clinicCity?: string; clinicState?: string; clinicPhone?: string;
 }
+export interface SessionInfo { id: string; createdAt: string; lastUsedAt?: string; ip?: string; userAgent?: string; current?: boolean; }
 
 // Module API
 
@@ -633,6 +656,22 @@ export const api = {
   request,
 
   auth: {
+    verifyEmail: (token: string) => request<{ verified: boolean }>('/auth/verify-email', { method: 'POST', body: { token } }),
+    refresh: () => request<{ access_token: string }>('/auth/refresh', { method: 'POST' }),
+    verifyMfa: (mfaToken: string, code?: string, recoveryCode?: string) => request<any>('/auth/mfa/verify', { method: 'POST', body: { mfaToken, code: code || undefined, recoveryCode: recoveryCode || undefined } }),
+    mfaStatus: () => request<{ enabled: boolean; enabledAt?: string; required: boolean; recoveryCodesLeft: number }>('/auth/mfa/status'),
+    mfaSetup: () => request<{ secret: string; otpauthUrl: string; issuer?: string; account?: string }>('/auth/mfa/setup', { method: 'POST' }),
+    mfaEnable: async (code: string) => {
+      const result = await request<{ access_token?: string; recoveryCodes: string[]; user?: unknown; company?: unknown }>('/auth/mfa/enable', { method: 'POST', body: { code } });
+      if (result.access_token && typeof window !== 'undefined') {
+        const session = readParsedAuthSession();
+        if (session.user && session.company) persistAuthSession(result.access_token, session.user, session.company, session.passwordChangeRequired, session.isIsolatedTab);
+      }
+      return result;
+    },
+    sessions: () => request<SessionInfo[]>('/auth/sessions'),
+    revokeSession: (id: string) => request<{ revoked: boolean }>(`/auth/sessions/${id}`, { method: 'DELETE' }),
+    revokeOtherSessions: () => request<{ revoked: number }>('/auth/sessions/revoke-others', { method: 'POST' }),
     requestPasswordReset: (email: string, website?: string) => request<{ requested: boolean; demoCode?: string }>('/auth/password-reset/request', { method: 'POST', body: { email, website } }),
     validateResetCode: (email: string, code: string, cpfStart?: string, registration?: string) => request<{ valid: boolean; resetToken: string }>('/auth/password-reset/validate-code', { method: 'POST', body: { email, code, cpfStart: cpfStart || undefined, registration: registration || undefined } }),
     resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),

@@ -4,7 +4,7 @@
  * Camada única de persistência de sessão de autenticação.
  *
  * Regras de ouro:
- *  - Sessão ativa SEMPRE em localStorage para persistir entre abas.
+ *  - Access token somente em memória; o refresh token fica no cookie httpOnly do backend.
  *  - Serialização de User/Company acontece AQUI, nunca no chamador.
  */
 
@@ -34,6 +34,9 @@ const SESSION_KEYS = {
   passwordChangeRequired: 'auth.passwordChangeRequired',
   ghostMode: 'auth.ghostMode',
 } as const;
+
+// O access token não é persistido: fica apenas em memória nesta aba.
+let memoryToken: string | null = null;
 
 /**
  * Todas as chaves que já foram ou poderiam ser usadas para auth em localStorage.
@@ -95,8 +98,11 @@ function safeParse<T>(v: string | null): T | null {
 function _writeToStorage(session: StoredAuthSession, isolateTab: boolean = false): void {
   try {
     const storage = isolateTab ? window.sessionStorage : window.localStorage;
+    memoryToken = session.token;
+    // Migra instalações antigas: nenhum access token permanece no Web Storage.
+    window.localStorage.removeItem(SESSION_KEYS.token);
+    window.sessionStorage.removeItem(SESSION_KEYS.token);
     const entries: Array<[string, string | null]> = [
-      [SESSION_KEYS.token, session.token],
       [SESSION_KEYS.user, session.user],
       [SESSION_KEYS.company, session.company],
       [SESSION_KEYS.passwordChangeRequired, session.passwordChangeRequired],
@@ -120,7 +126,7 @@ function _purgeLocalStorage(): void {
 // ─── API pública ──────────────────────────────────────────────────────────────
 
 /**
- * Lê a sessão priorizando sessionStorage (abas isoladas como Ghost Mode), depois localStorage.
+ * Lê o access token em memória e os metadados da sessão no storage apropriado.
  */
 export function readAuthSession(): StoredAuthSession {
   if (typeof window === 'undefined') {
@@ -135,7 +141,7 @@ export function readAuthSession(): StoredAuthSession {
     const useGhost = ss.getItem(SESSION_KEYS.ghostMode) === 'true';
     const storage = useGhost ? ss : ls;
     current = {
-      token: storage.getItem(SESSION_KEYS.token),
+      token: memoryToken,
       user: storage.getItem(SESSION_KEYS.user),
       company: storage.getItem(SESSION_KEYS.company),
       passwordChangeRequired: storage.getItem(SESSION_KEYS.passwordChangeRequired),
@@ -199,6 +205,7 @@ export function persistAuthSession(
 /** Remove todos os dados de sessão do localStorage ou sessionStorage. */
 export function clearAuthSession(isIsolatedTab: boolean = false): void {
   if (typeof window === 'undefined') return;
+  memoryToken = null;
   try {
     const storage = isIsolatedTab ? window.sessionStorage : window.localStorage;
     Object.values(SESSION_KEYS).forEach((k) => storage.removeItem(k));

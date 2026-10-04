@@ -1,0 +1,54 @@
+name: Deploy
+
+# merge na main -> CI -> staging (automatico) -> producao (1 clique: aprovacao do environment "production")
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Tag/SHA a publicar em producao (vazio = main atual)'
+        required: false
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  staging:
+    name: Staging
+    needs: [ci]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script_stop: true
+          script: cd ${{ vars.STAGING_DIR || '/var/www/innovation-staging' }} && bash scripts/deploy/vps-update.sh ${{ github.sha }}
+      - name: Smoke test
+        run: curl -fsS --retry 10 --retry-delay 6 "${{ vars.STAGING_URL }}/api/health"
+
+  production:
+    name: Producao
+    needs: [staging]
+    runs-on: ubuntu-latest
+    environment: production # configure "Required reviewers" neste environment: e o clique de aprovacao
+    steps:
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script_stop: true
+          script: cd ${{ vars.PROD_DIR || '/var/www/innovation' }} && bash scripts/deploy/vps-update.sh ${{ github.event.inputs.ref || github.sha }}
+      - name: Smoke test
+        run: curl -fsS --retry 10 --retry-delay 6 "${{ vars.PROD_URL }}/api/health"
