@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { Download, FileSpreadsheet, Upload } from 'lucide-react';
 import { useState } from 'react';
@@ -49,7 +49,7 @@ export function DataSection() {
       if (!rows.length) return void toast.info('Não há dados para exportar.');
       saveCsv(item.id, item.columns.map(([label]) => label), rows.map((row) => item.columns.map(([, get]) => get(row))));
       toast.success(`${rows.length} registro(s) exportados.`);
-    } catch (cause) { toast.error(cause instanceof Error ? cause.message : 'Não foi possível exportar.'); }
+    } catch (cause) { toast.error(cause instanceof Error && cause.message ? cause.message : 'Não foi possível exportar.'); }
     finally { setBusy(null); }
   }
 
@@ -81,8 +81,8 @@ export function DataSection() {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <section className="card-v2 space-y-3 p-5">
-        <h2 className="text-base font-semibold text-fg">Exportar</h2>
+      <section className="rounded-2xl border border-border bg-bg p-5 shadow-sm space-y-3">
+        <h3 className="text-base font-bold text-fg">Exportar planilhas</h3><p className="text-xs text-fg-sub">Abre no Excel. Contém dados pessoais: guarde com cuidado.</p>
         <ul className="space-y-2">
           {EXPORTS.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
@@ -93,11 +93,12 @@ export function DataSection() {
         </ul>
       </section>
 
-      <section className="card-v2 space-y-3 p-5">
+      <section className="rounded-2xl border border-border bg-bg p-5 shadow-sm space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-fg">Importar funcionários</h2>
+          <h3 className="text-base font-bold text-fg">Importar funcionários</h3>
           <Button variant="ghost" size="sm" isLoading={busy === 'template'} onClick={template}><FileSpreadsheet size={14} aria-hidden="true" /> Modelo XLSX</Button>
         </div>
+        <p className="text-xs text-fg-sub">1. Baixe o modelo · 2. Preencha · 3. Envie e valide · 4. Confirme a importação.</p>
         <input type="file" accept=".xlsx" aria-label="Arquivo XLSX" className="input-v2 w-full text-sm" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setValidation(null); }} />
         <Button variant="outline" disabled={!file} isLoading={busy === 'validate'} onClick={validate}><Upload size={14} aria-hidden="true" /> Validar arquivo</Button>
 
