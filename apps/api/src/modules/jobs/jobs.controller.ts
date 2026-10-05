@@ -15,12 +15,15 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { ModuleGuard } from '../../common/guards/module.guard';
+import { RequireModule } from '../../common/decorators/require-module.decorator';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateJobDto, UpdateJobDto } from './dto/create-job.dto';
 import { HireCandidateDto } from './dto/hire-candidate.dto';
 import { JobsService } from './jobs.service';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, ModuleGuard)
+@RequireModule('recruitment')
 @Roles('DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR')
 @Controller('jobs')
 export class JobsController {

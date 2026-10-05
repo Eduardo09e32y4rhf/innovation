@@ -12,6 +12,7 @@ const MODULES = [
   { id: 'time-track', label: 'Controle de Ponto' },
   { id: 'vacations', label: 'Ferias' },
   { id: 'management', label: 'Gestao' },
+  { id: 'recruitment', label: 'Vagas e recrutamento' },
   { id: 'support', label: 'Suporte' },
 ];
 

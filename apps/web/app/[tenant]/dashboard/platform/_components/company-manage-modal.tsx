@@ -209,6 +209,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                   { id: 'time-track', label: 'Controle de Ponto' },
                   { id: 'vacations', label: 'Gestão de Férias' },
                   { id: 'management', label: 'Painel de Gestão' },
+                  { id: 'recruitment', label: 'Vagas e recrutamento' },
                   { id: 'whatsapp', label: 'Integração WhatsApp' },
                 ].map(mod => (
                   <label key={mod.id} className="flex cursor-pointer items-center gap-3 text-sm font-semibold text-slate-700 p-2 rounded-[8px] hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors">

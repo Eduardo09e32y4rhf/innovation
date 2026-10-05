@@ -114,7 +114,7 @@ export class AuthService {
       platformPlanId: selectedPlan?.id,
       maxUsers: dto.seatQuantity,
       maxEmployees: selectedPlan.maxEmployees ?? 50,
-      activeModules: selectedPlan?.activeModules ?? ['employees', 'time-track', 'vacations', 'management'],
+      activeModules: selectedPlan?.activeModules ?? ['employees', 'time-track', 'vacations', 'management', 'recruitment'],
       isFree: selectedPlan?.isFree ?? false,
     });
     const admin = company.users[0];
