@@ -12,14 +12,14 @@ export class ProposalsController {
   @Roles('DEV', 'COMERCIAL')
   @Post()
   async createProposal(@Request() req: any, @Body() data: CreateProposalDto) {
-    return this.proposalsService.createProposal(req.user.sub || req.user.id, data);
+    return this.proposalsService.createProposal(req.user.sub || req.user.id, data, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV', 'COMERCIAL')
   @Get()
-  async listProposals() {
-    return this.proposalsService.listProposals();
+  async listProposals(@Request() req: any) {
+    return this.proposalsService.listProposals(undefined, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -40,7 +40,7 @@ export class ProposalsController {
   @Roles('DEV', 'COMERCIAL')
   @Post(':id/send')
   async sendProposal(@Request() req: any, @Param('id') id: string) {
-    return this.proposalsService.sendProposal(id, req.user.sub || req.user.id);
+    return this.proposalsService.sendProposal(id, req.user.sub || req.user.id, req.user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

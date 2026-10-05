@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
 const contractInclude = {
-  company: { select: { id: true, name: true, document: true } },
+  company: { select: { id: true, name: true, document: true, commercialOwnerId: true } },
   plan: { select: { id: true, name: true } },
 } as const;
 
@@ -10,9 +10,9 @@ const contractInclude = {
 export class ManualContractsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(companyId?: string) {
+  list(companyId?: string, commercialOwnerId?: string) {
     return this.prisma.manualContract.findMany({
-      where: companyId ? { companyId } : undefined,
+      where: { ...(companyId ? { companyId } : {}), ...(commercialOwnerId ? { company: { commercialOwnerId } } : {}) },
       include: contractInclude,
       orderBy: { createdAt: 'desc' },
     });
@@ -40,7 +40,7 @@ export class ManualContractsRepository {
   }
 
   findCompany(id: string) {
-    return this.prisma.company.findUnique({ where: { id }, select: { id: true } });
+    return this.prisma.company.findUnique({ where: { id }, select: { id: true, commercialOwnerId: true } });
   }
 
   findPlan(id: string) {

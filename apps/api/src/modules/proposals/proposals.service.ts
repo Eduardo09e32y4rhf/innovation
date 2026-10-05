@@ -2,6 +2,9 @@ import { Injectable, NotFoundException, BadRequestException, ServiceUnavailableE
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasService } from '../finance/asaas.service';
 import { randomBytes } from 'crypto';
+import { assertInWallet, walletOwnerId } from '../../common/permissions/commercial-wallet';
+
+type ProposalActor = { sub?: string; id?: string; role?: string };
 
 export interface CreateProposalDto {
   companyId: string;
@@ -29,7 +32,10 @@ export class ProposalsService {
     private readonly asaasService: AsaasService,
   ) {}
 
-  async createProposal(userId: string, data: CreateProposalDto) {
+  async createProposal(userId: string, data: CreateProposalDto, actor?: ProposalActor) {
+    const company = await this.prisma.company.findUnique({ where: { id: data.companyId }, select: { id: true, commercialOwnerId: true } });
+    if (!company) throw new NotFoundException('Empresa nao encontrada');
+    assertInWallet(actor, company, 'Empresa nao encontrada');
     const proposalNumber = `PROP-${new Date().getFullYear()}${new Date().getMonth() + 1}-${randomBytes(3).toString('hex').toUpperCase()}`;
     
     const proposal = await this.prisma.proposal.create({
@@ -55,9 +61,10 @@ export class ProposalsService {
     return proposal;
   }
 
-  async sendProposal(id: string, userId: string) {
-    const proposal = await this.prisma.proposal.findUnique({ where: { id } });
+  async sendProposal(id: string, userId: string, actor?: ProposalActor) {
+    const proposal = await this.prisma.proposal.findUnique({ where: { id }, include: { company: { select: { commercialOwnerId: true } } } });
     if (!proposal) throw new NotFoundException('Proposta não encontrada');
+    assertInWallet(actor, proposal.company, 'Proposta nao encontrada');
     if (proposal.status !== 'DRAFT' && proposal.status !== 'SENT') {
       throw new BadRequestException('Proposta não pode ser enviada no status atual');
     }
@@ -67,8 +74,8 @@ export class ProposalsService {
       data: { status: 'SENT' },
     });
 
-    // TODO: Send Email logic here
-    await this.logAudit(id, 'SENT', userId, { action: 'Email enviado ao cliente' });
+    // Ainda nao ha provedor de e-mail integrado: a proposta fica disponivel no painel da empresa, sem envio por e-mail.
+    await this.logAudit(id, 'SENT', userId, { action: 'Proposta disponibilizada no painel da empresa', emailSent: false });
 
     return updated;
   }
@@ -182,9 +189,10 @@ export class ProposalsService {
     return updated;
   }
   
-  async listProposals(companyId?: string) {
+  async listProposals(companyId?: string, actor?: ProposalActor) {
+    const ownerId = walletOwnerId(actor);
     return this.prisma.proposal.findMany({
-      where: companyId ? { companyId } : undefined,
+      where: { ...(companyId ? { companyId } : {}), ...(ownerId ? { company: { commercialOwnerId: ownerId } } : {}) },
       include: {
         company: { select: { name: true } }
       },

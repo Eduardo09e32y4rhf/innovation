@@ -17,47 +17,47 @@ export class ManualContractsController {
   constructor(private readonly service: ManualContractsService) {}
 
   @Get()
-  list(@Query('companyId') companyId?: string) { return this.service.list(companyId); }
+  list(@CurrentUser() actor: JwtUser, @Query('companyId') companyId?: string) { return this.service.list(companyId, actor); }
 
   @Get(':id/history')
-  history(@Param('id') id: string) {
-    return this.service.history(id);
+  history(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.history(id, actor);
   }
 
   @Get(':id/transitions')
-  transitions(@Param('id') id: string) {
-    return this.service.availableTransitions(id);
+  transitions(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.availableTransitions(id, actor);
   }
 
   @Get(':id/pdf')
   async pdf(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Res() res: any) {
-    return this.service.streamPdf(id, actor.sub || (actor as any).id, res);
+    return this.service.streamPdf(id, actor.sub || (actor as any).id, res, actor);
   }
 
   @Get(':id')
-  get(@Param('id') id: string) {
-    return this.service.get(id);
+  get(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.get(id, actor);
   }
 
   @Post()
   @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
   @Audited({ action: 'CONTRACT_CREATED', entity: 'ManualContract' })
   create(@CurrentUser() actor: JwtUser, @Body() dto: CreateManualContractDto) {
-    return this.service.create(dto, actor.sub || (actor as any).id);
+    return this.service.create(dto, actor.sub || (actor as any).id, actor);
   }
 
   @Patch(':id')
   @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
   @Audited({ action: 'CONTRACT_UPDATED', entity: 'ManualContract' })
   update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateManualContractDto) {
-    return this.service.update(id, dto, actor.sub || (actor as any).id);
+    return this.service.update(id, dto, actor.sub || (actor as any).id, actor);
   }
 
   @Patch(':id/status')
   @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
   @Audited({ action: 'CONTRACT_STATUS_CHANGED', entity: 'ManualContract', reasonField: 'reason' })
   transition(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: TransitionManualContractDto) {
-    return this.service.transition(id, dto, actor.sub || (actor as any).id);
+    return this.service.transition(id, dto, actor.sub || (actor as any).id, actor);
   }
 
   @Delete(':id')

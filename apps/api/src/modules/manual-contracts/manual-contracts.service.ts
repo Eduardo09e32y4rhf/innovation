@@ -3,6 +3,8 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { CreateManualContractDto } from './dto/create-manual-contract.dto';
 import { TransitionManualContractDto } from './dto/transition-manual-contract.dto';
 import { UpdateManualContractDto } from './dto/update-manual-contract.dto';
+import type { JwtUser } from '../../common/types/auth.types';
+import { assertInWallet, walletOwnerId } from '../../common/permissions/commercial-wallet';
 import { ManualContractsRepository } from './manual-contracts.repository';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
 import {
@@ -19,23 +21,24 @@ export class ManualContractsService {
     private readonly finance: PlatformFinanceService,
   ) {}
 
-  list(companyId?: string) {
-    return this.repository.list(companyId);
+  list(companyId?: string, actor?: JwtUser) {
+    return this.repository.list(companyId, walletOwnerId(actor));
   }
 
-  async get(id: string) {
+  async get(id: string, actor?: JwtUser) {
     const contract = await this.repository.findById(id);
     if (!contract) throw new NotFoundException('Contrato manual nao encontrado.');
+    assertInWallet(actor, contract.company, 'Contrato manual nao encontrado.');
     return contract;
   }
 
-  async history(id: string) {
-    await this.get(id);
+  async history(id: string, actor?: JwtUser) {
+    await this.get(id, actor);
     return this.repository.history(id);
   }
 
-  async availableTransitions(id: string) {
-    const contract = await this.get(id);
+  async availableTransitions(id: string, actor?: JwtUser) {
+    const contract = await this.get(id, actor);
     if (!isManualContractStatus(contract.status)) {
       return { currentStatus: contract.status, allowed: [], termsLocked: true };
     }
@@ -46,9 +49,10 @@ export class ManualContractsService {
     };
   }
 
-  async create(dto: CreateManualContractDto, actorId: string) {
+  async create(dto: CreateManualContractDto, actorId: string, actor?: JwtUser) {
     const company = await this.repository.findCompany(dto.companyId);
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
+    assertInWallet(actor, company, 'Empresa nao encontrada.');
     if (dto.planId && !(await this.repository.findPlan(dto.planId))) throw new NotFoundException('Plano nao encontrado.');
     const startsAt = new Date(dto.startsAt);
     const endsAt = dto.endsAt ? new Date(dto.endsAt) : null;
@@ -62,9 +66,10 @@ export class ManualContractsService {
     return { ...contract, billingSetupPending };
   }
 
-  async update(id: string, dto: UpdateManualContractDto, actorId: string) {
+  async update(id: string, dto: UpdateManualContractDto, actorId: string, actor?: JwtUser) {
     const current = await this.repository.findById(id);
     if (!current) throw new NotFoundException('Contrato manual nao encontrado.');
+    assertInWallet(actor, current.company, 'Contrato manual nao encontrado.');
     const { status, ...details } = dto;
     const changedDetailKeys = Object.keys(details).filter(
       (key) => details[key as keyof typeof details] !== undefined,
@@ -79,7 +84,7 @@ export class ManualContractsService {
       return this.transition(id, {
         status,
         reason: 'Transicao solicitada pelo endpoint de atualizacao legado.',
-      }, actorId);
+      }, actorId, actor);
     }
 
     if (changedDetailKeys.length === 0) return current;
@@ -96,9 +101,10 @@ export class ManualContractsService {
     return this.repository.updateDetails(id, { ...details, startsAt, endsAt }, actorId, current);
   }
 
-  async transition(id: string, dto: TransitionManualContractDto, actorId: string) {
+  async transition(id: string, dto: TransitionManualContractDto, actorId: string, actor?: JwtUser) {
     const current = await this.repository.findById(id);
     if (!current) throw new NotFoundException('Contrato manual nao encontrado.');
+    assertInWallet(actor, current.company, 'Contrato manual nao encontrado.');
     if (!isManualContractStatus(current.status)) {
       throw new ConflictException(`O status atual "${current.status}" nao pertence ao ciclo operacional suportado.`);
     }
@@ -144,9 +150,10 @@ export class ManualContractsService {
     return this.repository.delete(id, actorId);
   }
 
-  async streamPdf(id: string, actorId: string, res: any) {
+  async streamPdf(id: string, actorId: string, res: any, actor?: JwtUser) {
     const contract = await this.repository.findById(id);
     if (!contract) throw new NotFoundException('Contrato manual nao encontrado.');
+    assertInWallet(actor, contract.company, 'Contrato manual nao encontrado.');
 
     const fileName = `contrato-manual-${contract.company?.name?.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '') || contract.id}.pdf`;
     const sink = createPdfSink();
