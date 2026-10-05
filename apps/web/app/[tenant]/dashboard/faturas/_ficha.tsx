@@ -252,12 +252,22 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
     catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível sincronizar.'); }
   }
 
+  async function manualMp(inv: PlatformInvoice) {
+    try {
+      const updated = await api.faturas.manualMercadoPago(inv.id);
+      if (updated.invoiceUrl) await navigator.clipboard.writeText(updated.invoiceUrl).catch(() => undefined);
+      toast.success('Link do Mercado Pago gerado e copiado. Envie ao cliente.');
+      refresh();
+    } catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível gerar o link do Mercado Pago.'); }
+  }
+
   const rowActions = (inv: PlatformInvoice) => {
     const open = inv.status === 'OPEN' || inv.status === 'OVERDUE';
     const btn = 'btn btn-outline text-xs';
     return (
       <span className="inline-flex flex-wrap justify-end gap-1.5">
         {open && can('faturas.desconto') && <button type="button" className={btn} onClick={() => setDialog({ kind: 'discount', invoice: inv })}>Desconto</button>}
+        {open && can('faturas.cobrar') && <button type="button" className={btn} onClick={() => void manualMp(inv)} title="Use quando o Asaas falhar ou o cliente não conseguir pagar por ele">Link Mercado Pago</button>}
         {open && can('faturas.cobrar') && <button type="button" className={btn} onClick={() => setDialog({ kind: 'cancel', invoice: inv })}>Cancelar</button>}
         {inv.status === 'PAID' && can('faturas.reembolsar') && <>
           <button type="button" className={btn} onClick={() => setDialog({ kind: 'refundPartial', invoice: inv })}>Reembolso parcial</button>

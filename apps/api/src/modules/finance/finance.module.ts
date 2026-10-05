@@ -6,6 +6,7 @@ import { AsaasWebhookProcessorService, AsaasWebhookWorker } from './asaas-webhoo
 import { BillingCronService } from './billing-cron.service';
 import { CompanyBillingController } from './company-billing.controller';
 import { FaturasAcoesService } from './faturas-acoes.service';
+import { FaturasEmpresaService } from './faturas-empresa.service';
 import { FaturasController } from './faturas.controller';
 import { FaturasPermissoesController } from './faturas-permissoes.controller';
 import { FaturasPermissionsService } from '../../common/permissions/faturas-permissions.service';
@@ -42,6 +43,7 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     PricingService,
     FaturasService,
     FaturasAcoesService,
+    FaturasEmpresaService,
     FaturasPermissionsService,
   ],
   controllers: [

@@ -14,6 +14,7 @@ export interface AsaasPayment {
   bankSlipUrl?: string;
   paymentLink?: string;
   checkoutUrl?: string;
+  transactionReceiptUrl?: string;
   externalReference?: string;
 }
 
@@ -178,5 +179,20 @@ export class AsaasService {
 
   deleteSubscription(subscriptionId: string) {
     return this.request<{ deleted: boolean }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`, { method: 'DELETE' });
+  }
+
+  /** Linha digitável e código de barras do boleto. */
+  getIdentificationField(paymentId: string) {
+    return this.request<{ identificationField?: string; nossoNumero?: string; barCode?: string }>(`/payments/${encodeURIComponent(paymentId)}/identificationField`);
+  }
+
+  /** Pix copia-e-cola e QR Code da cobrança. */
+  getPixQrCode(paymentId: string) {
+    return this.request<{ encodedImage?: string; payload?: string; expirationDate?: string }>(`/payments/${encodeURIComponent(paymentId)}/pixQrCode`);
+  }
+
+  /** Notas fiscais de serviço emitidas pelo Asaas para a cobrança. */
+  listInvoicesByPayment(paymentId: string) {
+    return this.request<AsaasListResponse<{ id: string; status?: string; number?: string; pdfUrl?: string; xmlUrl?: string; invoiceUrl?: string }>>(`/invoices?payment=${encodeURIComponent(paymentId)}`);
   }
 }

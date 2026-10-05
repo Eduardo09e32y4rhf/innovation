@@ -135,3 +135,17 @@ export class ReleaseAccessDto extends ReasonDto {
   @IsIn(['TRUST', 'RECEIVED'])
   method!: 'TRUST' | 'RECEIVED';
 }
+
+/** Pedido de reembolso feito pelo cliente (abre chamado). */
+export class RefundRequestDto {
+  @IsString()
+  @Length(10, 500)
+  reason!: string;
+}
+
+/** Cancelamento da assinatura pelo administrador da empresa. */
+export class CompanyCancelDto {
+  @IsString()
+  @Length(5, 300)
+  reason!: string;
+}

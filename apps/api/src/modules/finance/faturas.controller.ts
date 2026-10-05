@@ -9,9 +9,10 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { FaturasPermissionGuard, RequireFaturasPermission } from '../../common/permissions/require-faturas-permission';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ListPlatformInvoicesDto } from './dto/platform-finance.dto';
-import { ActivateSubscriptionDto, ReleaseAccessDto, ApplyCouponDto, CompanyChangePlanDto, CompanyChangeSeatsDto, AttachFiscalDto, CancelSubscriptionDto, CancelInvoiceDto, ChangePlanDto, ChangeSeatsDto, DiscountInvoiceDto, FreeDaysDto, FullRefundDto, ListFaturasCompaniesDto, PartialRefundDto, RecurringDiscountDto } from './dto/faturas.dto';
+import { ActivateSubscriptionDto, ReleaseAccessDto, RefundRequestDto, CompanyCancelDto, ApplyCouponDto, CompanyChangePlanDto, CompanyChangeSeatsDto, AttachFiscalDto, CancelSubscriptionDto, CancelInvoiceDto, ChangePlanDto, ChangeSeatsDto, DiscountInvoiceDto, FreeDaysDto, FullRefundDto, ListFaturasCompaniesDto, PartialRefundDto, RecurringDiscountDto } from './dto/faturas.dto';
 import { CreatePlatformInvoiceDto } from './dto/platform-finance.dto';
 import { FaturasAcoesService } from './faturas-acoes.service';
+import { FaturasEmpresaService } from './faturas-empresa.service';
 import { FaturasService } from './faturas.service';
 import { PlatformFinanceService } from './platform-finance.service';
 
@@ -31,6 +32,7 @@ export class FaturasController {
     private readonly service: PlatformFinanceService,
     private readonly faturas: FaturasService,
     private readonly acoes: FaturasAcoesService,
+    private readonly empresa: FaturasEmpresaService,
   ) {}
 
   // ---- Visão da empresa ----
@@ -52,8 +54,45 @@ export class FaturasController {
     return this.service.ensureCompanyOnboardingBilling(companyId, actor);
   }
 
-  // ---- Visão da empresa: trocar plano e usuários (com rateio) ----
-  @Get('empresa/seats/quote')
+  // ---- Visão da empresa: painel estilo banco ----
+  @Get('empresa/resumo')
+  @RequireFaturasPermission('faturas.ver')
+  resumo(@CurrentCompany() companyId: string) {
+    return this.empresa.resumo(companyId);
+  }
+
+  @Get('empresa/planos')
+  @RequireFaturasPermission('faturas.ver')
+  planos(@CurrentCompany() companyId: string) {
+    return this.empresa.planos(companyId);
+  }
+
+  @Get('empresa/invoices/:id/detalhes')
+  @RequireFaturasPermission('faturas.ver')
+  detalhes(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.empresa.detalhes(companyId, id);
+  }
+
+  @Post('empresa/invoices/:id/reembolso')
+  @RequireFaturasPermission('faturas.pagar')
+  pedirReembolso(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: RefundRequestDto) {
+    return this.empresa.pedirReembolso(companyId, id, dto.reason, actor);
+  }
+
+  @Post('empresa/cancelar-assinatura')
+  @RequireFaturasPermission('faturas.plano')
+  cancelarAssinatura(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CompanyCancelDto) {
+    return this.acoes.cancelSubscription(companyId, 'END_OF_CYCLE', dto.reason, actor);
+  }
+
+  /** Link do Mercado Pago gerado manualmente pela equipe (o padrão é sempre o Asaas). */
+  @Post('plataforma/invoices/:id/mercadopago')
+  @RequireFaturasPermission('faturas.cobrar')
+  manualMercadoPago(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.createManualMercadoPagoLink(id, actor);
+  }
+
+  // ---- Visão da empresa: trocar plano e usuários (com rateio) ----  @Get('empresa/seats/quote')
   @RequireFaturasPermission('faturas.plano')
   companySeatsQuote(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Query('seatQuantity') seatQuantity: string) {
     return this.acoes.quoteSeats(companyId, Number(seatQuantity), actor);

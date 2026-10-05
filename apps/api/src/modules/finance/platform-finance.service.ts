@@ -1340,6 +1340,28 @@ export class PlatformFinanceService {
       dueDate: new Date(dto.dueDate), payerEmail: company.users[0]?.email,
     });
   }
+  /**
+   * Link do Mercado Pago gerado SOB DEMANDA pela equipe (quando o Asaas falha ou o cliente não consegue pagar por ele).
+   * Nunca é usado automaticamente: o provedor padrão de cobrança é o Asaas.
+   */
+  async createManualMercadoPagoLink(id: string, actor?: JwtUser) {
+    if (!this.mercadoPago.isConfigured()) throw new BadRequestException('O Mercado Pago não está configurado (MERCADOPAGO_ACCESS_TOKEN).');
+    const invoice = await this.findActive(id);
+    if (invoice.status !== 'OPEN' && invoice.status !== 'OVERDUE') throw new BadRequestException('Só é possível gerar link para fatura aberta ou vencida.');
+    const admin = await this.prisma.user.findFirst({ where: { companyId: invoice.companyId, role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, select: { email: true } });
+    const preference = await this.mercadoPago.createCheckoutPreference({
+      title: invoice.description || 'Mensalidade Innovation RH', amount: Number(invoice.amount), externalReference: `inv:${invoice.id}`, payerEmail: admin?.email,
+    });
+    const url = this.mercadoPago.mode() === 'sandbox' ? preference.sandbox_init_point ?? preference.init_point : preference.init_point;
+    if (!url) throw new BadRequestException('O Mercado Pago não devolveu o link de pagamento.');
+    const updated = await this.prisma.platformInvoice.update({
+      where: { id }, data: { provider: 'MERCADOPAGO', invoiceUrl: url, mpPreferenceId: preference.id },
+      include: { company: { select: { id: true, name: true } }, plan: { select: { id: true, name: true } } },
+    });
+    await this.audit(invoice.companyId, 'INVOICE_MANUAL_MERCADOPAGO_LINK', { invoiceId: id, previousProvider: invoice.provider ?? 'ASAAS' }, actor, 'Billing', id);
+    return updated;
+  }
+
   async update(id: string, dto: UpdatePlatformInvoiceDto) {
     const invoice = await this.findActive(id);
     if (invoice.status === 'PAID' && (dto.amount !== undefined || dto.dueDate !== undefined)) {

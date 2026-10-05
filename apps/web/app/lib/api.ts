@@ -202,7 +202,7 @@ function makeQuery(input: object) {
 
 export type EmployeeStatus = 'ACTIVE' | 'ONBOARDING' | 'INACTIVE' | 'SUSPENDED' | 'TERMINATED';
 export type VacationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
-export type UserRole = 'DEV' | 'CEO' | 'CONTABIL' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
+export type UserRole = 'DEV' | 'CEO' | 'CONTABIL' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'RH_RS' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
 export type PunchType = 'ENTRY' | 'LUNCH_START' | 'LUNCH_RETURN' | 'EXIT';
 
 export type ContractType = 'CLT' | 'PJ' | 'ESTAGIO' | 'TEMPORARIO' | 'JOVEM_APRENDIZ' | 'TERCEIRIZADO';
@@ -562,6 +562,25 @@ export interface CompanyBillingResult {
   subscription?: { status: string; seatQuantity: number; pendingSeatQuantity?: number | null; trialEndsAt?: string | null; currentPeriodEnd?: string | null; nextDueDate?: string | null } | null;
   usage?: { users: number; maxUsers: number; employees: number; maxEmployees: number };
 }
+export interface EmpresaResumo {
+  company: { name: string; status: string; billingStatus: string; trialEndsAt?: string | null; suspensionReason?: string | null };
+  plan: { id: string; name: string; description?: string | null; commitmentMonths: number; maxUsers: number; maxEmployees: number; activeModules: string[]; isFree: boolean } | null;
+  subscription: { status: string; seatQuantity: number; pendingSeatQuantity?: number | null; pendingPlanName?: string | null; nextDueDate?: string | null; currentPeriodEnd?: string | null; cancelAt?: string | null; billingPaused: boolean; couponType?: string | null; couponValue?: number | null; couponCyclesLeft?: number | null } | null;
+  pricing: { monthlyTotal: number; discount: number; seatQuantity: number } | null;
+  usage: { users: number; maxUsers: number | null; employees: number; maxEmployees: number | null };
+  invoices: { openCount: number; openTotal: number; overdueCount: number; next: { id: string; amount: number; dueDate: string; status: string; description?: string | null } | null };
+  asaasReady: boolean;
+}
+export interface EmpresaPlano { id: string; name: string; description?: string | null; maxUsers: number; maxEmployees: number; commitmentMonths: number; activeModules: string[]; isFree: boolean; isRecommended?: boolean; monthlyTotal: number | null; current: boolean }
+export interface FaturaDetalhes {
+  invoice: { id: string; description?: string | null; amount: number; dueDate: string; status: string; paidAt?: string | null; billingType: string; provider: string };
+  canPay: boolean;
+  payment: { paymentPageUrl: string | null; bankSlipUrl: string | null; barcode: string | null; pixPayload: string | null; pixQrImage: string | null; pixExpiresAt: string | null } | null;
+  receiptUrl: string | null;
+  fiscal: { number: string | null; pdfUrl: string | null; xmlUrl: string | null } | null;
+  asaasReady: boolean;
+}
+
 export interface PlatformStats { companies: number; users: number; employees: number; messages: number; activeCompanies: number; suspendedCompanies: number; pastDueCompanies: number; }
 export interface AccountingCompanyRow {
   id: string; name: string; document?: string | null; status: string; billingStatus?: string;
@@ -958,7 +977,12 @@ export const api = {
   faturas: {
     empresaStatus: () => request<CompanyBillingResult>('/faturas/empresa/status', { silent: true, keepSessionOn401: true, timeoutMs: 10000 }),
     empresaInvoices: () => request<PlatformInvoice[]>('/faturas/empresa/invoices', { silent: true, keepSessionOn401: true }),
-    empresaCheckout: () => request<CompanyBillingResult>('/faturas/empresa/checkout', { method: 'POST', silent: true, keepSessionOn401: true, timeoutMs: 25000 }),
+    empresaResumo: () => request<EmpresaResumo>('/faturas/empresa/resumo', { silent: true, keepSessionOn401: true, timeoutMs: 20000 }),
+    empresaPlanos: () => request<EmpresaPlano[]>('/faturas/empresa/planos', { silent: true, keepSessionOn401: true }),
+    empresaFaturaDetalhes: (id: string) => request<FaturaDetalhes>(`/faturas/empresa/invoices/${id}/detalhes`, { silent: true, keepSessionOn401: true, timeoutMs: 30000 }),
+    empresaPedirReembolso: (id: string, reason: string) => request<{ ticketNumber: string }>(`/faturas/empresa/invoices/${id}/reembolso`, { method: 'POST', body: { reason } }),
+    empresaCancelar: (reason: string) => request<{ canceled: boolean; cancelAt?: string | null }>('/faturas/empresa/cancelar-assinatura', { method: 'POST', body: { reason } }),
+    manualMercadoPago: (invoiceId: string) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${invoiceId}/mercadopago`, { method: 'POST', timeoutMs: 30000 }),    empresaCheckout: () => request<CompanyBillingResult>('/faturas/empresa/checkout', { method: 'POST', silent: true, keepSessionOn401: true, timeoutMs: 25000 }),
     summary: (query: Pick<PlatformInvoiceQuery, 'from' | 'to' | 'companyId'> = {}) => request<PlatformFinanceSummary>(`/faturas/plataforma/summary${makeQuery(query)}`),
     companies: (query: FaturasCompaniesQuery = {}) => request<FaturasCompanyList>(`/faturas/plataforma/companies${makeQuery(query)}`),
     companyInvoices: (companyId: string) => request<PlatformInvoice[]>(`/faturas/plataforma/companies/${companyId}/invoices`),
