@@ -1,0 +1,5 @@
+
+## 2026-10-05 - Path Traversal Vulnerability in File Storage Services
+**Vulnerability:** Found a CRITICAL Path Traversal vulnerability in `LocalSupportStorageService` and `JobsStorageService` where user-provided keys were concatenated or resolved with a base directory without sanitizing leading slashes (e.g., `key = "/etc/passwd"` overriding `path.resolve`'s base path).
+**Learning:** `path.resolve(basePath, key)` is vulnerable to Path Traversal if the `key` starts with a slash `/`, because it treats it as an absolute path and discards `basePath`. The subsequent check `target.startsWith(basePath)` can be bypassed or might not catch it if not implemented carefully (as seen in `LocalSupportStorageService` which entirely lacked this verification and relied only on `path.join`).
+**Prevention:** To prevent path traversal, you must first sanitize the key by removing leading slashes (e.g., `key.replace(/^\/+/, '')`) before passing it to `path.resolve`. Furthermore, you must always verify that the resulting resolved path strictly starts with the base path appended with `path.sep`.
