@@ -13,8 +13,7 @@ import type { UserRole } from '../../common/types/auth.types';
 import { UsersRepository } from './users.repository';
 
 // SEGURANCA: e-mail do DEV proprietario da plataforma — definido via variavel de ambiente
-const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
-const PLATFORM_OWNER_USER_ID = process.env.PLATFORM_OWNER_USER_ID ?? '';
+import { isOwnerTargetedByOther, isPlatformOwner as isOwner } from '../../common/constants/platform-owner';
 
 const VALID_PERMISSIONS = [
   'users.manage_employees',
@@ -507,6 +506,7 @@ export class UsersService {
 
   private canAccessUser(actor: JwtUser, user?: { role?: string } | null) {
     if (!user) return false;
+    if (isOwnerTargetedByOther(actor, user as any)) return false;
     if (actor?.role === 'DEV') return true;
     if (['DEV', 'CEO', 'CONTABIL', 'COMERCIAL'].includes(String(user.role || '').toUpperCase())) {
       return actor.sub === (user as any).id && ['CEO', 'CONTABIL', 'COMERCIAL'].includes(actor.role);
@@ -525,8 +525,6 @@ export class UsersService {
   }
 
   private isPlatformOwner(actor: JwtUser) {
-    if (!actor || actor.role !== 'DEV') return false;
-    if (PLATFORM_OWNER_USER_ID) return actor.sub === PLATFORM_OWNER_USER_ID;
-    return Boolean(PLATFORM_OWNER_EMAIL) && actor.email.toLowerCase() === PLATFORM_OWNER_EMAIL;
+    return Boolean(actor) && actor.role === 'DEV' && isOwner(actor);
   }
 }

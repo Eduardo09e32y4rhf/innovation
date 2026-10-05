@@ -25,6 +25,7 @@ import { MailService } from '../mail/mail.service';
 import { emailVerificationEmail, passwordResetEmail, securityAlertEmail } from '../mail/mail-templates';
 import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
+import { isPlatformOwner } from '../../common/constants/platform-owner';
 
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
@@ -32,7 +33,6 @@ import { PricingService } from '../finance/pricing.service';
 import { checkCouponEligibility, couponDiscount } from '../coupons/coupon-rules';
 
 // SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
-const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
 const LOGIN_DENIED_MESSAGE = 'Não foi possível entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
 const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
@@ -183,7 +183,7 @@ export class AuthService {
         email: admin.email,
         name: admin.name,
         companyId: admin.companyId,
-        role: this.resolveRole(admin.email, admin.role),
+        role: this.resolveRole(admin),
         customPermissions: admin.customPermissions,
         companyStatus: company.status,
         billingStatus: company.billingStatus,
@@ -208,7 +208,7 @@ export class AuthService {
 
     this.assertNotLocked(user.lockedUntil);
 
-    const role = this.resolveRole(user.email, user.role);
+    const role = this.resolveRole(user);
     if (!this.canAccessCompany(user.company, role)) {
       await this.auditInvalidLogin(dto.email, requestMeta, user.companyId, user.id);
       throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
@@ -231,7 +231,7 @@ export class AuthService {
   /** Conclui o login (senha — e MFA, se houver — já validados): zera tentativas, registra e cria a sessão. */
   private async completeLogin(user: any, requestMeta?: RequestMeta) {
     if (user.failedLoginAttempts > 0 || user.lockedUntil) await this.repository.resetFailedLogins(user.id);
-    const role = this.resolveRole(user.email, user.role);
+    const role = this.resolveRole(user);
 
     // Histórico de acessos: cada login fica registrado com IP e dispositivo.
     void this.repository.createAuditLog({
@@ -297,7 +297,7 @@ export class AuthService {
     const user = await this.repository.findUserById(payload.sub);
     if (!user || !user.isActive || Number(payload.pwd) !== new Date(user.passwordChangedAt).getTime()) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     this.assertNotLocked(user.lockedUntil);
-    const role = this.resolveRole(user.email, user.role);
+    const role = this.resolveRole(user);
     if (!this.canAccessCompany(user.company, role)) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
 
     const ok = await this.mfa.verifyLogin(user.id, { code: dto.code, recoveryCode: dto.recoveryCode });
@@ -315,7 +315,7 @@ export class AuthService {
     if (rotated.status !== 'ok') throw new UnauthorizedException({ code: 'SESSION_EXPIRED', message: 'Sessao expirada. Entre novamente.' });
 
     const user = await this.repository.findUserById(rotated.userId);
-    const role = user ? this.resolveRole(user.email, user.role) : null;
+    const role = user ? this.resolveRole(user) : null;
     if (!user || !user.isActive || !role || !this.canAccessCompany(user.company, role)) {
       await this.sessions.revokeFamily(rotated.userId, rotated.family);
       throw new UnauthorizedException({ code: 'SESSION_EXPIRED', message: 'Sessao expirada. Entre novamente.' });
@@ -348,7 +348,7 @@ export class AuthService {
     if (!fresh) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     void this.repository.createAuditLog({ companyId: fresh.companyId, userId: fresh.id, action: 'MFA_ENABLED', entity: 'User', entityId: fresh.id, metadata: {}, ipAddress: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent }).catch(() => undefined);
     // Novo access token sem a limitação "mfaPending"; a sessão atual (cookie) é mantida.
-    const role = this.resolveRole(fresh.email, fresh.role);
+    const role = this.resolveRole(fresh);
     const auth = await this.buildAuthResponse(this.payloadFor(fresh, role), this.passwordChangeRequired(fresh), requestMeta, refreshToken);
     return { ...auth, recoveryCodes };
   }
@@ -380,7 +380,7 @@ export class AuthService {
   async requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
     const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
     if (!user || !user.isActive) return { requested: true };
-    const role = this.resolveRole(user.email, user.role);
+    const role = this.resolveRole(user);
     if (!this.canAccessCompany(user.company, role)) return { requested: true };
 
     const { randomBytes } = await import('node:crypto');
@@ -487,7 +487,7 @@ export class AuthService {
 
     const user = await this.repository.findUserById(payload.sub);
     if (!user || !user.isActive) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
-    const role = this.resolveRole(user.email, user.role);
+    const role = this.resolveRole(user);
     if (!this.canAccessCompany(user.company, role)) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     if (Number(payload.passwordChangedAt) !== new Date(user.passwordChangedAt).getTime()) throw new UnauthorizedException('Token invalido ou expirado');
 
@@ -524,7 +524,7 @@ export class AuthService {
   async me(user: JwtUser) {
     const freshUser = await this.repository.findUserById(user.sub);
     if (!freshUser || !freshUser.isActive) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
-    const role = this.resolveRole(freshUser.email, freshUser.role);
+    const role = this.resolveRole(freshUser);
     if (!this.canAccessCompany(freshUser.company, role)) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     return {
       sub: freshUser.id,
@@ -652,8 +652,8 @@ export class AuthService {
       throw new BadRequestException('A senha precisa ter no minimo 10 caracteres, letra maiuscula, minuscula, numero e simbolo');
     }
   }
-  private resolveRole(email: string, role: UserRole): UserRole {
-    return email.toLowerCase() === PLATFORM_OWNER_EMAIL ? 'DEV' : role;
+  private resolveRole(user: { id: string; email: string; role: UserRole }): UserRole {
+    return isPlatformOwner(user) ? 'DEV' : user.role;
   }
 
   private canAccessCompany(company: { status?: string; billingStatus?: string } | null | undefined, role: UserRole) {

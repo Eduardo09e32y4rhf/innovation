@@ -10,7 +10,7 @@ import { UpdatePlatformCompanyUserDto } from './dto/update-platform-company-user
 import { PlatformRepository } from './platform.repository';
 
 // SEGURANCA: e-mail do DEV proprietario da plataforma, definido via variavel de ambiente
-const PLATFORM_OWNER_EMAIL = (process.env.PLATFORM_OWNER_EMAIL ?? '').toLowerCase();
+import { isOwnerTargetedByOther, isPlatformOwner } from '../../common/constants/platform-owner';
 const PROTECTED_PLATFORM_ROLES = ['DEV', 'COMERCIAL'];
 
 import { NotificationsService } from '../notifications/notifications.service';
@@ -376,7 +376,7 @@ export class PlatformService {
     this.assertCompanyUserRoleAllowed(actor, dto.role);
     const current = await this.repository.findCompanyUser(companyId, userId);
     if (!current) throw new NotFoundException('Usuario nao encontrado');
-    this.assertCanTouchTargetUser(actor, current.role);
+    this.assertCanTouchTargetUser(actor, current.role, current);
 
     const { password, name, email, ...rest } = dto;
     const result = await this.repository.updateWithEmployeeSync(companyId, userId, {
@@ -417,7 +417,7 @@ export class PlatformService {
     await this.assertCanManageCompanyUsers(actor, companyId);
     const current = await this.repository.findCompanyUser(companyId, userId);
     if (!current) throw new NotFoundException('Usuario nao encontrado');
-    this.assertCanTouchTargetUser(actor, current.role);
+    this.assertCanTouchTargetUser(actor, current.role, current);
     const result = await this.repository.deactivateWithEmployeeSync(companyId, userId);
     if (!result.count || !result.user) throw new NotFoundException('Usuario nao encontrado');
 
@@ -460,7 +460,7 @@ export class PlatformService {
 
   private assertCompanyUserRoleAllowed(actor: JwtUser, nextRole?: string) {
     if (!nextRole) return;
-    if (PROTECTED_PLATFORM_ROLES.includes(nextRole) && actor.email.toLowerCase() !== PLATFORM_OWNER_EMAIL) {
+    if (PROTECTED_PLATFORM_ROLES.includes(nextRole) && !isPlatformOwner(actor)) {
       throw new ForbiddenException('Apenas o dono da plataforma pode criar Super Admin ou Comercial.');
     }
     if (actor.role === 'COMERCIAL' && PROTECTED_PLATFORM_ROLES.includes(nextRole)) {
@@ -468,8 +468,9 @@ export class PlatformService {
     }
   }
 
-  private assertCanTouchTargetUser(actor: JwtUser, targetRole: string) {
-    if (actor.email.toLowerCase() === PLATFORM_OWNER_EMAIL) return;
+  private assertCanTouchTargetUser(actor: JwtUser, targetRole: string, target?: { id?: string; email?: string | null }) {
+    if (isOwnerTargetedByOther(actor, target)) throw new ForbiddenException('O dono da plataforma nao pode ser alterado por outro usuario.');
+    if (isPlatformOwner(actor)) return;
     if (PROTECTED_PLATFORM_ROLES.includes(targetRole)) {
       throw new ForbiddenException('Perfil protegido nao pode ser alterado por este usuario.');
     }
