@@ -9,7 +9,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { FaturasPermissionGuard, RequireFaturasPermission } from '../../common/permissions/require-faturas-permission';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ListPlatformInvoicesDto } from './dto/platform-finance.dto';
-import { ActivateSubscriptionDto, ApplyCouponDto, CompanyChangePlanDto, CompanyChangeSeatsDto, AttachFiscalDto, CancelSubscriptionDto, CancelInvoiceDto, ChangePlanDto, ChangeSeatsDto, DiscountInvoiceDto, FreeDaysDto, FullRefundDto, ListFaturasCompaniesDto, PartialRefundDto, RecurringDiscountDto } from './dto/faturas.dto';
+import { ActivateSubscriptionDto, ReleaseAccessDto, ApplyCouponDto, CompanyChangePlanDto, CompanyChangeSeatsDto, AttachFiscalDto, CancelSubscriptionDto, CancelInvoiceDto, ChangePlanDto, ChangeSeatsDto, DiscountInvoiceDto, FreeDaysDto, FullRefundDto, ListFaturasCompaniesDto, PartialRefundDto, RecurringDiscountDto } from './dto/faturas.dto';
 import { CreatePlatformInvoiceDto } from './dto/platform-finance.dto';
 import { FaturasAcoesService } from './faturas-acoes.service';
 import { FaturasService } from './faturas.service';
@@ -226,5 +226,12 @@ export class FaturasController {
   @RequireFaturasPermission('faturas.cobrar')
   activateSubscription(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Body() dto: ActivateSubscriptionDto) {
     return this.acoes.activateSubscription(companyId, dto, actor);
+  }
+
+  /** Libera o acesso de uma empresa bloqueada por pendência (confiança ou pagamento recebido por outro meio). */
+  @Post('plataforma/companies/:companyId/liberar-acesso')
+  @RequireFaturasPermission('faturas.cobrar')
+  releaseAccess(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Body() dto: ReleaseAccessDto) {
+    return this.acoes.releaseAccess(companyId, dto.method, dto.reason, actor);
   }
 }

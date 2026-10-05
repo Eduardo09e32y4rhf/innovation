@@ -46,7 +46,7 @@ describe('describeAudit', () => {
   it('traduz escrita genérica do interceptor com os campos enviados', () => {
     const item = describeAudit(row({ action: 'PATCH /employees/:id', entity: 'Employees', metadata: { path: '/api/employees/9f1d1c1e-0000-4000-8000-000000000000', body: { position: 'Analista', department: 'TI', nested: { x: 1 } } } }), 'u1');
     expect(item.type).toBe('CHANGE');
-    expect(item.title).toBe('Alterou em Funcionários');
+    expect(item.title).toBe('Alterou o cadastro de um funcionário');
     expect(item.changes.map((c) => c.field)).toEqual(['Cargo', 'Departamento']);
   });
 });

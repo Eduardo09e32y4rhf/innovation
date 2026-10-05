@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { reportError } from '../observability';
+import { fieldLabel } from './friendly-validation';
 
 export interface MappedError {
   status: number;
@@ -10,18 +11,36 @@ export interface MappedError {
 
 const PRISMA_FIELD = (meta: any) => {
   const target = meta?.target;
-  const fields = Array.isArray(target) ? target.join(', ') : typeof target === 'string' ? target : '';
+  const list = (Array.isArray(target) ? target : typeof target === 'string' ? [target] : []).filter((f: string) => f !== 'companyId');
+  const fields = list.map((f: string) => fieldLabel(String(f))).join(', ');
   return fields ? ` (${fields})` : '';
 };
+
+/** Troca mensagens padrão do framework (em inglês/técnicas) por frases que o cliente entende. */
+function friendlyGeneric(status: number, message: string): string {
+  const m = message.trim().toLowerCase();
+  if (m === 'unauthorized' || m === 'unauthorized exception') return 'Sua sessão expirou. Entre novamente para continuar.';
+  if (m === 'forbidden' || m === 'forbidden resource') return 'Você não tem permissão para fazer isso. Fale com o administrador da sua empresa.';
+  if (m === 'not found' || m.startsWith('cannot ')) return 'Não encontramos o que você procurou.';
+  if (m === 'bad request') return 'Não foi possível concluir. Confira os dados informados.';
+  if (m === 'conflict') return 'Essa informação já existe ou está em uso.';
+  if (m === 'internal server error') return 'Algo deu errado do nosso lado. Tente novamente em instantes.';
+  if (m === 'service unavailable') return 'O serviço está temporariamente indisponível. Tente novamente em instantes.';
+  return message;
+}
 
 /** Converte qualquer exceção em resposta HTTP previsível: nunca devolve 500 por erro de dados do cliente. */
 export function mapException(exception: unknown): MappedError {
   if (exception instanceof HttpException) {
     const status = exception.getStatus();
     const response = exception.getResponse();
-    if (typeof response === 'string') return { status, body: { message: response }, log: status >= 500 };
+    if (status === 429) {
+      return { status, body: { message: 'Você fez muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo. Isso vale só para a sua conta; os demais usuários não são afetados.', code: 'TOO_MANY_ATTEMPTS' }, log: false };
+    }
+    if (typeof response === 'string') return { status, body: { message: friendlyGeneric(status, response) }, log: status >= 500 };
     const { message, ...rest } = response as Record<string, any>;
-    return { status, body: { message: message ?? exception.message, ...rest }, log: status >= 500 };
+    const text = typeof message === 'string' ? friendlyGeneric(status, message) : message ?? exception.message;
+    return { status, body: { message: text, ...rest }, log: status >= 500 };
   }
 
   const error = exception as { code?: string; name?: string; message?: string; meta?: any; statusCode?: number; status?: number };
@@ -73,7 +92,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       requestId = randomBytes(4).toString('hex');
       const detail = exception instanceof Error ? exception.stack ?? exception.message : String(exception);
       this.logger.error(`[${requestId}] ${request?.method} ${request?.url} -> ${mapped.status}\n${detail}`);
-      mapped.body.message = `Erro interno. Informe o código ${requestId} ao suporte se persistir.`;
+      mapped.body.message = `Algo deu errado do nosso lado. Tente novamente; se continuar, informe o código ${requestId} ao suporte.`;
       mapped.body.requestId = requestId;
       reportError(exception, { requestId, method: request?.method, url: request?.url });
     } else if (mapped.log) {

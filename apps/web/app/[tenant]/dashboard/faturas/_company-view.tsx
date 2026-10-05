@@ -91,6 +91,27 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
     }
   }
 
+  const [generating, setGenerating] = useState(false);
+  async function generate() {
+    setGenerating(true);
+    try {
+      const result = await api.faturas.empresaCheckout();
+      toast.success(result.invoice ? 'Fatura gerada.' : 'Sua conta está em dia. Não há nada a pagar agora.');
+      await load();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Não foi possível gerar a fatura. Tente novamente.');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  const EMPTY: Record<Tab, string> = {
+    abertas: 'Nenhuma fatura em aberto. Está tudo em dia.',
+    pagas: 'Ainda não há faturas pagas.',
+    comprovantes: 'Os comprovantes aparecem aqui depois do primeiro pagamento.',
+    notas: 'As notas fiscais aparecem aqui quando forem emitidas.',
+  };
+
   return (
     <div className="space-y-4 p-3 sm:p-5 lg:p-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -165,7 +186,7 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
                   {rowActions && <td className="p-3 text-right">{rowActions(invoice)}</td>}
                 </tr>
               ))}
-              {!rows.length && <tr><td colSpan={rowActions ? 6 : 5} className="p-6 text-center text-fg-mut">Nada por aqui ainda.</td></tr>}
+              {!rows.length && <tr><td colSpan={rowActions ? 6 : 5} className="p-6 text-center text-fg-mut">{EMPTY[tab]}{tab === 'abertas' && canPay && !companyId && <div className="mt-3"><button type="button" disabled={generating} onClick={() => void generate()} className="btn btn-primary text-sm">{generating ? 'Gerando...' : 'Gerar fatura do mês'}</button></div>}</td></tr>}
             </tbody>
           </table>
         </section>

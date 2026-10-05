@@ -110,7 +110,7 @@ function FaturaPendentePage() {
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-brand-400)]">Innovation RH</p>
         <h1 className="mt-2 text-2xl font-black text-white">{isAdmin ? 'Regularize para liberar o acesso' : 'Acesso temporariamente bloqueado'}</h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-400">
-          {isAdmin ? 'A empresa está aguardando a confirmação da assinatura. Assim que o Asaas confirmar o pagamento, o acesso será liberado automaticamente.' : 'A assinatura da empresa está em atraso. Procure o administrador ou o RH para regularizar o pagamento.'}
+          {isAdmin ? 'A empresa está aguardando a confirmação da assinatura. Assim que o Asaas confirmar o pagamento, o acesso será liberado automaticamente.' : 'O acesso da sua empresa está suspenso por uma pendência de pagamento. Avise o administrador da empresa: assim que ele pagar, tudo volta a funcionar.'}
         </p>
 
         {isAdmin ? (
@@ -154,7 +154,7 @@ function FaturaPendentePage() {
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500"><ShieldCheck size={14} className="text-[var(--color-brand-500)]" /> Pagamento processado no ambiente seguro do Asaas</div>
           </div>
         ) : (
-          <p className="mt-7 rounded-[var(--radius-md)] border border-white/10 bg-white/5 p-4 text-sm text-slate-300">Solicite ao administrador da empresa a regularização da assinatura.</p>
+          <p className="mt-7 rounded-[var(--radius-md)] border border-white/10 bg-white/5 p-4 text-sm text-slate-300">Nada para fazer por aqui: apenas o administrador consegue regularizar o pagamento.</p>
         )}
 
         <button onClick={logout} className="mt-6 inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-white"><LogOut size={15} /> Sair da conta</button>

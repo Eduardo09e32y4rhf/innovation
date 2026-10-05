@@ -9,6 +9,7 @@ import { initSentry } from './common/observability';
 initSentry();
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { friendlyValidationFactory } from './common/filters/friendly-validation';
 import { NoCacheInterceptor } from './common/interceptors/no-cache.interceptor';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
@@ -95,6 +96,7 @@ async function bootstrap() {
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
+      exceptionFactory: friendlyValidationFactory,
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());

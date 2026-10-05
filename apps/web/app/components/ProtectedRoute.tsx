@@ -113,11 +113,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     if (!loading && isAuthenticated && user && user.profile?.toUpperCase() !== 'DEV' && user.role?.toUpperCase() !== 'DEV') {
       const mustPay = user.companyStatus === 'SUSPENDED' || user.companyStatus === 'CANCELLED' || user.billingStatus === 'CANCELED' || user.billingStatus === 'PENDING_PAYMENT';
       const isAdmin = user.profile?.toUpperCase() === 'ADMIN' || user.role?.toUpperCase() === 'ADMIN';
+      const slug = company?.slug || company?.id || user.companyId;
+      const path = window.location.pathname;
       if (mustPay && !isAdmin) {
-        const slug = company?.slug || company?.id || user.companyId;
-        if (!window.location.pathname.includes('/fatura-pendente')) {
-          router.replace(`/${slug}/fatura-pendente`);
-        }
+        if (!path.includes('/fatura-pendente')) router.replace(`/${slug}/fatura-pendente`);
+      } else if (mustPay && isAdmin) {
+        // Administrador com pendência: o único lugar liberado é Faturas.
+        if (!path.includes('/fatura-pendente') && !path.includes('/dashboard/faturas')) router.replace(`/${slug}/dashboard/faturas`);
       }
     }
   }, [isAuthenticated, loading, router, user, company]);

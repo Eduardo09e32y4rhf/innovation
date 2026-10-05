@@ -333,13 +333,26 @@ export class PlatformFinanceService {
     }
 
     if (amount <= 0) return { active: true, paymentUrl: null, invoice: null };
-    if (activeProvider === 'MERCADOPAGO') return this.ensureMercadoPagoOnboarding(company, amount, actor);
-    if (!this.asaas.isConfigured()) {
-      throw new BadRequestException('A integracao Asaas nao esta configurada.');
+    const providerReady = activeProvider === 'MERCADOPAGO' ? this.mercadoPago.isConfigured() : this.asaas.isConfigured();
+    const hasBillingData = Boolean(company.document && company.users[0]);
+    if (!providerReady || (activeProvider !== 'MERCADOPAGO' && !hasBillingData)) {
+      // Sem provedor de pagamento (ou sem dados de cobrança): a fatura é gerada localmente e a empresa não é
+      // bloqueada por algo que ela não tem como pagar. O financeiro acompanha e dá baixa manualmente.
+      const open = await this.prisma.platformInvoice.findFirst({
+        where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] } },
+        orderBy: { createdAt: 'desc' },
+      });
+      const invoice = open ?? await this.prisma.platformInvoice.create({
+        data: {
+          companyId, planId: plan.id, description: `Mensalidade ${plan.name} - ${company.name}`, amount,
+          dueDate: new Date(Date.now() + 5 * 86_400_000), billingType: 'UNDEFINED', status: 'OPEN',
+        },
+      });
+      await this.audit(company.id, 'ONBOARDING_LOCAL_INVOICE', { amount, invoiceId: invoice.id, providerReady, hasBillingData }, actor, 'Billing', invoice.id);
+      return { active: true, paymentUrl: invoice.invoiceUrl ?? null, invoice, paymentPending: true };
     }
-    if (!company.document) throw new BadRequestException('CPF ou CNPJ da empresa e obrigatorio para cobrar.');
+    if (activeProvider === 'MERCADOPAGO') return this.ensureMercadoPagoOnboarding(company, amount, actor);
     const admin = company.users[0];
-    if (!admin) throw new BadRequestException('A empresa nao possui administrador ativo.');
 
     const customerId = await this.ensureAsaasCustomer(company, admin);
 
@@ -1264,14 +1277,28 @@ export class PlatformFinanceService {
   async create(dto: CreatePlatformInvoiceDto) {
     const company = await this.prisma.company.findUnique({
       where: { id: dto.companyId },
-      select: { id: true, name: true, asaasCustomerId: true },
+      select: {
+        id: true, name: true, legalName: true, document: true, phone: true, asaasCustomerId: true, subscription: true,
+        users: { where: { role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, take: 1 },
+      },
     });
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
+    if (!(Number(dto.amount) > 0)) throw new BadRequestException('Informe um valor maior que zero para a fatura.');
+    if (Number.isNaN(new Date(dto.dueDate).getTime())) throw new BadRequestException('Informe um vencimento válido.');
 
     let payment: AsaasPayment | undefined;
-    if (dto.sendToAsaas && this.asaas.isConfigured() && company.asaasCustomerId) {
+    let customerId: string | null | undefined = company.asaasCustomerId;
+    // Empresa ainda sem cadastro no Asaas: cria o cliente na hora em vez de gerar fatura sem link de pagamento.
+    if (dto.sendToAsaas && this.asaas.isConfigured() && !customerId && company.document && company.users[0]) {
       try {
-        payment = await this.asaas.createCharge(company.asaasCustomerId, {
+        customerId = await this.ensureAsaasCustomer(company, company.users[0]);
+      } catch (err) {
+        this.logger.warn(`Falha ao cadastrar cliente no Asaas, registrando fatura localmente: ${String(err)}`);
+      }
+    }
+    if (dto.sendToAsaas && this.asaas.isConfigured() && customerId) {
+      try {
+        payment = await this.asaas.createCharge(customerId, {
           value: dto.amount,
           dueDate: dto.dueDate.slice(0, 10),
           description: dto.description,
@@ -1302,7 +1329,7 @@ export class PlatformFinanceService {
 
   /** Cobrança avulsa pelo provedor ativo: no Mercado Pago gera o link de checkout; no Asaas usa o fluxo padrão. */
   async createCharge(dto: CreatePlatformInvoiceDto) {
-    if ((await this.providers.active()) !== 'MERCADOPAGO') return this.create(dto);
+    if ((await this.providers.active()) !== 'MERCADOPAGO' || !this.mercadoPago.isConfigured()) return this.create(dto);
     const company = await this.prisma.company.findUnique({
       where: { id: dto.companyId },
       select: { id: true, users: { where: { role: 'ADMIN', isActive: true }, select: { email: true }, take: 1 } },

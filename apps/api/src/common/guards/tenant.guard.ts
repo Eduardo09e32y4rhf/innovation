@@ -31,7 +31,8 @@ export class TenantGuard implements CanActivate {
 
     const path = String(request.url || request.raw?.url || '');
     const isAuthRoute = path.startsWith('/auth/');
-    const isFinanceRoute = path.startsWith('/finance/');
+    // A aba Faturas (empresa) e a consulta de permissões precisam funcionar justamente para regularizar a assinatura.
+    const isFinanceRoute = path.startsWith('/finance/') || path.startsWith('/faturas/empresa') || path.startsWith('/faturas/permissoes/minhas');
 
     if (user.role === 'ADMIN' || user.role === 'DEV') {
       if (isAuthRoute) return true; // Pode sempre fazer logout ou login

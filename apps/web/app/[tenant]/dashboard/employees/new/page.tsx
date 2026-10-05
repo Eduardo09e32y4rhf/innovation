@@ -160,6 +160,19 @@ const TABS = ['Dados pessoais', 'Documentos', 'Endereço', 'Dados profissionais'
 
 type TabName = (typeof TABS)[number];
 
+const FIELD_TAB: Record<string, TabName> = {
+  name: 'Dados pessoais', email: 'Dados pessoais', phone: 'Dados pessoais', birthDate: 'Dados pessoais', secondaryPhone: 'Dados pessoais', gender: 'Dados pessoais', maritalStatus: 'Dados pessoais', motherName: 'Dados pessoais', fatherName: 'Dados pessoais',
+  cpf: 'Documentos', rg: 'Documentos', rgIssuer: 'Documentos', rgState: 'Documentos', rgIssueDate: 'Documentos', pis: 'Documentos',
+  cep: 'Endereço', street: 'Endereço', streetNumber: 'Endereço', neighborhood: 'Endereço', city: 'Endereço', state: 'Endereço',
+  position: 'Dados profissionais', department: 'Dados profissionais', admissionDate: 'Dados profissionais', registration: 'Dados profissionais', managerId: 'Dados profissionais',
+  workScale: 'Jornada', dailyWorkload: 'Jornada', standardEntry: 'Jornada', standardExit: 'Jornada', standardLunchStart: 'Jornada', standardLunchReturn: 'Jornada',
+  bankName: 'Dados bancários', bankAgency: 'Dados bancários', bankAccount: 'Dados bancários',
+  salary: 'Contrato e acesso', contractType: 'Contrato e acesso', cnpj: 'Contrato e acesso', legalName: 'Contrato e acesso', accessProfile: 'Contrato e acesso',
+};
+const FIELD_LABEL: Record<string, string> = {
+  name: 'Nome completo', email: 'E-mail', admissionDate: 'Data de admissão', salary: 'Salário (R$)', cpf: 'CPF', cep: 'CEP', cnpj: 'CNPJ',
+};
+
 interface Dependent {
   key?: string;
   nome: string;
@@ -235,21 +248,16 @@ function EmployeeForm() {
     const request = ++cnpjRequest.current;
     setLookupStatus(previous => ({ ...previous, cnpj: 'Consultando CNPJ…' }));
     try {
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
+      const data = await api.lookup.cnpj(cleanCnpj);
       if (request !== cnpjRequest.current) return;
-      if (res.ok) {
-        const data = await res.json();
-        setForm((prev) => ({
-          ...prev,
-          legalName: data.razao_social || prev.legalName,
-          tradeName: data.nome_fantasia || prev.tradeName,
-        }));
-        setLookupStatus(previous => ({ ...previous, cnpj: 'CNPJ consultado. Confira os dados preenchidos.' }));
-      } else {
-        throw new Error('CNPJ não encontrado. Preencha os dados manualmente.');
-      }
-    } catch {
-      if (request === cnpjRequest.current) setLookupStatus(previous => ({ ...previous, cnpj: 'Não foi possível consultar o CNPJ. Preencha os dados manualmente.' }));
+      setForm((prev) => ({
+        ...prev,
+        legalName: data.legalName || prev.legalName,
+        tradeName: data.tradeName || prev.tradeName,
+      }));
+      setLookupStatus(previous => ({ ...previous, cnpj: 'CNPJ consultado. Confira os dados preenchidos.' }));
+    } catch (error) {
+      if (request === cnpjRequest.current) setLookupStatus(previous => ({ ...previous, cnpj: error instanceof Error && error.message ? error.message : 'Não foi possível consultar o CNPJ. Preencha os dados manualmente.' }));
     }
   }
 
@@ -371,19 +379,16 @@ function EmployeeForm() {
     if (raw.length === 8) {
       setLookupStatus(previous => ({ ...previous, cep: 'Consultando CEP…' }));
       try {
-        const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`);
-        const data = await res.json();
+        const data = await api.lookup.cep(raw);
         if (request !== cepRequest.current) return;
-        if (!data.erro) {
-          set('street', data.logradouro || '');
-          set('neighborhood', data.bairro || '');
-          set('city', data.localidade || '');
-          set('state', data.uf || '');
-          setLookupStatus(previous => ({ ...previous, cep: 'Endereço preenchido. Confira número e complemento.' }));
-        } else {
-          throw new Error('CEP não encontrado.');
-        }
-      } catch { if (request === cepRequest.current) setLookupStatus(previous => ({ ...previous, cep: 'Não foi possível consultar o CEP. Preencha o endereço manualmente.' })); }
+        set('street', data.street || '');
+        set('neighborhood', data.neighborhood || '');
+        set('city', data.city || '');
+        set('state', data.state || '');
+        setLookupStatus(previous => ({ ...previous, cep: 'Endereço preenchido. Confira número e complemento.' }));
+      } catch (error) {
+        if (request === cepRequest.current) setLookupStatus(previous => ({ ...previous, cep: error instanceof Error && error.message ? error.message : 'Não foi possível consultar o CEP. Preencha o endereço manualmente.' }));
+      }
     }
   };
 
@@ -490,8 +495,13 @@ function EmployeeForm() {
     });
     try {
       await save.mutate(payload);
-    } catch {
-      /* erro exibido via save.error */
+    } catch (error) {
+      const fields = (error as { fields?: Array<{ field: string; message: string }> })?.fields;
+      if (fields?.length) {
+        const mapped = fields.map(({ field, message }) => ({ tab: (FIELD_TAB[field] ?? 'Dados pessoais') as TabName, label: FIELD_LABEL[field] ?? field, message: message.replace(/^[^:]+:\s*/, '') }));
+        setIssues(mapped);
+        focusIssue(mapped[0]);
+      }
     }
   }
 

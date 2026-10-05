@@ -25,6 +25,11 @@ export class PrivacyController {
     return this.service.status(user);
   }
 
+  @Get('terms/document')
+  document(@CurrentUser() user: JwtUser) {
+    return this.service.document(user);
+  }
+
   @Post('terms/accept')
   accept(@CurrentUser() user: JwtUser, @Req() request: any, @Body() body: AcceptTermsDto) {
     return this.service.accept(user, getRequestMeta(request), body);

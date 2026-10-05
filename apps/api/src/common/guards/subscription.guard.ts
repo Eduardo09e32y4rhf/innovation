@@ -6,7 +6,7 @@ import { SKIP_SUBSCRIPTION_CHECK_KEY } from '../decorators/skip-subscription-che
 import type { JwtUser } from '../types/auth.types';
 
 /** Rotas que continuam abertas para a empresa regularizar a situação. */
-const ALWAYS_ALLOWED = ['/auth/', '/health', '/finance/company/', '/legal/', '/finance/webhook/'];
+const ALWAYS_ALLOWED = ['/auth/', '/health', '/finance/company/', '/faturas/empresa', '/faturas/permissoes/minhas', '/legal/', '/finance/webhook/'];
 const DAY_MS = 86_400_000;
 
 /**

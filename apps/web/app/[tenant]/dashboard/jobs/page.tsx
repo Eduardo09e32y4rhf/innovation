@@ -1,12 +1,12 @@
 'use client';
 
-import { Briefcase, CalendarClock, Copy, ExternalLink, Pencil, Plus, Search, Settings2, Users } from 'lucide-react';
+import { Briefcase, CalendarClock, Clock, Copy, ExternalLink, Pencil, Plus, Search, Settings2, Sparkles, Trophy, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
-import { Button, ConfirmDialog, PageHeader } from '@/app/components/ui';
+import { Button, ConfirmDialog } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
@@ -57,42 +57,50 @@ export default function JobsPage() {
 
   if (!canAccess) return <div className="p-6"><EmptyState message="Seu perfil não tem acesso ao módulo de vagas." /></div>;
 
+  const accent = { OPEN: 'from-emerald-500 to-teal-500', DRAFT: 'from-amber-400 to-orange-500', CLOSED: 'from-slate-300 to-slate-400' } as const;
+  const kpis = [
+    { label: 'Vagas abertas', value: stats.data?.jobs.open, icon: Briefcase, tone: 'bg-emerald-50 text-emerald-600' },
+    { label: 'Candidaturas em 30 dias', value: stats.data?.applications.last30Days, icon: Users, tone: 'bg-sky-50 text-sky-600' },
+    { label: 'Aguardando análise', value: stats.data?.applications.waitingReview, icon: Clock, tone: 'bg-amber-50 text-amber-600' },
+    { label: 'Contratados', value: stats.data?.applications.byStatus.HIRED, icon: Trophy, tone: 'bg-violet-50 text-violet-600' },
+  ];
+
   return (
-    <div className="mx-auto w-full max-w-[1400px] space-y-5 p-4 sm:p-6">
-      <PageHeader
-        title="Vagas"
-        subtitle="Crie vagas, defina seu próprio processo seletivo e acompanhe cada candidato."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link href={`/carreiras`} target="_blank" className="btn btn-outline btn-md"><ExternalLink size={16} aria-hidden="true" /> Portal de carreiras</Link>
-            {canManage && <Link href={`${base}/settings`} className="btn btn-outline btn-md"><Settings2 size={16} aria-hidden="true" /> Funil e tags</Link>}
-            {canManage && <Link href={`${base}/new`} className="btn btn-primary btn-md"><Plus size={16} aria-hidden="true" /> Nova vaga</Link>}
+    <div className="mx-auto w-full max-w-[1400px] space-y-6 p-4 sm:p-6">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-900 to-teal-700 p-6 text-white shadow-lg sm:p-9">
+        <div aria-hidden="true" className="absolute -right-10 -top-10 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+        <div aria-hidden="true" className="absolute -bottom-16 left-1/3 h-44 w-44 rounded-full bg-teal-300/20 blur-3xl" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest"><Sparkles size={13} aria-hidden="true" /> Recrutamento</p>
+            <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">Encontre as pessoas certas para o seu time</h1>
+            <p className="mt-2 text-sm text-white/80 sm:text-base">Publique vagas, monte seu processo seletivo e acompanhe cada candidato do primeiro contato à contratação.</p>
           </div>
-        }
-      />
+          <div className="flex flex-wrap gap-2">
+            <Link href="/carreiras" target="_blank" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 text-sm font-semibold backdrop-blur hover:bg-white/20"><ExternalLink size={16} aria-hidden="true" /> Portal de carreiras</Link>
+            {canManage && <Link href={`${base}/settings`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 text-sm font-semibold backdrop-blur hover:bg-white/20"><Settings2 size={16} aria-hidden="true" /> Funil e tags</Link>}
+            {canManage && <Link href={`${base}/new`} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-slate-900 shadow hover:bg-slate-100"><Plus size={16} aria-hidden="true" /> Nova vaga</Link>}
+          </div>
+        </div>
+      </section>
 
       <section aria-label="Resumo do recrutamento" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          ['Vagas abertas', stats.data?.jobs.open, Briefcase],
-          ['Candidaturas (30 dias)', stats.data?.applications.last30Days, Users],
-          ['Aguardando análise', stats.data?.applications.waitingReview, CalendarClock],
-          ['Contratados', stats.data?.applications.byStatus.HIRED, Users],
-        ].map(([label, value, Icon]: any) => (
-          <article key={label} className="card-v2 p-4">
-            <div className="flex items-center justify-between text-fg-sub"><p className="text-sm">{label}</p><Icon size={18} aria-hidden="true" /></div>
-            <p className="mt-2 text-2xl font-semibold tabular-nums text-fg">{value ?? '—'}</p>
+        {kpis.map(({ label, value, icon: Icon, tone }) => (
+          <article key={label} className="flex items-center gap-4 rounded-2xl border border-border bg-bg p-4 shadow-sm">
+            <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${tone}`}><Icon size={22} aria-hidden="true" /></span>
+            <div className="min-w-0"><p className="text-2xl font-black tabular-nums text-fg">{value ?? '—'}</p><p className="truncate text-xs font-medium text-fg-sub">{label}</p></div>
           </article>
         ))}
       </section>
 
       {!!stats.data?.nextInterviews.length && (
-        <section aria-label="Próximas entrevistas" className="card-v2 p-4">
-          <h2 className="text-sm font-semibold text-fg">Próximas entrevistas</h2>
-          <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <section aria-label="Próximas entrevistas" className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-indigo-900"><CalendarClock size={16} aria-hidden="true" /> Próximas entrevistas</h2>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {stats.data.nextInterviews.map((item) => (
               <li key={item.id}>
-                <Link href={`${base}/${item.jobId}`} className="block rounded-lg border border-border p-3 text-sm hover:bg-bg-sub">
-                  <p className="font-medium text-fg">{item.candidateName}</p>
+                <Link href={`${base}/${item.jobId}`} className="block rounded-xl border border-indigo-100 bg-white p-3 text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow">
+                  <p className="font-semibold text-fg">{item.candidateName}</p>
                   <p className="text-fg-sub">{item.jobTitle} · {new Date(item.scheduledAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
                 </Link>
               </li>
@@ -101,59 +109,72 @@ export default function JobsPage() {
         </section>
       )}
 
-      <section aria-label="Filtros" className="card-v2 space-y-3 p-4">
-        <div className="relative">
-          <Search size={18} aria-hidden="true" className="pointer-events-none absolute left-3 top-3 text-fg-sub" />
-          <input className="input-v2 !pl-10 w-full text-base sm:text-sm" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por cargo, departamento, local ou contrato" aria-label="Buscar vagas" />
-        </div>
+      <section aria-label="Filtros" className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filtrar por status">
           {([['', 'Todas', counts.all], ['OPEN', 'Abertas', counts.OPEN], ['DRAFT', 'Rascunhos', counts.DRAFT], ['CLOSED', 'Encerradas', counts.CLOSED]] as const).map(([value, label, count]) => (
             <button key={value} type="button" role="tab" aria-selected={status === value} onClick={() => setStatus(value as JobStatus | '')}
-              className={`btn btn-md ${status === value ? 'btn-primary' : 'btn-outline'}`}>{label} ({count})</button>
+              className={`min-h-11 rounded-full px-4 text-sm font-semibold transition ${status === value ? 'bg-slate-900 text-white shadow' : 'border border-border bg-bg text-fg-sub hover:bg-bg-sub'}`}>
+              {label} <span className={`ml-1 rounded-full px-1.5 py-0.5 text-xs ${status === value ? 'bg-white/20' : 'bg-bg-sub'}`}>{count}</span>
+            </button>
           ))}
+        </div>
+        <div className="relative w-full lg:max-w-sm">
+          <Search size={18} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-3 text-fg-sub" />
+          <input className="input-v2 !rounded-full !pl-10 w-full text-base sm:text-sm" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por cargo, local ou contrato" aria-label="Buscar vagas" />
         </div>
       </section>
 
       {jobs.error && <ErrorState message={jobs.error} onRetry={jobs.refetch} />}
       {jobs.loading && !jobs.data ? <LoadingState label="Carregando vagas…" /> : !jobs.data ? null : rows.length === 0 ? (
-        <div className="card-v2 space-y-3 p-10 text-center">
-          <Briefcase className="mx-auto text-fg-sub" size={32} aria-hidden="true" />
-          <p className="font-medium text-fg">Você ainda não tem vagas.</p>
-          <p className="text-sm text-fg-sub">Crie a primeira vaga, monte as perguntas e comece a receber candidaturas pelo portal.</p>
-          {canManage && <Link href={`${base}/new`} className="btn btn-primary btn-md inline-flex"><Plus size={16} aria-hidden="true" /> Criar vaga</Link>}
+        <div className="rounded-3xl border-2 border-dashed border-border p-12 text-center">
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><Briefcase size={30} aria-hidden="true" /></span>
+          <p className="mt-4 text-lg font-bold text-fg">Sua primeira vaga começa aqui</p>
+          <p className="mx-auto mt-1 max-w-md text-sm text-fg-sub">Crie a vaga, monte as perguntas e comece a receber candidaturas pelo portal de carreiras.</p>
+          {canManage && <Link href={`${base}/new`} className="btn btn-primary btn-md mt-5 inline-flex"><Plus size={16} aria-hidden="true" /> Criar vaga</Link>}
         </div>
       ) : filtered.length === 0 ? <EmptyState message="Nenhuma vaga corresponde aos filtros." /> : (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((job) => {
             const total = job._count?.applications ?? 0;
+            const fresh = job.pipeline?.new ?? 0;
+            const inProgress = job.pipeline?.inProgress ?? 0;
+            const rest = Math.max(0, total - fresh - inProgress);
             const expired = job.deadline && new Date(job.deadline) < new Date();
+            const daysLeft = job.deadline ? Math.ceil((new Date(job.deadline).getTime() - Date.now()) / 86_400_000) : null;
+            const details = [job.department, job.location, job.workMode && WORK_MODE_LABEL[job.workMode], job.employmentType && (EMPLOYMENT_TYPE_LABEL[job.employmentType] ?? job.employmentType)].filter(Boolean);
             return (
-              <article key={job.id} className="card-v2 flex flex-col gap-4 p-5">
-                <header className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link href={`${base}/${job.id}`} className="block truncate text-lg font-semibold text-fg hover:underline">{job.title}</Link>
-                    <p className="mt-0.5 text-sm text-fg-sub">
-                      {[job.department, job.location, job.workMode && WORK_MODE_LABEL[job.workMode], job.employmentType && (EMPLOYMENT_TYPE_LABEL[job.employmentType] ?? job.employmentType)].filter(Boolean).join(' · ') || 'Sem detalhes'}
-                    </p>
+              <article key={job.id} className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-bg shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                <div className={`h-1.5 bg-gradient-to-r ${accent[job.status]}`} />
+                <div className="flex flex-1 flex-col gap-4 p-5">
+                  <header className="flex items-start gap-3">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-teal-500 text-lg font-black text-white shadow">{job.title.trim().charAt(0).toUpperCase()}</span>
+                    <div className="min-w-0 flex-1">
+                      <Link href={`${base}/${job.id}`} className="block truncate text-lg font-bold text-fg group-hover:text-indigo-700">{job.title}</Link>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5"><Pill tone={STATUS_TONE[job.status]}>{JOB_STATUS_LABEL[job.status]}</Pill>{fresh > 0 && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">{fresh} novo(s)</span>}</div>
+                    </div>
+                  </header>
+
+                  {details.length > 0 && <div className="flex flex-wrap gap-1.5">{details.map((item) => <span key={String(item)} className="rounded-lg bg-bg-sub px-2 py-1 text-xs font-medium text-fg-sub">{item}</span>)}</div>}
+
+                  <div>
+                    <div className="mb-1.5 flex items-baseline justify-between text-sm"><span className="font-semibold text-fg">{total} candidato(s)</span><span className="text-xs text-fg-sub">{job.openings} vaga(s)</span></div>
+                    <div className="flex h-2 overflow-hidden rounded-full bg-bg-sub" aria-hidden="true">
+                      {total > 0 && <><div className="bg-rose-400" style={{ width: `${(fresh / total) * 100}%` }} /><div className="bg-indigo-400" style={{ width: `${(inProgress / total) * 100}%` }} /><div className="bg-slate-300" style={{ width: `${(rest / total) * 100}%` }} /></>}
+                    </div>
+                    <p className="mt-1.5 text-xs text-fg-sub">{fresh} novos · {inProgress} em processo</p>
                   </div>
-                  <Pill tone={STATUS_TONE[job.status]}>{JOB_STATUS_LABEL[job.status]}</Pill>
-                </header>
 
-                <dl className="grid grid-cols-3 gap-3 text-sm">
-                  <div><dt className="text-fg-sub">Candidatos</dt><dd className="font-semibold tabular-nums">{total}</dd></div>
-                  <div><dt className="text-fg-sub">Novos</dt><dd className="font-semibold tabular-nums">{job.pipeline?.new ?? 0}</dd></div>
-                  <div><dt className="text-fg-sub">Em processo</dt><dd className="font-semibold tabular-nums">{job.pipeline?.inProgress ?? 0}</dd></div>
-                  <div><dt className="text-fg-sub">Remuneração</dt><dd className="font-medium">{salaryLabel(job)}</dd></div>
-                  <div><dt className="text-fg-sub">Vagas</dt><dd className="font-medium">{job.openings}</dd></div>
-                  <div><dt className="text-fg-sub">Aberta há</dt><dd className="font-medium">{daysSince(job.createdAt)} dia(s)</dd></div>
-                </dl>
+                  <div className="mt-auto flex flex-wrap items-center justify-between gap-2 text-xs text-fg-sub">
+                    <span className="font-semibold text-fg">{salaryLabel(job)}</span>
+                    <span>há {daysSince(job.createdAt)} dia(s)</span>
+                  </div>
+                  {job.deadline && <p className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold ${expired ? 'bg-rose-50 text-rose-700' : daysLeft !== null && daysLeft <= 3 ? 'bg-amber-50 text-amber-700' : 'bg-bg-sub text-fg-sub'}`}>{expired ? 'Inscrições encerradas em ' : daysLeft !== null && daysLeft <= 3 ? `Últimos ${Math.max(daysLeft, 0)} dia(s) · até ` : 'Inscrições até '}{new Date(job.deadline).toLocaleDateString('pt-BR')}</p>}
+                </div>
 
-                {job.deadline && <p className={`text-xs ${expired ? 'text-rose-600' : 'text-fg-sub'}`}>{expired ? 'Prazo encerrado em ' : 'Inscrições até '}{new Date(job.deadline).toLocaleDateString('pt-BR')}</p>}
-
-                <footer className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-4">
+                <footer className="flex flex-wrap items-center gap-1.5 border-t border-border bg-bg-sub/40 px-4 py-3">
                   <Link href={`${base}/${job.id}`} className="btn btn-primary btn-sm"><Users size={15} aria-hidden="true" /> Candidatos</Link>
                   {canManage && <Link href={`${base}/${job.id}/edit`} className="btn btn-outline btn-sm"><Pencil size={15} aria-hidden="true" /> Editar</Link>}
-                  <Button size="sm" variant="outline" onClick={() => copy(job)}><Copy size={15} aria-hidden="true" /> Link</Button>
+                  <Button size="sm" variant="outline" onClick={() => copy(job)} aria-label="Copiar link público"><Copy size={15} aria-hidden="true" /></Button>
                   {canManage && (
                     <>
                       <Button size="sm" variant="ghost" isLoading={busyId === job.id} onClick={() => run(job, () => jobsApi.update(job.id, { status: job.status === 'OPEN' ? 'CLOSED' : 'OPEN' }), job.status === 'OPEN' ? 'Vaga encerrada.' : 'Vaga publicada.')}>
@@ -169,7 +190,6 @@ export default function JobsPage() {
           })}
         </div>
       )}
-
       <ConfirmDialog
         isOpen={!!toDelete}
         onClose={() => setToDelete(null)}

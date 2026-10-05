@@ -1,17 +1,37 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { createHash, createSign } from 'crypto';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CURRENT_TERMS_VERSION, TERMS_PURPOSE } from './privacy.constants';
 import { PrivacyRepository } from './privacy.repository';
-import * as PDFDocumentType from 'pdfkit';
+import { buildTermsDocument, formatCnpj, formatCpf, TermsDocument } from './terms-document';
 const PDFDocument = require('pdfkit');
+
+interface SignatureEvidence {
+  signedAt: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+  signature?: string | null;
+}
+
+const brDate = (date: Date) => date.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(/ /g, ' ');
+
+/** Evita que uma dependência lenta (armazenamento, fila) deixe o aceite "carregando" para sempre. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([promise, new Promise<null>((resolve) => setTimeout(() => resolve(null), ms))]);
+}
 
 @Injectable()
 export class PrivacyService {
+  private readonly logger = new Logger(PrivacyService.name);
+
   constructor(
     private readonly repository: PrivacyRepository,
-    @InjectQueue('pdf-generation') private readonly pdfQueue: Queue
+    @InjectQueue('pdf-generation') private readonly pdfQueue: Queue,
   ) {}
 
   async status(user: JwtUser) {
@@ -26,14 +46,42 @@ export class PrivacyService {
     };
   }
 
+  /** Termo completo já preenchido com os dados reais de quem vai assinar. */
+  async document(user: JwtUser): Promise<TermsDocument> {
+    const [userData, employee] = await Promise.all([
+      this.repository.getUserData(user.sub),
+      this.repository.getEmployeeData(user.sub),
+    ]);
+    const company = userData?.company as any;
+    const address = [company?.street, company?.streetNumber, company?.neighborhood, company?.city && company?.state ? `${company.city}/${company.state}` : company?.city, company?.cep]
+      .filter(Boolean)
+      .join(', ') || company?.address || null;
+    return buildTermsDocument({
+      signer: {
+        name: employee?.name || userData?.name || user.name || 'Usuário',
+        email: userData?.email || user.email,
+        cpf: employee?.cpf,
+        rg: employee?.rg,
+        position: employee?.position,
+        department: employee?.department,
+        registration: employee?.registration,
+        profile: userData?.role || user.role,
+      },
+      company: {
+        name: company?.name || 'Empresa',
+        legalName: company?.legalName,
+        document: company?.document || company?.cnpj,
+        address,
+      },
+    });
+  }
+
   async accept(user: JwtUser, requestMeta: { ipAddress?: string; userAgent?: string }, body?: any) {
     if (body?.faceDescriptor || body?.photoBase64) {
       throw new BadRequestException('Biometria e selfie devem ser enviadas somente pelo fluxo facial especifico, separado do aceite de privacidade.');
     }
-    const userData = await this.repository.getUserData(user.sub);
-    const userName = userData?.name || user.name || 'Usuário';
-    const companyName = userData?.company?.name || 'Empresa Cliente';
-    
+    const doc = await this.document(user);
+
     const consent = await this.repository.acceptConsent({
       companyId: user.companyId,
       userId: user.sub,
@@ -47,112 +95,86 @@ export class PrivacyService {
       ...requestMeta,
     });
 
-    const employeeData = await this.repository.getEmployeeData(user.sub);
-
-    const crypto = require('crypto');
-    
-    const privateKey = process.env.PRIVACY_RSA_PRIVATE_KEY
-      ? process.env.PRIVACY_RSA_PRIVATE_KEY.replace(/\\n/g, '\n')
-      : null;
-
-    let signature: string | null = null;
-    let payloadHash: string | null = null;
-
     const payloadToSign = JSON.stringify({
       companyId: user.companyId,
       userId: user.sub,
       termVersion: CURRENT_TERMS_VERSION,
-      purpose: TERMS_PURPOSE,
+      contentHash: doc.contentHash,
       ipAddress: requestMeta.ipAddress,
       acceptedAt: consent.acceptedAt.toISOString(),
     });
+    const payloadHash = createHash('sha256').update(payloadToSign).digest('hex');
 
-    payloadHash = crypto.createHash('sha256').update(payloadToSign).digest('hex');
-
+    let signature: string | null = null;
+    const privateKey = process.env.PRIVACY_RSA_PRIVATE_KEY?.replace(/\\n/g, '\n');
     if (privateKey) {
       try {
-        const sign = crypto.createSign('SHA256');
+        const sign = createSign('SHA256');
         sign.update(payloadToSign);
         sign.end();
         signature = sign.sign(privateKey, 'base64');
       } catch (e) {
-        // Chave inválida — aceita sem assinatura digital e loga o aviso
-        console.warn('[PrivacyService] RSA signing failed, proceeding without signature:', (e as Error).message);
+        this.logger.warn(`Assinatura RSA falhou, aceite segue sem assinatura digital: ${(e as Error).message}`);
       }
-    } else {
-      console.warn('[PrivacyService] PRIVACY_RSA_PRIVATE_KEY not set — terms accepted without digital signature.');
     }
 
-    await this.repository.createAuditLog({
-      companyId: user.companyId,
-      userId: user.sub,
-      action: 'PRIVACY_TERMS_ACCEPTED',
-      entity: 'PrivacyConsent',
-      entityId: consent.id,
-      metadata: { 
-        termVersion: CURRENT_TERMS_VERSION, 
-        latitude: body?.latitude, 
-        longitude: body?.longitude,
-        signatureAlgorithm: signature ? 'RSA-SHA256' : 'none',
-        payloadHash: payloadHash,
-        ...(signature ? { digitalSignature: signature } : {}),
-      },
-      ...requestMeta,
-    });
+    // O aceite já está gravado: nada abaixo pode travar ou derrubar a resposta.
+    try {
+      await this.repository.createAuditLog({
+        companyId: user.companyId,
+        userId: user.sub,
+        action: 'PRIVACY_TERMS_ACCEPTED',
+        entity: 'PrivacyConsent',
+        entityId: consent.id,
+        metadata: {
+          termVersion: CURRENT_TERMS_VERSION,
+          contentHash: doc.contentHash,
+          payloadHash,
+          signatureAlgorithm: signature ? 'RSA-SHA256' : 'none',
+          ...(signature ? { digitalSignature: signature } : {}),
+        },
+        ...requestMeta,
+      });
+    } catch (e) {
+      this.logger.error(`Falha ao registrar auditoria do aceite: ${(e as Error).message}`);
+    }
 
-    const pdfData = {
-      userName,
-      userEmail: user.email,
-      companyName,
-      companyCnpj: userData?.company?.document,
-      cpf: employeeData?.cpf,
-      rg: employeeData?.rg,
-      position: employeeData?.position,
+    let pdfReady = false;
+    try {
+      const pdfBase64 = await withTimeout(
+        this.generatePDFBase64(doc, {
+          signedAt: brDate(consent.acceptedAt),
+          ipAddress: requestMeta.ipAddress,
+          userAgent: requestMeta.userAgent,
+          latitude: body?.latitude,
+          longitude: body?.longitude,
+          address: body?.address,
+          signature,
+        }, payloadHash),
+        10_000,
+      );
+      if (pdfBase64) {
+        await withTimeout(this.repository.updatePdfBase64(consent.id, pdfBase64), 10_000);
+        pdfReady = true;
+      }
+    } catch (e) {
+      this.logger.error(`Falha ao gerar o PDF do termo: ${(e as Error).message}`);
+    }
+
+    return {
+      id: consent.id,
+      accepted: true,
+      pdfReady,
       termVersion: CURRENT_TERMS_VERSION,
-      purpose: TERMS_PURPOSE,
-      ipAddress: requestMeta.ipAddress,
-      latitude: body?.latitude,
-      longitude: body?.longitude,
-      address: body?.address,
-      photoBase64: undefined,
-      payloadHash,
-      digitalSignature: signature,
-      date: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(/\u202F/g, ' '),
-    };
-
-    const job = await this.pdfQueue.add({
-      consentId: consent.id,
-      userEmail: user.email,
-      pdfData
-    }, {
-      delay: 0,
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 2000,
-      },
-    });
-
-    return { 
-      id: consent.id, 
-      status: 'QUEUED',
-      jobId: job.id,
-      accepted: true, 
-      termVersion: CURRENT_TERMS_VERSION, 
       acceptedAt: consent.acceptedAt,
-      message: 'Seu termo está sendo gerado. Você receberá um aviso quando pronto.'
+      message: 'Termo assinado com sucesso.',
     };
   }
 
   async getJobStatus(jobId: string) {
     const job = await this.pdfQueue.getJob(jobId);
     if (!job) return { status: 'NOT_FOUND' };
-    return {
-      id: job.id,
-      status: await job.getState(),
-      progress: job.progress(),
-      data: job.data,
-    };
+    return { id: job.id, status: await job.getState(), progress: job.progress() };
   }
 
   async updatePdfBase64(consentId: string, pdfBase64: string) {
@@ -160,245 +182,97 @@ export class PrivacyService {
   }
 
   async getTermsPdf(user: JwtUser, targetUserId: string) {
-    // Basic authorization check: DEV can download any, Admin/RH can download from their company
     if (user.role !== 'DEV' && user.role !== 'ADMIN' && user.role !== 'RH') {
       if (user.sub !== targetUserId) return null;
     }
-    
-    let targetUser: any;
-    if (user.role !== 'DEV' && user.sub !== targetUserId) {
-      targetUser = await this.repository.getUserData(targetUserId);
-      if (targetUser?.companyId !== user.companyId) return null;
-    } else {
-      targetUser = await this.repository.getUserData(targetUserId);
-    }
+    const targetUser: any = await this.repository.getUserData(targetUserId);
+    if (user.role !== 'DEV' && user.sub !== targetUserId && targetUser?.companyId !== user.companyId) return null;
 
     const consent = await this.repository.findActiveConsent(targetUserId, CURRENT_TERMS_VERSION);
     if (!consent) return null;
+    if (consent.pdfBase64) return consent.pdfBase64;
 
-    if (consent.pdfBase64) {
-      return consent.pdfBase64;
-    }
-
-    // PDF is missing, let's regenerate it on demand
     try {
-      const userName = targetUser?.name || 'Usuário';
-      const companyName = targetUser?.company?.name || 'Empresa Cliente';
-      
-      const newPdfBase64 = await this.generatePDFBase64({
-        userName,
-        userEmail: targetUser?.email || '',
-        companyName,
-        termVersion: consent.termVersion,
-        purpose: consent.purpose || TERMS_PURPOSE,
+      const doc = await this.document({ ...user, sub: targetUserId, companyId: targetUser?.companyId, email: targetUser?.email, name: targetUser?.name, role: targetUser?.role } as JwtUser);
+      const payloadHash = createHash('sha256').update(JSON.stringify({ userId: targetUserId, contentHash: doc.contentHash, acceptedAt: consent.acceptedAt.toISOString() })).digest('hex');
+      const pdf = await this.generatePDFBase64(doc, {
+        signedAt: brDate(consent.acceptedAt),
         ipAddress: consent.ipAddress,
+        userAgent: consent.userAgent,
         latitude: consent.latitude,
         longitude: consent.longitude,
         address: consent.address,
-        photoBase64: consent.photoBase64,
-        date: consent.acceptedAt ? consent.acceptedAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(/\u202F/g, ' ') : new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }).replace(/\u202F/g, ' '),
-      });
-      
-      if (newPdfBase64) {
-        await this.repository.updatePdfBase64(consent.id, newPdfBase64);
-        return newPdfBase64;
-      }
+      }, payloadHash);
+      await this.repository.updatePdfBase64(consent.id, pdf);
+      return pdf;
     } catch (e) {
-      console.error('Falha ao regenerar PDF sob demanda:', e);
+      this.logger.error(`Falha ao regenerar PDF sob demanda: ${(e as Error).message}`);
+      return null;
     }
-
-    return null;
   }
 
-  public async generatePDFBase64(data: any): Promise<string> {
+  public async generatePDFBase64(termDoc: TermsDocument, evidence: SignatureEvidence, payloadHash: string): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 0, size: 'A4', bufferPages: true });
+        const doc = new PDFDocument({ margins: { top: 60, bottom: 60, left: 55, right: 55 }, size: 'A4', bufferPages: true });
         const buffers: Buffer[] = [];
         doc.on('data', buffers.push.bind(buffers));
-        doc.on('error', (err: any) => {
-          console.error('PDFKit Stream Error:', err);
-          reject(err);
-        });
-        doc.on('end', () => {
-          resolve(Buffer.concat(buffers).toString('base64'));
-        });
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(buffers).toString('base64')));
 
-        // Cores
-        const primaryColor = '#1e293b'; // Slate 800
-        const secondaryColor = '#64748b'; // Slate 500
-        const accentColor = '#3b82f6'; // Blue 500
-        const lightGray = '#f8fafc'; // Slate 50
-        const borderColor = '#e2e8f0'; // Slate 200
+        const width = doc.page.width - 110;
+        const ink = '#0f172a';
+        const muted = '#64748b';
 
-        // ==========================================
-        // HEADER
-        // ==========================================
-        doc.rect(0, 0, doc.page.width, 100).fill(primaryColor);
-        doc.fillColor('#ffffff')
-           .fontSize(24)
-           .font('Helvetica-Bold')
-           .text('TERMO DE USO E PRIVACIDADE', 50, 35);
-        doc.fillColor('#94a3b8')
-           .fontSize(10)
-           .font('Helvetica')
-           .text(`Innovation System - Em conformidade com a LGPD`, 50, 65);
+        doc.font('Helvetica-Bold').fontSize(15).fillColor(ink).text(termDoc.title, { align: 'center' });
+        doc.moveDown(0.3).font('Helvetica').fontSize(9).fillColor(muted)
+          .text(`Versão ${termDoc.version} · Código de integridade do texto: ${termDoc.contentHash.slice(0, 32)}`, { align: 'center' });
+        doc.moveDown(1.2);
 
-        // ==========================================
-        // BODY CONFIG
-        // ==========================================
-        let cursorY = 130;
-        const leftMargin = 50;
-        const contentWidth = doc.page.width - 100;
+        doc.font('Helvetica').fontSize(10).fillColor(ink).text(termDoc.preamble, { align: 'justify', lineGap: 2 });
+        doc.moveDown(0.8);
 
-        const checkPageSpace = (needed: number) => {
-          if (cursorY + needed > doc.page.height - 50) {
-            doc.addPage();
-            cursorY = 50;
+        for (const section of termDoc.sections) {
+          if (doc.y > doc.page.height - 130) doc.addPage();
+          doc.font('Helvetica-Bold').fontSize(10.5).fillColor(ink).text(section.title);
+          doc.moveDown(0.25);
+          doc.font('Helvetica').fontSize(9.5).fillColor('#1e293b');
+          for (const clause of section.clauses) {
+            doc.text(clause, { align: 'justify', lineGap: 1.5 });
+            doc.moveDown(0.3);
           }
+          doc.moveDown(0.4);
+        }
+
+        doc.font('Helvetica').fontSize(10).fillColor(ink).text(termDoc.closing, { align: 'justify', lineGap: 2 });
+        doc.moveDown(1);
+
+        if (doc.y > doc.page.height - 260) doc.addPage();
+        const boxTop = doc.y;
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(ink).text('REGISTRO DA ASSINATURA ELETRÔNICA', 55, boxTop + 10, { width: width - 20, indent: 10 });
+        const line = (label: string, value: string) => {
+          doc.font('Helvetica-Bold').fontSize(8.5).fillColor(muted).text(label.toUpperCase(), 65, doc.y + 4, { width: width - 20 });
+          doc.font('Helvetica').fontSize(9.5).fillColor(ink).text(value || '—', 65, doc.y, { width: width - 20 });
         };
+        line('Assinante', `${termDoc.signer.name} · CPF ${formatCpf(termDoc.signer.cpf)} · ${termDoc.signer.email}`);
+        line('Empresa', `${termDoc.company.legalName || termDoc.company.name} · ${formatCnpj(termDoc.company.document)}`);
+        line('Data e hora do aceite (Brasília)', evidence.signedAt);
+        line('Endereço IP', evidence.ipAddress || 'não identificado');
+        line('Dispositivo', evidence.userAgent ? String(evidence.userAgent).slice(0, 140) : 'não identificado');
+        if (evidence.latitude && evidence.longitude) line('Localização aproximada', `${evidence.latitude}, ${evidence.longitude}${evidence.address ? ` · ${evidence.address}` : ''}`);
+        line('Código de integridade da assinatura (SHA-256)', payloadHash);
+        if (evidence.signature) line('Assinatura digital da plataforma (RSA-SHA256)', evidence.signature.slice(0, 160) + '…');
+        const boxHeight = doc.y - boxTop + 10;
+        doc.rect(50, boxTop, width + 10, boxHeight).strokeColor('#cbd5e1').lineWidth(1).stroke();
 
-        const drawLabelValue = (label: string, value: string, x: number, y: number, w: number) => {
-          doc.fontSize(9).font('Helvetica-Bold').fillColor(secondaryColor).text(label.toUpperCase(), x, y);
-          doc.fontSize(11).font('Helvetica').fillColor('#0f172a').text(value, x, y + 12, { width: w });
-        };
-
-        const drawSectionTitle = (title: string, y: number) => {
-          checkPageSpace(50);
-          doc.rect(leftMargin, cursorY, contentWidth, 24).fill(lightGray);
-          doc.rect(leftMargin, cursorY, 4, 24).fill(accentColor);
-          doc.fontSize(12).font('Helvetica-Bold').fillColor(primaryColor).text(title, leftMargin + 15, cursorY + 6);
-          cursorY += 40;
-        };
-
-        // ==========================================
-        // SEÇÃO: DADOS DO TITULAR E EMPRESA
-        // ==========================================
-        drawSectionTitle('DADOS DO TITULAR E CONTROLADORA', cursorY);
-        
-        drawLabelValue('Nome do Titular', data.userName, leftMargin, cursorY, 250);
-        drawLabelValue('E-mail', data.userEmail, leftMargin + 260, cursorY, 200);
-        cursorY += 40;
-        
-        drawLabelValue('CPF', data.cpf || 'Não informado', leftMargin, cursorY, 120);
-        drawLabelValue('RG', data.rg || 'Não informado', leftMargin + 130, cursorY, 120);
-        drawLabelValue('Cargo', data.position || 'Não informado', leftMargin + 260, cursorY, 200);
-        cursorY += 40;
-        
-        drawLabelValue('Empresa (Controladora)', data.companyName, leftMargin, cursorY, 250);
-        drawLabelValue('CNPJ', data.companyCnpj || 'Não informado', leftMargin + 260, cursorY, 200);
-        cursorY += 40;
-        
-        drawLabelValue('Operadora de Dados', 'Innovation System e consultoria', leftMargin, cursorY, 200);
-        cursorY += 50;
-
-        // ==========================================
-        // SEÇÃO: DADOS TÉCNICOS DO ACEITE
-        // ==========================================
-        drawSectionTitle('DADOS TÉCNICOS DO ACEITE ELETRÔNICO', cursorY);
-        
-        drawLabelValue('Data e Hora do Registro', data.date, leftMargin, cursorY, 250);
-        drawLabelValue('Endereço IP', data.ipAddress || 'Não identificado', leftMargin + 260, cursorY, 200);
-        cursorY += 40;
-
-        drawLabelValue('Versão do Termo', data.termVersion, leftMargin, cursorY, 250);
-        
-        if (data.latitude && data.longitude) {
-          drawLabelValue('Coordenadas (Lat/Lon)', `${data.latitude}, ${data.longitude}`, leftMargin + 260, cursorY, 200);
-        } else {
-          drawLabelValue('Localização', 'Não capturada', leftMargin + 260, cursorY, 200);
-        }
-        cursorY += 40;
-
-        if (data.address) {
-          doc.fontSize(11).font('Helvetica');
-          const addressHeight = doc.heightOfString(data.address, { width: contentWidth });
-          checkPageSpace(addressHeight + 30);
-          drawLabelValue('Endereço Aproximado', data.address, leftMargin, cursorY, contentWidth);
-          cursorY += addressHeight + 20;
-        }
-
-        // ==========================================
-        // SEÇÃO: ASSINATURA DIGITAL
-        // ==========================================
-        drawSectionTitle('ASSINATURA DIGITAL AVANÇADA', cursorY);
-
-        if (data.digitalSignature) {
-          doc.fontSize(9).font('Helvetica-Bold').fillColor(secondaryColor).text('HASH DO DOCUMENTO (SHA-256)', leftMargin, cursorY);
-          doc.fontSize(8).font('Courier').fillColor('#0f172a').text(data.payloadHash || 'N/A', leftMargin, cursorY + 12, { width: contentWidth });
-          cursorY += 30;
-
-          doc.fontSize(9).font('Helvetica-Bold').fillColor(secondaryColor).text('ASSINATURA DIGITAL (RSA-SHA256)', leftMargin, cursorY);
-          doc.fontSize(7).font('Courier').fillColor('#0f172a').text(data.digitalSignature, leftMargin, cursorY + 12, { width: contentWidth });
-          const sigHeight = doc.heightOfString(data.digitalSignature, { width: contentWidth });
-          cursorY += sigHeight + 20;
-        } else {
-          doc.fontSize(10).font('Helvetica-Oblique').fillColor('#ef4444').text('Assinatura digital não disponível neste documento.', leftMargin, cursorY);
-          cursorY += 30;
-        }
-
-        // ==========================================
-        // SEÇÃO: DECLARAÇÃO E FINALIDADE
-        // ==========================================
-        drawSectionTitle('TERMOS DA DECLARAÇÃO DE ACEITE', cursorY);
-        
-        const declaration = `Declaro que li, compreendi e aceito integralmente os Termos de Uso e a Política de Privacidade (incluindo cláusulas LGPD e ferramentas de IA da Innovation System). Estou ciente de que esta é uma assinatura eletrônica com validade legal e que descumprimentos das regras da empresa podem acarretar em medidas disciplinares como advertência e suspensão.\n\nFinalidade do Tratamento: ${data.purpose}`;
-        
-        doc.fontSize(10).font('Helvetica');
-        const declarationHeight = doc.heightOfString(declaration, { width: contentWidth - 30, lineGap: 3 });
-        
-        checkPageSpace(declarationHeight + 50);
-
-        doc.rect(leftMargin, cursorY, contentWidth, declarationHeight + 30)
-           .strokeColor(borderColor)
-           .lineWidth(1)
-           .stroke();
-           
-        doc.fillColor('#334155').text(declaration, leftMargin + 15, cursorY + 15, { width: contentWidth - 30, align: 'justify', lineGap: 3 });
-        
-        cursorY += declarationHeight + 50;
-
-        // ==========================================
-        // SEÇÃO: BIOMETRIA FACIAL (SE HOUVER)
-        // ==========================================
-        if (data.photoBase64) {
-          checkPageSpace(180);
-          drawSectionTitle('EVIDÊNCIA BIOMÉTRICA FACIAL (FACE ID)', cursorY);
-          
-          try {
-            const base64Data = data.photoBase64.replace(/^data:image\/\w+;base64,/, '');
-            const imgBuffer = Buffer.from(base64Data, 'base64');
-            
-            // Fundo da imagem
-            doc.rect(leftMargin, cursorY, 120, 160).fillAndStroke(lightGray, borderColor);
-            
-            // Centralizar a imagem no quadro
-            doc.image(imgBuffer, leftMargin + 5, cursorY + 5, { fit: [110, 150], align: 'center', valign: 'center' });
-            
-            doc.fontSize(8).font('Helvetica-Oblique').fillColor(secondaryColor).text('Imagem capturada no momento exato do aceite para fins de auditoria e validação de identidade (Art. 10, II da LGPD).', leftMargin + 140, cursorY + 20, { width: contentWidth - 140, align: 'justify' });
-            
-          } catch (e) {
-            console.error('Falha ao inserir foto no PDF', e);
-            doc.fontSize(10).font('Helvetica-Oblique').fillColor('#ef4444').text('A imagem biométrica foi recebida, mas ocorreu um erro ao anexá-la no documento físico.', leftMargin, cursorY + 10);
-          }
-        }
-
-        // ==========================================
-        // FOOTER
-        // ==========================================
-        const pageCount = doc.bufferedPageRange().count;
-        for (let i = 0; i < pageCount; i++) {
+        const pages = doc.bufferedPageRange();
+        for (let i = 0; i < pages.count; i++) {
           doc.switchToPage(i);
-          doc.rect(0, doc.page.height - 40, doc.page.width, 40).fill(lightGray);
-          doc.fontSize(8).font('Helvetica').fillColor(secondaryColor)
-             .text(`Gerado por Innovation System - Autenticação Digital segura.`, leftMargin, doc.page.height - 25);
-          doc.fontSize(8)
-             .text(`Página ${i + 1} de ${pageCount}`, doc.page.width - leftMargin - 50, doc.page.height - 25, { width: 50, align: 'right' });
+          doc.font('Helvetica').fontSize(8).fillColor(muted)
+            .text(`Innovation RH · ${termDoc.signer.name} · Página ${i + 1} de ${pages.count}`, 55, doc.page.height - 40, { width, align: 'center', lineBreak: false });
         }
-
         doc.end();
-      } catch (e: any) {
-        console.error('CRITICAL PDF ERROR:', e);
+      } catch (e) {
         reject(e);
       }
     });

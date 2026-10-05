@@ -3,7 +3,9 @@ import { Module } from '@nestjs/common';
 import { PartnersModule } from './modules/partners/partners.module';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { LookupModule } from './modules/lookup/lookup.module';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { UserThrottlerGuard } from './common/guards/user-throttler.guard';
 import { HealthModule } from './health/health.module';
 import { appConfig } from './config/app.config';
 import { validateEnv } from './config/env.validation';
@@ -111,12 +113,13 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     CommercialSalesModule,
     CeoOnboardingModule,
     PayrollModule,
+    LookupModule,
     ScheduleModule.forRoot(),
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: UserThrottlerGuard },
     { provide: APP_GUARD, useClass: MfaEnrollmentGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
     { provide: APP_GUARD, useClass: SubscriptionActiveGuard },

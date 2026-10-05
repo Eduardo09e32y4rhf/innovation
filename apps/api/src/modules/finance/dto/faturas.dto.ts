@@ -129,3 +129,9 @@ export class ActivateSubscriptionDto extends ReasonDto {
   @IsBoolean()
   chargeNow!: boolean;
 }
+
+/** Liberação manual do acesso: por confiança (fatura segue em aberto) ou porque o valor foi recebido por outro meio. */
+export class ReleaseAccessDto extends ReasonDto {
+  @IsIn(['TRUST', 'RECEIVED'])
+  method!: 'TRUST' | 'RECEIVED';
+}

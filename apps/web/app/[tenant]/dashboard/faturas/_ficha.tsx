@@ -9,11 +9,11 @@ import CompanyInvoicesView from './_company-view';
 import { money } from './_format';
 
 type Dialog =
-  | { kind: 'charge' } | { kind: 'recurring' } | { kind: 'freeDays' } | { kind: 'seats' } | { kind: 'plan' } | { kind: 'coupon' } | { kind: 'cancelSub' } | { kind: 'activate' }
+  | { kind: 'charge' } | { kind: 'recurring' } | { kind: 'freeDays' } | { kind: 'seats' } | { kind: 'plan' } | { kind: 'coupon' } | { kind: 'cancelSub' } | { kind: 'activate' } | { kind: 'release' }
   | { kind: 'discount' | 'refundPartial' | 'refundFull' | 'fiscal' | 'cancel'; invoice: PlatformInvoice };
 
 const TITLES: Record<Dialog['kind'], string> = {
-  charge: 'Nova cobrança avulsa', recurring: 'Desconto recorrente', freeDays: 'Dias grátis', seats: 'Upgrade / downgrade de usuários', plan: 'Trocar de plano', coupon: 'Aplicar cupom', cancelSub: 'Cancelar assinatura', activate: 'Ativar assinatura',
+  charge: 'Nova cobrança avulsa', recurring: 'Desconto recorrente', freeDays: 'Dias grátis', seats: 'Upgrade / downgrade de usuários', plan: 'Trocar de plano', coupon: 'Aplicar cupom', cancelSub: 'Cancelar assinatura', activate: 'Ativar assinatura', release: 'Liberar acesso da empresa',
   discount: 'Desconto nesta fatura', refundPartial: 'Reembolso parcial', refundFull: 'Reembolso total', fiscal: 'Nota fiscal e comprovante', cancel: 'Cancelar fatura',
 };
 
@@ -40,6 +40,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
   const [mode, setMode] = useState<'NOW' | 'END_OF_CYCLE'>('END_OF_CYCLE');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [chargeNow, setChargeNow] = useState(true);
+  const [releaseMethod, setReleaseMethod] = useState<'TRUST' | 'RECEIVED'>('RECEIVED');
   const [billingType, setBillingType] = useState<'UNDEFINED' | 'BOLETO' | 'PIX' | 'CREDIT_CARD'>('UNDEFINED');
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => setText((t) => ({ ...t, [key]: e.target.value }));
   const num = (key: string) => Number(String(text[key] ?? '').replace(',', '.'));
@@ -96,6 +97,10 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
           const r = await api.faturas.activateSubscription(company.id, { planId, seatQuantity: Math.trunc(num('seats')), chargeNow, reason });
           toast.success(r.invoiceId ? `Assinatura ativada. Primeira fatura: ${brl(r.total)}.` : 'Assinatura ativada.'); break;
         }
+        case 'release': {
+          const r = await api.faturas.releaseAccess(company.id, { method: releaseMethod, reason });
+          toast.success(r.invoicesSettled ? `Acesso liberado. ${r.invoicesSettled} fatura(s) baixada(s) como paga(s).` : 'Acesso liberado. As faturas continuam em aberto.'); break;
+        }
         case 'plan': {
           const r = await api.faturas.changePlan(company.id, { planId, reason });
           toast.success(r.scheduled ? 'Downgrade agendado para o próximo ciclo.' : r.prorationAmount > 0 ? `Plano alterado. Rateio cobrado: ${brl(r.prorationAmount)}` : 'Plano alterado.'); break;
@@ -151,6 +156,10 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
           <Field label="Quantidade de usuários"><input className={field} inputMode="numeric" required value={text.seats ?? ''} onChange={set('seats')} /></Field>
           <label className="flex items-center gap-2 text-sm text-fg"><input type="checkbox" checked={chargeNow} onChange={(e) => setChargeNow(e.target.checked)} /> Gerar a primeira fatura agora</label>
           <p className="text-xs text-fg-mut">Coloca a empresa como Em dia com este plano. A cobrança recorrente no provedor não é criada aqui: a primeira fatura gera o link de pagamento.</p>
+        </>)}
+        {dialog.kind === 'release' && (<>
+          <Field label="Como você está liberando?"><select className={field} value={releaseMethod} onChange={(e) => setReleaseMethod(e.target.value as 'TRUST' | 'RECEIVED')}><option value="RECEIVED">Recebi o valor por outro meio (baixa as faturas em aberto)</option><option value="TRUST">Liberar por confiança (faturas continuam em aberto)</option></select></Field>
+          <p className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-800">A empresa volta a usar o sistema na hora. {releaseMethod === 'RECEIVED' ? 'As faturas abertas serão marcadas como pagas.' : 'As faturas seguem cobrando normalmente.'} Fica registrado quem liberou e o motivo.</p>
         </>)}
         {dialog.kind === 'coupon' && <Field label="Código do cupom"><input className={field} required value={text.code ?? ''} onChange={set('code')} /></Field>}
         {dialog.kind === 'cancelSub' && (<>
@@ -226,6 +235,7 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
   useEffect(() => { void loadHistory(); }, [loadHistory, reloadKey]);
 
   const hasSub = Boolean(company.subscription);
+  const blocked = company.status !== 'ACTIVE' || ['PENDING_PAYMENT', 'PAST_DUE', 'CANCELED'].includes(company.billingStatus);
   const refresh = () => { setReloadKey((k) => k + 1); onChanged?.(); };
   const needSub = hasSub ? undefined : 'Esta empresa ainda não tem assinatura. Ative a assinatura primeiro.';
 
@@ -271,6 +281,13 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
         {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm text-rose-700" disabled={!hasSub} title={needSub} onClick={() => setDialog({ kind: 'cancelSub' })}>Cancelar assinatura</button>}
         {can('faturas.cobrar') && <button type="button" className="btn btn-outline text-sm" disabled={!hasSub} title={needSub} onClick={() => void togglePause()}>{pausedNow ? 'Retomar cobrança' : 'Pausar cobrança'}</button>}
       </section>
+
+      {blocked && can('faturas.cobrar') && (
+        <div role="alert" className="mx-3 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-400/30 bg-rose-500/10 p-3 text-sm text-rose-800 sm:mx-5 lg:mx-6">
+          <span><strong>Acesso bloqueado por pendência.</strong> Só o administrador consegue entrar, e apenas na área de Faturas. Libere se recebeu por outro meio ou por confiança.</span>
+          <button type="button" className="btn btn-primary text-sm" onClick={() => setDialog({ kind: 'release' })}>Liberar acesso</button>
+        </div>
+      )}
 
       {!hasSub && (
         <div role="status" className="mx-3 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-800 sm:mx-5 lg:mx-6">

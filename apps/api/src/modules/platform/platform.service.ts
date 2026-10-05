@@ -1,3 +1,4 @@
+import { describeAction } from '../users/user-activity';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -112,7 +113,8 @@ export class PlatformService {
 
   async companyAuditLogs(id: string, actor?: JwtUser, query?: { page?: number; limit?: number }) {
     await this.getCompany(id, actor);
-    return this.repository.listCompanyAuditLogs(id, query);
+    const result = await this.repository.listCompanyAuditLogs(id, query);
+    return { ...result, data: result.data.map((row) => ({ ...row, summary: describeAction(row.action, row.entity, row.metadata) })) };
   }
 
   async createCompany(actor: JwtUser, dto: CreatePlatformCompanyDto) {

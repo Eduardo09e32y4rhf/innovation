@@ -20,6 +20,7 @@ export class ApiError extends Error {
   status: number;
   body: unknown;
   code?: string;
+  fields?: Array<{ field: string; message: string }>;
   constructor(status: number, message: string, body?: unknown, code?: string) {
     super(message);
     this.name = 'ApiError';
@@ -72,9 +73,9 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
     });
   } catch (err) {
     if (controller?.signal.aborted) {
-      throw new ApiError(0, `A API demorou mais que ${Math.round((timeoutMs ?? 0) / 1000)}s para responder. Tente novamente.`, err);
+      throw new ApiError(0, `O sistema demorou mais que ${Math.round((timeoutMs ?? 0) / 1000)}s para responder. Tente novamente.`, err);
     }
-    throw new ApiError(0, 'Sem conexao com a API. Verifique se o backend esta rodando.', err);
+    throw new ApiError(0, 'Não foi possível conectar ao sistema. Verifique sua internet e tente novamente.', err);
   } finally {
     if (timeoutHandle) clearTimeout(timeoutHandle);
   }
@@ -103,7 +104,7 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
       clearSession();
       if (!silent && typeof window !== 'undefined') window.location.href = '/login';
     }
-    throw new ApiError(401, 'Sessao expirada. Faca login novamente.');
+    throw new ApiError(401, 'Sua sessão expirou. Entre novamente para continuar.');
   }
 
   if (res.status === 402) {
@@ -129,7 +130,10 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
           : null;
     const parsedMessage = Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage ? String(rawMessage) : '';
     const code = nested && typeof nested === 'object' && 'code' in nested ? String((nested as any).code) : undefined;
-    throw new ApiError(res.status, parsedMessage || `Erro ${res.status}`, data, code);
+    const apiError = new ApiError(res.status, parsedMessage || 'Não foi possível concluir a ação. Tente novamente.', data, code);
+    const fields = nested && typeof nested === 'object' ? (nested as any).fields : undefined;
+    if (Array.isArray(fields)) apiError.fields = fields;
+    throw apiError;
   }
 
   if (data && typeof data === 'object' && 'success' in data && 'data' in data) {
@@ -156,12 +160,12 @@ async function downloadRequest(path: string): Promise<void> {
   try {
     response = await fetch(`${API_URL}${path}`, { headers });
   } catch (err) {
-    throw new ApiError(0, 'Sem conexao com a API. Verifique sua internet e tente novamente.', err);
+    throw new ApiError(0, 'Não foi possível conectar ao sistema. Verifique sua internet e tente novamente.', err);
   }
   if (response.status === 401) {
     clearSession();
     if (typeof window !== 'undefined') window.location.href = '/login';
-    throw new ApiError(401, 'Sessao expirada. Faca login novamente.');
+    throw new ApiError(401, 'Sua sessão expirou. Entre novamente para continuar.');
   }
   if (!response.ok) {
     const data = safeJson(await response.text());
@@ -722,6 +726,11 @@ export const api = {
       ),
   },
 
+  lookup: {
+    cep: (cep: string) => request<{ street: string; neighborhood: string; city: string; state: string }>(`/lookup/cep/${cep.replace(/\D/g, '')}`, { silent: true, timeoutMs: 15000 }),
+    cnpj: (cnpj: string) => request<{ legalName: string; tradeName: string; street: string; streetNumber: string; addressComplement: string; neighborhood: string; city: string; state: string; cep: string; phone: string; email: string }>(`/lookup/cnpj/${cnpj.replace(/\D/g, '')}`, { silent: true, timeoutMs: 20000 }),
+  },
+
   dashboard: {
     summary: () => request<DashboardSummary>('/dashboard/summary'),
     insights: () => request<DashboardInsights>('/dashboard/insights'),
@@ -969,6 +978,7 @@ export const api = {
     syncInvoice: (id: string) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/sync`, { method: 'POST' }),
     downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to' | 'companyId'> = {}) => downloadRequest(`/faturas/plataforma/statements/pdf${makeQuery(query)}`),
     plans: () => request<Array<{ id: string; name: string; isActive?: boolean; commitmentMonths?: number }>>('/platform/plans'),
+    releaseAccess: (companyId: string, input: { method: 'TRUST' | 'RECEIVED'; reason: string }) => request<{ released: boolean; method: string; invoicesSettled: number }>(`/faturas/plataforma/companies/${companyId}/liberar-acesso`, { method: 'POST', body: input }),
     activateSubscription: (companyId: string, input: { planId: string; seatQuantity: number; chargeNow: boolean; reason: string }) => request<{ activated: boolean; total: number; invoiceId: string | null }>(`/faturas/plataforma/companies/${companyId}/activate-subscription`, { method: 'POST', body: input }),
     applyCoupon: (companyId: string, input: { code: string; reason: string }) => request<Record<string, unknown>>(`/faturas/plataforma/companies/${companyId}/coupon`, { method: 'POST', body: input }),
     cancelSubscription: (companyId: string, input: { mode: 'NOW' | 'END_OF_CYCLE'; reason: string }) => request<{ canceled: boolean; cancelAt?: string }>(`/faturas/plataforma/companies/${companyId}/cancel-subscription`, { method: 'POST', body: input }),
@@ -1073,3 +1083,4 @@ export const api = {
 };
 
 export default api;
+

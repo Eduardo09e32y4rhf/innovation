@@ -24,6 +24,10 @@ const ACTION_LABELS: Record<string, string> = {
   BILLING_ONBOARDING_PAYMENT_CREATED: 'Pagamento de onboarding criado',
 };
 
+function describeLog(log: PlatformBillingAuditLog) {
+  return (log as { summary?: string }).summary || translateAction(log.action);
+}
+
 function translateAction(action: string) {
   return ACTION_LABELS[action] || action.replace(/_/g, ' ').toLowerCase();
 }
@@ -49,7 +53,7 @@ function exportCsv(rows: PlatformBillingAuditLog[]) {
     ...rows.map((log) =>
       [
         new Date(log.createdAt).toLocaleString('pt-BR'),
-        translateAction(log.action),
+        describeLog(log),
         formatActor(log),
         log.entity || '-',
         formatIp(log.ipAddress),
@@ -92,8 +96,8 @@ export default function AuditPage() {
     setLoading(true);
     setError('');
     setPage(1);
-    request<PlatformBillingAuditLog[]>(`/platform/companies/${cid}/audit-logs`)
-      .then(setLogs)
+    request<any>(`/platform/companies/${cid}/audit-logs?limit=100`)
+      .then((res) => setLogs(Array.isArray(res) ? res : (res?.data ?? [])))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   };
@@ -106,7 +110,7 @@ export default function AuditPage() {
       if (type && log.action !== type) return false;
       if (!q) return true;
       return [
-        translateAction(log.action),
+        describeLog(log),
         log.action,
         log.entity,
         formatActor(log),
@@ -147,7 +151,7 @@ export default function AuditPage() {
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-600">Auditoria</p>
           <h2 className="text-2xl font-black text-slate-950">Linha do tempo de acessos e eventos</h2>
           <p className="text-sm font-medium text-slate-500">
-            Resumo legível para gestores, com data, localização, dispositivo e evento traduzido.
+            Cada linha diz o que a pessoa fez, quando e de onde.
           </p>
         </div>
       </header>
@@ -299,7 +303,7 @@ export default function AuditPage() {
                             : 'bg-teal-50 text-teal-700'
                       }`}>
                         <ShieldCheck size={10} />
-                        {translateAction(log.action)}
+                        {describeLog(log)}
                       </span>
                     </td>
                     <td className="px-4 py-3 font-semibold text-slate-900">{formatActor(log)}</td>

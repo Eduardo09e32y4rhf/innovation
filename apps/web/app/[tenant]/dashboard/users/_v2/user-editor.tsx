@@ -33,6 +33,7 @@ export function UserEditor({ user, isOpen, onClose, actorRole, actorId, onChange
   const [linkSearch, setLinkSearch] = useState('');
   const [linkOptions, setLinkOptions] = useState<LinkableEmployee[]>([]);
   const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState('');
 
   // senha provisória
   const [temp, setTemp] = useState<{ temporaryPassword: string; expiresAt: string } | null>(null);
@@ -49,7 +50,7 @@ export function UserEditor({ user, isOpen, onClose, actorRole, actorId, onChange
   useEffect(() => {
     if (!isOpen || !user || tab !== 'dados' || user.employee) return;
     const timer = window.setTimeout(() => {
-      api.users.linkableEmployees(linkSearch, actorRole === 'DEV' ? user.companyId : undefined).then(setLinkOptions).catch(() => setLinkOptions([]));
+      api.users.linkableEmployees(linkSearch, actorRole === 'DEV' ? user.companyId : undefined).then((items) => { setLinkOptions(items); setLinkError(''); }).catch((cause) => { setLinkOptions([]); setLinkError(errorText(cause, 'Não foi possível buscar os funcionários.')); });
     }, 250);
     return () => window.clearTimeout(timer);
   }, [isOpen, user, tab, linkSearch, actorRole]);
@@ -58,6 +59,8 @@ export function UserEditor({ user, isOpen, onClose, actorRole, actorId, onChange
   const status = accessStatus(user);
   const own = user.id === actorId;
   const manageable = canManage(actorRole, user.role) && !own;
+  // Quem administra pode atrelar o próprio acesso a um funcionário (ex.: o dono que também é colaborador).
+  const canLink = manageable || (own && ['DEV', 'CEO', 'ADMIN', 'RH'].includes(actorRole));
   const roleOptions = rolesFor(actorRole);
   const effectivePermissions = custom ?? getDefaultPermissions(user.role);
   const generalDirty = name.trim() !== user.name || email.trim().toLowerCase() !== user.email || role !== user.role;
@@ -152,17 +155,18 @@ export function UserEditor({ user, isOpen, onClose, actorRole, actorId, onChange
                 {user.employee ? (
                   <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                     <div><p className="font-medium">{user.employee.name}</p><p className="text-xs text-fg-sub">Matrícula {user.employee.registration ?? '—'} · {user.employee.position ?? 'sem cargo'}{user.employee.department ? ` · ${user.employee.department}` : ''}</p></div>
-                    {manageable && <Button variant="outline" size="sm" isLoading={saving} onClick={unlink}><Unlink size={14} aria-hidden="true" /> Desatrelar</Button>}
+                    {canLink && <Button variant="outline" size="sm" isLoading={saving} onClick={unlink}><Unlink size={14} aria-hidden="true" /> Desatrelar</Button>}
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <p className="text-sm text-fg-sub">Sem vínculo: este usuário acessa somente conforme a visão acima. Atrelar a um funcionário traz matrícula, gestor e dados pessoais.</p>
-                    {manageable && (
+                    {canLink && (
                       <>
                         <label className="relative block"><Search size={15} className="absolute left-3 top-3.5 text-fg-sub" aria-hidden="true" />
                           <input className={`${field} pl-9`} placeholder="Buscar funcionário sem acesso (nome, matrícula, e-mail)" value={linkSearch} onChange={(e) => setLinkSearch(e.target.value)} aria-label="Buscar funcionário" /></label>
                         <ul className="max-h-40 divide-y divide-border overflow-auto rounded-xl border border-border">
-                          {linkOptions.length === 0 && <li className="p-3 text-sm text-fg-sub">Nenhum funcionário disponível.</li>}
+                          {linkError && <li className="p-3 text-sm text-rose-700">{linkError}</li>}
+                          {!linkError && linkOptions.length === 0 && <li className="p-3 text-sm text-fg-sub">Nenhum funcionário sem acesso encontrado. Cadastre o funcionário primeiro na área Funcionários.</li>}
                           {linkOptions.map((item) => <li key={item.id}><button type="button" disabled={linking} onClick={() => link(item)} className="w-full p-3 text-left text-sm hover:bg-bg-sub"><span className="block font-medium">{item.name}</span><span className="block text-xs text-fg-sub">Matrícula {item.registration ?? '—'} · {item.position ?? 'sem cargo'}</span></button></li>)}
                         </ul>
                       </>

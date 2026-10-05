@@ -405,6 +405,43 @@ export class FaturasAcoesService {
     return { activated: true, total: quote.total, invoiceId: invoice?.id ?? null };
   }
 
+  // ---------- liberação manual ----------
+
+  /**
+   * Libera uma empresa bloqueada por pendência de pagamento.
+   * TRUST: libera por confiança e a fatura continua em aberto. RECEIVED: o valor entrou por outro meio, então as faturas
+   * em aberto são baixadas como pagas. Sempre exige motivo e fica na auditoria com quem liberou.
+   */
+  async releaseAccess(companyId: string, method: 'TRUST' | 'RECEIVED', reason: string, actor: JwtUser) {
+    await this.assertCompany(actor, companyId);
+    const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { id: true, status: true, billingStatus: true } });
+    if (!company) throw new NotFoundException('Empresa nao encontrada.');
+    if (company.status === 'ACTIVE' && company.billingStatus === 'ACTIVE') throw new BadRequestException('Esta empresa já está com o acesso liberado.');
+
+    const now = new Date();
+    const open = await this.prisma.platformInvoice.findMany({ where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] } }, select: { id: true, amount: true } });
+    await this.prisma.$transaction([
+      this.prisma.company.update({
+        where: { id: companyId },
+        data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null },
+      }),
+      this.prisma.companySubscription.updateMany({ where: { companyId, status: { in: ['PENDING_PAYMENT', 'PAST_DUE'] } }, data: { status: 'ACTIVE' } }),
+      ...(method === 'RECEIVED' && open.length
+        ? [this.prisma.platformInvoice.updateMany({ where: { id: { in: open.map((i) => i.id) } }, data: { status: 'PAID', paidAt: now } })]
+        : []),
+    ]);
+    await this.prisma.auditLog.create({
+      data: {
+        companyId, userId: actor.sub, action: 'FATURAS_ACCESS_RELEASED', entity: 'Company', entityId: companyId,
+        metadata: {
+          method, reason, actorEmail: actor.email, previousStatus: company.status, previousBillingStatus: company.billingStatus,
+          invoicesSettled: method === 'RECEIVED' ? open.length : 0, invoicesLeftOpen: method === 'TRUST' ? open.length : 0,
+        },
+      },
+    });
+    return { released: true, method, invoicesSettled: method === 'RECEIVED' ? open.length : 0 };
+  }
+
   // ---------- cupom cadastrado ----------
 
   private documentHash(document: string) {
