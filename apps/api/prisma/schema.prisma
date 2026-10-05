@@ -1539,12 +1539,18 @@ model Application {
   score           Int?
   knockedOut      Boolean           @default(false)
   knockoutReason  String?
+  selectedAt      DateTime?
+  selectedById    String?           @db.Uuid
+  forwardedAt     DateTime?
+  forwardedById   String?           @db.Uuid
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
   company     Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
   candidate   Candidate               @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   job         Job                     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  documentRequests RecruitmentDocumentRequest[]
+  documents        RecruitmentDocument[]
   stage       PipelineStage?          @relation(fields: [stageId], references: [id], onDelete: SetNull)
   answers     ApplicationAnswer[]
   evaluations ApplicationEvaluation[]
@@ -3149,4 +3155,54 @@ model JobRecruiter {
 
   @@unique([jobId, userId])
   @@index([companyId, userId])
+}
+
+enum RecruitmentDocumentStatus {
+  RECEIVED
+  APPROVED
+  RETURNED
+}
+
+/// Link temporario para o candidato enviar documentos. O token bruto nunca e gravado: so o SHA-256.
+model RecruitmentDocumentRequest {
+  id            String    @id @default(uuid()) @db.Uuid
+  companyId     String    @db.Uuid
+  applicationId String    @db.Uuid
+  tokenHash     String    @unique
+  items         String[]
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdById   String    @db.Uuid
+  createdAt     DateTime  @default(now())
+
+  application Application           @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  documents   RecruitmentDocument[]
+
+  @@index([companyId, applicationId])
+}
+
+/// Documento do candidato. So existe depois de passar na validacao e no scan; o arquivo fica em armazenamento privado.
+model RecruitmentDocument {
+  id           String                    @id @default(uuid()) @db.Uuid
+  companyId    String                    @db.Uuid
+  applicationId String                   @db.Uuid
+  requestId    String                    @db.Uuid
+  label        String
+  status       RecruitmentDocumentStatus @default(RECEIVED)
+  fileKey      String
+  fileName     String
+  mimeType     String
+  size         Int
+  sha256       String
+  returnReason String?
+  reviewedById String?                   @db.Uuid
+  reviewedAt   DateTime?
+  supersededAt DateTime?
+  createdAt    DateTime                  @default(now())
+
+  application Application                @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  request     RecruitmentDocumentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, applicationId])
+  @@index([requestId])
 }
