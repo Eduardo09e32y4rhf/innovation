@@ -2582,6 +2582,10 @@ model Payroll {
   approvedBy         String?       @db.Uuid
   approvedAt         DateTime?
   paidAt             DateTime?
+  periodStart        DateTime?     @db.Date
+  periodEnd          DateTime?     @db.Date
+  cancelledAt        DateTime?
+  cancelReason       String?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   deletedAt          DateTime?
@@ -2589,7 +2593,7 @@ model Payroll {
   employee Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   items    PayrollItem[]
 
-  @@unique([companyId, employeeId, referenceMonth, referenceYear])
+  @@index([companyId, employeeId, periodStart, periodEnd])
   @@index([companyId, status])
   @@index([companyId, referenceYear, referenceMonth])
   @@index([employeeId])
