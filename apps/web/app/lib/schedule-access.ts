@@ -1,4 +1,4 @@
-export type ScheduleRole = 'DEV' | 'CEO' | 'CONTABIL' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
+export type ScheduleRole = 'DEV' | 'CEO' | 'CONTABIL' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'RH_RS' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
 
 export type ScheduleCapability =
   | 'calendar.read'
@@ -47,6 +47,7 @@ export const SCHEDULE_ACCESS: Matrix = {
   CONTABIL: { 'closing.read': 'company', 'reports.read': 'company' },
   CONSULTA: { 'calendar.read': 'company', 'reports.read': 'company' },
   COMERCIAL: {},
+  RH_RS: {},
 };
 
 export function normalizeRole(role?: string | null): ScheduleRole | undefined {

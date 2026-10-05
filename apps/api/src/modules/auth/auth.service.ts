@@ -825,6 +825,7 @@ export class AuthService {
         'COMERCIAL',
         'ADMIN',
         'RH',
+        'RH_RS',
         'GESTOR',
         'FUNCIONARIO',
         'CONSULTA',
@@ -832,6 +833,7 @@ export class AuthService {
       CEO: [
         'ADMIN',
         'RH',
+        'RH_RS',
         'GESTOR',
         'FUNCIONARIO',
         'CONSULTA',
@@ -840,6 +842,7 @@ export class AuthService {
       ADMIN: [
         'ADMIN',
         'RH',
+        'RH_RS',
         'GESTOR',
         'FUNCIONARIO',
         'CONSULTA',
@@ -851,6 +854,7 @@ export class AuthService {
         'CONSULTA',
       ],
       COMERCIAL: [],
+      RH_RS: [],
       GESTOR: [],
       FUNCIONARIO: [],
       CONSULTA: [],

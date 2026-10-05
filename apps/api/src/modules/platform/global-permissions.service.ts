@@ -1,4 +1,4 @@
-﻿import { Injectable, OnModuleInit, Logger, ForbiddenException } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import type { UserRole } from '@prisma/client';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -10,6 +10,7 @@ const DEFAULT_PERMISSIONS: Record<UserRole, string[]> = {
   ADMIN: ['admin', 'config_company', 'config_payroll', 'config_time', 'time_admin', 'time_approve', 'time_view', 'time_clock', 'manage_employees', 'payroll', 'documents', 'settings_basic'],
   COMERCIAL: [],
   RH: ['time_admin', 'time_approve', 'time_view', 'time_clock', 'manage_employees', 'payroll', 'documents', 'settings_basic'],
+  RH_RS: [],
   GESTOR: ['time_approve', 'time_view', 'time_clock', 'manage_employees', 'settings_basic'],
   FUNCIONARIO: ['time_view', 'time_clock', 'settings_basic'],
   CONSULTA: ['time_view'],

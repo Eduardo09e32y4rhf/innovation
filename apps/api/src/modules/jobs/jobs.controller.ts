@@ -21,7 +21,7 @@ import { HireCandidateDto } from './dto/hire-candidate.dto';
 import { JobsService } from './jobs.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
+@Roles('DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR')
 @Controller('jobs')
 export class JobsController {
   constructor(private readonly service: JobsService) {}
@@ -56,6 +56,8 @@ export class JobsController {
     return this.service.duplicate(companyId, id);
   }
 
+  /** Efetivar cria Employee: RH_RS so seleciona/encaminha, nunca contrata. */
+  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Post('applications/:id/hire')
   hire(
     @CurrentCompany() companyId: string,

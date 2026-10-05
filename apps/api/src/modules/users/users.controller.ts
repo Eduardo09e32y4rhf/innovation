@@ -24,7 +24,7 @@ function requestMeta(request: any) {
 export class UsersController {
   constructor(private readonly service: UsersService, private readonly activity: UsersActivityService) {}
 
-  @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'FUNCIONARIO', 'GESTOR', 'CONSULTA')
+  @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'RH_RS', 'FUNCIONARIO', 'GESTOR', 'CONSULTA')
   @Post('ping')
   ping(@CurrentUser() actor: JwtUser) {
     return this.service.ping(actor.sub);
@@ -57,7 +57,7 @@ export class UsersController {
   }
 
   /** Registra o acesso a uma página (alimenta o histórico do usuário). */
-  @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'FUNCIONARIO', 'GESTOR', 'CONSULTA')
+  @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'RH_RS', 'FUNCIONARIO', 'GESTOR', 'CONSULTA')
   @Throttle({ default: { limit: 120, ttl: 60000 } })
   @Post('activity/page-view')
   pageView(@CurrentUser() actor: JwtUser, @Body() dto: PageViewDto, @Req() request: any) {

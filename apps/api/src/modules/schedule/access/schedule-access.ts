@@ -47,6 +47,7 @@ export const SCHEDULE_ACCESS: Matrix = {
   CONTABIL: { 'closing.read': 'company', 'reports.read': 'company' },
   CONSULTA: { 'calendar.read': 'company', 'reports.read': 'company' },
   COMERCIAL: {},
+  RH_RS: {},
 };
 
 export function scopeOf(role: UserRole | undefined, capability: ScheduleCapability): ScheduleScope | null {

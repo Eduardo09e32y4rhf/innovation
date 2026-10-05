@@ -22,7 +22,7 @@ import {
 import { RecruitmentService, type ApplicationFilters } from './recruitment.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
+@Roles('DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR')
 @Controller('jobs')
 export class RecruitmentController {
   constructor(private readonly service: RecruitmentService) {}
@@ -43,6 +43,8 @@ export class RecruitmentController {
     return this.service.stats(companyId);
   }
 
+  /** Banco de talentos e acao em lote exigem capacidade propria: fora do RH_RS. */
+  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Get('talent')
   talent(@CurrentCompany() companyId: string, @Query('q') q?: string) {
     return this.service.talentPool(companyId, q);
@@ -79,6 +81,7 @@ export class RecruitmentController {
     return this.service.deleteView(companyId, actor.sub, id);
   }
 
+  @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Post('applications/bulk')
   bulk(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: BulkApplicationsDto) {
     return this.service.bulk(companyId, actor.sub, dto);
