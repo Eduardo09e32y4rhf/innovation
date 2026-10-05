@@ -12,6 +12,7 @@ import { API_URL, api, type Employee, type EmployeeDossier } from '@/app/lib/api
 import { readAuthSession } from '@/app/lib/auth-session';
 import { EMPLOYEE_STATUS_LABEL, VACATION_STATUS_LABEL, formatDate, formatMinutes, formatTime } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { summarizeAccessResults, type AccessResult } from './access-result';
 import { matchesEmployee } from './employee-filters';
 import { EmployeeAccessModal } from './_components/employee-access-modal';
 import { RowActionsMenu } from './_components/row-actions-menu';
@@ -43,9 +44,18 @@ export default function EmployeesPage() {
   const [feedback, setFeedback] = useState('');
   const [actionError, setActionError] = useState('');
   const [accessModalEmployee, setAccessModalEmployee] = useState<string | null>(null);
-  const blockUser = useMutation((id: string) => api.employees.bulkAccess({ employeeIds: [id], action: 'block' }), { onSuccess: () => { employeesQuery.refetch(); toast.success('Acesso bloqueado'); } });
-  const unblockUser = useMutation((id: string) => api.employees.bulkAccess({ employeeIds: [id], action: 'unblock' }), { onSuccess: () => { employeesQuery.refetch(); toast.success('Acesso desbloqueado'); } });
-  const resetPassword = useMutation((id: string) => api.employees.bulkAccess({ employeeIds: [id], action: 'reset-password' }), { onSuccess: () => { employeesQuery.refetch(); toast.success('Senha resetada'); } });
+  const [issuedPassword, setIssuedPassword] = useState<{ name: string; value: string } | null>(null);
+  const onAccessResult = (successMessage: string, employeeName?: string) => (results: AccessResult[]) => {
+    const outcome = summarizeAccessResults(results, successMessage);
+    employeesQuery.refetch();
+    if (!outcome.ok) { toast.error(outcome.message); return; }
+    toast.success(outcome.message);
+    if (outcome.temporaryPassword) setIssuedPassword({ name: employeeName ?? 'colaborador', value: outcome.temporaryPassword });
+  };
+  const nameOf = (id: string) => normalizeDisplayName(employeesQuery.data?.find(e => e.id === id)?.name ?? '');
+  const blockUser = useMutation((id: string) => api.employees.bulkAccess({ employeeIds: [id], action: 'block' }), { onSuccess: onAccessResult('Acesso bloqueado'), onError: (message) => toast.error(message) });
+  const unblockUser = useMutation((id: string) => api.employees.bulkAccess({ employeeIds: [id], action: 'unblock' }), { onSuccess: onAccessResult('Acesso desbloqueado'), onError: (message) => toast.error(message) });
+  const resetPassword = useMutation((id: string) => api.employees.bulkAccess({ employeeIds: [id], action: 'reset-password' }), { onSuccess: (results, id) => onAccessResult('Senha provisoria emitida', nameOf(id))(results), onError: (message) => toast.error(message) });
   const terminate = useMutation((id: string) => api.employees.terminate(id), { onSuccess: () => employeesQuery.refetch() });
   const remove = useMutation((id: string) => api.employees.delete(id), { onSuccess: () => employeesQuery.refetch() });
   const dossierQuery = useQuery(() => api.employees.dossier(selectedEmployeeId ?? ''), [selectedEmployeeId], { enabled: !!selectedEmployeeId });
@@ -54,7 +64,7 @@ export default function EmployeesPage() {
   useEffect(() => {
     setSelectedEmployeeId(null); setTerminating(null); setDeleting(null);
     setSearch(''); setStatus(''); setDepartment(''); setManager(''); setUnit('');
-    setFeedback(''); setActionError('');
+    setFeedback(''); setActionError(''); setIssuedPassword(null);
   }, [user?.companyId, user?.id]);
 
   const employees = employeesQuery.data ?? [];
@@ -180,6 +190,13 @@ export default function EmployeesPage() {
       if (!terminating || terminate.loading) return;
       try { await terminate.mutate(terminating.id); setFeedback('Funcionário desligado.'); setTerminating(null); } catch { /* mantém confirmação e erro */ }
     }} />
+    <Modal isOpen={!!issuedPassword} onClose={() => setIssuedPassword(null)} title="Senha provisória emitida" maxWidth="max-w-md">
+      <div className="space-y-3">
+        <p className="text-sm text-fg-sub">Senha provisória de <strong>{issuedPassword?.name}</strong>. Ela vale por 24 horas, será trocada no primeiro acesso e só é exibida agora. Anote-a e entregue por um canal seguro.</p>
+        <p className="select-all break-all rounded-lg border border-border bg-bg-sub p-3 font-mono text-sm" data-testid="issued-password">{issuedPassword?.value}</p>
+        <div className="flex justify-end"><Button type="button" onClick={() => setIssuedPassword(null)}>Entendi</Button></div>
+      </div>
+    </Modal>
     <Modal isOpen={!!deleting} onClose={() => !remove.loading && setDeleting(null)} title="Excluir ou arquivar funcionário" maxWidth="max-w-xl">
       <div className="space-y-4">
         <p className="text-sm text-fg-sub">A operação consulta o histórico novamente no servidor. Com vínculos, arquiva e bloqueia o acesso; sem vínculos, exclui definitivamente.</p>
