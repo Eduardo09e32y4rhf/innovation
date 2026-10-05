@@ -465,6 +465,7 @@ model User {
   employee               Employee?
   temporaryCredential    TemporaryCredential?
   ceoProfile             CEOProfile?
+  jobRecruiterAssignments JobRecruiter[] @relation("JobRecruiterUser")
   ceoContracts           CEOContract[]           @relation("CEOContractSubject")
   issuedCEOContracts     CEOContract[]           @relation("CEOContractIssuer")
   privacyConsents        PrivacyConsent[]
@@ -1311,6 +1312,7 @@ model Job {
   applications Application[]
   questions    JobQuestion[]
   criteria     JobCriterion[]
+  recruiters   JobRecruiter[]
 
   @@index([companyId])
   @@index([companyId, status])
@@ -3131,4 +3133,20 @@ model InvoiceAdjustment {
 
   @@index([companyId, createdAt])
   @@index([invoiceId])
+}
+
+/// Responsaveis por vaga. Vaga com responsaveis fica visivel so a eles (RH_RS); sem responsaveis, a toda a equipe de R&S da empresa.
+model JobRecruiter {
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @db.Uuid
+  jobId        String   @db.Uuid
+  userId       String   @db.Uuid
+  assignedById String?  @db.Uuid
+  createdAt    DateTime @default(now())
+
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User @relation("JobRecruiterUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, userId])
+  @@index([companyId, userId])
 }

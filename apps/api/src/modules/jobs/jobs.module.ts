@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JobScopeService } from './job-scope.service';
 import { JobsController } from './jobs.controller';
 import { JobsRepository } from './jobs.repository';
 import { JobsService } from './jobs.service';
@@ -10,6 +11,6 @@ import { RecruitmentService } from './recruitment.service';
 @Module({
   // RecruitmentController precisa vir antes: suas rotas estáticas (/jobs/pipeline, /jobs/stats...) não podem cair em /jobs/:id.
   controllers: [RecruitmentController, JobsController, PublicJobsController],
-  providers: [JobsRepository, JobsService, JobsStorageService, RecruitmentService],
+  providers: [JobsRepository, JobsService, JobsStorageService, RecruitmentService, JobScopeService],
 })
 export class JobsModule {}

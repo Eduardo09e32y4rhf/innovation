@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Req,
   Res,
   UseGuards,
@@ -18,8 +19,10 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { ModuleGuard } from '../../common/guards/module.guard';
 import { RequireModule } from '../../common/decorators/require-module.decorator';
 import type { JwtUser } from '../../common/types/auth.types';
+import { AssignRecruitersDto } from './dto/assign-recruiters.dto';
 import { CreateJobDto, UpdateJobDto } from './dto/create-job.dto';
 import { HireCandidateDto } from './dto/hire-candidate.dto';
+import { JobScopeService } from './job-scope.service';
 import { JobsService } from './jobs.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard, ModuleGuard)
@@ -27,36 +30,57 @@ import { JobsService } from './jobs.service';
 @Roles('DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR')
 @Controller('jobs')
 export class JobsController {
-  constructor(private readonly service: JobsService) {}
+  constructor(private readonly service: JobsService, private readonly scope: JobScopeService) {}
 
   @Get()
-  list(@CurrentCompany() companyId: string) {
-    return this.service.list(companyId);
+  list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
+    return this.service.list(companyId, this.scope.scope(actor));
   }
 
   @Post()
-  create(@CurrentCompany() companyId: string, @Body() dto: CreateJobDto) {
-    return this.service.create(companyId, dto);
+  async create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreateJobDto) {
+    const job = await this.service.create(companyId, dto);
+    await this.scope.assignCreator(companyId, actor, job.id);
+    return job;
   }
 
   @Get(':id')
-  get(@CurrentCompany() companyId: string, @Param('id') id: string) {
+  async get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    await this.scope.assertJob(companyId, actor, id);
     return this.service.get(companyId, id);
   }
 
   @Patch(':id')
-  update(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateJobDto) {
+  async update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateJobDto) {
+    await this.scope.assertJob(companyId, actor, id);
     return this.service.update(companyId, id, dto);
   }
 
   @Delete(':id')
-  delete(@CurrentCompany() companyId: string, @Param('id') id: string) {
+  async delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    await this.scope.assertJob(companyId, actor, id);
     return this.service.delete(companyId, id);
   }
 
   @Post(':id/duplicate')
-  duplicate(@CurrentCompany() companyId: string, @Param('id') id: string) {
-    return this.service.duplicate(companyId, id);
+  async duplicate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    await this.scope.assertJob(companyId, actor, id);
+    const copy = await this.service.duplicate(companyId, id);
+    await this.scope.assignCreator(companyId, actor, (copy as any).id);
+    return copy;
+  }
+
+  /** Atribuicao de responsaveis: quem recruta nao define o proprio escopo. */
+  @Roles('DEV', 'ADMIN', 'RH')
+  @Get(':id/recruiters')
+  recruiters(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.scope.listRecruiters(companyId, actor, id);
+  }
+
+  @Roles('DEV', 'ADMIN', 'RH')
+  @Put(':id/recruiters')
+  assignRecruiters(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: AssignRecruitersDto) {
+    return this.scope.setRecruiters(companyId, actor, id, dto.userIds);
   }
 
   /** Efetivar cria Employee: RH_RS so seleciona/encaminha, nunca contrata. */
@@ -74,9 +98,11 @@ export class JobsController {
   @Get('applications/:id/resume')
   async resume(
     @CurrentCompany() companyId: string,
+    @CurrentUser() actor: JwtUser,
     @Param('id') id: string,
     @Res() reply: any,
   ) {
+    await this.scope.assertApplication(companyId, actor, id);
     const file = await this.service.resume(companyId, id);
     reply.header('Content-Type', file.type);
     reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(file.name)}"`);

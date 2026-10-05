@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import {
   BulkApplicationsDto,
@@ -550,18 +551,18 @@ export class RecruitmentService {
   }
 
   // ─── Métricas, banco de talentos e exportação ───────────────────
-  async stats(companyId: string) {
+  async stats(companyId: string, jobScope: Prisma.JobWhereInput = {}) {
     const now = new Date();
     const since30 = new Date(now.getTime() - 30 * 86_400_000);
     const stale = new Date(now.getTime() - 3 * 86_400_000);
     const [jobs, applications, bySource, last30, waiting, nextInterviews] = await Promise.all([
-      this.prisma.job.groupBy({ by: ['status'], where: { companyId }, _count: true }),
-      this.prisma.application.groupBy({ by: ['status'], where: { companyId }, _count: true }),
-      this.prisma.application.groupBy({ by: ['source'], where: { companyId }, _count: true }),
-      this.prisma.application.count({ where: { companyId, createdAt: { gte: since30 } } }),
-      this.prisma.application.count({ where: { companyId, status: 'APPLIED', createdAt: { lte: stale } } }),
+      this.prisma.job.groupBy({ by: ['status'], where: { companyId, ...jobScope }, _count: true }),
+      this.prisma.application.groupBy({ by: ['status'], where: { companyId, job: { is: jobScope } }, _count: true }),
+      this.prisma.application.groupBy({ by: ['source'], where: { companyId, job: { is: jobScope } }, _count: true }),
+      this.prisma.application.count({ where: { companyId, job: { is: jobScope }, createdAt: { gte: since30 } } }),
+      this.prisma.application.count({ where: { companyId, job: { is: jobScope }, status: 'APPLIED', createdAt: { lte: stale } } }),
       this.prisma.applicationInterview.findMany({
-        where: { scheduledAt: { gte: now }, application: { companyId } },
+        where: { scheduledAt: { gte: now }, application: { companyId, job: { is: jobScope } } },
         orderBy: { scheduledAt: 'asc' },
         take: 5,
         include: { application: { select: { id: true, jobId: true, candidate: { select: { name: true } }, job: { select: { title: true } } } } },

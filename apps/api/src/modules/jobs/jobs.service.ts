@@ -10,6 +10,7 @@ import { validate } from 'class-validator';
 import { ApplyJobDto } from './dto/apply-job.dto';
 import { CreateJobDto, UpdateJobDto } from './dto/create-job.dto';
 import { HireCandidateDto } from './dto/hire-candidate.dto';
+import type { Prisma } from '@prisma/client';
 import { JobsRepository } from './jobs.repository';
 import { JobsStorageService } from './jobs-storage.service';
 import { RecruitmentService } from './recruitment.service';
@@ -25,8 +26,8 @@ export class JobsService {
     private readonly recruitment: RecruitmentService,
   ) {}
 
-  async list(companyId: string) {
-    const [jobs, counts] = await Promise.all([this.repository.list(companyId), this.repository.applicationCountsByJob(companyId)]);
+  async list(companyId: string, jobScope: Prisma.JobWhereInput = {}) {
+    const [jobs, counts] = await Promise.all([this.repository.list(companyId, jobScope), this.repository.applicationCountsByJob(companyId)]);
     return jobs.map((job) => {
       const rows = counts.filter((row) => row.jobId === job.id);
       const by = (status: string) => rows.find((row) => row.status === status)?._count ?? 0;

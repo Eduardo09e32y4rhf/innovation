@@ -21,6 +21,7 @@ import {
   TagDto,
   UpdateApplicationMetaDto,
 } from './dto/recruitment.dto';
+import { JobScopeService } from './job-scope.service';
 import { RecruitmentService, type ApplicationFilters } from './recruitment.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard, ModuleGuard)
@@ -28,7 +29,7 @@ import { RecruitmentService, type ApplicationFilters } from './recruitment.servi
 @Roles('DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR')
 @Controller('jobs')
 export class RecruitmentController {
-  constructor(private readonly service: RecruitmentService) {}
+  constructor(private readonly service: RecruitmentService, private readonly scope: JobScopeService) {}
 
   @Get('pipeline')
   pipeline(@CurrentCompany() companyId: string) {
@@ -42,8 +43,8 @@ export class RecruitmentController {
   }
 
   @Get('stats')
-  stats(@CurrentCompany() companyId: string) {
-    return this.service.stats(companyId);
+  stats(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
+    return this.service.stats(companyId, this.scope.scope(actor));
   }
 
   /** Banco de talentos e acao em lote exigem capacidade propria: fora do RH_RS. */
@@ -91,87 +92,101 @@ export class RecruitmentController {
   }
 
   @Get('applications/:id')
-  application(@CurrentCompany() companyId: string, @Param('id') id: string) {
+  async application(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    await this.scope.assertApplication(companyId, actor, id);
     return this.service.getApplication(companyId, id);
   }
 
   @Patch('applications/:id/stage')
-  move(
+  async move(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
     @Param('id') id: string,
     @Body() dto: MoveApplicationDto,
   ) {
+    await this.scope.assertApplication(companyId, actor, id);
     return this.service.moveApplication(companyId, actor.sub, id, dto);
   }
 
   @Patch('applications/:id/favorite')
-  favorite(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateApplicationMetaDto) {
+  async favorite(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateApplicationMetaDto) {
+    await this.scope.assertApplication(companyId, actor, id);
     return this.service.setFavorite(companyId, id, dto.favorite !== false);
   }
 
   @Post('applications/:id/notes')
-  note(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: NoteDto) {
+  async note(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: NoteDto) {
+    await this.scope.assertApplication(companyId, actor, id);
     return this.service.addNote(companyId, actor.sub, id, dto.body);
   }
 
   @Put('applications/:id/evaluations')
-  evaluations(
+  async evaluations(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
     @Param('id') id: string,
     @Body() dto: SaveEvaluationsDto,
   ) {
+    await this.scope.assertApplication(companyId, actor, id);
     return this.service.saveEvaluations(companyId, actor.sub, id, dto);
   }
 
   @Post('applications/:id/interviews')
-  interview(
+  async interview(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
     @Param('id') id: string,
     @Body() dto: InterviewDto,
   ) {
+    await this.scope.assertApplication(companyId, actor, id);
     return this.service.addInterview(companyId, actor.sub, id, dto);
   }
 
   @Delete('applications/:id/interviews/:interviewId')
-  removeInterview(@CurrentCompany() companyId: string, @Param('id') id: string, @Param('interviewId') interviewId: string) {
+  async removeInterview(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Param('interviewId') interviewId: string) {
+    await this.scope.assertApplication(companyId, actor, id);
     return this.service.deleteInterview(companyId, id, interviewId);
   }
 
   @Put('applications/:id/tags')
-  applicationTags(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: SetApplicationTagsDto) {
+  async applicationTags(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: SetApplicationTagsDto) {
+    await this.scope.assertApplication(companyId, actor, id);
     return this.service.setApplicationTags(companyId, id, dto.tagIds);
   }
 
   @Get(':jobId/questions')
-  questions(@CurrentCompany() companyId: string, @Param('jobId') jobId: string) {
+  async questions(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string) {
+    await this.scope.assertJob(companyId, actor, jobId);
     return this.service.getQuestions(companyId, jobId);
   }
 
   @Put(':jobId/questions')
-  saveQuestions(@CurrentCompany() companyId: string, @Param('jobId') jobId: string, @Body() dto: SaveQuestionsDto) {
+  async saveQuestions(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string, @Body() dto: SaveQuestionsDto) {
+    await this.scope.assertJob(companyId, actor, jobId);
     return this.service.saveQuestions(companyId, jobId, dto);
   }
 
   @Get(':jobId/criteria')
-  criteria(@CurrentCompany() companyId: string, @Param('jobId') jobId: string) {
+  async criteria(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string) {
+    await this.scope.assertJob(companyId, actor, jobId);
     return this.service.getCriteria(companyId, jobId);
   }
 
   @Put(':jobId/criteria')
-  saveCriteria(@CurrentCompany() companyId: string, @Param('jobId') jobId: string, @Body() dto: SaveCriteriaDto) {
+  async saveCriteria(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string, @Body() dto: SaveCriteriaDto) {
+    await this.scope.assertJob(companyId, actor, jobId);
     return this.service.saveCriteria(companyId, jobId, dto);
   }
 
   @Get(':jobId/applications/export')
   async exportCsv(
     @CurrentCompany() companyId: string,
+    @CurrentUser() actor: JwtUser,
     @Param('jobId') jobId: string,
     @Query() query: ApplicationFilters,
     @Res() reply: any,
   ) {
+    await this.scope.assertJob(companyId, actor, jobId);
     const csv = await this.service.exportCsv(companyId, jobId, query);
     reply.header('Content-Type', 'text/csv; charset=utf-8');
     reply.header('Content-Disposition', 'attachment; filename="candidatos.csv"');
@@ -179,7 +194,8 @@ export class RecruitmentController {
   }
 
   @Get(':jobId/applications')
-  applications(@CurrentCompany() companyId: string, @Param('jobId') jobId: string, @Query() query: ApplicationFilters) {
+  async applications(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string, @Query() query: ApplicationFilters) {
+    await this.scope.assertJob(companyId, actor, jobId);
     return this.service.listApplications(companyId, jobId, query);
   }
 }

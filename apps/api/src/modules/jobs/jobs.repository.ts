@@ -39,9 +39,9 @@ const openJob = () => ({
 export class JobsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(companyId: string) {
+  list(companyId: string, jobScope: Prisma.JobWhereInput = {}) {
     return this.prisma.job.findMany({
-      where: { companyId },
+      where: { companyId, ...jobScope },
       include: { _count: { select: { applications: true, questions: true } } },
       orderBy: { createdAt: 'desc' },
     });
