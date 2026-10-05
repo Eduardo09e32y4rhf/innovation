@@ -8,13 +8,14 @@ export class CreatePlatformCompanyUserDto {
   @IsEmail()
   email!: string;
 
+  /** Ignorado: a senha provisoria e sempre gerada pelo servidor. Mantido so por compatibilidade de clientes antigos. */
+  @IsOptional()
   @IsString()
-  @MinLength(8)
-  password!: string;
+  password?: string;
 
   @IsOptional()
-  @IsIn(['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO'])
-  role?: 'ADMIN' | 'RH' | 'GESTOR' | 'FUNCIONARIO';
+  @IsIn(['ADMIN', 'RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO'])
+  role?: 'ADMIN' | 'RH' | 'RH_RS' | 'GESTOR' | 'FUNCIONARIO';
 
   @IsOptional()
   @IsArray()

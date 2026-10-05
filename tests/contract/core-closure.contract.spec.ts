@@ -78,10 +78,10 @@ describe('Core closure contracts', () => {
     const repository = read('apps/api/src/modules/users/users.repository.ts');
 
     expect(controller).toContain('@CurrentCompany() companyId: string');
-    expect(controller).toContain('this.service.resetPassword(companyId, actor, id, dto)');
-    expect(service).toContain('findByIdWithPassword(id, companyId)');
-    expect(service).toContain('this.repository.update(id, data, companyId)');
-    expect(service).toContain('return this.get(companyId, actor, id)');
-    expect(repository).toContain('where: { id, ...(companyId ? { companyId } : {}) }');
+    expect(controller).toContain('this.service.reissueTemporaryPassword(companyId, actor, id)');
+    expect(service).toContain('findByIdWithPassword(id, actor.role === \'DEV\' || actor.role === \'CEO\' ? undefined : companyId)');
+    expect(service).toContain('this.repository.reissueTemporaryPassword(id, {');
+    expect(service).not.toContain('async resetPassword(');
+    expect(repository).toContain('where: { id: userId, ...(companyId ? { companyId } : {}) }');
   });
 });

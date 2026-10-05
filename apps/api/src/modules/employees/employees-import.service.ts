@@ -1,11 +1,11 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
-import { randomUUID, randomBytes } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import * as ExcelJS from 'exceljs';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../database/prisma.service';
-import { encryptTemporaryPassword } from '../../common/crypto/temporary-password';
+import { encryptTemporaryPassword, generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
 
 const SHEET_NAME = 'Funcionários';
 const HEADERS = ['Nome', 'CPF', 'E-mail', 'Departamento', 'Cargo', 'Data de admissão', 'Matrícula', 'Telefone', 'Perfil de acesso', 'Criar acesso'] as const;
@@ -231,7 +231,7 @@ export class EmployeesImportService {
           let temporaryPassword: string | null = null;
           if (row.createAccess === 'SIM' && row.email) {
             const role = this.resolveAccessRole(row.accessProfile);
-            temporaryPassword = this.generateTemporaryPassword();
+            temporaryPassword = generateTemporaryPassword();
             const passwordHash = await bcrypt.hash(temporaryPassword, 12);
 
             const existingUser = await tx.user.findUnique({ where: { email: row.email } });
@@ -252,7 +252,7 @@ export class EmployeesImportService {
                 data: {
                   userId: newUser.id,
                   encryptedValue: encryptTemporaryPassword(temporaryPassword),
-                  expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                  expiresAt: temporaryPasswordExpiry(),
                 },
               });
 
@@ -400,10 +400,6 @@ export class EmployeesImportService {
       return remainder === 10 ? 0 : remainder;
     };
     return calculate(9) === digits[9] && calculate(10) === digits[10];
-  }
-
-  private generateTemporaryPassword() {
-    return `Aa1!${randomBytes(18).toString('hex')}`;
   }
 
   private resolveAccessRole(role?: string | null) {

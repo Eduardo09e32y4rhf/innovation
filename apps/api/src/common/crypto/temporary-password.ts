@@ -26,3 +26,24 @@ export function decryptTemporaryPassword(value: string) {
   decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
   return Buffer.concat([decipher.update(Buffer.from(encryptedHex, 'hex')), decipher.final()]).toString('utf8');
 }
+
+/**
+ * Fonte unica das credenciais provisorias (Usuarios, Funcionarios, importacao, ASO e Plataforma).
+ * 96 bits de aleatoriedade (CSPRNG) + prefixo que satisfaz a regra de senha forte; nunca ha senha compartilhada.
+ */
+export function generateTemporaryPassword(): string {
+  return `Aa1!${randomBytes(12).toString('base64url')}`;
+}
+
+const DEFAULT_TTL_HOURS = 24;
+
+/** Validade da provisoria: TEMPORARY_PASSWORD_TTL_HOURS (1 a 168 h), padrao 24 h. */
+export function temporaryPasswordTtlMs(): number {
+  const hours = Number(process.env.TEMPORARY_PASSWORD_TTL_HOURS);
+  const valid = Number.isFinite(hours) && hours >= 1 && hours <= 168 ? hours : DEFAULT_TTL_HOURS;
+  return valid * 60 * 60 * 1000;
+}
+
+export function temporaryPasswordExpiry(now: Date = new Date()): Date {
+  return new Date(now.getTime() + temporaryPasswordTtlMs());
+}

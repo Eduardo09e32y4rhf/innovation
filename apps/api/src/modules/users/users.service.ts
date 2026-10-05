@@ -1,13 +1,11 @@
 import { Optional, BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { randomBytes } from 'node:crypto';
 import { MfaService } from '../auth/mfa.service';
 import { SessionService } from '../auth/session.service';
-import { decryptTemporaryPassword, encryptTemporaryPassword } from '../../common/crypto/temporary-password';
+import { decryptTemporaryPassword, encryptTemporaryPassword, generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
 import type { JwtUser } from '../../common/types/auth.types';
 import { normalizeDisplayName } from '../../common/utils/text-normalization';
 import { CreateUserDto } from './dto/create-user.dto';
-import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import type { UserRole } from '../../common/types/auth.types';
 import { UsersRepository } from './users.repository';
@@ -61,7 +59,7 @@ const ROLE_MANAGEMENT: Record<string, string[]> = {
   CONTABIL: [],
   COMERCIAL: [],
   ADMIN: ['ADMIN', 'RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
-  RH: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  RH: ['RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
   RH_RS: [],
   GESTOR: [],
   FUNCIONARIO: [],
@@ -136,10 +134,9 @@ export class UsersService {
       });
     }
 
-    // Senha provisória opcional: sem ela o sistema gera uma forte, exibida uma única vez ao criador.
-    // Gerada: curta (6), uso único. Informada manualmente: precisa ser forte.
-    const temporaryPassword = dto.password || this.generateTemporaryPassword();
-    if (dto.password) this.assertStrongPassword(temporaryPassword);
+    // Conta criada por terceiros: a provisoria e sempre gerada pelo servidor (dto.password e ignorado).
+    const temporaryPassword = generateTemporaryPassword();
+    const temporaryPasswordExpiresAt = temporaryPasswordExpiry();
     if (dto.employeeId) {
       const employee = await this.repository.findEmployeeForLink(targetCompanyId, dto.employeeId);
       if (!employee) throw new NotFoundException('Funcionario nao encontrado nesta empresa.');
@@ -155,7 +152,7 @@ export class UsersService {
       employeeId: dto.employeeId,
       temporaryPassword: {
         value: temporaryPassword,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expiresAt: temporaryPasswordExpiresAt,
       },
       ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
     });
@@ -180,7 +177,7 @@ export class UsersService {
       ...this.metaFields(meta),
     });
 
-    return { ...created, temporaryPassword, temporaryPasswordExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) };
+    return { ...created, temporaryPassword, temporaryPasswordExpiresAt };
   }
 
   private metaFields(meta?: { ip?: string; userAgent?: string }) {
@@ -209,8 +206,7 @@ export class UsersService {
   /** Atrela (ou desatrela) o usuário a um funcionário. Não é obrigatório: sem vínculo o usuário acessa só conforme a sua visão. */
   async linkEmployee(companyId: string, actor: JwtUser, id: string, employeeId: string | null, meta?: { ip?: string; userAgent?: string }) {
     const user = await this.get(companyId, actor, id);
-    const own = user.id === actor.sub;
-    if (!own && user.role && !this.canManageRole(actor.role, user.role)) throw new ForbiddenException('Voce nao tem permissao para alterar este usuario.');
+    if (user.role && !this.canManageRole(actor.role, user.role)) throw new ForbiddenException('Voce nao tem permissao para alterar este usuario.');
     let employee: { id: string; name: string; registration: string | null; userId: string | null } | null = null;
     if (employeeId) {
       employee = await this.repository.findEmployeeForLink(user.companyId, employeeId);
@@ -285,12 +281,13 @@ export class UsersService {
       throw new ForbiddenException('Voce nao tem permissao para editar este usuario.');
     }
 
-    const { password, name, email, ...rest } = dto;
+    // O administrador nao define a senha de outra pessoa: use a emissao de senha provisoria.
+    if (dto.password) throw new BadRequestException('A senha de outro usuario nao pode ser definida. Emita uma senha provisoria.');
+    const { password: _ignored, name, email, ...rest } = dto;
     const data = {
       ...rest,
       ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
       ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
-      ...(password ? { passwordHash: await bcrypt.hash(password, 12) } : {}),
     };
 
     // Usa a empresa DO USUÁRIO alvo (o DEV edita usuários de qualquer empresa).
@@ -325,67 +322,6 @@ export class UsersService {
     });
 
     return result.user;
-  }
-
-  async resetPassword(companyId: string, actor: JwtUser, id: string, dto: ResetUserPasswordDto) {
-    const user = actor.role === 'DEV'
-      ? await this.repository.findByIdWithPassword(id)
-      : await this.repository.findByIdWithPassword(id, companyId);
-    if (!user) throw new NotFoundException('Usuario nao encontrado');
-    if (user.role && !this.canManageRole(actor.role, user.role)) {
-      throw new ForbiddenException('Voce nao tem permissao para resetar a senha deste usuario.');
-    }
-    if (actor.sub === id) {
-      throw new ConflictException('Nao e permitido resetar a propria senha por esta acao.');
-    }
-
-    if (!dto.newPassword) {
-      throw new BadRequestException('A nova senha nao foi fornecida');
-    }
-    const newPassword = dto.newPassword;
-
-    const isSamePassword = await bcrypt.compare(newPassword, user.passwordHash || '');
-    if (isSamePassword) {
-      throw new ConflictException('A nova senha temporaria nao pode ser igual a senha atual.');
-    }
-
-    this.assertStrongPassword(newPassword);
-    for (const previousHash of user.previousPasswords ?? []) {
-      if (await bcrypt.compare(newPassword, previousHash)) {
-        throw new ConflictException('Esta senha ja foi utilizada anteriormente.');
-      }
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword, 12);
-    const data = {
-      passwordHash,
-      previousPasswords: [user.passwordHash, ...(user.previousPasswords ?? [])].slice(0, 10),
-      forcePasswordChange: true,
-      failedLoginAttempts: 0,
-      resetPasswordCode: null,
-      resetPasswordExpires: null,
-      passwordChangedAt: new Date(),
-    };
-    const result = actor.role === 'DEV'
-      ? await this.repository.update(id, data)
-      : await this.repository.update(id, data, companyId);
-    if (!result.count) throw new NotFoundException('Usuario nao encontrado');
-
-    await this.repository.createAuditLog({
-      companyId: user.companyId,
-      userId: user.id,
-      action: 'PASSWORD_RESET_COMPLETED',
-      entity: 'User',
-      entityId: user.id,
-      metadata: {
-        requestedBy: actor.email,
-        passwordChangedAt: new Date().toISOString(),
-        forcePasswordChange: true,
-        previousPasswordCount: (user.previousPasswords ?? []).length,
-      },
-    });
-
-    return this.get(companyId, actor, id);
   }
 
   async revealTemporaryPassword(companyId: string, actor: JwtUser, id: string) {
@@ -424,8 +360,8 @@ export class UsersService {
     this.assertCanRevealTemporaryPassword(actor, user);
     if (actor.sub === id) throw new ConflictException('Nao e permitido reemitir a propria senha por esta acao.');
 
-    const temporaryPassword = this.generateTemporaryPassword();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const temporaryPassword = generateTemporaryPassword();
+    const expiresAt = temporaryPasswordExpiry();
     const passwordHash = await bcrypt.hash(temporaryPassword, 12);
     const reissued = await this.repository.reissueTemporaryPassword(id, {
       passwordHash,
@@ -502,14 +438,9 @@ export class UsersService {
     }
   }
 
-  private generateTemporaryPassword() {
-    // 6 caracteres sem ambíguos (sem 0/O/1/I/L). Vale para um único acesso: a troca obrigatória exige senha forte de 10+.
-    const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-    return Array.from(randomBytes(6), (byte) => alphabet[byte % alphabet.length]).join('');
-  }
-
   private assertCanRevealTemporaryPassword(actor: JwtUser, user: { id: string; role?: string }) {
     if (actor.sub === user.id) throw new ForbiddenException('Nao e permitido revelar a propria senha provisoria.');
+    if (isOwnerTargetedByOther(actor, { id: user.id })) throw new ForbiddenException('O dono da plataforma nao pode ser alterado por outro usuario.');
     if (!this.canManageRole(actor.role, user.role)) {
       throw new ForbiddenException('Voce nao tem permissao para gerir a senha provisoria deste usuario.');
     }
@@ -523,7 +454,7 @@ export class UsersService {
     if (protectedRoles.includes(nextRole) && actorRole !== 'DEV') {
       throw new ForbiddenException('Apenas um perfil DEV pode criar ou promover perfis internos (CEO, Contábil, etc).');
     }
-    if (actorRole === 'RH' && ['ADMIN', 'RH_RS', 'DEV', 'CEO', 'CONTABIL', 'COMERCIAL'].includes(nextRole)) {
+    if (actorRole === 'RH' && ['ADMIN', 'DEV', 'CEO', 'CONTABIL', 'COMERCIAL'].includes(nextRole)) {
       throw new ForbiddenException('RH não pode criar ou promover Administrador, Comercial ou Perfis Internos.');
     }
     if (actorRole === 'RH_RS' || actorRole === 'GESTOR' || actorRole === 'FUNCIONARIO' || actorRole === 'CONSULTA') {

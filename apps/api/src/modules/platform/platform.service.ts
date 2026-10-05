@@ -1,5 +1,4 @@
-import { describeAction } from '../users/user-activity';
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -12,6 +11,7 @@ import { PlatformRepository } from './platform.repository';
 
 // SEGURANCA: e-mail do DEV proprietario da plataforma, definido via variavel de ambiente
 import { isOwnerTargetedByOther, isPlatformOwner } from '../../common/constants/platform-owner';
+import { generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
 const PROTECTED_PLATFORM_ROLES = ['DEV', 'COMERCIAL'];
 
 import { NotificationsService } from '../notifications/notifications.service';
@@ -26,7 +26,7 @@ export class PlatformService {
     private readonly platformFinance: PlatformFinanceService,
   ) {}
 
-  async listCompanies(actor?: JwtUser, query?: { page?: number; limit?: number; search?: string }) {
+  async listCompanies(actor?: JwtUser, query?: { page?: number; limit?: number; search?: string; status?: string; billingStatus?: string }) {
     const { data, total, page, limit } = await this.repository.listCompanies(actor, query);
     if (actor && actor.role !== 'DEV') {
       const mapped = data.map(c => ({
@@ -113,8 +113,7 @@ export class PlatformService {
 
   async companyAuditLogs(id: string, actor?: JwtUser, query?: { page?: number; limit?: number }) {
     await this.getCompany(id, actor);
-    const result = await this.repository.listCompanyAuditLogs(id, query);
-    return { ...result, data: result.data.map((row) => ({ ...row, summary: describeAction(row.action, row.entity, row.metadata) })) };
+    return this.repository.listCompanyAuditLogs(id, query);
   }
 
   async createCompany(actor: JwtUser, dto: CreatePlatformCompanyDto) {
@@ -341,15 +340,18 @@ export class PlatformService {
       throw new ForbiddenException({ code: 'SEAT_LIMIT_REACHED', message: 'A empresa utiliza todas as licencas contratadas.', used: count, limit });
     }
 
+    // Conta criada por terceiros: provisoria gerada pelo servidor (dto.password e ignorado) e devolvida uma unica vez.
+    const temporaryPassword = generateTemporaryPassword();
+    const temporaryPasswordExpiresAt = temporaryPasswordExpiry();
     const created = await this.repository.createWithEmployeeSync({
       companyId,
       name: normalizeDisplayName(dto.name),
       email,
-      passwordHash: await bcrypt.hash(dto.password, 12),
+      passwordHash: await bcrypt.hash(temporaryPassword, 12),
       role: dto.role ?? 'FUNCIONARIO',
       temporaryPassword: {
-        value: dto.password,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        value: temporaryPassword,
+        expiresAt: temporaryPasswordExpiresAt,
       },
       ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
     });
@@ -370,7 +372,7 @@ export class PlatformService {
       },
     });
 
-    return created;
+    return { ...created, temporaryPassword, temporaryPasswordExpiresAt };
   }
 
   async updateCompanyUser(actor: JwtUser, companyId: string, userId: string, dto: UpdatePlatformCompanyUserDto) {
@@ -380,12 +382,13 @@ export class PlatformService {
     if (!current) throw new NotFoundException('Usuario nao encontrado');
     this.assertCanTouchTargetUser(actor, current.role, current);
 
-    const { password, name, email, ...rest } = dto;
+    // O administrador nao define a senha de outra pessoa: use a emissao de senha provisoria.
+    if (dto.password) throw new BadRequestException('A senha de outro usuario nao pode ser definida. Emita uma senha provisoria.');
+    const { password: _ignored, name, email, ...rest } = dto;
     const result = await this.repository.updateWithEmployeeSync(companyId, userId, {
       ...rest,
       ...(name !== undefined ? { name: normalizeDisplayName(name) } : {}),
       ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
-      ...(password ? { passwordHash: await bcrypt.hash(password, 12) } : {}),
     });
     if (!result.count || !result.user) throw new NotFoundException('Usuario nao encontrado');
 

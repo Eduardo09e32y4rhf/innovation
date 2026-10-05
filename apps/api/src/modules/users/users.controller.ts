@@ -7,7 +7,6 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateUserDto } from './dto/create-user.dto';
-import { ResetUserPasswordDto } from './dto/reset-user-password.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ActivityQueryDto, LinkEmployeeDto, LinkableQueryDto, PageViewDto, ReasonDto } from './dto/user-actions.dto';
 import { UsersActivityService } from './users-activity.service';
@@ -93,15 +92,12 @@ export class UsersController {
     return this.service.delete(companyId, actor, id, requestMeta(request));
   }
 
+  /** Reset administrativo: o administrador nunca escolhe a senha de outra pessoa; emite-se uma provisoria nova (mesmo fluxo da reemissao). */
+  @Header('Cache-Control', 'no-store')
   @Roles('DEV', 'ADMIN', 'RH')
   @Post(':id/reset-password')
-  resetPassword(
-    @CurrentCompany() companyId: string, 
-    @CurrentUser() actor: JwtUser, 
-    @Param('id') id: string,
-    @Body() dto: ResetUserPasswordDto,
-  ) {
-    return this.service.resetPassword(companyId, actor, id, dto);
+  resetPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    return this.service.reissueTemporaryPassword(companyId, actor, id);
   }
 
   @Header('Cache-Control', 'no-store')

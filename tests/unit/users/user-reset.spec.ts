@@ -1,5 +1,4 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { UsersService } from '../../../apps/api/src/modules/users/users.service';
 
@@ -13,88 +12,62 @@ const actor = {
 };
 
 function repositoryDouble() {
-  const safeUser = {
+  const target = {
     id: targetId,
     companyId,
     name: 'Pessoa Teste',
     email: 'pessoa@company-a.test',
     role: 'FUNCIONARIO',
     isActive: true,
-    forcePasswordChange: true,
+    passwordHash: 'hash-atual',
+    previousPasswords: [],
   };
-
   return {
-    safeUser,
+    target,
     repository: {
       findByIdWithPassword: vi.fn(),
-      update: vi.fn().mockResolvedValue({ count: 1 }),
-      findById: vi.fn().mockResolvedValue(safeUser),
+      reissueTemporaryPassword: vi.fn().mockResolvedValue({ count: 1 }),
       createAuditLog: vi.fn(),
     },
   };
 }
 
-describe('UsersService.resetPassword', () => {
-  it('updates the password inside the actor tenant and returns the refreshed safe user', async () => {
-    const { repository, safeUser } = repositoryDouble();
-    repository.findByIdWithPassword.mockResolvedValue({
-      ...safeUser,
-      passwordHash: await bcrypt.hash('SenhaAntiga@123', 4),
-      previousPasswords: [],
-    });
+// O reset administrativo emite uma provisoria nova; o administrador nunca escolhe a senha de outra pessoa.
+describe('UsersService.reissueTemporaryPassword (reset administrativo)', () => {
+  it('emite a provisoria dentro do tenant do ator e devolve o segredo uma unica vez', async () => {
+    const { repository, target } = repositoryDouble();
+    repository.findByIdWithPassword.mockResolvedValue(target);
     const service = new UsersService(repository as never);
 
-    const result = await service.resetPassword(
-      companyId,
-      actor,
-      targetId,
-      { newPassword: 'SenhaNova@123' },
-    );
+    const result: any = await service.reissueTemporaryPassword(companyId, actor, targetId);
 
     expect(repository.findByIdWithPassword).toHaveBeenCalledWith(targetId, companyId);
-    expect(repository.update).toHaveBeenCalledWith(
+    expect(repository.reissueTemporaryPassword).toHaveBeenCalledWith(
       targetId,
-      expect.objectContaining({
-        forcePasswordChange: true,
-        failedLoginAttempts: 0,
-        resetPasswordCode: null,
-        resetPasswordExpires: null,
-      }),
+      expect.objectContaining({ forcePasswordChange: true, failedLoginAttempts: 0 }),
+      expect.any(String),
+      expect.any(Date),
       companyId,
     );
-    expect(repository.findById).toHaveBeenCalledWith(targetId, companyId);
-    expect(result).toEqual(safeUser);
-
-    const persisted = repository.update.mock.calls[0][1];
-    expect(await bcrypt.compare('SenhaNova@123', persisted.passwordHash)).toBe(true);
+    expect(result.temporaryPassword).toMatch(/^Aa1!/);
   });
 
-  it('does not reset a user that is absent from the actor tenant', async () => {
+  it('nao emite para usuario ausente do tenant do ator', async () => {
     const { repository } = repositoryDouble();
     repository.findByIdWithPassword.mockResolvedValue(null);
     const service = new UsersService(repository as never);
 
-    await expect(
-      service.resetPassword(companyId, actor, targetId, { newPassword: 'SenhaNova@123' }),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.reissueTemporaryPassword(companyId, actor, targetId)).rejects.toBeInstanceOf(NotFoundException);
     expect(repository.findByIdWithPassword).toHaveBeenCalledWith(targetId, companyId);
-    expect(repository.update).not.toHaveBeenCalled();
+    expect(repository.reissueTemporaryPassword).not.toHaveBeenCalled();
   });
 
-  it('blocks the administrative reset of the actor own password', async () => {
-    const { repository, safeUser } = repositoryDouble();
-    repository.findByIdWithPassword.mockResolvedValue({
-      ...safeUser,
-      id: actor.sub,
-      role: 'ADMIN',
-      passwordHash: await bcrypt.hash('SenhaAntiga@123', 4),
-      previousPasswords: [],
-    });
+  it('bloqueia a reemissao da propria senha', async () => {
+    const { repository, target } = repositoryDouble();
+    repository.findByIdWithPassword.mockResolvedValue({ ...target, id: actor.sub, role: 'ADMIN' });
     const service = new UsersService(repository as never);
 
-    await expect(
-      service.resetPassword(companyId, actor, actor.sub, { newPassword: 'SenhaNova@123' }),
-    ).rejects.toBeInstanceOf(ConflictException);
-    expect(repository.update).not.toHaveBeenCalled();
+    await expect(service.reissueTemporaryPassword(companyId, actor, actor.sub)).rejects.toBeInstanceOf(ForbiddenException);
+    expect(repository.reissueTemporaryPassword).not.toHaveBeenCalled();
   });
 });

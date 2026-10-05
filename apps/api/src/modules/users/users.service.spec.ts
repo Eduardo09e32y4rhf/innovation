@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { UsersService } from './users.service';
@@ -26,95 +26,52 @@ function makeRepository(overrides: Record<string, any> = {}) {
   } as any;
 }
 
-describe('UsersService.resetPassword', () => {
+describe('UsersService: senha provisoria (reset e reemissao)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('updates the password hash, forces a change on login and clears recovery state', async () => {
+  const admin = { sub: 'admin-1', role: 'ADMIN', email: 'admin@company.com' } as any;
+  const target = { id: 'user-1', companyId: 'company-1', role: 'FUNCIONARIO', passwordHash: 'current-hash', previousPasswords: ['old-hash'] };
+
+  it('reemite uma provisoria gerada pelo servidor, forte, com validade e na mesma transacao do hash', async () => {
     const repository = makeRepository({
-      findByIdWithPassword: vi.fn().mockResolvedValue({
-        id: 'user-1',
-        companyId: 'company-1',
-        role: 'FUNCIONARIO',
-        passwordHash: 'current-hash',
-        previousPasswords: ['old-hash'],
-      }),
-      findById: vi.fn().mockResolvedValue({
-        id: 'user-1',
-        companyId: 'company-1',
-        role: 'FUNCIONARIO',
-        forcePasswordChange: true,
-      }),
+      findByIdWithPassword: vi.fn().mockResolvedValue(target),
+      reissueTemporaryPassword: vi.fn().mockResolvedValue({ count: 1 }),
     });
-    const compareSpy = vi.mocked(bcrypt.compare);
-    const hashSpy = vi.mocked(bcrypt.hash);
-    compareSpy.mockResolvedValue(false as never);
-    hashSpy.mockResolvedValue('new-hash' as never);
-    const service = new UsersService(repository);
+    vi.mocked(bcrypt.hash).mockResolvedValue('new-hash' as never);
+    const result: any = await new UsersService(repository).reissueTemporaryPassword('company-1', admin, 'user-1');
 
-    const result = await service.resetPassword('company-1', { sub: 'admin-1', role: 'ADMIN', email: 'admin@company.com' } as any, 'user-1', {
-      newPassword: 'SenhaForte123!',
-    });
-
-    expect(compareSpy).toHaveBeenCalledWith('SenhaForte123!', 'current-hash');
-    expect(hashSpy).toHaveBeenCalledWith('SenhaForte123!', 12);
-    expect(repository.update).toHaveBeenCalledWith('user-1', expect.objectContaining({
-      passwordHash: 'new-hash',
-      previousPasswords: ['current-hash', 'old-hash'],
-      forcePasswordChange: true,
-      failedLoginAttempts: 0,
-      resetPasswordCode: null,
-      resetPasswordExpires: null,
-      passwordChangedAt: expect.any(Date),
-    }), 'company-1');
-    expect(result).toEqual({
-      id: 'user-1',
-      companyId: 'company-1',
-      role: 'FUNCIONARIO',
-      forcePasswordChange: true,
-    });
+    expect(result.temporaryPassword).toMatch(/^Aa1!/);
+    expect(result.temporaryPassword.length).toBeGreaterThanOrEqual(20);
+    expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now());
+    const [userId, userData, encrypted, expiresAt, scope] = repository.reissueTemporaryPassword.mock.calls[0];
+    expect(userId).toBe('user-1');
+    expect(userData).toMatchObject({ passwordHash: 'new-hash', previousPasswords: ['current-hash', 'old-hash'], forcePasswordChange: true, failedLoginAttempts: 0 });
+    expect(encrypted).not.toContain(result.temporaryPassword);
+    expect(expiresAt).toBeInstanceOf(Date);
+    expect(scope).toBe('company-1');
   });
 
-  it('rejects weak passwords before touching the repository', async () => {
-    const repository = makeRepository({
-      findByIdWithPassword: vi.fn().mockResolvedValue({
-        id: 'user-1',
-        companyId: 'company-1',
-        role: 'FUNCIONARIO',
-        passwordHash: 'current-hash',
-        previousPasswords: [],
-      }),
-    });
+  it('nao reemite para si mesmo nem para perfil que o ator nao gere', async () => {
+    const repository = makeRepository({ findByIdWithPassword: vi.fn().mockResolvedValue({ ...target, role: 'DEV' }), reissueTemporaryPassword: vi.fn() });
     const service = new UsersService(repository);
-
-    await expect(service.resetPassword('company-1', { sub: 'admin-1', role: 'ADMIN', email: 'admin@company.com' } as any, 'user-1', {
-      newPassword: 'weak',
-    })).rejects.toBeInstanceOf(BadRequestException);
-
-    expect(repository.findByIdWithPassword).toHaveBeenCalledWith('user-1', 'company-1');
-    expect(repository.update).not.toHaveBeenCalled();
+    await expect(service.reissueTemporaryPassword('company-1', admin, 'user-1')).rejects.toBeInstanceOf(ForbiddenException);
+    repository.findByIdWithPassword.mockResolvedValue({ ...target, id: 'admin-1' });
+    await expect(service.reissueTemporaryPassword('company-1', admin, 'admin-1')).rejects.toBeInstanceOf(ForbiddenException);
+    expect(repository.reissueTemporaryPassword).not.toHaveBeenCalled();
   });
 
-  it('rejects password reuse based on the current hash and the historical hashes', async () => {
-    const repository = makeRepository({
-      findByIdWithPassword: vi.fn().mockResolvedValue({
-        id: 'user-1',
-        companyId: 'company-1',
-        role: 'FUNCIONARIO',
-        passwordHash: 'current-hash',
-        previousPasswords: ['historical-hash'],
-      }),
-    });
-    vi.mocked(bcrypt.compare).mockImplementation(async (candidate: string, hash: string) => candidate === 'SenhaForte123!' && (hash === 'current-hash' || hash === 'historical-hash'));
-    const service = new UsersService(repository);
+  it('administrador nao define a senha de outro usuario ao editar', async () => {
+    const repository = makeRepository({ findById: vi.fn().mockResolvedValue({ id: 'user-1', companyId: 'company-1', role: 'FUNCIONARIO' }), updateWithEmployeeSync: vi.fn() });
+    await expect(new UsersService(repository).update('company-1', admin, 'user-1', { password: 'SenhaForte123!' } as any)).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.updateWithEmployeeSync).not.toHaveBeenCalled();
+  });
 
-    await expect(service.resetPassword('company-1', { sub: 'admin-1', role: 'ADMIN', email: 'admin@company.com' } as any, 'user-1', {
-      newPassword: 'SenhaForte123!',
-    })).rejects.toBeInstanceOf(ConflictException);
+  it('o servico nao oferece mais reset com senha escolhida', () => {
+    expect((UsersService.prototype as any).resetPassword).toBeUndefined();
   });
 });
-
 describe('UsersService internal platform role protection', () => {
   afterEach(() => {
     vi.restoreAllMocks();

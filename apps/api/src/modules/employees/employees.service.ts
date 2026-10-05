@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { randomBytes } from 'node:crypto';
+import { generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
@@ -189,7 +189,7 @@ export class EmployeesService {
         throw new ConflictException('SEAT_LIMIT_REACHED: Limite de licenças atingido para a empresa');
       }
 
-      temporaryPassword = this.generateTemporaryPassword();
+      temporaryPassword = generateTemporaryPassword();
       const user = await this.repository.createUser({
         companyId,
         name: dto.name ?? employee.name,
@@ -200,7 +200,7 @@ export class EmployeesService {
         isActive: true,
         temporaryPassword: {
           value: temporaryPassword,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          expiresAt: temporaryPasswordExpiry(),
         },
       });
       await this.repository.updateUserLink(companyId, employeeId, user.id);
@@ -292,7 +292,7 @@ export class EmployeesService {
               break;
             }
             if (dto.action === 'reset-password') {
-              const newPassword = this.generateTemporaryPassword();
+              const newPassword = generateTemporaryPassword();
               const user = await this.repository.findUserById(companyId, employee.userId!);
               const reset = await this.repository.reissueTemporaryPassword(companyId, employee.userId!, {
                 passwordHash: await bcrypt.hash(newPassword, 12),
@@ -300,7 +300,7 @@ export class EmployeesService {
                 forcePasswordChange: true,
                 passwordChangedAt: new Date(),
                 failedLoginAttempts: 0,
-              }, newPassword, new Date(Date.now() + 24 * 60 * 60 * 1000));
+              }, newPassword, temporaryPasswordExpiry());
               results.push(reset.count ? { employeeId, success: true, temporaryPassword: newPassword } : { employeeId, success: false, error: 'Usuario nao encontrado' });
               break;
             }
@@ -427,7 +427,7 @@ export class EmployeesService {
       return;
     }
 
-    const temporaryPassword = this.generateTemporaryPassword();
+    const temporaryPassword = generateTemporaryPassword();
 
     const user = await this.repository.createUser({
       companyId,
@@ -439,7 +439,7 @@ export class EmployeesService {
       isActive: true,
       temporaryPassword: {
         value: temporaryPassword,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expiresAt: temporaryPasswordExpiry(),
       },
     });
     await this.repository.updateUserLink(companyId, employee.id, user.id);
@@ -458,11 +458,6 @@ export class EmployeesService {
     if (isOwnerTargetedByOther(actor, user)) return 'O dono da plataforma nao pode ser alterado por outro usuario';
     if (!canManageRole(actor.role, user.role)) return 'Seu perfil nao pode gerir o acesso deste usuario';
     return null;
-  }
-
-  private generateTemporaryPassword() {
-    // Nunca reutilizar senha de ambiente: cada provisionamento recebe um segredo distinto.
-    return `Aa1!${randomBytes(18).toString('hex')}`;
   }
 
 

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Edit3, Plus, Trash2, X } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useMutation, useQuery } from './use-platform-query';
-import { api, type AppUser, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
+import { api, type AppUser, type CreatedUser, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 
@@ -109,15 +109,30 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
     role: (user?.role as PlatformCompanyUserRole) ?? 'FUNCIONARIO',
     isActive: user?.isActive ?? true,
   });
-  const save = useMutation(() => {
+  // A senha de outro usuario nunca e definida aqui: a provisoria e gerada pelo servidor e mostrada uma unica vez.
+  const [issued, setIssued] = useState<{ password: string; expiresAt?: string } | null>(null);
+  const save = useMutation(async () => {
     if (user) {
-      const { password, ...rest } = form;
-      return api.platform.updateCompanyUser(companyId, user.id, { ...rest, name: normalizeDisplayName(rest.name ?? ''), email: rest.email?.trim().toLowerCase(), ...(password ? { password } : {}) });
+      const { password: _password, ...rest } = form;
+      return api.platform.updateCompanyUser(companyId, user.id, { ...rest, name: normalizeDisplayName(rest.name ?? ''), email: rest.email?.trim().toLowerCase() });
     }
-    const { isActive, ...createInput } = form;
-    return api.platform.createCompanyUser(companyId, { ...createInput, name: normalizeDisplayName(createInput.name), email: createInput.email.trim().toLowerCase() });
-  }, { onSuccess: onDone });
-  const valid = form.name && form.email && (user || form.password.length >= 8);
+    const { isActive: _isActive, password: _unused, ...createInput } = form;
+    return (await api.platform.createCompanyUser(companyId, { ...createInput, password: '', name: normalizeDisplayName(createInput.name), email: createInput.email.trim().toLowerCase() })) as CreatedUser;
+  }, { onSuccess: (result) => { const created = result as CreatedUser; if (!user && created.temporaryPassword) setIssued({ password: created.temporaryPassword, expiresAt: created.temporaryPasswordExpiresAt }); else onDone(); } });
+  const valid = form.name && form.email;
+
+  if (issued) {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 p-4">
+        <div className="w-full max-w-md space-y-3 rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
+          <h4 className="text-base font-black text-slate-950">Usuario criado</h4>
+          <p className="text-xs text-slate-600">Senha provisoria gerada pelo sistema. Ela e exibida somente agora, expira em 24 horas e deve ser trocada no primeiro acesso.</p>
+          <p data-testid="issued-password" className="select-all break-all rounded-[8px] border border-slate-200 bg-slate-50 p-3 font-mono text-sm">{issued.password}</p>
+          <div className="flex justify-end"><button onClick={onDone} className="crystal-button h-10 rounded-[8px] px-4 text-xs font-black text-white">Concluir</button></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 p-4">
@@ -130,7 +145,6 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
         <div className="space-y-3">
           <F label="Nome" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} required />
           <F label="E-mail" type="email" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} required />
-          <F label={user ? 'Nova senha (opcional)' : 'Senha padrao (min. 8 chars)'} type="password" value={form.password} onChange={(v) => setForm((f) => ({ ...f, password: v }))} />
           <label className="block space-y-1 text-xs font-medium text-slate-600">
             <span>Perfil</span>
             <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as PlatformCompanyUserRole }))} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500">
