@@ -389,7 +389,7 @@ export class RecruitmentService {
         rejectionReason: stage.kind === 'REJECTED' ? dto.rejectionReason!.trim() : null,
       },
     });
-    await tx.candidate.update({ where: { id: app.candidateId }, data: { status: candidateStatusFor(stage.kind) } });
+    await tx.candidate.updateMany({ where: { id: app.candidateId, status: { not: 'HIRED' } }, data: { status: candidateStatusFor(stage.kind) } });
     await tx.applicationEvent.create({
       data: {
         applicationId: id,

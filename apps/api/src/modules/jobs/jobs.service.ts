@@ -209,7 +209,7 @@ export class JobsService {
     const format = this.detectResumeFormat(file.buffer, file.filename);
     if (!format) throw new BadRequestException('Curriculo invalido. Envie um arquivo PDF ou DOCX verdadeiro.');
 
-    const job = await this.repository.publicJobById(jobId);
+    const job = await this.repository.jobForApplication(jobId);
     if (!job) throw new NotFoundException('Vaga nao encontrada ou encerrada.');
 
     const questions: RuleQuestion[] = job.questions.map((question: any) => ({

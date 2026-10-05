@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -30,10 +30,18 @@ const ACTIVE_COMPANY: Prisma.CompanyWhereInput = {
   status: 'ACTIVE',
   billingStatus: { notIn: ['CANCELED', 'PENDING_PAYMENT'] },
 };
+/** Empresa que pode publicar vagas: ativa, sem pendencia de pagamento e com o modulo de recrutamento. */
+const PUBLIC_JOB_COMPANY: Prisma.CompanyWhereInput = { ...ACTIVE_COMPANY, activeModules: { has: 'recruitment' } };
+
 const openJob = () => ({
   status: 'OPEN' as const,
   OR: [{ deadline: null }, { deadline: { gte: new Date() } }],
 });
+
+/** Politica unica de disponibilidade: catalogo, empresa, detalhe e candidatura usam esta mesma condicao. */
+const availablePublicJob = () => ({ ...openJob(), company: PUBLIC_JOB_COMPANY });
+
+const PUBLIC_QUESTION_SELECT = { id: true, label: true, type: true, required: true, options: true } satisfies Prisma.JobQuestionSelect;
 
 @Injectable()
 export class JobsRepository {
@@ -93,7 +101,7 @@ export class JobsRepository {
 
   publicJobs(companyId: string) {
     return this.prisma.job.findMany({
-      where: { companyId, ...openJob() },
+      where: { companyId, ...availablePublicJob() },
       select: PUBLIC_JOB_SELECT,
       orderBy: { createdAt: 'desc' },
     });
@@ -101,7 +109,7 @@ export class JobsRepository {
 
   publicJobsCatalog() {
     return this.prisma.job.findMany({
-      where: { ...openJob(), company: ACTIVE_COMPANY },
+      where: availablePublicJob(),
       select: { ...PUBLIC_JOB_SELECT, company: { select: PUBLIC_COMPANY_SELECT } },
       orderBy: { createdAt: 'desc' },
     });
@@ -109,24 +117,37 @@ export class JobsRepository {
 
   publicJob(companyId: string, jobId: string) {
     return this.prisma.job.findFirst({
-      where: { companyId, id: jobId, ...openJob() },
-      select: { ...PUBLIC_JOB_SELECT, questions: { select: { id: true, label: true, type: true, required: true, options: true }, orderBy: { position: 'asc' } } },
+      where: { companyId, id: jobId, ...availablePublicJob() },
+      select: { ...PUBLIC_JOB_SELECT, questions: { select: PUBLIC_QUESTION_SELECT, orderBy: { position: 'asc' } } },
     });
   }
 
+  /** Detalhe publico: so campos da lista de permissao (nada de pipelineId, status ou criterios internos). */
   publicJobById(jobId: string) {
     return this.prisma.job.findFirst({
-      where: { id: jobId, ...openJob(), company: { isActive: true } },
-      include: {
+      where: { id: jobId, ...availablePublicJob() },
+      select: {
+        ...PUBLIC_JOB_SELECT,
         company: { select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true } },
-        questions: { select: { id: true, label: true, type: true, required: true, options: true, knockout: true, scoreRule: true }, orderBy: { position: 'asc' } },
+        questions: { select: PUBLIC_QUESTION_SELECT, orderBy: { position: 'asc' } },
       },
     });
   }
 
+  /** Uso interno da candidatura: precisa dos criterios (knockout/scoreRule), que nunca saem pela API publica. */
+  jobForApplication(jobId: string) {
+    return this.prisma.job.findFirst({
+      where: { id: jobId, ...availablePublicJob() },
+      select: {
+        id: true,
+        companyId: true,
+        questions: { select: { ...PUBLIC_QUESTION_SELECT, knockout: true, scoreRule: true }, orderBy: { position: 'asc' } },
+      },
+    });
+  }
   async allPublicJobs() {
     const jobs = await this.prisma.job.findMany({
-      where: { ...openJob(), company: ACTIVE_COMPANY },
+      where: availablePublicJob(),
       select: { ...PUBLIC_JOB_SELECT, company: { select: PUBLIC_COMPANY_SELECT } },
       orderBy: { createdAt: 'desc' },
     });
@@ -154,6 +175,10 @@ export class JobsRepository {
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${companyId}:${data.email}`}))`;
 
+      // Revalida no momento transacional: vaga encerrada/indisponivel entre a leitura e a gravacao nao recebe candidatura.
+      const job = await tx.job.findFirst({ where: { id: jobId, companyId, ...availablePublicJob() }, select: { pipelineId: true } });
+      if (!job) throw new NotFoundException('Vaga nao encontrada ou encerrada.');
+
       let candidate = await tx.candidate.findFirst({
         where: { companyId, email: { equals: data.email, mode: 'insensitive' } },
       });
@@ -167,11 +192,11 @@ export class JobsRepository {
         if (duplicate) return { duplicate: true as const, application: duplicate };
         candidate = await tx.candidate.update({
           where: { id: candidate.id },
-          data: { name: data.name, phone: data.phone, linkedinUrl: data.linkedinUrl ?? candidate.linkedinUrl, status: 'NEW' },
+          // O resultado pertence a cada candidatura: nova candidatura nao reverte o estado consolidado do candidato.
+          data: { name: data.name, phone: data.phone, linkedinUrl: data.linkedinUrl ?? candidate.linkedinUrl },
         });
       }
 
-      const job = await tx.job.findUnique({ where: { id: jobId }, select: { pipelineId: true } });
       const pipelineId =
         job?.pipelineId ??
         (await tx.hiringPipeline.findFirst({ where: { companyId, isDefault: true }, select: { id: true } }))?.id ??
@@ -212,7 +237,7 @@ export class JobsRepository {
           },
         },
       });
-      if (autoReject) await tx.candidate.update({ where: { id: candidate.id }, data: { status: 'REJECTED' } });
+      if (autoReject) await tx.candidate.updateMany({ where: { id: candidate.id, status: { not: 'HIRED' } }, data: { status: 'REJECTED' } });
 
       return { duplicate: false as const, application };
     });
