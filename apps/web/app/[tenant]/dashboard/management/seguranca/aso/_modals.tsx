@@ -65,7 +65,7 @@ export function AsoScheduleModal({ employees, initialEmployeeId, onClose, onDone
       clinicName: clinicName.trim() || undefined,
       doctorName: doctorName.trim() || undefined,
     }),
-    { onSuccess: () => onDone('ASO agendado. Quando o exame for feito, use "Concluir ASO".'), onError: (e: unknown) => setError(e instanceof Error ? e.message : 'Não foi possível agendar.') },
+    { onSuccess: () => onDone('ASO agendado. Quando o exame for feito, use "Concluir ASO".'), onError: (e: unknown) => setError(typeof e === 'string' && e ? e : e instanceof Error && e.message ? e.message : 'Não foi possível agendar.') },
   );
 
   const sorted = useMemo(() => employees.slice().sort((a, b) => a.name.localeCompare(b.name)), [employees]);
@@ -144,7 +144,7 @@ export function AsoCompleteModal({ recordId, employeeName, onClose, onDone }: {
       observation: observation.trim() || undefined,
       examsPerformed: exams.length ? exams : undefined,
     }),
-    { onSuccess: () => onDone(`ASO de ${normalizeDisplayName(employeeName)} concluído.`), onError: (e: unknown) => setError(e instanceof Error ? e.message : 'Não foi possível concluir.') },
+    { onSuccess: () => onDone(`ASO de ${normalizeDisplayName(employeeName)} concluído.`), onError: (e: unknown) => setError(typeof e === 'string' && e ? e : e instanceof Error && e.message ? e.message : 'Não foi possível concluir.') },
   );
 
   const due = previewDue(examDate, periodicity);
