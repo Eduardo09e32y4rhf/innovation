@@ -27,8 +27,10 @@ export class PlatformController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('billingStatus') billingStatus?: string,
   ) {
-    return this.service.listCompanies(actor, { page: Number(page) || 1, limit: Number(limit) || 20, search });
+    return this.service.listCompanies(actor, { page: Number(page) || 1, limit: Number(limit) || 20, search, status, billingStatus });
   }
 
   @Get('online-users')

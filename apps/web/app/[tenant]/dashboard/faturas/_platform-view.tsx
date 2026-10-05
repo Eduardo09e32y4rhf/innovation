@@ -40,6 +40,12 @@ export default function PlatformInvoicesView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Atalho vindo da Plataforma: /faturas?q=nome da empresa já filtra a lista.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) setSearch(q);
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);

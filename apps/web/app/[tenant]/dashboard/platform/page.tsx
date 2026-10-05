@@ -1,14 +1,16 @@
 'use client';
 
-import { Settings2 } from 'lucide-react';
+import { ArrowUpRight, Globe2, Settings2, X } from 'lucide-react';
+import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { LoadingState } from '@/app/components/data-states';
-import { Button, PageHeader } from '@/app/components/ui';
+import { Button } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api, type PlatformCompany } from '@/app/lib/api';
 import { CompanyManageModal } from './_components/company-manage-modal';
+import { getPlatformNavGroups } from './_components/platform-nav-config';
 import { AccountingView } from './_hub/accounting-view';
 import { CompaniesView } from './_hub/companies-view';
 import { errorText } from './_hub/format';
@@ -16,6 +18,12 @@ import { AuditView, CommercialView, SettingsView, SupportView } from './_hub/mor
 import { OverviewView } from './_hub/overview-view';
 import { ScopePicker } from './_hub/scope-picker';
 import { TAB_LABEL, TAB_POLICY, type CompanyOption, type HubTab } from './_hub/types';
+
+const SUBTITLE: Record<string, string> = {
+  CONTABIL: 'Contabilidade e regras de cálculo de todas as empresas.',
+  COMERCIAL: 'Sua carteira de clientes, propostas e contratos.',
+  CEO: 'A visão do dono: clientes, caixa e operação.',
+};
 
 function Hub() {
   const { user } = useAuth();
@@ -31,6 +39,7 @@ function Hub() {
   const tabs = useMemo(() => allowed.filter((tab) => (companyId ? !['empresas', 'configuracoes'].includes(tab) : true)), [allowed, companyId]);
   const requested = params.get('tab') as HubTab | null;
   const tab = tabs.includes(requested as HubTab) ? (requested as HubTab) : tabs[0] ?? 'resumo';
+  const shortcuts = useMemo(() => getPlatformNavGroups(role).filter((group) => group.key !== 'overview'), [role]);
 
   const [managing, setManaging] = useState<PlatformCompany | null>(null);
   const [saving, setSaving] = useState(false);
@@ -42,8 +51,8 @@ function Hub() {
     router.replace(`?${next.toString()}`, { scroll: false });
   }, [params, router]);
 
-  const selectCompany = (company: CompanyOption | null, name?: string) => update(company ? { company: company.id, cn: company.name } : { company: null, cn: null, ...(tab === 'empresas' ? {} : {}) });
   const openCompany = (id: string, name?: string) => update({ company: id, cn: name ?? null, tab: tab === 'empresas' ? 'resumo' : tab });
+  const selectCompany = (company: CompanyOption | null) => update(company ? { company: company.id, cn: company.name } : { company: null, cn: null });
 
   if (!user) return <LoadingState label="Carregando acesso…" />;
   if (!allowed.length) return <section className="card-v2 m-4 p-5"><h1 className="text-xl font-semibold">Acesso restrito</h1><p className="mt-2 text-sm text-fg-sub">Seu perfil não tem acesso à Plataforma.</p></section>;
@@ -66,37 +75,63 @@ function Hub() {
   }
 
   const selected: CompanyOption | null = companyId ? { id: companyId, name: companyName ?? 'Empresa', slug: '', document: '', status: '', plan: '', billingStatus: '' } : null;
+  const goTab = (next: HubTab) => (next === 'financeiro' ? router.push(`/${tenant}/dashboard/faturas`) : update({ tab: next }));
 
   return (
     <div className="mx-auto w-full max-w-[1500px] space-y-5 px-3 py-4 sm:px-5 lg:px-6">
-      <PageHeader
-        title={companyId ? (companyName ?? 'Empresa') : 'Plataforma'}
-        subtitle={companyId ? 'Tudo desta empresa em um só lugar.' : role === 'CONTABIL' ? 'Contabilidade e regras de cálculo de todas as empresas.' : 'Visão geral de todas as empresas, cobrança e contabilidade.'}
-        actions={
+      <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-800 p-5 text-white shadow-lg sm:p-7">
+        <div aria-hidden="true" className="absolute -right-10 -top-12 h-52 w-52 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest"><Globe2 size={13} aria-hidden="true" /> {companyId ? 'Empresa selecionada' : 'Central da plataforma'}</p>
+            <h1 className="mt-2 truncate text-3xl font-black leading-tight">{companyId ? (companyName ?? 'Empresa') : 'Plataforma'}</h1>
+            <p className="mt-1 text-sm text-white/80">{companyId ? 'Tudo desta empresa em um só lugar.' : SUBTITLE[role] ?? 'Clientes, cobrança e operação de todas as empresas.'}</p>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <ScopePicker selected={selected} onSelect={(company) => selectCompany(company)} />
+            {companyId && <button type="button" onClick={() => selectCompany(null)} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-white/30 bg-white/10 px-3 text-sm font-semibold hover:bg-white/20"><X size={15} aria-hidden="true" /> Todas</button>}
             {companyId && canManageCompany && <Button variant="outline" onClick={openManage}><Settings2 size={16} aria-hidden="true" /> Gerenciar</Button>}
           </div>
-        }
-      />
+        </div>
+      </header>
 
       <nav aria-label="Seções da Plataforma" className="-mx-1 overflow-x-auto px-1">
-        <ul className="flex min-w-max gap-1 border-b border-border">
+        <ul className="flex min-w-max gap-1.5">
           {tabs.map((item) => (
             <li key={item}><button type="button" aria-current={tab === item ? 'page' : undefined} onClick={() => update({ tab: item })}
-              className={`min-h-11 border-b-2 px-4 py-2 text-sm font-medium transition ${tab === item ? 'border-purple-600 text-purple-700' : 'border-transparent text-fg-sub hover:text-fg'}`}>{TAB_LABEL[item]}</button></li>
+              className={`min-h-11 rounded-full px-4 text-sm font-bold transition ${tab === item ? 'bg-slate-900 text-white shadow' : 'border border-border text-fg-sub hover:bg-bg-sub hover:text-fg'}`}>{TAB_LABEL[item]}</button></li>
           ))}
         </ul>
       </nav>
 
-      <main>
-        {tab === 'resumo' && <OverviewView companyId={companyId} onOpenCompany={openCompany} onTab={(next) => (next === 'financeiro' ? router.push(`/${tenant}/dashboard/faturas`) : update({ tab: next }))} />}
+      <main className="space-y-6">
+        {tab === 'resumo' && <OverviewView companyId={companyId} onOpenCompany={openCompany} onTab={goTab} />}
         {tab === 'empresas' && <CompaniesView onOpenCompany={openCompany} />}
         {tab === 'contabilidade' && <AccountingView companyId={companyId} canEdit={canEditAccounting} onOpenCompany={openCompany} />}
         {tab === 'comercial' && <CommercialView companyId={companyId} base={base} />}
         {tab === 'suporte' && <SupportView companyId={companyId} base={base} />}
         {tab === 'auditoria' && <AuditView companyId={companyId} />}
         {tab === 'configuracoes' && <SettingsView base={base} />}
+
+        {tab === 'resumo' && !companyId && shortcuts.length > 0 && (
+          <section aria-label="Atalhos">
+            <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-fg-mut">Atalhos</h2>
+            <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+              {shortcuts.map((group) => {
+                const Icon = group.icon;
+                const href = group.key === 'finance' ? `/${tenant}/dashboard/faturas` : `${base}${group.href}`;
+                return (
+                  <li key={group.key}>
+                    <Link href={href} className="group flex h-full items-start gap-3 rounded-2xl border border-border bg-bg p-3.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-700"><Icon size={18} aria-hidden="true" /></span>
+                      <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-1 text-sm font-bold text-fg">{group.label}<ArrowUpRight size={13} className="shrink-0 text-fg-mut opacity-0 transition group-hover:opacity-100" aria-hidden="true" /></span><span className="block text-xs text-fg-sub">{group.description}</span></span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
       </main>
 
       {managing && <CompanyManageModal company={managing} onClose={() => setManaging(null)} onSave={saveCompany} loading={saving} error={saveError} />}

@@ -18,8 +18,10 @@ const safeUserSelect = {
 export class PlatformRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listCompanies(actor?: any, options?: { page?: number; limit?: number; search?: string }) {
+  async listCompanies(actor?: any, options?: { page?: number; limit?: number; search?: string; status?: string; billingStatus?: string }) {
     const where: any = {};
+    if (options?.status && ['ACTIVE', 'SUSPENDED', 'CANCELLED'].includes(options.status)) where.status = options.status;
+    if (options?.billingStatus && ['TRIAL', 'ACTIVE', 'PAST_DUE', 'CANCELED', 'PENDING_PAYMENT'].includes(options.billingStatus)) where.billingStatus = options.billingStatus;
     if (actor && actor.role === 'COMERCIAL') {
       where.commercialOwnerId = actor.sub;
     }

@@ -26,7 +26,7 @@ export interface GlobalOverview {
     trials: { companyId: string; name: string; endsAt: string | null }[];
     nearLimit: { id: string; name: string; users: number; maxUsers: number; employees: number; maxEmployees: number }[];
   };
-  recentActivity: { id: string; action: string; entity: string; at: string; company: { id: string; name: string } | null }[];
+  recentActivity: { id: string; action: string; summary?: string; entity: string; at: string; company: { id: string; name: string } | null }[];
 }
 
 export interface CompanyOverview {
@@ -42,7 +42,7 @@ export interface CompanyOverview {
   contracts: { id: string; status: string; agreedAmount: number; startsAt: string; endsAt: string | null }[];
   support: { open: number; recent: { id: string; ticketNumber: string; title: string; status: string; priority: string; createdAt: string }[] };
   accounting: { month: string; closings: { status: string; count: number; gross: number; net: number }[]; payroll: { status: string; count: number; gross: number; net: number }[] };
-  recentActivity: { id: string; action: string; entity: string; at: string; user: string | null }[];
+  recentActivity: { id: string; action: string; summary?: string; entity: string; at: string; user: string | null }[];
 }
 
 export type Overview = GlobalOverview | CompanyOverview;

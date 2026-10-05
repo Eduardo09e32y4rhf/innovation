@@ -1,3 +1,4 @@
+import { describeAction } from '../users/user-activity';
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -90,7 +91,7 @@ export class PlatformHubService {
         trials: trials.map((row) => ({ companyId: row.id, name: row.name, endsAt: row.trialEndsAt })),
         nearLimit,
       },
-      recentActivity: recentAudit.map((item) => ({ id: item.id, action: item.action, entity: item.entity, at: item.createdAt, company: item.company })),
+      recentActivity: recentAudit.map((item) => ({ id: item.id, action: item.action, summary: describeAction(item.action, item.entity), entity: item.entity, at: item.createdAt, company: item.company })),
     };
   }
 
@@ -137,7 +138,7 @@ export class PlatformHubService {
         closings: closings.map((row) => ({ status: row.status, count: row._count, gross: num(row._sum.grossPay), net: num(row._sum.netPay) })),
         payroll: payroll.map((row) => ({ status: row.status, count: row._count, gross: num(row._sum.grossSalary), net: num(row._sum.netSalary) })),
       },
-      recentActivity: audit.map((item) => ({ id: item.id, action: item.action, entity: item.entity, at: item.createdAt, user: item.user?.name ?? null })),
+      recentActivity: audit.map((item) => ({ id: item.id, action: item.action, summary: describeAction(item.action, item.entity), entity: item.entity, at: item.createdAt, user: item.user?.name ?? null })),
     };
   }
 }
