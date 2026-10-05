@@ -21,6 +21,8 @@ jobs:
   validate:
     name: Lint, tipos e Prisma
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_empty?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -67,7 +69,7 @@ jobs:
         run: >
           npm --prefix apps/api exec --
           prisma migrate diff --from-url "$DATABASE_URL"
-          --to-schema-datamodel prisma/schema.prisma --exit-code
+          --to-schema-datamodel apps/api/prisma/schema.prisma --exit-code
 
   integration:
     name: Testes de integracao
