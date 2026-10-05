@@ -1,6 +1,7 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
+import { isCeoOnboardingRestricted, isRouteAllowedDuringCeoOnboarding } from './ceo-onboarding-gate';
 
 const SESSION_DENIED_MESSAGE = 'Não foi possível entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
@@ -46,6 +47,10 @@ export class JwtAuthGuard implements CanActivate {
         freshUser.forcePasswordChange || !changedAt || Date.now() - changedAt >= PASSWORD_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
       if (passwordExpired && !isPasswordChangeRoute && !isMeRoute) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
+      if (isCeoOnboardingRestricted(role, freshUser.onboardingState) && !isRouteAllowedDuringCeoOnboarding(String(request.url ?? ''))) {
+        throw new ForbiddenException({ code: 'CEO_ONBOARDING_REQUIRED', message: 'Conclua o onboarding do CEO para acessar esta area.', onboardingState: freshUser.onboardingState });
+      }
+
       request.user = {
         sub: freshUser.id,
         email: freshUser.email,
@@ -58,7 +63,7 @@ export class JwtAuthGuard implements CanActivate {
       };
       return true;
     } catch (error) {
-      if (error instanceof UnauthorizedException) throw error;
+      if (error instanceof UnauthorizedException || error instanceof ForbiddenException) throw error;
       throw new UnauthorizedException('Token invalido ou expirado');
     }
   }
