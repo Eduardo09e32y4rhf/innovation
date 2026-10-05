@@ -48,7 +48,7 @@ describe('Public application isolation', () => {
     ];
     const tx = {
       $executeRaw: vi.fn().mockResolvedValue(1),
-      job: { findUnique: vi.fn().mockResolvedValue({ pipelineId: 'pipeline-1' }) },
+      job: { findFirst: vi.fn().mockResolvedValue({ pipelineId: 'pipeline-1' }) },
       hiringPipeline: { findFirst: vi.fn() },
       pipelineStage: { findMany: vi.fn().mockResolvedValue(stages) },
       candidate: {
@@ -102,8 +102,9 @@ describe('Public application isolation', () => {
       name: 'Nome Atual',
       phone: '11999999999',
       linkedinUrl: 'https://linkedin.example/new',
-      status: 'NEW',
     });
+    // O resultado pertence a cada candidatura: reaplicar nao reescreve o estado consolidado do candidato.
+    expect(candidateUpdate).not.toHaveProperty('status');
     expect(candidateUpdate).not.toHaveProperty('coverLetter');
     expect(candidateUpdate).not.toHaveProperty('resumeUrl');
     expect(candidateUpdate).not.toHaveProperty('aiScore');
@@ -136,13 +137,14 @@ describe('Public application isolation', () => {
     let applicationCreate: Record<string, any> | undefined;
     const tx = {
       $executeRaw: vi.fn().mockResolvedValue(1),
-      job: { findUnique: vi.fn().mockResolvedValue({ pipelineId: 'pipeline-1' }) },
+      job: { findFirst: vi.fn().mockResolvedValue({ pipelineId: 'pipeline-1' }) },
       hiringPipeline: { findFirst: vi.fn() },
       pipelineStage: { findMany: vi.fn().mockResolvedValue(stages) },
       candidate: {
         findFirst: vi.fn().mockResolvedValue(null),
         create: vi.fn().mockResolvedValue({ id: 'candidate-9' }),
         update: vi.fn().mockResolvedValue({}),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       application: {
         findFirst: vi.fn(),
@@ -156,7 +158,7 @@ describe('Public application isolation', () => {
       { answers: [{ questionId: 'q1', value: 'Não' }], score: 0, knockedOut: true, knockoutReason: 'Resposta fora do critério', rejectOnKnockout: true });
 
     expect(applicationCreate).toMatchObject({ status: 'REJECTED', stageId: 'stage-rejected', knockedOut: true, rejectionReason: 'Resposta fora do critério' });
-    expect(tx.candidate.update).toHaveBeenCalledWith({ where: { id: 'candidate-9' }, data: { status: 'REJECTED' } });
+    expect(tx.candidate.updateMany).toHaveBeenCalledWith({ where: { id: 'candidate-9', status: { not: 'HIRED' } }, data: { status: 'REJECTED' } });
   });
 
   it('uses company, candidate and job together when checking duplicate applications', async () => {
@@ -164,6 +166,7 @@ describe('Public application isolation', () => {
     const findDuplicate = vi.fn().mockResolvedValue(duplicate);
     const tx = {
       $executeRaw: vi.fn().mockResolvedValue(1),
+      job: { findFirst: vi.fn().mockResolvedValue({ pipelineId: 'pipeline-1' }) },
       candidate: {
         findFirst: vi.fn().mockResolvedValue({
           id: 'candidate-1',
