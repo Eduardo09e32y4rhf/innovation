@@ -11,6 +11,10 @@ export class AuthRepository {
     return this.prisma.user.findUnique({ where: { email: email.trim().toLowerCase() }, include: { company: true } });
   }
 
+  findTemporaryCredential(userId: string) {
+    return this.prisma.temporaryCredential.findUnique({ where: { userId } });
+  }
+
   findSecurityAlertRecipients(companyId: string) {
     return this.prisma.user.findMany({ where: { companyId, isActive: true, role: 'ADMIN' }, select: { email: true }, orderBy: { createdAt: 'asc' } });
   }

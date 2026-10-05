@@ -26,6 +26,7 @@ import { emailVerificationEmail, passwordResetEmail, securityAlertEmail } from '
 import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { isPlatformOwner } from '../../common/constants/platform-owner';
+import { isTemporaryCredentialUsable } from './temporary-credential';
 
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
@@ -220,12 +221,23 @@ export class AuthService {
       throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     }
 
+    await this.assertTemporaryCredentialValid(user, requestMeta);
+
     // Segundo fator: não entrega sessão; devolve um desafio de 5 minutos.
     if (user.mfaEnabledAt) {
       const mfaToken = await this.jwtService.signAsync({ purpose: MFA_LOGIN_PURPOSE, sub: user.id, pwd: new Date(user.passwordChangedAt).getTime() }, { expiresIn: '5m' });
       return { mfaRequired: true as const, mfaToken, expiresInSeconds: 300 };
     }
     return this.completeLogin(user, requestMeta);
+  }
+
+  /** Senha provisoria vencida/revogada nao autentica: o usuario precisa de nova emissao. Roda apos a senha ser validada (nao revela contas). */
+  private async assertTemporaryCredentialValid(user: any, requestMeta?: RequestMeta) {
+    if (!user.forcePasswordChange) return;
+    const credential = await this.repository.findTemporaryCredential(user.id);
+    if (!credential || isTemporaryCredentialUsable(credential)) return;
+    await this.auditInvalidLogin(user.email, requestMeta, user.companyId, user.id);
+    throw new UnauthorizedException({ code: 'TEMPORARY_PASSWORD_EXPIRED', message: 'Senha provisoria expirada. Solicite uma nova ao administrador.' });
   }
 
   /** Conclui o login (senha — e MFA, se houver — já validados): zera tentativas, registra e cria a sessão. */

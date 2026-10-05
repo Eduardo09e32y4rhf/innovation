@@ -7,6 +7,7 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesRepository } from './employees.repository';
 import { AsoService } from '../management/aso.service';
 import { assertRoleChangeAllowed, canManageRole } from '../../common/constants/role-hierarchy';
+import { isOwnerTargetedByOther } from '../../common/constants/platform-owner';
 
 const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
 
@@ -283,39 +284,34 @@ export class EmployeesService {
             break;
 
           case 'block':
-            if (!employee.userId) {
-              results.push({ employeeId, success: false, error: 'Employee has no linked user' });
-              break;
-            }
-            await this.repository.updateUser(companyId, employee.userId, { isActive: false });
-            results.push({ employeeId, success: true });
-            break;
-
           case 'unblock':
-            if (!employee.userId) {
-              results.push({ employeeId, success: false, error: 'Employee has no linked user' });
+          case 'reset-password': {
+            const denied = await this.assertCanActOnLinkedUser(companyId, actor, employee);
+            if (denied) {
+              results.push({ employeeId, success: false, error: denied });
               break;
             }
-            await this.repository.updateUser(companyId, employee.userId, { isActive: true });
-            results.push({ employeeId, success: true });
-            break;
-
-          case 'reset-password':
-            if (!employee.userId) {
-              results.push({ employeeId, success: false, error: 'Employee has no linked user' });
+            if (dto.action === 'reset-password') {
+              const newPassword = this.generateTemporaryPassword();
+              const user = await this.repository.findUserById(companyId, employee.userId!);
+              const reset = await this.repository.reissueTemporaryPassword(companyId, employee.userId!, {
+                passwordHash: await bcrypt.hash(newPassword, 12),
+                previousPasswords: [user!.passwordHash, ...(user!.previousPasswords ?? [])].slice(0, 10),
+                forcePasswordChange: true,
+                passwordChangedAt: new Date(),
+                failedLoginAttempts: 0,
+              }, newPassword, new Date(Date.now() + 24 * 60 * 60 * 1000));
+              results.push(reset.count ? { employeeId, success: true, temporaryPassword: newPassword } : { employeeId, success: false, error: 'Usuario nao encontrado' });
               break;
             }
-            const newPassword = this.generateTemporaryPassword();
-            await this.repository.updateUser(companyId, employee.userId, {
-              passwordHash: await bcrypt.hash(newPassword, 12),
-              forcePasswordChange: true,
-            });
-            results.push({ employeeId, success: true, temporaryPassword: newPassword });
+            const changed = await this.repository.updateUser(companyId, employee.userId!, { isActive: dto.action === 'unblock' });
+            results.push(changed.count ? { employeeId, success: true } : { employeeId, success: false, error: 'Usuario nao encontrado' });
             break;
-
-          case 'set-role':
-            if (!employee.userId) {
-              results.push({ employeeId, success: false, error: 'Employee has no linked user' });
+          }
+          case 'set-role': {
+            const roleDenied = await this.assertCanActOnLinkedUser(companyId, actor, employee);
+            if (roleDenied) {
+              results.push({ employeeId, success: false, error: roleDenied });
               break;
             }
             const newRole = this.resolveAccessRole(dto.role);
@@ -323,9 +319,10 @@ export class EmployeesService {
               results.push({ employeeId, success: false, error: `${actor.role} não pode atribuir papel ${newRole}` });
               break;
             }
-            await this.repository.updateUser(companyId, employee.userId, { role: newRole });
+            await this.repository.updateUser(companyId, employee.userId!, { role: newRole });
             results.push({ employeeId, success: true, role: newRole });
             break;
+          }
 
           default:
             results.push({ employeeId, success: false, error: 'Invalid action' });
@@ -446,6 +443,21 @@ export class EmployeesService {
       },
     });
     await this.repository.updateUserLink(companyId, employee.id, user.id);
+  }
+
+  /**
+   * Autorizacao por item das acoes em lote sobre o acesso vinculado: precisa haver usuario,
+   * ele nao pode ser o proprio ator, nem o dono da plataforma, e o perfil do ator precisa poder gerir o dele.
+   * Devolve a mensagem de recusa (ou null quando permitido).
+   */
+  private async assertCanActOnLinkedUser(companyId: string, actor: JwtUser, employee: { userId?: string | null }): Promise<string | null> {
+    if (!employee.userId) return 'Funcionario sem usuario vinculado';
+    if (employee.userId === actor.sub) return 'Nao e permitido executar esta acao sobre o proprio acesso';
+    const user = await this.repository.findUserById(companyId, employee.userId);
+    if (!user) return 'Usuario nao encontrado';
+    if (isOwnerTargetedByOther(actor, user)) return 'O dono da plataforma nao pode ser alterado por outro usuario';
+    if (!canManageRole(actor.role, user.role)) return 'Seu perfil nao pode gerir o acesso deste usuario';
+    return null;
   }
 
   private generateTemporaryPassword() {

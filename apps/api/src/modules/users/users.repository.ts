@@ -368,6 +368,20 @@ export class UsersRepository {
     });
   }
 
+  /** Reemissao: hash novo e credencial provisoria na mesma transacao. */
+  reissueTemporaryPassword(userId: string, userData: Record<string, unknown>, encryptedValue: string, expiresAt: Date, companyId?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.user.updateMany({ where: { id: userId, ...(companyId ? { companyId } : {}) }, data: userData });
+      if (!result.count) return { count: 0 };
+      await tx.temporaryCredential.upsert({
+        where: { userId },
+        create: { userId, encryptedValue, expiresAt },
+        update: { encryptedValue, expiresAt, issuedAt: new Date(), consumedAt: null, revokedAt: null, revealCount: 0 },
+      });
+      return { count: result.count };
+    });
+  }
+
   replaceTemporaryCredential(userId: string, encryptedValue: string, expiresAt: Date) {
     return this.prisma.temporaryCredential.upsert({
       where: { userId },

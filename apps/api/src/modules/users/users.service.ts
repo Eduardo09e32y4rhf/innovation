@@ -209,8 +209,7 @@ export class UsersService {
   /** Atrela (ou desatrela) o usuário a um funcionário. Não é obrigatório: sem vínculo o usuário acessa só conforme a sua visão. */
   async linkEmployee(companyId: string, actor: JwtUser, id: string, employeeId: string | null, meta?: { ip?: string; userAgent?: string }) {
     const user = await this.get(companyId, actor, id);
-    const own = user.id === actor.sub;
-    if (!own && user.role && !this.canManageRole(actor.role, user.role)) throw new ForbiddenException('Voce nao tem permissao para alterar este usuario.');
+    if (user.role && !this.canManageRole(actor.role, user.role)) throw new ForbiddenException('Voce nao tem permissao para alterar este usuario.');
     let employee: { id: string; name: string; registration: string | null; userId: string | null } | null = null;
     if (employeeId) {
       employee = await this.repository.findEmployeeForLink(user.companyId, employeeId);
@@ -427,14 +426,14 @@ export class UsersService {
     const temporaryPassword = this.generateTemporaryPassword();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const passwordHash = await bcrypt.hash(temporaryPassword, 12);
-    await this.repository.update(id, {
+    const reissued = await this.repository.reissueTemporaryPassword(id, {
       passwordHash,
       previousPasswords: [user.passwordHash, ...(user.previousPasswords ?? [])].slice(0, 10),
       forcePasswordChange: true,
       passwordChangedAt: new Date(),
       failedLoginAttempts: 0,
-    }, actor.role === 'DEV' || actor.role === 'CEO' ? undefined : companyId);
-    await this.repository.replaceTemporaryCredential(id, encryptTemporaryPassword(temporaryPassword), expiresAt);
+    }, encryptTemporaryPassword(temporaryPassword), expiresAt, actor.role === 'DEV' || actor.role === 'CEO' ? undefined : companyId);
+    if (!reissued.count) throw new NotFoundException('Usuario nao encontrado');
     await this.repository.createAuditLog({
       companyId: user.companyId,
       userId: actor.sub,

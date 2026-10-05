@@ -143,6 +143,21 @@ export class EmployeesRepository {
     });
   }
 
+  /** Reset administrativo: nova senha e credencial provisoria na mesma transacao (nunca um sem o outro). */
+  reissueTemporaryPassword(companyId: string, userId: string, userData: Record<string, unknown>, temporaryPassword: string, expiresAt: Date) {
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.user.updateMany({ where: { companyId, id: userId }, data: userData });
+      if (!result.count) return { count: 0 };
+      const encryptedValue = encryptTemporaryPassword(temporaryPassword);
+      await tx.temporaryCredential.upsert({
+        where: { userId },
+        create: { userId, encryptedValue, expiresAt },
+        update: { encryptedValue, expiresAt, issuedAt: new Date(), consumedAt: null, revokedAt: null, revealCount: 0 },
+      });
+      return { count: result.count };
+    });
+  }
+
   updateUser(companyId: string, id: string, data: any) {
     return this.prisma.user.updateMany({ where: { companyId, id }, data });
   }
