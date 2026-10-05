@@ -82,6 +82,12 @@ export class UsersController {
   }
 
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')
+  @Delete(':id/permanent')
+  deletePermanently(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Req() request: any) {
+    return this.service.deletePermanently(companyId, actor, id, requestMeta(request));
+  }
+
+  @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Delete(':id')
   delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Req() request: any) {
     return this.service.delete(companyId, actor, id, requestMeta(request));

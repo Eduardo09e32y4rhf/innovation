@@ -24,7 +24,7 @@ export function UserEditor({ user, isOpen, onClose, actorRole, actorId, onChange
   const [custom, setCustom] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
-  const [confirm, setConfirm] = useState<'block' | 'cancel' | null>(null);
+  const [confirm, setConfirm] = useState<'block' | 'cancel' | 'delete' | null>(null);
   const [reason, setReason] = useState('');
   const [acting, setActing] = useState(false);
   const busy = useRef(false);
@@ -84,9 +84,11 @@ export function UserEditor({ user, isOpen, onClose, actorRole, actorId, onChange
     if (!confirm) return;
     setActing(true); setFeedback(null);
     try {
-      if (confirm === 'block') await api.users.block(user!.id, reason.trim() || undefined);
+      if (confirm === 'delete') await api.users.deletePermanently(user!.id);
+      else if (confirm === 'block') await api.users.block(user!.id, reason.trim() || undefined);
       else await api.users.cancel(user!.id, reason.trim() || undefined);
-      toast.success(confirm === 'block' ? 'Acesso bloqueado.' : 'Acesso cancelado.');
+      toast.success(confirm === 'delete' ? 'Usuário excluído.' : confirm === 'block' ? 'Acesso bloqueado.' : 'Acesso cancelado.');
+      if (confirm === 'delete') onClose();
       setConfirm(null); setReason(''); onChanged();
     } catch (cause) { setFeedback({ ok: false, text: errorText(cause, 'Não foi possível concluir.') }); setConfirm(null); }
     finally { setActing(false); }
@@ -113,6 +115,7 @@ export function UserEditor({ user, isOpen, onClose, actorRole, actorId, onChange
               {status === 'ATIVO'
                 ? <Button variant="outline" onClick={() => setConfirm('block')}><Ban size={15} aria-hidden="true" /> Bloquear</Button>
                 : <Button variant="outline" isLoading={saving} onClick={reactivate}><UserCheck size={15} aria-hidden="true" /> Reativar acesso</Button>}
+              {status !== 'ATIVO' && <Button variant="danger" onClick={() => setConfirm('delete')}><Trash2 size={15} aria-hidden="true" /> Excluir usuário</Button>}
               {status !== 'CANCELADO' && <Button variant="danger" onClick={() => setConfirm('cancel')}><Trash2 size={15} aria-hidden="true" /> Cancelar acesso</Button>}
             </div>
           </div>
@@ -228,9 +231,9 @@ export function UserEditor({ user, isOpen, onClose, actorRole, actorId, onChange
         </div>
       </Drawer>
 
-      <Modal isOpen={confirm !== null} onClose={() => !acting && setConfirm(null)} title={confirm === 'cancel' ? 'Cancelar acesso?' : 'Bloquear acesso?'}
-        description={confirm === 'cancel' ? 'O usuário perde o acesso definitivamente e é desatrelado do funcionário. Dá para reativar depois.' : 'O usuário não consegue entrar até você reativar. O vínculo e o histórico são mantidos.'}
-        footer={<div className="flex justify-end gap-2"><Button variant="outline" disabled={acting} onClick={() => setConfirm(null)}>Voltar</Button><Button variant={confirm === 'cancel' ? 'danger' : 'primary'} isLoading={acting} onClick={confirmAction}>{confirm === 'cancel' ? 'Cancelar acesso' : 'Bloquear'}</Button></div>}>
+      <Modal isOpen={confirm !== null} onClose={() => !acting && setConfirm(null)} title={confirm === 'delete' ? 'Excluir usuário?' : confirm === 'cancel' ? 'Cancelar acesso?' : 'Bloquear acesso?'}
+        description={confirm === 'delete' ? 'O usuário é apagado de vez e a licença fica livre. O funcionário continua cadastrado e o histórico fica no log de auditoria. Isso não pode ser desfeito.' : confirm === 'cancel' ? 'O usuário perde o acesso definitivamente e é desatrelado do funcionário. Dá para reativar depois.' : 'O usuário não consegue entrar até você reativar. O vínculo e o histórico são mantidos.'}
+        footer={<div className="flex justify-end gap-2"><Button variant="outline" disabled={acting} onClick={() => setConfirm(null)}>Voltar</Button><Button variant={confirm === 'block' ? 'primary' : 'danger'} isLoading={acting} onClick={confirmAction}>{confirm === 'delete' ? 'Excluir definitivamente' : confirm === 'cancel' ? 'Cancelar acesso' : 'Bloquear'}</Button></div>}>
         <label className="block text-sm font-medium">Motivo (fica registrado no histórico)
           <textarea className={`${field} mt-1 min-h-24`} maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex.: desligamento, suspeita de uso indevido…" />
         </label>

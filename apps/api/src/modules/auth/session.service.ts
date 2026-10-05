@@ -22,10 +22,16 @@ export class SessionService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(userId: string, meta: SessionMeta, family: string = randomUUID()) {
+  async create(userId: string, meta: SessionMeta, existingFamily?: string) {
+    const family = existingFamily ?? randomUUID();
+    const userAgent = meta.userAgent?.slice(0, 300) ?? null;
+    if (!existingFamily) {
+      // Novo login no mesmo aparelho e rede: substitui a sessão anterior em vez de empilhar várias iguais.
+      await this.prisma.refreshSession.updateMany({ where: { userId, revokedAt: null, userAgent, ip: meta.ip ?? null }, data: { revokedAt: new Date() } });
+    }
     const token = randomBytes(48).toString('base64url');
     const session = await this.prisma.refreshSession.create({
-      data: { userId, family, tokenHash: hashToken(token), ip: meta.ip ?? null, userAgent: meta.userAgent?.slice(0, 300) ?? null, expiresAt: new Date(Date.now() + ttlMs()) },
+      data: { userId, family, tokenHash: hashToken(token), ip: meta.ip ?? null, userAgent, expiresAt: new Date(Date.now() + ttlMs()) },
     });
     return { token, session };
   }
@@ -81,8 +87,16 @@ export class SessionService {
       orderBy: { lastUsedAt: 'desc' },
       select: { id: true, family: true, ip: true, userAgent: true, createdAt: true, lastUsedAt: true },
     });
+    rows.sort((a, b) => Number(b.family === currentFamily) - Number(a.family === currentFamily));
     const seen = new Set<string>();
-    return rows.filter((row) => !seen.has(row.family) && seen.add(row.family)).map((row) => ({
+    const device = new Set<string>();
+    return rows.filter((row) => {
+      const key = `|`;
+      // Mesma família ou mesmo aparelho (navegador + rede): mostra só a mais recente.
+      if (seen.has(row.family) || device.has(key)) return false;
+      seen.add(row.family); device.add(key);
+      return true;
+    }).map((row) => ({
       id: row.family, ip: row.ip, userAgent: row.userAgent, createdAt: row.createdAt, lastUsedAt: row.lastUsedAt, current: row.family === currentFamily,
     }));
   }

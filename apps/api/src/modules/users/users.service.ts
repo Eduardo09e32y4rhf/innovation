@@ -452,6 +452,32 @@ export class UsersService {
     return { deleted: true, deactivated: true, canceled: true };
   }
 
+  /**
+   * Exclusão definitiva do usuário (some da lista e libera a licença). Só para acesso já cancelado ou bloqueado.
+   * O vínculo com o funcionário é desfeito (o funcionário continua cadastrado) e o histórico fica no log de auditoria.
+   */
+  async deletePermanently(companyId: string, actor: JwtUser, id: string, meta?: { ip?: string; userAgent?: string }) {
+    if (actor.sub === id) throw new ForbiddenException('Nao e permitido excluir o proprio acesso.');
+    const user = await this.get(companyId, actor, id);
+    if (user.role && !this.canManageRole(actor.role, user.role)) throw new ForbiddenException('Voce nao tem permissao para excluir este usuario.');
+    if (user.isActive) throw new BadRequestException('Cancele ou bloqueie o acesso antes de excluir o usuário.');
+    try {
+      await this.repository.deleteUserPermanently(user.companyId, id);
+    } catch (error: any) {
+      if (error?.code === 'P2003') throw new ConflictException('Este usuário tem registros importantes ligados a ele (como documentos ou aprovações) e não pode ser apagado. Mantenha o acesso cancelado.');
+      throw error;
+    }
+    await this.repository.createAuditLog({
+      companyId: user.companyId,
+      action: 'USER_DELETED',
+      entity: 'User',
+      entityId: id,
+      metadata: { name: user.name, email: user.email, role: user.role, requestedBy: actor.email },
+      ...this.metaFields(meta),
+    });
+    return { deleted: true };
+  }
+
   async usage(companyId: string) {
     const [count, limits] = await Promise.all([
       this.repository.countByCompany(companyId),

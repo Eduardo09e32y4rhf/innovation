@@ -835,6 +835,7 @@ export const api = {
     linkEmployee: (id: string, employeeId: string | null) => request<AppUser>(`/users/${id}/employee`, { method: 'PUT', body: { employeeId } }),
     block: (id: string, reason?: string) => request<AppUser>(`/users/${id}/block`, { method: 'POST', body: { reason } }),
     unblock: (id: string) => request<AppUser>(`/users/${id}/unblock`, { method: 'POST' }),
+    deletePermanently: (id: string) => request<{ deleted: boolean }>(`/users/${id}/permanent`, { method: 'DELETE' }),
     cancel: (id: string, reason?: string) => request<AppUser>(`/users/${id}/cancel`, { method: 'POST', body: { reason } }),
     activity: (id: string, query: { days?: number; since?: string; limit?: number } = {}) => request<UserActivity>(`/users/${id}/activity${makeQuery(query)}`, { silent: true }),
     activityPdf: (id: string, days = 30) => downloadRequest(`/users/${id}/activity/pdf?days=${days}`),

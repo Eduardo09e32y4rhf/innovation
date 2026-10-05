@@ -143,6 +143,7 @@ const EXTRA_ACTIONS: Record<string, string> = {
   PRIVACY_TERMS_ACCEPTED: 'Assinou o Termo de Uso e Política de Privacidade',
   COMPANY_CREATED: 'Cadastrou a empresa', COMPANY_UPDATED: 'Atualizou os dados da empresa', COMPANY_ARCHIVED: 'Arquivou a empresa',
   GHOST_MODE_STARTED: 'Entrou na conta da empresa em modo suporte',
+  USER_DELETED: 'Excluiu um usuário definitivamente',
   USER_MFA_RESET: 'Removeu a verificação em duas etapas do usuário',
   FATURAS_CHARGE_CREATED: 'Gerou uma nova cobrança', FATURAS_INVOICE_CANCELED_REASON: 'Cancelou uma fatura',
   FATURAS_DISCOUNT: 'Deu desconto em uma fatura', FATURAS_RECURRING_DISCOUNT: 'Aplicou desconto recorrente na assinatura',

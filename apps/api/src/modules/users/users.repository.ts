@@ -319,6 +319,16 @@ export class UsersRepository {
     });
   }
 
+  /** Remove o usuário e o que é só dele (sessões, credenciais provisórias, aceites); o funcionário é preservado. */
+  async deleteUserPermanently(companyId: string, userId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.employee.updateMany({ where: { companyId, userId }, data: { userId: null } });
+      await tx.refreshSession.deleteMany({ where: { userId } });
+      await tx.temporaryCredential.deleteMany({ where: { userId } });
+      await tx.user.delete({ where: { id: userId } });
+    });
+  }
+
   async touchEmployeeLink(companyId: string, userId: string, employeeId: string | null) {
     return this.prisma.employee.updateMany({
       where: { companyId, id: employeeId ?? undefined },
