@@ -1,5 +1,7 @@
 import { BadRequestException, Controller, Get, NotFoundException, Param, UseGuards } from '@nestjs/common';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 
 async function getJson(url: string, timeoutMs = 6000): Promise<any | null> {
   const controller = new AbortController();
@@ -16,7 +18,8 @@ async function getJson(url: string, timeoutMs = 6000): Promise<any | null> {
 }
 
 /** Consulta CEP e CNPJ pelo servidor: o navegador não depende de serviços externos (CORS/bloqueios). */
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR')
 @Controller('lookup')
 export class LookupController {
   @Get('cep/:cep')
