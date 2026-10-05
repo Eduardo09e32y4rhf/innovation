@@ -43,6 +43,22 @@ export class OnboardingRepository {
   }
 
   async create(companyId: string, employeeId: string) {
+    // A exclusão é lógica (deletedAt) e o banco só aceita um processo por funcionário: reaproveita o apagado, zerado.
+    const removed = await this.prisma.onboardingFlow.findFirst({ where: { companyId, employeeId, deletedAt: { not: null } }, select: { id: true } });
+    if (removed) {
+      return this.prisma.$transaction(async (tx) => {
+        await tx.onboardingTask.deleteMany({ where: { flowId: removed.id } });
+        await tx.onboardingDocument.deleteMany({ where: { flowId: removed.id } });
+        return tx.onboardingFlow.update({
+          where: { id: removed.id },
+          data: {
+            deletedAt: null, status: 'PENDING', startedAt: null, completedAt: null,
+            tasks: { create: DEFAULT_TASKS.map((t) => ({ companyId, title: t.title, taskType: t.taskType, required: t.required })) },
+          },
+          include: { tasks: true, documents: true },
+        });
+      });
+    }
     return this.prisma.onboardingFlow.create({
       data: {
         companyId,
