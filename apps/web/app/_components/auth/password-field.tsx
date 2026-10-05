@@ -27,7 +27,7 @@ export function PasswordField({ label, value, onChange, autoComplete, disabled, 
         <input id={id} name={name} type={visible ? 'text' : 'password'} autoComplete={autoComplete} required disabled={disabled}
           className={`${authInput} pr-12`} value={value} onChange={(e) => onChange(e.target.value)} />
         <button type="button" onClick={() => setVisible((v) => !v)} disabled={disabled} aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={visible}
-          className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-zinc-500 hover:text-zinc-800">
+          className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-zinc-500 hover:text-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] focus-visible:ring-inset rounded-r-lg">
           {visible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
         </button>
       </div>
