@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Bell, Menu, Moon, Search, Sun, PanelLeftClose } from 'lucide-react';
+import { Bell, HelpCircle, Menu, Moon, Search, Sun, PanelLeftClose } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useAppearance } from '@/app/contexts/AppearanceContext';
 import { UserMenu } from '@/app/components/ui/user-menu';
 import { useWorkspace } from './workspace-context';
 import { CommandMenu } from './command-menu';
 import { tenantRoute } from './nav-config';
+import { openGuidedTour } from '../tour/guided-tour';
 
 export function TopbarV2({ onMenu }: { onMenu: () => void }) {
   const { company: authCompany } = useAuth();
@@ -42,6 +43,7 @@ export function TopbarV2({ onMenu }: { onMenu: () => void }) {
       </button>
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <span title={name} className="mr-3 hidden max-w-[220px] truncate text-sm text-fg-mut desktop:block">{name}</span>
+        <button type="button" onClick={openGuidedTour} aria-label="Abrir o passo a passo: como usar" title="Como usar" className="btn-icon border-0"><HelpCircle size={18} aria-hidden="true" /></button>
         <button type="button" onClick={() => setAppearance(dark ? 'light' : 'dark')} aria-label={dark ? 'Ativar tema claro' : 'Ativar tema escuro'} className="btn-icon hidden border-0 sm:inline-flex">{dark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}</button>
         {canOpenNotifications && <button type="button" onClick={() => router.push(tenantRoute(tenant, '/dashboard/management/notifications'))} aria-label="Abrir comunicados e notificações" className="btn-icon border-0"><Bell size={18} aria-hidden="true" /></button>}
         <UserMenu />

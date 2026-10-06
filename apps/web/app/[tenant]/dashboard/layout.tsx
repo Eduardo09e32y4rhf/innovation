@@ -8,6 +8,7 @@ import { PasswordChangeGate } from './_components/password-change-gate';
 import { PrivacyConsentGate } from './_components/privacy-consent-gate';
 import { PendingNotificationsGate } from './_components/pending-notifications-gate';
 import { WelcomeGate } from './_components/welcome-gate';
+import { GuidedTour } from './_components/tour/guided-tour';
 import { ProposalGate } from './_components/proposal-gate';
 import { SidebarV2 } from './_components/shell-v2/sidebar';
 import { TopbarV2 } from './_components/shell-v2/topbar';
@@ -97,6 +98,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <WelcomeGate>
                 <PendingNotificationsGate>
                   <ProposalGate>
+                    <GuidedTour />
                     <main id="workspace-content" className="workspace-content flex-1" tabIndex={-1}>
                       <WorkspaceRouteGate>{children}</WorkspaceRouteGate>
                     </main>
