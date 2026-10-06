@@ -49,7 +49,7 @@ describe('UsersService.reissueTemporaryPassword (reset administrativo)', () => {
       expect.any(Date),
       companyId,
     );
-    expect(result.temporaryPassword).toMatch(/^Aa1!/);
+    expect(result.temporaryPassword).toMatch(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6}$/);
   });
 
   it('nao emite para usuario ausente do tenant do ator', async () => {

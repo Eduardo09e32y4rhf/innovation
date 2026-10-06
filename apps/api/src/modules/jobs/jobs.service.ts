@@ -49,7 +49,15 @@ export class JobsService {
     return job;
   }
 
-  create(companyId: string, dto: CreateJobDto) {
+  private async assertJobQuota(companyId: string) {
+    const quota = await this.repository.monthlyJobQuota(companyId);
+    if (quota && quota.used >= quota.limit) {
+      throw new BadRequestException({ code: 'JOB_QUOTA_REACHED', message: `Seu plano R&S inclui ${quota.limit} vagas por mês e todas já foram abertas. Aumente a quantidade contratada em Faturas (cada vaga extra custa R$ 2,00 por mês) para abrir mais.` });
+    }
+  }
+
+  async create(companyId: string, dto: CreateJobDto) {
+    await this.assertJobQuota(companyId);
     return this.repository.create(companyId, this.normalizeJob(dto));
   }
 
@@ -61,6 +69,7 @@ export class JobsService {
   }
 
   async duplicate(companyId: string, id: string) {
+    await this.assertJobQuota(companyId);
     const job = await this.get(companyId, id);
     const [questions, criteria] = await Promise.all([
       this.recruitment.getQuestions(companyId, id),

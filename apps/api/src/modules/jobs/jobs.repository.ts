@@ -66,6 +66,22 @@ export class JobsRepository {
     });
   }
 
+  /**
+   * Vagas abertas no mes vs. contratadas. So o plano R&S limita por vaga (a quantidade contratada, 50 ou mais, e o limite
+   * mensal; quem quer mais aumenta a quantidade e paga o adicional). Os demais planos nao tem limite de vagas aqui.
+   */
+  async monthlyJobQuota(companyId: string): Promise<{ limit: number; used: number } | null> {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { platformPlan: { select: { code: true, includedUnits: true } }, subscription: { select: { seatQuantity: true } } },
+    });
+    if (company?.platformPlan?.code !== 'RS') return null;
+    const limit = Math.max(company.subscription?.seatQuantity ?? 0, company.platformPlan.includedUnits ?? 0);
+    const now = new Date();
+    const used = await this.prisma.job.count({ where: { companyId, createdAt: { gte: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)) } } });
+    return { limit, used };
+  }
+
   create(companyId: string, data: any) {
     return this.prisma.job.create({ data: { ...data, companyId } });
   }
