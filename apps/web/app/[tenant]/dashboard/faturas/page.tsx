@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { hasPermission } from '@/app/lib/permissions';
 import BancoView from './_banco-view';
-import PlatformInvoicesView from './_platform-view';
+import PlatformFaturas from './_platform-tabs';
 
 export default function FaturasPage() {
   const { user } = useAuth();
@@ -24,5 +24,5 @@ export default function FaturasPage() {
   }
 
   // Visão plataforma (todas as empresas) para quem tem faturas.todas_empresas; os demais veem a própria empresa.
-  return hasPermission(user, 'faturas.todas_empresas') ? <PlatformInvoicesView /> : <BancoView />;
+  return hasPermission(user, 'faturas.todas_empresas') ? <PlatformFaturas /> : <BancoView />;
 }

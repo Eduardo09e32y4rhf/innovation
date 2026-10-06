@@ -157,7 +157,7 @@ export default function PlatformConfigurationPage({
     {
       title: 'Planos e limites',
       description: 'Precos, quantidade de usuarios, modulos e regras comerciais disponiveis.',
-      href: `/${tenant}/dashboard/platform/plans`,
+      href: `/${tenant}/dashboard/faturas?aba=planos`,
       action: 'Administrar planos',
       icon: CreditCard,
       accent: 'border-l-amber-500',
@@ -178,7 +178,7 @@ export default function PlatformConfigurationPage({
     {
       title: 'Assinaturas',
       description: 'Vinculos entre empresas, planos e cobranca recorrente no Asaas.',
-      href: `/${tenant}/dashboard/platform/subscriptions`,
+      href: `/${tenant}/dashboard/faturas?aba=assinaturas`,
       action: 'Acompanhar assinaturas',
       icon: CircleDollarSign,
       accent: 'border-l-teal-500',
@@ -379,7 +379,7 @@ export default function PlatformConfigurationPage({
                     title="Empresas sem cliente Asaas"
                     count={summary.companiesWithoutAsaas.length}
                     description="Revise o vinculo antes de operar cobranca recorrente."
-                    href={`/${tenant}/dashboard/platform/subscriptions`}
+                    href={`/${tenant}/dashboard/faturas?aba=assinaturas`}
                   />
                 )}
               </>

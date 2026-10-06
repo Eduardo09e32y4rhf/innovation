@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpRight, BarChart3, Building2, FileKey2, Headset, Megaphone, ReceiptText, ScrollText, ShieldCheck, TicketPercent, UsersRound, type LucideIcon } from 'lucide-react';
+import { ArrowUpRight, Building2, FileKey2, Headset, Megaphone, ScrollText, ShieldCheck, UsersRound, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/app/components/ui';
@@ -16,7 +16,7 @@ export function CommercialView({ companyId, base }: { companyId?: string; base: 
       <div className="flex flex-wrap gap-2">
         <Link className="btn btn-outline btn-md" href={`${base}/contracts`}>Gerenciar contratos <ArrowUpRight size={14} aria-hidden="true" /></Link>
         <Link className="btn btn-outline btn-md" href={`${base}/proposals`}>Propostas <ArrowUpRight size={14} aria-hidden="true" /></Link>
-        <Link className="btn btn-outline btn-md" href={`${base}/subscriptions`}>Assinaturas <ArrowUpRight size={14} aria-hidden="true" /></Link>
+        <Link className="btn btn-outline btn-md" href={`${base.replace(/\/platform$/, '')}/faturas?aba=assinaturas`}>Assinaturas <ArrowUpRight size={14} aria-hidden="true" /></Link>
       </div>
       {contracts.error && <ErrorState message={contracts.error} onRetry={contracts.refetch} />}
       {contracts.loading && !contracts.data ? <LoadingState label="Carregando contratos…" /> : (contracts.data ?? []).length === 0 ? <EmptyState message="Nenhum contrato manual." /> : (
@@ -71,11 +71,8 @@ export function AuditView({ companyId }: { companyId?: string }) {
 }
 
 const LINKS: { href: string; label: string; text: string; icon: LucideIcon }[] = [
-  { href: '/plans', label: 'Planos', text: 'Produtos, preços e limites', icon: BarChart3 },
-  { href: '/coupons', label: 'Cupons', text: 'Incentivos comerciais', icon: TicketPercent },
   { href: '/permissions', label: 'Permissões globais', text: 'Perfis e políticas', icon: ShieldCheck },
   { href: '/access', label: 'Acessos técnicos', text: 'Sessões e modo suporte', icon: UsersRound },
-  { href: '/subscriptions', label: 'Assinaturas', text: 'Recorrência e clientes', icon: ReceiptText },
   { href: '/proposals', label: 'Propostas', text: 'Pipeline comercial', icon: ScrollText },
   { href: '/whatsapp', label: 'WhatsApp', text: 'Canais de mensagem', icon: Megaphone },
   { href: '/intelligence', label: 'Inteligência', text: 'Riscos e sinais da base', icon: Building2 },

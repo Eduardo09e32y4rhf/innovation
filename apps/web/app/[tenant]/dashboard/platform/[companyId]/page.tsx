@@ -210,7 +210,7 @@ export default function CompanyDetailPage({ params }: { params: { tenant: string
           {role === 'DEV' ? (
             <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-center justify-between">
               <span>Como <b>DEV</b>, você pode alterar os limites de licenciamento via API ou em Configurações de Plano.</span>
-              <Link href={`/${params.tenant}/dashboard/platform/plans`} className="font-bold underline hover:text-amber-950">Ver Planos e Preços</Link>
+              <Link href={`/${params.tenant}/dashboard/faturas?aba=planos`} className="font-bold underline hover:text-amber-950">Ver Planos e Preços</Link>
             </div>
           ) : (
             <div className="p-4 rounded-xl bg-slate-100 text-xs text-slate-600 font-medium">

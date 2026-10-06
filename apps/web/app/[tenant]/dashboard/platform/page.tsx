@@ -38,7 +38,7 @@ function Hub() {
   const tabs = useMemo(() => allowed.filter((tab) => (companyId ? !['empresas', 'configuracoes'].includes(tab) : true)), [allowed, companyId]);
   const requested = params.get('tab') as HubTab | null;
   const tab = tabs.includes(requested as HubTab) ? (requested as HubTab) : tabs[0] ?? 'resumo';
-  const shortcuts = useMemo(() => getPlatformNavGroups(role).filter((group) => group.key !== 'overview'), [role]);
+  const shortcuts = useMemo(() => getPlatformNavGroups(role).filter((group) => !['overview', 'finance', 'plans', 'subscriptions', 'coupons'].includes(group.key)), [role]);
 
   // Contabilidade agora e uma aba propria do menu; links antigos (?tab=contabilidade) seguem para ela.
   useEffect(() => {
