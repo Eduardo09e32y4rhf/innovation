@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Cake, CalendarCheck, Clock3, Minus, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowRight, CalendarCheck, Clock3, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { DashboardInsights, DashboardSummary, TimeTrack } from '@/app/lib/api';
 import { formatMinutes, formatTime } from '@/app/lib/format';
@@ -38,7 +38,9 @@ export function EmployeeDashboard({ tenant, userName, summary, insights, tracks,
   const worked = monthTracks.reduce((sum, track) => sum + (track.totalWorked ?? 0), 0);
   const credits = monthTracks.reduce((sum, track) => sum + Math.max(track.dailyBalance ?? 0, 0), 0);
   const debits = monthTracks.reduce((sum, track) => sum + Math.abs(Math.min(track.dailyBalance ?? 0, 0)), 0);
-  const birthdays = insights?.birthdaysThisMonth ?? [];
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const isDayOff = tracks.some((track) => track.date.slice(0, 10) === todayKey && track.isRest);
   const firstName = userName?.trim().split(/\s+/)[0] || 'colaborador';
   let accumulated = 0;
   const chartData = monthTracks.map((track) => {
@@ -55,10 +57,13 @@ export function EmployeeDashboard({ tenant, userName, summary, insights, tracks,
         <div className="relative flex flex-col justify-between gap-7 sm:flex-row sm:items-end">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/50">Meu dashboard</p>
-            <h1 className="mt-3 max-w-xl text-3xl font-black tracking-tight sm:text-4xl">Ola, {firstName}. Sua jornada em um so lugar.</h1>
-            <p className="mt-3 text-sm font-medium text-white/55">Acompanhe seu ponto, banco de horas e os momentos importantes da equipe.</p>
+            <h1 className="mt-3 max-w-xl text-3xl font-black tracking-tight sm:text-4xl">Olá, {firstName}, tudo bem? Ótimo dia!</h1>
+            <p className="mt-3 text-sm font-medium text-white/70">{loading ? 'Carregando sua escala de hoje...' : isDayOff ? 'Você hoje está de folga. Aproveite!' : 'Você hoje está trabalhando.'}</p>
           </div>
-          <Link href={`/${tenant}/dashboard/escalas?view=ponto`} className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-xs font-black text-black hover:-translate-y-0.5"><Clock3 size={15} /> Bater ponto <ArrowRight size={14} /></Link>
+          <div className="flex flex-wrap gap-2">
+            {!loading && !isDayOff && <Link href={`/${tenant}/dashboard/escalas?view=calendario`} className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/30 px-5 text-xs font-black text-white hover:-translate-y-0.5"><CalendarCheck size={15} /> Olhe sua escala do dia</Link>}
+            <Link href={`/${tenant}/dashboard/escalas?view=ponto`} className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-xs font-black text-black hover:-translate-y-0.5"><Clock3 size={15} /> Bater ponto <ArrowRight size={14} /></Link>
+          </div>
         </div>
       </section>
 
@@ -69,7 +74,7 @@ export function EmployeeDashboard({ tenant, userName, summary, insights, tracks,
         <StatCard label="Horas negativas" value={formatMinutes(debits)} detail="debitos no periodo" icon={TrendingDown} loading={loading} />
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]">
+      <section className="grid gap-5">
         <article className="overflow-hidden rounded-[22px] border border-black/10 bg-white">
           <header className="flex items-start justify-between border-b border-black/10 px-5 py-5">
             <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40">Evolucao mensal</p><h2 className="mt-1 text-lg font-black text-black">Banco de horas</h2></div>
@@ -95,24 +100,6 @@ export function EmployeeDashboard({ tenant, userName, summary, insights, tracks,
                 </AreaChart>
               </ResponsiveContainer>
             )}
-          </div>
-        </article>
-
-        <article className="overflow-hidden rounded-[22px] border border-black/10 bg-[#f4f4f2]">
-          <header className="flex items-center justify-between border-b border-black/10 px-5 py-5">
-            <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40">Equipe</p><h2 className="mt-1 text-lg font-black">Aniversariantes</h2></div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white"><Cake size={17} /></div>
-          </header>
-          <div className="space-y-2 p-4">
-            {loading && <p className="py-8 text-center text-xs font-bold text-black/40">Carregando aniversariantes...</p>}
-            {!loading && birthdays.length === 0 && <div className="py-8 text-center"><p className="text-sm font-black">Nenhum aniversario neste mes</p><p className="mt-1 text-xs text-black/45">As datas da sua equipe aparecerao aqui.</p></div>}
-            {birthdays.slice(0, 7).map((person) => (
-              <div key={person.id} className="flex items-center gap-3 rounded-[14px] border border-black/10 bg-white px-3 py-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-xs font-black text-white">{person.name.trim().charAt(0).toUpperCase()}</div>
-                <p className="min-w-0 flex-1 truncate text-xs font-black">{person.name}</p>
-                <span className="rounded-full bg-black px-2.5 py-1 text-[10px] font-black text-white">{person.birthDate ? shortDate(person.birthDate) : 'Mes'}</span>
-              </div>
-            ))}
           </div>
         </article>
       </section>

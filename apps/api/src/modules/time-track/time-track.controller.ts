@@ -43,8 +43,20 @@ export class TimeTrackController {
   @Post('register')
   @UseGuards(RateLimitGuard)
   @RateLimit({ window: 60, max: 20, prefix: 'punch' }) // 20 punches per minute per user/IP
-  register(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: RegisterTimeDto) {
-    return this.service.register(companyId, actor, dto);
+  async register(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: RegisterTimeDto) {
+    const saved = await this.service.register(companyId, actor, dto);
+    // Nao devolve a linha inteira do banco (companyId, geolocalizacao, motivos internos): so o que o proprio usuario precisa ver.
+    return {
+      id: saved.id,
+      date: saved.date,
+      entry: saved.entry,
+      lunchStart: saved.lunchStart,
+      lunchReturn: saved.lunchReturn,
+      exit: saved.exit,
+      totalWorked: saved.totalWorked,
+      dailyBalance: saved.dailyBalance,
+      manualStatus: saved.manualStatus,
+    };
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')

@@ -239,7 +239,7 @@ export class TimeTrackService {
         let distanceVal = 0;
 
         if (!employee.allowExternalWork && dto.latitude && dto.longitude) {
-          const company = await this.prisma.company.findUnique({ where: { id: companyId } });
+          const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { latitude: true, longitude: true, radiusTolerance: true } });
           if (company?.latitude && company?.longitude) {
             const distance = getDistanceInMeters(dto.latitude, dto.longitude, company.latitude, company.longitude);
             const tolerance = company.radiusTolerance || 150;
@@ -256,7 +256,11 @@ export class TimeTrackService {
           updateData.manualReason = 'Ponto fora do local permitido (' + distanceVal + 'm)';
 
           if (dto.latitude && dto.longitude) {
-             const address = await this.getStreetName(dto.latitude, dto.longitude);
+             // Geocodificacao e HTTP externo: limite de 2s para nao travar o botao de bater ponto.
+             const address = await Promise.race([
+               this.getStreetName(dto.latitude, dto.longitude).catch(() => null),
+               new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+             ]);
              updateData.observation = 'BATIDA FACIAL - ENDERECO: ' + (address || 'Desconhecido');
           }
         }

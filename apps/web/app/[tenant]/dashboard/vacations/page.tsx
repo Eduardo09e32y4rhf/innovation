@@ -37,18 +37,20 @@ export default function VacationsPage() {
   const [receiptDownloadingId, setReceiptDownloadingId] = useState<string | null>(null);
   const [receiptError, setReceiptError] = useState('');
   const rows = (vacations.data ?? []) as VacationRow[];
+  const isSelfOnly = profile === 'FUNCIONARIO';
+  const ownEmployeeId = isSelfOnly && employees.data?.length === 1 ? employees.data[0].id : '';
 
   useEffect(() => {
     const readView = () => {
       const params = new URLSearchParams(window.location.search);
       const candidate = params.get('tab');
       setTab(tabs.some(item => item.value === candidate) && (candidate !== 'alerts' || canApprove) ? candidate as Tab : 'active');
-      setEmployeeFilter(params.get('employeeId') ?? '');
+      setEmployeeFilter(isSelfOnly ? '' : params.get('employeeId') ?? '');
       setMonth(/^\d{4}-\d{2}$/.test(params.get('month') ?? '') ? params.get('month') : '');
     };
     readView(); window.addEventListener('popstate', readView);
     return () => window.removeEventListener('popstate', readView);
-  }, [canApprove]);
+  }, [canApprove, isSelfOnly]);
   useEffect(() => {
     setOpen(false); setDecision(null); setSelectedRows([]); setResults([]); setReceiptError('');
   }, [user?.id, user?.companyId]);
@@ -140,7 +142,7 @@ export default function VacationsPage() {
     <section className="card-v2 p-4" aria-label="Filtros de férias">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <label className="space-y-1 text-sm font-medium">Buscar por funcionário ou período<input className="input-v2 mt-1 text-base sm:text-sm" value={search} onChange={e => setSearch(e.target.value)} placeholder="Nome ou período aquisitivo" /></label>
-        <label className="space-y-1 text-sm font-medium">Funcionário<select className="input-v2 mt-1 text-base sm:text-sm" value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)}><option value="">Todos no escopo autorizado</option>{(employees.data ?? []).map(employee => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee)}</option>)}</select></label>
+        {!isSelfOnly && <label className="space-y-1 text-sm font-medium">Funcionário<select className="input-v2 mt-1 text-base sm:text-sm" value={employeeFilter} onChange={e => setEmployeeFilter(e.target.value)}><option value="">Todos no escopo autorizado</option>{(employees.data ?? []).map(employee => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee)}</option>)}</select></label>}
         <label className="space-y-1 text-sm font-medium">Mês do descanso<input type="month" className="input-v2 mt-1 text-base sm:text-sm" value={month} onChange={e => setMonth(e.target.value)} /></label>
       </div>
       {(search || employeeFilter || month) && <Button type="button" variant="ghost" className="mt-3" onClick={() => { setSearch(''); setEmployeeFilter(''); setMonth(''); const url = new URL(window.location.href); url.searchParams.delete('employeeId'); url.searchParams.delete('month'); window.history.replaceState(null, '', url.pathname + url.search); }}>Limpar filtros</Button>}
@@ -170,7 +172,7 @@ export default function VacationsPage() {
         </tr>)}</tbody>
       </table></div></section>
     </>}
-    {open && <NewVacationModal key={user?.companyId} employees={employees.data ?? []} employeeError={employees.error} employeeLoading={employees.loading} onRetryEmployees={employees.refetch} existingVacations={rows} initialEmployeeId={employeeFilter} onClose={() => setOpen(false)} onDone={() => { setOpen(false); vacations.refetch(); }} />}
+    {open && <NewVacationModal key={user?.companyId} employees={employees.data ?? []} employeeError={employees.error} employeeLoading={employees.loading} onRetryEmployees={employees.refetch} existingVacations={rows} initialEmployeeId={isSelfOnly ? ownEmployeeId : employeeFilter} lockEmployee={isSelfOnly} onClose={() => setOpen(false)} onDone={() => { setOpen(false); vacations.refetch(); }} />}
     <ConfirmDialog isOpen={!!decision} onClose={() => !busy && setDecision(null)} title={decision?.status === 'REJECTED' ? 'Rejeitar solicitação' : 'Aprovar férias'} description={decision ? decision.ids.map(id => { const row = rows.find(item => item.id === id); return normalizeDisplayName(row?.employee?.name ?? 'Funcionário') + ': ' + formatPeriod(row?.startDate, row?.endDate); }).join('; ') : ''} confirmText={decision?.status === 'REJECTED' ? 'Rejeitar solicitação' : 'Aprovar ' + (decision?.ids.length ?? 0) + ' solicitação(ões)'} variant={decision?.status === 'REJECTED' ? 'danger' : 'primary'} isLoading={busy} onConfirm={saveDecision} />
   </div>;
 }
@@ -178,7 +180,7 @@ export default function VacationsPage() {
 function StatusBadge({ row }: { row: VacationRow }) { return <span className="inline-flex rounded-full bg-bg-sub px-2.5 py-1 text-xs font-medium">{VACATION_STATUS_LABEL[row.status] ?? row.status}</span>; }
 function employeeOptionLabel(employee: Employee) { return normalizeDisplayName(employee.name) + ' · ' + (employee.registration || employee.id.slice(0, 8).toUpperCase()); }
 
-function NewVacationModal({ employees, existingVacations, initialEmployeeId, employeeError, employeeLoading, onRetryEmployees, onClose, onDone }: { employees: Employee[]; existingVacations: VacationRow[]; initialEmployeeId: string; employeeError?: string | null; employeeLoading: boolean; onRetryEmployees: () => void; onClose: () => void; onDone: () => void }) {
+function NewVacationModal({ employees, existingVacations, initialEmployeeId, lockEmployee, employeeError, employeeLoading, onRetryEmployees, onClose, onDone }: { employees: Employee[]; existingVacations: VacationRow[]; initialEmployeeId: string; lockEmployee?: boolean; employeeError?: string | null; employeeLoading: boolean; onRetryEmployees: () => void; onClose: () => void; onDone: () => void }) {
   const [form, setForm] = useState({ employeeId: initialEmployeeId, acquisitionPeriod: (new Date().getFullYear() - 1) + '/' + new Date().getFullYear(), startDate: '', endDate: '' });
   const [observation, setObservation] = useState('');
   const [sellDays, setSellDays] = useState(false);
@@ -220,7 +222,9 @@ function NewVacationModal({ employees, existingVacations, initialEmployeeId, emp
     <form id="vacation-request" className="space-y-4" onSubmit={event => { event.preventDefault(); if (valid && !create.loading) create.mutate().catch(() => {}); }}>
       {create.error && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{create.error}</p>}
       {employeeError && <ErrorState message={employeeError} onRetry={onRetryEmployees} />}
-      <label className="block space-y-1 text-sm font-medium">Funcionário *<select required className="input-v2 text-base" value={form.employeeId} disabled={employeeLoading} onChange={event => { setSellDays(false); setForm(previous => ({ ...previous, employeeId: event.target.value })); }}><option value="">{employeeLoading ? 'Carregando funcionários…' : 'Selecione o funcionário'}</option>{employees.map(employee => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee)}</option>)}</select></label>
+      {lockEmployee
+        ? <p className="rounded-lg border border-border bg-bg-sub p-3 text-sm">Solicitação em seu nome{selectedEmployee ? ': ' + normalizeDisplayName(selectedEmployee.name) : ''}.</p>
+        : <label className="block space-y-1 text-sm font-medium">Funcionário *<select required className="input-v2 text-base" value={form.employeeId} disabled={employeeLoading} onChange={event => { setSellDays(false); setForm(previous => ({ ...previous, employeeId: event.target.value })); }}><option value="">{employeeLoading ? 'Carregando funcionários…' : 'Selecione o funcionário'}</option>{employees.map(employee => <option key={employee.id} value={employee.id}>{employeeOptionLabel(employee)}</option>)}</select></label>}
       {selectedEmployee && <p className="rounded-lg border border-border bg-bg-sub p-3 text-sm">{currentEligibility ? 'Tempo mínimo de admissão cumprido.' : 'O funcionário ainda não completou o período de admissão exigido pelo serviço.'} Admissão: {formatDate(selectedEmployee.admissionDate)}.</p>}
       <div className="grid gap-3 sm:grid-cols-2"><label className="space-y-1 text-sm font-medium">Início *<input type="date" required className="input-v2 text-base" value={form.startDate} onChange={event => setForm(previous => ({ ...previous, startDate: event.target.value }))} /></label><label className="space-y-1 text-sm font-medium">Fim *<input type="date" required min={form.startDate || undefined} className="input-v2 text-base" value={form.endDate} onChange={event => setForm(previous => ({ ...previous, endDate: event.target.value }))} /></label></div>
       <label className="block space-y-1 text-sm font-medium">Período aquisitivo *<input required pattern="\d{4}/\d{4}" className="input-v2 text-base" value={form.acquisitionPeriod} onChange={event => setForm(previous => ({ ...previous, acquisitionPeriod: event.target.value }))} aria-describedby="vacation-period-help" /></label>
