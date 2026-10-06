@@ -48,7 +48,16 @@ services:
       KMS_MASTER_KEY: ${KMS_MASTER_KEY:?defina KMS_MASTER_KEY no .env}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?defina ALLOWED_ORIGINS no .env}
       APP_URL: ${APP_URL:-}
+      # Dono da plataforma: o ID do usuario DEV e a identidade protegida (e-mail so vale como legado, sem o ID).
+      PLATFORM_OWNER_USER_ID: ${PLATFORM_OWNER_USER_ID:-}
       PLATFORM_OWNER_EMAIL: ${PLATFORM_OWNER_EMAIL:-}
+      # Senhas provisorias: validade em horas (1 a 168; padrao 24).
+      TEMPORARY_PASSWORD_TTL_HOURS: ${TEMPORARY_PASSWORD_TTL_HOURS:-24}
+      # CEO em onboarding: use 'off' somente como saida temporaria.
+      CEO_ONBOARDING_ENFORCEMENT: ${CEO_ONBOARDING_ENFORCEMENT:-}
+      # Antivirus dos documentos de candidatos (em producao, sem ClamAV o envio e bloqueado).
+      CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
+      CLAMAV_PORT: ${CLAMAV_PORT:-3310}
       MAIL_FROM: ${MAIL_FROM:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       AWS_SES_REGION: ${AWS_SES_REGION:-}
@@ -91,6 +100,13 @@ services:
       start_period: 40s
     restart: always
 
+  clamav:
+    image: clamav/clamav:stable
+    # Sem 'ports': so a API (rede interna) usa o scanner. Na 1a subida baixa as definicoes (alguns minutos; ~1-2 GB de RAM).
+    volumes:
+      - clamav_data:/var/lib/clamav
+    restart: always
+
   web:
     build:
       context: .
@@ -112,3 +128,4 @@ volumes:
   postgres_data:
   redis_data:
   api_data:
+  clamav_data:
