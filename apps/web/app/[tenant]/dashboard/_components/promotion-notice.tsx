@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, BriefcaseBusiness, CalendarDays, Check, CircleDollarSign, Loader2, PartyPopper, Trophy, X } from 'lucide-react';
+import { ArrowRight, Briefcase, CalendarDays, Check, CircleDollarSign, Loader2, PartyPopper, Trophy, X } from 'lucide-react';
 
 type PromotionNoticeProps = {
   notification: any;
@@ -20,10 +20,10 @@ type PromotionNoticeProps = {
 
 export function PromotionNotice({ notification, extra, needsConfirm, busy, error, refusing, reason, onAct, onStartRefuse, onConfirmRefuse, onCancelRefuse, onReasonChange, formatDate }: PromotionNoticeProps) {
   const details = [
-    extra.newPosition && { label: 'Novo cargo', value: extra.newPosition, icon: BriefcaseBusiness, accent: 'violet' },
+    extra.newPosition && { label: 'Novo cargo', value: extra.newPosition, icon: Briefcase, accent: 'violet' },
     extra.newSalary && { label: 'Novo salário', value: Number(extra.newSalary).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: CircleDollarSign, accent: 'fuchsia' },
     extra.effectiveDate && { label: 'Data de início', value: formatDate(extra.effectiveDate), icon: CalendarDays, accent: 'indigo' },
-  ].filter(Boolean) as { label: string; value: string; icon: typeof BriefcaseBusiness; accent: string }[];
+  ].filter(Boolean) as { label: string; value: string; icon: typeof Briefcase; accent: string }[];
 
   return <div className="fixed inset-0 z-[99999] flex items-center justify-center overflow-y-auto bg-slate-950/70 p-3 backdrop-blur-md sm:p-6">
     <section role="dialog" aria-modal="true" aria-labelledby="promotion-title" className="my-auto w-full max-w-3xl overflow-hidden rounded-[26px] border border-violet-300/60 bg-white shadow-[0_30px_100px_rgba(13,7,38,.38)]">

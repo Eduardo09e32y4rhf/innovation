@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpRight, BriefcaseBusiness, CalendarClock, Check, Copy, ExternalLink, MapPin, Plus, Search, Settings2, Users, X } from 'lucide-react';
+import { ArrowUpRight, Briefcase, CalendarClock, Check, Copy, ExternalLink, MapPin, Plus, Search, Settings2, Users, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
@@ -76,7 +76,7 @@ export default function JobsPage() {
       />
 
       <section aria-label="Resumo do recrutamento" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Metric label="Vagas abertas" value={stats.data?.jobs.open ?? counts.OPEN} icon={<BriefcaseBusiness size={19} />} detail={`${counts.OPEN} oportunidades publicadas`} />
+        <Metric label="Vagas abertas" value={stats.data?.jobs.open ?? counts.OPEN} icon={<Briefcase size={19} />} detail={`${counts.OPEN} oportunidades publicadas`} />
         <Metric label="Candidaturas recentes" value={stats.data?.applications.last30Days ?? '—'} icon={<Users size={19} />} detail="Nos últimos 30 dias" />
         <Metric label="Aguardando análise" value={stats.data?.applications.waitingReview ?? '—'} icon={<CalendarClock size={19} />} detail="Precisam de atenção" />
         <Metric label="Contratados" value={stats.data?.applications.byStatus.HIRED ?? '—'} icon={<Check size={19} />} detail="Candidatos aprovados" />
@@ -98,7 +98,7 @@ export default function JobsPage() {
         </div>
 
         {jobs.error && <ErrorState message={jobs.error} onRetry={jobs.refetch} />}
-        {jobs.loading && !jobs.data ? <LoadingState label="Carregando vagas..." /> : !jobs.data ? null : rows.length === 0 ? <div className="rounded-2xl border border-dashed border-border bg-bg p-10 text-center sm:p-14"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-[var(--color-brand)]"><BriefcaseBusiness size={23} aria-hidden="true" /></span><h2 className="mt-4 text-lg font-semibold text-fg">Sua próxima contratação começa aqui</h2><p className="mx-auto mt-1 max-w-md text-sm text-fg-sub">Crie uma vaga e acompanhe candidatos desde a inscrição até a contratação.</p>{canManage && <Link href={`${base}/new`} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--color-brand)] px-4 text-sm font-semibold text-white hover:bg-[var(--color-brand-700)]"><Plus size={16} aria-hidden="true" /> Criar primeira vaga</Link>}</div> : filtered.length === 0 ? <EmptyState message="Nenhuma vaga corresponde à busca e aos filtros selecionados." /> : (
+        {jobs.loading && !jobs.data ? <LoadingState label="Carregando vagas..." /> : !jobs.data ? null : rows.length === 0 ? <div className="rounded-2xl border border-dashed border-border bg-bg p-10 text-center sm:p-14"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-[var(--color-brand)]"><Briefcase size={23} aria-hidden="true" /></span><h2 className="mt-4 text-lg font-semibold text-fg">Sua próxima contratação começa aqui</h2><p className="mx-auto mt-1 max-w-md text-sm text-fg-sub">Crie uma vaga e acompanhe candidatos desde a inscrição até a contratação.</p>{canManage && <Link href={`${base}/new`} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--color-brand)] px-4 text-sm font-semibold text-white hover:bg-[var(--color-brand-700)]"><Plus size={16} aria-hidden="true" /> Criar primeira vaga</Link>}</div> : filtered.length === 0 ? <EmptyState message="Nenhuma vaga corresponde à busca e aos filtros selecionados." /> : (
           <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {filtered.map((job) => <JobCard key={job.id} job={job} base={base} canManage={canManage} busy={busyId === job.id} onCopy={() => copy(job)} onRun={(action, success) => run(job, action, success)} onDelete={() => setToDelete(job)} />)}
           </div>
