@@ -378,7 +378,33 @@ export function ContratosView({ params: { tenant } }: { params: { tenant: string
         ) : filteredContracts.length === 0 ? (
           <div className="p-8"><EmptyState message="Nenhum contrato cadastrado." /></div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <ul className="divide-y divide-slate-100 lg:hidden" aria-label="Contratos">
+              {filteredContracts.map((item) => (
+                <li key={item.id} className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="break-words font-bold text-slate-900">{item.company?.name || 'Empresa'}</p>
+                      <p className="text-xs text-slate-500">{item.company?.document || '-'} · {item.plan?.name || 'Sem plano'}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full border px-2 py-1 text-xs font-bold ${STATUS_TONES[item.status]}`}>{STATUS_LABELS[item.status]}</span>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div><dt className="text-xs text-slate-500">Valor</dt><dd className="font-bold text-slate-800">{money(item.agreedAmount)}</dd></div>
+                    <div><dt className="text-xs text-slate-500">Licenças</dt><dd>{item.seatQuantity}</dd></div>
+                    <div><dt className="text-xs text-slate-500">Vigência</dt><dd>{date(item.startsAt)} a {item.endsAt ? date(item.endsAt) : 'indeterminado'}</dd></div>
+                    <div><dt className="text-xs text-slate-500">Pagamento</dt><dd>{PAYMENT_LABELS[item.paymentMethod] || item.paymentMethod}</dd></div>
+                  </dl>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => setSelectedContract(item)} className="min-h-11 rounded-lg border px-3 font-bold hover:bg-slate-50"><History size={14} className="mr-1 inline" /> Detalhes</button>
+                    <button type="button" onClick={() => exportPdf(item)} className="min-h-11 rounded-lg border px-3 font-bold hover:bg-slate-50">PDF</button>
+                    <button type="button" onClick={() => startEdit(item)} className="min-h-11 rounded-lg border px-3 font-bold hover:bg-slate-50"><Edit2 size={14} className="mr-1 inline" /> Editar</button>
+                    <button type="button" onClick={() => remove(item)} disabled={workingId === item.id} className="min-h-11 rounded-lg border px-3 font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-50">{workingId === item.id ? <Loader2 size={14} className="mr-1 inline animate-spin" /> : <Trash2 size={14} className="mr-1 inline" />} Excluir</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          <div className="hidden overflow-x-auto lg:block">
             <table className="min-w-[1080px] w-full text-left text-xs">
               <thead>
                 <tr className="border-b bg-slate-50 text-[10px] font-black uppercase tracking-wide text-slate-500">
@@ -432,6 +458,7 @@ export function ContratosView({ params: { tenant } }: { params: { tenant: string
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
 
