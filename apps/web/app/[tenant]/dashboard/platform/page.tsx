@@ -3,7 +3,7 @@
 import { ArrowUpRight, Globe2, Settings2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { LoadingState } from '@/app/components/data-states';
 import { Button } from '@/app/components/ui';
@@ -11,7 +11,6 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { api, type PlatformCompany } from '@/app/lib/api';
 import { CompanyManageModal } from './_components/company-manage-modal';
 import { getPlatformNavGroups } from './_components/platform-nav-config';
-import { AccountingView } from './_hub/accounting-view';
 import { CompaniesView } from './_hub/companies-view';
 import { errorText } from './_hub/format';
 import { AuditView, CommercialView, SettingsView, SupportView } from './_hub/more-views';
@@ -41,6 +40,13 @@ function Hub() {
   const tab = tabs.includes(requested as HubTab) ? (requested as HubTab) : tabs[0] ?? 'resumo';
   const shortcuts = useMemo(() => getPlatformNavGroups(role).filter((group) => group.key !== 'overview'), [role]);
 
+  // Contabilidade agora e uma aba propria do menu; links antigos (?tab=contabilidade) seguem para ela.
+  useEffect(() => {
+    if (requested !== 'contabilidade') return;
+    const scope = companyId ? `?company=${companyId}${companyName ? `&cn=${encodeURIComponent(companyName)}` : ''}` : '';
+    router.replace(`/${tenant}/dashboard/contabilidade${scope}`);
+  }, [requested, router, tenant, companyId, companyName]);
+
   const [managing, setManaging] = useState<PlatformCompany | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -57,7 +63,6 @@ function Hub() {
   if (!user) return <LoadingState label="Carregando acesso…" />;
   if (!allowed.length) return <section className="card-v2 m-4 p-5"><h1 className="text-xl font-semibold">Acesso restrito</h1><p className="mt-2 text-sm text-fg-sub">Seu perfil não tem acesso à Plataforma.</p></section>;
 
-  const canEditAccounting = ['DEV', 'CEO', 'CONTABIL'].includes(role);
   const canManageCompany = ['DEV', 'CEO', 'COMERCIAL'].includes(role);
 
   async function openManage() {
@@ -78,7 +83,7 @@ function Hub() {
   const goTab = (next: HubTab) => (next === 'financeiro' ? router.push(`/${tenant}/dashboard/faturas`) : update({ tab: next }));
 
   return (
-    <div className="mx-auto w-full max-w-[1500px] space-y-5 px-3 py-4 sm:px-5 lg:px-6">
+    <div className="mx-auto w-full max-w-[1500px] space-y-5 px-3 py-4 sm:px-5 lg:px-6 2xl:max-w-[1800px] 2xl:px-10">
       <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-800 p-5 text-white shadow-lg sm:p-7">
         <div aria-hidden="true" className="absolute -right-10 -top-12 h-52 w-52 rounded-full bg-white/10 blur-2xl" />
         <div className="relative flex flex-wrap items-end justify-between gap-4">
@@ -107,7 +112,6 @@ function Hub() {
       <main className="space-y-6">
         {tab === 'resumo' && <OverviewView companyId={companyId} onOpenCompany={openCompany} onTab={goTab} />}
         {tab === 'empresas' && <CompaniesView onOpenCompany={openCompany} />}
-        {tab === 'contabilidade' && <AccountingView companyId={companyId} canEdit={canEditAccounting} onOpenCompany={openCompany} />}
         {tab === 'comercial' && <CommercialView companyId={companyId} base={base} />}
         {tab === 'suporte' && <SupportView companyId={companyId} base={base} />}
         {tab === 'auditoria' && <AuditView companyId={companyId} />}

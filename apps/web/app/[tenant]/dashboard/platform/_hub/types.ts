@@ -6,10 +6,10 @@ export const TAB_LABEL: Record<HubTab, string> = {
 };
 
 export const TAB_POLICY: Record<string, HubTab[]> = {
-  DEV: ['resumo', 'empresas', 'contabilidade', 'comercial', 'suporte', 'auditoria', 'configuracoes'],
-  CEO: ['resumo', 'empresas', 'contabilidade', 'suporte', 'auditoria'],
+  DEV: ['resumo', 'empresas', 'comercial', 'suporte', 'auditoria', 'configuracoes'],
+  CEO: ['resumo', 'empresas', 'suporte', 'auditoria'],
   COMERCIAL: ['resumo', 'empresas', 'comercial'],
-  CONTABIL: ['resumo', 'contabilidade'],
+  CONTABIL: ['resumo'],
 };
 
 export interface CompanyOption { id: string; name: string; slug: string; document: string; status: string; plan: string; billingStatus: string }

@@ -36,7 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'settings', label: 'Configurações', href: '/dashboard/settings', icon: Settings2, group: 'Administração', roles: ALL_ROLES },
   { id: 'support', label: 'Suporte', href: '/dashboard/support', icon: HelpCircle, group: 'Administração', roles: ALL_ROLES },
   { id: 'platform', label: 'Plataforma', href: '/dashboard/platform', icon: Building2, group: 'Operação global', roles: ['DEV', 'CEO', 'COMERCIAL', 'CONTABIL'], anyPermission: ['platform.manage', 'platform.view_finance'] },
-  { id: 'accounting', label: 'Contabilidade', href: '/dashboard/platform?tab=contabilidade', icon: Calculator, group: 'Operação global', roles: ['DEV', 'CEO', 'CONTABIL'] },
+  { id: 'accounting', label: 'Contabilidade', href: '/dashboard/contabilidade', icon: Calculator, group: 'Operação global', roles: ['DEV', 'CEO', 'CONTABIL'] },
 ];
 
 export function getVisibleNavItems(user: User | null, activeModules: readonly string[] = []): NavItem[] {
@@ -54,7 +54,6 @@ export function tenantRoute(tenant: string, href: string): string {
 export function isNavActive(pathname: string, tenant: string, item: NavItem) {
   const route = tenantRoute(tenant, item.href);
   if (item.id === 'dashboard') return pathname === route || pathname === `${route}/`;
-  if (item.id === 'platform' && pathname.startsWith(tenantRoute(tenant, '/dashboard/platform/accounting'))) return false;
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
