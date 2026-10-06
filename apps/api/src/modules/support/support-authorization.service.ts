@@ -6,8 +6,17 @@ export class SupportAuthorizationService {
   constructor(private prisma: PrismaService) {}
 
   async assertCanCreateTicket(actor: any, affectedUserId?: string, affectedEmployeeId?: string) {
-    if (['FUNCIONARIO', 'CONSULTA', 'COMERCIAL'].includes(actor.role)) {
+    if (['CONSULTA', 'COMERCIAL'].includes(actor.role)) {
       throw new ForbiddenException('Seu perfil não tem permissão para abrir chamados.');
+    }
+    if (actor.role === 'FUNCIONARIO') {
+      // O funcionario abre e acompanha chamados, mas so em nome proprio.
+      if (affectedUserId && affectedUserId !== actor.sub) throw new ForbiddenException('Você só pode abrir chamados em seu próprio nome.');
+      if (affectedEmployeeId) {
+        const own = await this.prisma.employee.findFirst({ where: { userId: actor.sub, companyId: actor.companyId }, select: { id: true } });
+        if (!own || own.id !== affectedEmployeeId) throw new ForbiddenException('Você só pode abrir chamados em seu próprio nome.');
+      }
+      return true;
     }
     if (actor.role === 'DEV') return true;
 

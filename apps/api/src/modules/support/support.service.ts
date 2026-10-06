@@ -16,6 +16,8 @@ export class SupportService {
 
   async createTicket(actor: JwtUser, data: any) {
     await this.authService.assertCanCreateTicket(actor, data.affectedUserId, data.affectedEmployeeId);
+    // Chamado de funcionario sempre fica em nome dele: e assim que ele o encontra e acompanha na lista.
+    if (actor.role === 'FUNCIONARIO') data = { ...data, affectedUserId: actor.sub };
 
     const year = new Date().getFullYear();
     const ticketNumber = await this.repository.generateTicketNumber(year);

@@ -94,7 +94,8 @@ function CustomerSupportPage() {
   const { user } = useAuth();
   const role = String(user?.profile || user?.role || '').toUpperCase();
   const isAdminOrRh = role === 'ADMIN' || role === 'RH';
-  const canCreate = !['FUNCIONARIO', 'CONSULTA', 'COMERCIAL'].includes(role);
+  // Funcionario abre e acompanha os proprios chamados (o servidor fixa o chamado em nome dele).
+  const canCreate = !['CONSULTA', 'COMERCIAL'].includes(role);
   const detailRequest = useRef(0);
   const selectedId = useRef<string | null>(null);
   const [detailError, setDetailError] = useState('');
