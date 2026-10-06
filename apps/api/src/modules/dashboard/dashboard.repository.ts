@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { bankBalanceMinutes } from '../time-track/overtime-policy';
 import { PrismaService } from '../../database/prisma.service';
 import { toDateOnly } from '../../common/utils/date.utils';
 
@@ -93,6 +94,12 @@ export class DashboardRepository {
     };
   }
 
+  /** Saldo do banco de horas (so existe se a empresa usa banco; vale pela janela de meses da politica). */
+  private async bankTotal(companyId: string, employeeWhere: Record<string, unknown>) {
+    const ids = (await this.prisma.employee.findMany({ where: employeeWhere as any, select: { id: true } })).map((employee) => employee.id);
+    return [...(await bankBalanceMinutes(this.prisma, companyId, ids)).values()].reduce((total, value) => total + value, 0);
+  }
+
   async summary(companyId: string) {
     const { startOfDay, endOfDay, startOfMonth, endOfMonth } = { ...this.todayRange(), ...this.monthRange() };
     const [activeEmployees, timeTracksToday, pendingVacations, whatsappMessages, timeBalance, admissionsMonth, terminationsMonth] = await Promise.all([
@@ -100,7 +107,7 @@ export class DashboardRepository {
       this.prisma.timeTrack.count({ where: { employee: { companyId }, date: { gte: startOfDay, lt: endOfDay } } }),
       this.prisma.vacation.count({ where: { employee: { companyId }, status: 'PENDING' } }),
       this.prisma.message.count({ where: { companyId } }),
-      this.prisma.timeTrack.aggregate({ where: { employee: { companyId } }, _sum: { dailyBalance: true } }),
+      this.bankTotal(companyId, { companyId }),
       this.prisma.employee.count({ where: { companyId, admissionDate: { gte: startOfMonth, lt: endOfMonth } } }),
       this.prisma.employee.count({ where: { companyId, terminationDate: { gte: startOfMonth, lt: endOfMonth } } }),
     ]);
@@ -109,7 +116,7 @@ export class DashboardRepository {
       timeTracksToday,
       pendingVacations,
       whatsappMessages,
-      totalTimeBalance: timeBalance._sum.dailyBalance ?? 0,
+      totalTimeBalance: timeBalance,
       admissionsThisMonth: admissionsMonth,
       terminationsThisMonth: terminationsMonth,
     };
@@ -124,11 +131,11 @@ export class DashboardRepository {
       this.prisma.employee.count({ where: { ...teamFilter, status: 'ACTIVE' } }),
       this.prisma.timeTrack.count({ where: { employee: teamFilter, date: { gte: startOfDay, lt: endOfDay } } }),
       this.prisma.vacation.count({ where: { employee: teamFilter, status: 'PENDING' } }),
-      this.prisma.timeTrack.aggregate({ where: { employee: teamFilter }, _sum: { dailyBalance: true } }),
+      this.bankTotal(companyId, teamFilter),
       this.prisma.employee.count({ where: { ...teamFilter, admissionDate: { gte: startOfMonth, lt: endOfMonth } } }),
       this.prisma.employee.count({ where: { ...teamFilter, terminationDate: { gte: startOfMonth, lt: endOfMonth } } }),
     ]);
-    return { activeEmployees, timeTracksToday, pendingVacations, whatsappMessages: 0, totalTimeBalance: timeBalance._sum.dailyBalance ?? 0, admissionsThisMonth: admissionsMonth, terminationsThisMonth: terminationsMonth };
+    return { activeEmployees, timeTracksToday, pendingVacations, whatsappMessages: 0, totalTimeBalance: timeBalance, admissionsThisMonth: admissionsMonth, terminationsThisMonth: terminationsMonth };
   }
 
   async summaryForEmployee(companyId: string, userId: string) {
@@ -138,8 +145,8 @@ export class DashboardRepository {
     const [timeTracksToday, pendingVacations, timeBalance] = await Promise.all([
       this.prisma.timeTrack.count({ where: { employeeId: employee.id, date: { gte: startOfDay, lt: endOfDay } } }),
       this.prisma.vacation.count({ where: { employeeId: employee.id, status: 'PENDING' } }),
-      this.prisma.timeTrack.aggregate({ where: { employeeId: employee.id }, _sum: { dailyBalance: true } }),
+      this.bankTotal(companyId, { id: employee.id }),
     ]);
-    return { activeEmployees: 1, timeTracksToday, pendingVacations, whatsappMessages: 0, totalTimeBalance: timeBalance._sum.dailyBalance ?? 0, admissionsThisMonth: 0, terminationsThisMonth: 0 };
+    return { activeEmployees: 1, timeTracksToday, pendingVacations, whatsappMessages: 0, totalTimeBalance: timeBalance, admissionsThisMonth: 0, terminationsThisMonth: 0 };
   }
 }

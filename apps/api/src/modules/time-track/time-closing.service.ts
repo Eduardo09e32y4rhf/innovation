@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { PayrollCalculationService } from './payroll-calculation.service';
+import { getOvertimePolicy } from './overtime-policy';
 import { saoPauloDayOfWeek, toSaoPauloDateKey } from '../../common/utils/date.utils';
 
 interface GenerateClosingDto {
@@ -29,6 +30,24 @@ export class TimeClosingService {
     private readonly prisma: PrismaService,
     private readonly payroll: PayrollCalculationService,
   ) {}
+
+  getOvertimePolicy(companyId: string) {
+    return getOvertimePolicy(this.prisma, companyId);
+  }
+
+  /** Banco de horas (validade em meses) ou pagamento da extra na folha. So vale para os proximos lancamentos. */
+  async setOvertimePolicy(companyId: string, actor: JwtUser, body: { policy?: string; validityMonths?: number }) {
+    if (body.policy !== 'BANK' && body.policy !== 'PAYMENT') throw new BadRequestException('Informe a politica: BANK (banco de horas) ou PAYMENT (pagamento na folha).');
+    const months = Number(body.validityMonths ?? 3);
+    if (!Number.isInteger(months) || months < 1 || months > 12) throw new BadRequestException('A validade do banco deve ser de 1 a 12 meses.');
+    await this.prisma.overtimeRule.upsert({
+      where: { companyId },
+      create: { companyId, overtimePolicy: body.policy, bankValidityMonths: months },
+      update: { overtimePolicy: body.policy, bankValidityMonths: months },
+    });
+    await this.prisma.auditLog.create({ data: { companyId, userId: actor.sub, action: 'OVERTIME_POLICY_CHANGED', entity: 'OvertimeRule', metadata: { policy: body.policy, validityMonths: months } } }).catch(() => undefined);
+    return getOvertimePolicy(this.prisma, companyId);
+  }
 
   async generate(companyId: string, actor: JwtUser, dto: GenerateClosingDto) {
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { payrollStartDay: true } });

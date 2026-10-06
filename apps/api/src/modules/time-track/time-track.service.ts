@@ -7,6 +7,7 @@ import { TimeTrackRepository } from './time-track.repository';
 import { RedisService } from '../../common/redis/redis.service';
 import { WorkScheduleRulesService } from './work-schedule-rules.service';
 import { TimeCalculationRulesService } from './time-calculation-rules';
+import { getOvertimePolicy } from './overtime-policy';
 import { PrismaService } from '../../database/prisma.service';
 import { getDistanceInMeters } from '../../common/utils/geo.utils';
 import { saoPauloDayOfWeek, toDateOnly } from '../../common/utils/date.utils';
@@ -200,7 +201,9 @@ export class TimeTrackService {
         holiday,
       );
 
-      const overtimeHandling = 'PAYMENT';
+      const { policy: overtimeHandling } = await getOvertimePolicy(this.prisma, companyId);
+      const overtimeTotal = calculation.overtime50Minutes + calculation.overtime100Minutes;
+      const overtimeToBank = overtimeHandling === 'BANK' ? overtimeTotal : 0;
 
       const updateData: any = {
         companyId,
@@ -220,8 +223,8 @@ export class TimeTrackService {
         overtimeExceedsLimit: calculation.overtimeExceedsLimit,
         overtimeApprovalStatus: calculation.overtimeApprovalNeeded ? 'PENDING' : 'APPROVED',
         overtimeHandling,
-        overtimeBankMinutes: 0,
-        overtimePaymentMinutes: calculation.overtime50Minutes + calculation.overtime100Minutes,
+        overtimeBankMinutes: overtimeToBank,
+        overtimePaymentMinutes: overtimeTotal - overtimeToBank,
       };
 
       if (!isManual) {
@@ -375,6 +378,8 @@ export class TimeTrackService {
     const totalOvertime = track.overtime50Minutes + track.overtime100Minutes;
     let bankMinutes = 0;
     let paymentMinutes = 0;
+    // Sem escolha explicita, vale a politica da empresa (banco ou pagamento).
+    handling = handling ?? (await getOvertimePolicy(this.prisma, companyId)).policy;
 
     if (handling === 'BANK') {
       bankMinutes = totalOvertime;
@@ -391,14 +396,11 @@ export class TimeTrackService {
       overtimeApprovalStatus: approve ? 'APPROVED' : 'REJECTED',
       overtimeApprovedAt: new Date(),
       overtimeApprovedByUserId: actor.sub,
-      overtimeHandling: handling ?? 'PAYMENT',
+      overtimeHandling: handling,
       overtimeBankMinutes: bankMinutes,
       overtimePaymentMinutes: paymentMinutes,
     });
-
-    if (approve && bankMinutes > 0) {
-      await this.updateOvertimeBank(companyId, track.employeeId, bankMinutes);
-    }
+    // O saldo do banco e derivado dos dias aprovados dentro da validade (overtime-policy.ts); nao ha mais incremento separado.
 
     // Autorizada, a extra passa a abater atraso/saida antecipada; recusada, o debito fica inteiro.
     await this.update(companyId, actor, id, {} as UpdateTimeTrackDto);
@@ -622,6 +624,7 @@ export class TimeTrackService {
     return (endTotal - startTotal + 1440) % 1440;
   }
   private async applyManual(companyId: string, actor: JwtUser, employee: { id: string; dailyWorkload?: string | null; workScheduleRuleId?: string | null; }, dateValue: string, dto: Pick<ManualTimeTrackDto, 'entry' | 'lunchStart' | 'lunchReturn' | 'exit' | 'reason' | 'observation'>) {
+    const { policy: manualPolicy } = await getOvertimePolicy(this.prisma, companyId);
     const date = this.parseDateOnly(dateValue, 'Invalid date');
     const isFullDayAdjustment = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao';
     const isBanco = dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saida_antecipada' || dto.reason === 'ajuste_abono_atraso';
@@ -636,7 +639,18 @@ export class TimeTrackService {
     let totalsData: any = {};
     if (isBanco) {
       const workload = this.parseWorkloadToMinutes(employee.dailyWorkload) ?? (rule?.dailyMinutes || 480);
-      totalsData = { totalWorked: -workload, dailyBalance: -workload, sortedTimestamps: { entryTime: entry, lunchStartTime: lunchStart, lunchReturnTime: lunchReturn, exitTime: exit } };
+      const sortedTimestamps = { entryTime: entry, lunchStartTime: lunchStart, lunchReturnTime: lunchReturn, exitTime: exit };
+      if (dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_atraso') {
+        // Folga/DSR e atraso abonado nunca entram como saldo negativo.
+        totalsData = { totalWorked: 0, dailyBalance: 0, lateMinutes: 0, earlyLeaveMinutes: 0, absenceMinutes: null, sortedTimestamps };
+      } else if (dto.reason === 'ajuste_abono_banco_saida_antecipada' && entry && exit) {
+        // Saida antecipada abonada pelo banco: desconta so os minutos que faltaram, nao a jornada inteira.
+        const calc = this.timeCalcRules.calculateTotals({ entryTime: entry, lunchStartTime: lunchStart, lunchReturnTime: lunchReturn, exitTime: exit, workDate: date }, employeeForCalculation, rule, holiday);
+        totalsData = { totalWorked: calc.totalWorkedMinutes, dailyBalance: Math.min(0, calc.dailyBalanceMinutes ?? 0), lateMinutes: 0, earlyLeaveMinutes: 0, absenceMinutes: null, sortedTimestamps: calc.sortedTimestamps ?? sortedTimestamps };
+      } else {
+        // Folga de banco: desconta a jornada do dia do saldo do banco.
+        totalsData = { totalWorked: -workload, dailyBalance: -workload, sortedTimestamps };
+      }
     } else {
       const calculation = this.timeCalcRules.calculateTotals(
         { entryTime: entry, lunchStartTime: lunchStart, lunchReturnTime: lunchReturn, exitTime: exit, workDate: date, manualReason: dto.reason },
@@ -656,9 +670,9 @@ export class TimeTrackService {
       absenceMinutes: calculation.absenceMinutes,
         overtimeExceedsLimit: calculation.overtimeExceedsLimit,
         overtimeApprovalStatus: calculation.overtimeApprovalNeeded ? 'PENDING' : 'APPROVED',
-        overtimeHandling: 'PAYMENT',
-        overtimeBankMinutes: 0,
-        overtimePaymentMinutes: calculation.overtime50Minutes + calculation.overtime100Minutes,
+        overtimeHandling: manualPolicy,
+        overtimeBankMinutes: manualPolicy === 'BANK' ? calculation.overtime50Minutes + calculation.overtime100Minutes : 0,
+        overtimePaymentMinutes: manualPolicy === 'BANK' ? 0 : calculation.overtime50Minutes + calculation.overtime100Minutes,
         sortedTimestamps: calculation.sortedTimestamps,
       };
     }

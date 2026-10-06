@@ -1621,6 +1621,8 @@ model OvertimeRule {
   nightShiftStart   String   @default("22:00")
   nightShiftEnd     String   @default("05:00")
   dsrEnabled        Boolean  @default(true)
+  overtimePolicy     String  @default("PAYMENT") // PAYMENT = extra paga na folha; BANK = extra vira banco de horas
+  bankValidityMonths Int     @default(3)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { $Enums } from '@prisma/client';
 type TimeClosingStatus = $Enums.TimeClosingStatus;
 const TimeClosingStatus = $Enums.TimeClosingStatus;
@@ -16,6 +16,15 @@ export class TimeClosingController {
   @Post('generate')
   @Roles(...rolesWith('closing.write'))
   generate(@Req() req: any, @Body() body: any) { return this.service.generate(req.user.companyId, req.user, body); }
+
+  // Politica de hora extra da empresa (declarada antes de ':id' para nao ser capturada por ele).
+  @Get('overtime-policy')
+  @Roles('ADMIN', 'RH', 'DEV', 'CEO', 'CONTABIL')
+  getOvertimePolicy(@Req() req: any) { return this.service.getOvertimePolicy(req.user.companyId); }
+
+  @Put('overtime-policy')
+  @Roles('ADMIN', 'RH', 'DEV')
+  setOvertimePolicy(@Req() req: any, @Body() body: { policy?: string; validityMonths?: number }) { return this.service.setOvertimePolicy(req.user.companyId, req.user, body); }
 
   @Get()
   @Roles('ADMIN', 'RH', 'CEO', 'CONTABIL')

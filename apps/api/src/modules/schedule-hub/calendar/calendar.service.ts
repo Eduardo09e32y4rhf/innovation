@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { bankBalanceOf } from '../../time-track/overtime-policy';
 import type { JwtUser } from '../../../common/types/auth.types';
 import { toDateOnly } from '../../../common/utils/date.utils';
 import { scopeOf } from '../../schedule/access/schedule-access';
@@ -134,7 +135,7 @@ export class CalendarService {
       this.days.resolveRange(actor.companyId, employeeId, from, to),
       this.prisma.timeTrack.findMany({ where: { companyId: actor.companyId, employeeId, date: { gte: from, lte: to } } }),
       this.prisma.timeClosing.findFirst({ where: { companyId: actor.companyId, employeeId, periodStart: { lte: to }, periodEnd: { gte: from } }, select: { id: true, status: true } }),
-      this.prisma.overtimeBank.findFirst({ where: { companyId: actor.companyId, employeeId }, select: { balanceMinutes: true } }),
+      bankBalanceOf(this.prisma, actor.companyId, employeeId).then((balanceMinutes) => ({ balanceMinutes })),
       this.prisma.employee.findUnique({ where: { id: employeeId }, select: { id: true, name: true, department: true, position: true } }),
     ]);
     const trackMap = new Map(tracks.map((track) => [dateKey(track.date), track]));

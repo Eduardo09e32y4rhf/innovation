@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { bankBalanceMinutes, bankBalanceOf } from '../../time-track/overtime-policy';
 import type { JwtUser } from '../../../common/types/auth.types';
 import { toDateOnly } from '../../../common/utils/date.utils';
 import { SCHEDULE_ACCESS, scopeOf } from '../../schedule/access/schedule-access';
@@ -29,7 +30,7 @@ export class OverviewService {
     if (caps.punch && me) {
       const [day, bank, pending, track] = await Promise.all([
         this.days.resolveDay(actor.companyId, me.id, today),
-        this.prisma.overtimeBank.findFirst({ where: { companyId: actor.companyId, employeeId: me.id }, select: { balanceMinutes: true } }),
+        bankBalanceOf(this.prisma, actor.companyId, me.id).then((balanceMinutes) => ({ balanceMinutes })),
         this.prisma.scheduleRequest.count({ where: { companyId: actor.companyId, status: { in: ['PENDING', 'AWAITING_PEER'] }, OR: [{ requesterEmployeeId: me.id }, { peerEmployeeId: me.id }] } }),
         this.prisma.timeTrack.findFirst({ where: { companyId: actor.companyId, employeeId: me.id, date: today } }),
       ]);
@@ -142,7 +143,8 @@ export class OverviewService {
       entry.employees.add(track.employeeId);
       byDepartment.set(key, entry);
     }
-    const banks = await this.prisma.overtimeBank.aggregate({ where: { companyId: actor.companyId, ...(allowed !== null ? { employeeId: { in: allowed } } : {}) }, _sum: { balanceMinutes: true } });
+    const bankIds = allowed ?? (await this.prisma.employee.findMany({ where: { companyId: actor.companyId, status: 'ACTIVE' }, select: { id: true } })).map((employee) => employee.id);
+    const banks = { _sum: { balanceMinutes: [...(await bankBalanceMinutes(this.prisma, actor.companyId, bankIds)).values()].reduce((total, value) => total + value, 0) } };
     const sum = (key: 'overtime50Minutes' | 'overtime100Minutes' | 'lateMinutes' | 'nightShiftMinutes') => tracks.reduce((total, track) => total + (track[key] ?? 0), 0);
     return {
       month,
@@ -161,9 +163,8 @@ export class OverviewService {
       _sum: { totalWorked: true, dailyBalance: true, lateMinutes: true, overtime50Minutes: true, overtime100Minutes: true, nightShiftMinutes: true },
       _count: { _all: true },
     });
-    const banks = await this.prisma.overtimeBank.findMany({ where: { companyId: actor.companyId, employeeId: { in: employees.map((employee) => employee.id) } }, select: { employeeId: true, balanceMinutes: true } });
+    const bankMap = await bankBalanceMinutes(this.prisma, actor.companyId, employees.map((employee) => employee.id));
     const trackMap = new Map(tracks.map((row) => [row.employeeId, row]));
-    const bankMap = new Map(banks.map((row) => [row.employeeId, row.balanceMinutes]));
     return employees.map((employee) => {
       const row = trackMap.get(employee.id);
       return {
