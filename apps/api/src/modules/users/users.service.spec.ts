@@ -42,8 +42,8 @@ describe('UsersService: senha provisoria (reset e reemissao)', () => {
     vi.mocked(bcrypt.hash).mockResolvedValue('new-hash' as never);
     const result: any = await new UsersService(repository).reissueTemporaryPassword('company-1', admin, 'user-1');
 
-    expect(result.temporaryPassword).toMatch(/^Aa1!/);
-    expect(result.temporaryPassword.length).toBeGreaterThanOrEqual(20);
+    expect(result.temporaryPassword).toMatch(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6}$/);
+    expect(result.temporaryPassword.length).toBe(6); // regra do produto: provisoria de 6 caracteres, troca obrigatoria por 10+
     expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now());
     const [userId, userData, encrypted, expiresAt, scope] = repository.reissueTemporaryPassword.mock.calls[0];
     expect(userId).toBe('user-1');

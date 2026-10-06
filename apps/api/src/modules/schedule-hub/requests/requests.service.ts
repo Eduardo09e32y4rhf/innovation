@@ -183,6 +183,10 @@ export class RequestsService {
 
   async create(actor: JwtUser, dto: CreateRequestDto) {
     const employee = await this.requesterEmployee(actor);
+    // A escala e negociada entre empresa e funcionario e lancada por RH, gestor, ADM ou CEO: o funcionario nunca a solicita no sistema.
+    if (dto.type === 'NOVA_ESCALA' && actor.role === 'FUNCIONARIO') {
+      throw new ForbiddenException('A escala e lancada pelo RH ou gestor. Para ajustar um dia ou mes especifico, peca a troca de folga ou de turno.');
+    }
     const check = await this.validate(actor, dto.type, dto.payload, dto.peerEmployeeId);
     if (!check.ok) {
       throw new BadRequestException({ message: check.findings.find((item) => item.level === 'error')!.message, findings: check.findings });

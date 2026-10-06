@@ -12,7 +12,6 @@ import type { Finding, RequestType } from '../_lib/types';
 const TYPES: { id: RequestType; title: string; text: string; icon: typeof Repeat2 }[] = [
   { id: 'TROCA_FOLGA', title: 'Trocar folga', text: 'Folgar em outro dia e trabalhar no dia da sua folga.', icon: CalendarOff },
   { id: 'TROCA_TURNO', title: 'Trocar turno com colega', text: 'Combine uma troca de turno; o colega precisa aceitar.', icon: ArrowLeftRight },
-  { id: 'NOVA_ESCALA', title: 'Pedir nova escala', text: 'Mudar para outra escala a partir de uma data.', icon: Repeat2 },
   { id: 'AJUSTE_BATIDA', title: 'Ajustar batida', text: 'Corrigir um horário de ponto esquecido ou errado.', icon: ClipboardEdit },
   { id: 'JUSTIFICATIVA', title: 'Justificar falta ou atraso', text: 'Explique uma ausência ou atraso.', icon: FileText },
   { id: 'FOLGA_COMPENSACAO', title: 'Folga com banco de horas', text: 'Usar horas do banco para folgar em um dia.', icon: CalendarClock },
