@@ -456,6 +456,8 @@ model User {
   mfaSecretEnc          String?
   mfaEnabledAt          DateTime?
   mfaRecoveryHashes     String[]            @default([])
+  /// Tela de boas-vindas do primeiro acesso (null = ainda nao viu).
+  welcomeSeenAt         DateTime?
   refreshSessions       RefreshSession[]
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt

@@ -1,6 +1,7 @@
 import { API_URL, ApiError, request } from '@/app/lib/api';
 import { readAuthSession } from '@/app/lib/auth-session';
 
+import type { CreatedRequest, DocumentsPayload } from './_components/documents-model';
 import type {
   ApplicationDetail,
   ApplicationFilters,
@@ -90,6 +91,15 @@ export const jobsApi = {
   views: () => request<SavedView[]>('/jobs/views'),
   createView: (name: string, filters: ApplicationFilters) => request<SavedView>('/jobs/views', { method: 'POST', body: { name, filters } }),
   deleteView: (id: string) => request<unknown>(`/jobs/views/${enc(id)}`, { method: 'DELETE' }),
+
+  // Documentos do candidato (RH e RH - R&S). O token do link so volta na criacao.
+  documents: (applicationId: string) => request<DocumentsPayload>(`/jobs/applications/${enc(applicationId)}/documents`),
+  createDocumentRequest: (applicationId: string, items: string[], expiresInDays?: number) => request<CreatedRequest>(`/jobs/applications/${enc(applicationId)}/document-requests`, { method: 'POST', body: { items, expiresInDays } }),
+  revokeDocumentRequest: (requestId: string) => request<{ revoked: boolean }>(`/jobs/document-requests/${enc(requestId)}`, { method: 'DELETE' }),
+  reviewDocument: (documentId: string, decision: 'APPROVED' | 'RETURNED', reason?: string) => request<{ id: string; status: string }>(`/jobs/documents/${enc(documentId)}/review`, { method: 'POST', body: { decision, reason } }),
+  selectApplication: (applicationId: string) => request<{ selected: boolean }>(`/jobs/applications/${enc(applicationId)}/select`, { method: 'POST', body: {} }),
+  forwardApplication: (applicationId: string) => request<{ forwarded: boolean; alreadyForwarded: boolean }>(`/jobs/applications/${enc(applicationId)}/forward`, { method: 'POST', body: {} }),
+  downloadDocument: (documentId: string, name = 'documento') => download(`/jobs/documents/${enc(documentId)}/download`, name),
 
   downloadResume: (applicationId: string, name = 'curriculo') => download(`/jobs/applications/${enc(applicationId)}/resume`, name),
   exportCsv: (jobId: string, filters?: ApplicationFilters) => download(`/jobs/${enc(jobId)}/applications/export${query(filters)}`, 'candidatos.csv'),

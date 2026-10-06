@@ -4,6 +4,7 @@ import { PartnersModule } from './modules/partners/partners.module';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { LookupModule } from './modules/lookup/lookup.module';
+import { WelcomeModule } from './modules/welcome/welcome.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { UserThrottlerGuard } from './common/guards/user-throttler.guard';
 import { HealthModule } from './health/health.module';
@@ -114,6 +115,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     CeoOnboardingModule,
     PayrollModule,
     LookupModule,
+    WelcomeModule,
     ScheduleModule.forRoot(),
   ],
   providers: [

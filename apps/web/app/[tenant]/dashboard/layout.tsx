@@ -7,6 +7,7 @@ import { ProtectedRoute } from '../../components/ProtectedRoute';
 import { PasswordChangeGate } from './_components/password-change-gate';
 import { PrivacyConsentGate } from './_components/privacy-consent-gate';
 import { PendingNotificationsGate } from './_components/pending-notifications-gate';
+import { WelcomeGate } from './_components/welcome-gate';
 import { ProposalGate } from './_components/proposal-gate';
 import { SidebarV2 } from './_components/shell-v2/sidebar';
 import { TopbarV2 } from './_components/shell-v2/topbar';
@@ -36,11 +37,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       user?.billingStatus === 'CANCELED' ||
       user?.billingStatus === 'PENDING_PAYMENT');
 
+  // Empresa sem pagamento confirmado, suspensa ou cancelada: o administrador só enxerga Faturas (atraso comum só mostra o aviso).
+  const accessBlocked = !isDev && (user?.companyStatus === 'SUSPENDED' || user?.companyStatus === 'CANCELLED' || user?.billingStatus === 'CANCELED' || user?.billingStatus === 'PENDING_PAYMENT');
   useEffect(() => {
-    if (!billingBlocked || !isAdmin || pathname.endsWith('/settings')) return;
+    if (!accessBlocked || !isAdmin || pathname.includes('/dashboard/faturas') || pathname.includes('/fatura-pendente')) return;
     const tenant = pathname.split('/')[1];
-    router.replace(`/${tenant}/dashboard/settings?billing=1`);
-  }, [billingBlocked, isAdmin, pathname, router]);
+    router.replace(`/${tenant}/dashboard/faturas`);
+  }, [accessBlocked, isAdmin, pathname, router]);
 
   // Histórico de acessos: registra cada página aberta (sem bloquear a navegação; falhas são ignoradas).
   useEffect(() => {
@@ -88,13 +91,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <TopbarV2 onMenu={toggleMenu} />
 
             <PrivacyConsentGate>
-              <PendingNotificationsGate>
-                <ProposalGate>
-                  <main id="workspace-content" className="workspace-content flex-1" tabIndex={-1}>
-                    <WorkspaceRouteGate>{children}</WorkspaceRouteGate>
-                  </main>
-                </ProposalGate>
-              </PendingNotificationsGate>
+              <WelcomeGate>
+                <PendingNotificationsGate>
+                  <ProposalGate>
+                    <main id="workspace-content" className="workspace-content flex-1" tabIndex={-1}>
+                      <WorkspaceRouteGate>{children}</WorkspaceRouteGate>
+                    </main>
+                  </ProposalGate>
+                </PendingNotificationsGate>
+              </WelcomeGate>
             </PrivacyConsentGate>
           </div>
 

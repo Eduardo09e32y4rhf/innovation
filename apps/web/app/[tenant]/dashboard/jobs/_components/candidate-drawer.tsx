@@ -11,8 +11,9 @@ import { ApiError } from '@/app/lib/api';
 import { jobsApi } from '../jobs-api';
 import type { Pipeline, Tag } from '../types';
 import { Field, Pill, TagChip, inputClass } from './bits';
+import { CandidateDocuments } from './candidate-documents';
 
-const TABS = [['summary', 'Resumo'], ['evaluation', 'Avaliação'], ['notes', 'Notas'], ['interviews', 'Entrevistas'], ['history', 'Histórico']] as const;
+const TABS = [['summary', 'Resumo'], ['evaluation', 'Avaliação'], ['notes', 'Notas'], ['interviews', 'Entrevistas'], ['history', 'Histórico'], ['documents', 'Documentos']] as const;
 type TabKey = (typeof TABS)[number][0];
 const EVENT_LABEL: Record<string, string> = { APPLIED: 'Candidatura recebida', STAGE_CHANGED: 'Mudou de etapa', REJECTED: 'Reprovado', HIRED: 'Contratado', EVALUATED: 'Avaliado', INTERVIEW: 'Entrevista' };
 
@@ -32,6 +33,7 @@ export function CandidateDrawer({
   const [interview, setInterview] = useState({ scheduledAt: '', kind: 'Entrevista', location: '', interviewer: '' });
   const [busy, setBusy] = useState(false);
   const data = detail.data;
+  const canSeeDocuments = ['DEV', 'ADMIN', 'RH', 'RH_RS'].includes(String(user?.profile ?? '').toUpperCase());
 
   useEffect(() => { setTab('summary'); setNote(''); }, [applicationId]);
   useEffect(() => {
@@ -74,7 +76,7 @@ export function CandidateDrawer({
           </div>
 
           <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-border">
-            {TABS.map(([key, label]) => (
+            {TABS.filter(([key]) => key !== 'documents' || canSeeDocuments).map(([key, label]) => (
               <button key={key} role="tab" aria-selected={tab === key} type="button" onClick={() => setTab(key)}
                 className={`shrink-0 border-b-2 px-3 py-2 text-sm font-medium ${tab === key ? 'border-purple-600 text-purple-700' : 'border-transparent text-fg-sub hover:text-fg'}`}>{label}</button>
             ))}
@@ -190,6 +192,8 @@ export function CandidateDrawer({
               </ul>
             </div>
           )}
+
+          {tab === 'documents' && canSeeDocuments && <CandidateDocuments applicationId={data.id} onChanged={onChanged} />}
 
           {tab === 'history' && (
             <ol className="space-y-3 border-l border-border pl-4">
