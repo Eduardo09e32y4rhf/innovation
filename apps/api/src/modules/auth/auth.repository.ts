@@ -1,4 +1,5 @@
 import { checkCouponEligibility } from '../coupons/coupon-rules';
+import { defaultScheduleRows } from '../schedule/default-schedules';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { emptyToNull, normalizeDisplayName } from '../../common/utils/text-normalization';
@@ -207,6 +208,7 @@ export class AuthRepository {
         maxUsers: data.maxUsers,
         maxEmployees: data.maxEmployees,
         activeModules: data.activeModules,
+        schedules: { create: defaultScheduleRows() },
         users: {
           create: {
             name: normalizeDisplayName(data.name),

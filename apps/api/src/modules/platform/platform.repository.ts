@@ -1,6 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import type { UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { ensureDefaultSchedules } from '../schedule/default-schedules';
 import { encryptTemporaryPassword } from '../../common/crypto/temporary-password';
 
 const safeUserSelect = {
@@ -360,6 +361,7 @@ export class PlatformRepository {
         },
         select: { id: true, email: true, role: true },
       });
+      await ensureDefaultSchedules(tx, company.id); // 5x2, 6x1 e 12x36 ja cadastradas para o usuario ajustar ou criar outras
       return { company, adminId: admin.id };
     });
   }

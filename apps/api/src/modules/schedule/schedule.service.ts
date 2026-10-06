@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { toSaoPauloDateKey } from '../../common/utils/date.utils';
 import type { JwtUser } from '../../common/types/auth.types';
+import { ensureDefaultSchedules } from './default-schedules';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { AssignScheduleDto } from './dto/assign-schedule.dto';
 import { CreateScheduleExceptionDto } from './dto/swap-request.dto';
@@ -420,6 +421,8 @@ export class ScheduleService {
   }
 
   async listSchedules(companyId: string) {
+    // Empresas criadas antes das escalas padrao (ou por outro caminho) ganham 5x2, 6x1 e 12x36 no primeiro acesso.
+    if ((await this.prisma.schedule.count({ where: { companyId } })) === 0) await ensureDefaultSchedules(this.prisma, companyId);
     return this.prisma.schedule.findMany({
       where: { companyId },
       orderBy: { createdAt: 'desc' },
