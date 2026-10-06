@@ -5,6 +5,8 @@ import { api } from '@/app/lib/api';
 import { Check, X, FileText, PartyPopper, Megaphone, Gavel, Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import { PromotionNotice } from './promotion-notice';
+import { DisciplinaryNotice } from './disciplinary-notice';
 
 const PRIORITY: Record<string, number> = { SUSPENSION_NOTICE: 0, WARNING_NOTICE: 1, PROMOTION_NOTICE: 2 };
 
@@ -55,7 +57,35 @@ export function PendingNotificationsGate({ children }: { children: ReactNode }) 
   return (
     <>
       {children}
-      <div className="fixed inset-0 z-[99999] flex items-center justify-center overflow-y-auto bg-slate-900/90 p-4 backdrop-blur-md">
+      {isPenalty ? <DisciplinaryNotice
+        notification={current}
+        extra={extra}
+        suspension={isSuspension}
+        busy={busy}
+        error={error}
+        refusing={refusing}
+        reason={reason}
+        onAcknowledge={() => act(current.requiresAcceptance ? 'ACCEPT' : 'ACKNOWLEDGE')}
+        onStartRefuse={() => setRefusing(true)}
+        onConfirmRefuse={() => act('REFUSE')}
+        onCancelRefuse={() => { setRefusing(false); setReason(''); }}
+        onReasonChange={setReason}
+        formatDate={fmtDate}
+      /> : isPromotion ? <PromotionNotice
+        notification={current}
+        extra={extra}
+        needsConfirm={needsConfirm}
+        busy={busy}
+        error={error}
+        refusing={refusing}
+        reason={reason}
+        onAct={() => act(!needsConfirm ? 'READ' : current.requiresAcceptance ? 'ACCEPT' : 'ACKNOWLEDGE')}
+        onStartRefuse={() => setRefusing(true)}
+        onConfirmRefuse={() => act('REFUSE')}
+        onCancelRefuse={() => { setRefusing(false); setReason(''); }}
+        onReasonChange={setReason}
+        formatDate={fmtDate}
+      /> : <div className="fixed inset-0 z-[99999] flex items-center justify-center overflow-y-auto bg-slate-900/90 p-4 backdrop-blur-md">
         <div className={`my-auto w-full max-w-3xl border-t-8 bg-white p-6 text-slate-900 shadow-2xl sm:p-10 ${tone}`}>
           <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
             <div>
@@ -123,7 +153,7 @@ export function PendingNotificationsGate({ children }: { children: ReactNode }) 
             )}
           </div>
         </div>
-      </div>
+      </div>}
     </>
   );
 }

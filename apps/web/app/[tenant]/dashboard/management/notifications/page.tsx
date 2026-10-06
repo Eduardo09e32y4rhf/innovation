@@ -238,7 +238,9 @@ function CreateNotificationForm({ employees, onCreated }: { employees: Employee[
             {type === 'SUSPENSION_NOTICE' && (
               <label className="form-group">
                 <span>Dias de suspensão * (a partir da data da ocorrência)</span>
-                <input type="number" min={1} max={30} value={suspensionDays} onChange={(e) => setSuspensionDays(e.target.value)} className="input-v2" />
+                <select value={suspensionDays} onChange={(e) => setSuspensionDays(e.target.value)} className="input-v2">
+                  {Array.from({ length: 30 }, (_, index) => index + 1).map((days) => <option key={days} value={days}>{days} {days === 1 ? 'dia' : 'dias'}</option>)}
+                </select>
               </label>
             )}
             <label className="form-group sm:col-span-2">

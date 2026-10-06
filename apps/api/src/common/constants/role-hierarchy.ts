@@ -6,7 +6,7 @@ export const ROLE_MANAGEMENT: Record<string, string[]> = {
   CONTABIL: [],
   COMERCIAL: [],
   ADMIN: ['ADMIN', 'RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
-  RH: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  RH: ['RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
   RH_RS: [],
   GESTOR: [],
   FUNCIONARIO: [],
@@ -25,7 +25,7 @@ export function assertRoleChangeAllowed(actorRole?: string, nextRole?: string) {
   if (protectedRoles.includes(nextRole) && actorRole !== 'DEV') {
     throw new ForbiddenException('Apenas um perfil DEV pode criar ou promover perfis internos (CEO, Contábil, etc).');
   }
-  if (actorRole === 'RH' && ['ADMIN', 'RH_RS', 'DEV', 'CEO', 'CONTABIL', 'COMERCIAL'].includes(nextRole)) {
+  if (actorRole === 'RH' && ['ADMIN', 'DEV', 'CEO', 'CONTABIL', 'COMERCIAL'].includes(nextRole)) {
     throw new ForbiddenException('RH não pode criar ou promover Administrador, Comercial ou Perfis Internos.');
   }
   if (actorRole === 'RH_RS' || actorRole === 'GESTOR' || actorRole === 'FUNCIONARIO' || actorRole === 'CONSULTA') {

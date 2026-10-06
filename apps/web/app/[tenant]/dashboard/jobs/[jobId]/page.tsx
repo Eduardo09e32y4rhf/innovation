@@ -18,7 +18,7 @@ import { FiltersBar } from '../_components/filters-bar';
 import { jobsApi } from '../jobs-api';
 import { JOB_STATUS_LABEL, WORK_MODE_LABEL, type ApplicationFilters, type ApplicationsPayload } from '../types';
 
-const ALLOWED_ROLES = new Set(['DEV', 'ADMIN', 'RH', 'GESTOR']);
+const ALLOWED_ROLES = new Set(['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR']);
 const message = (cause: unknown, fallback: string) => (cause instanceof ApiError ? cause.message : fallback);
 
 export default function JobCandidatesPage() {
@@ -27,6 +27,7 @@ export default function JobCandidatesPage() {
   const { user, company } = useAuth();
   const role = (user?.profile ?? user?.role ?? '').toUpperCase();
   const canAccess = ALLOWED_ROLES.has(role);
+  const canUseBulkActions = role !== 'RH_RS';
   const base = `/${tenant}/dashboard/jobs`;
 
   const [filters, setFilters] = useState<ApplicationFilters>({});
@@ -64,13 +65,17 @@ export default function JobCandidatesPage() {
     const stage = pipeline?.stages.find((item) => item.id === stageId);
     const app = applications.find((item) => item.id === applicationId);
     if (!stage) return;
-    if (stage.kind === 'HIRED') { setHire({ id: applicationId, name: app?.candidate?.name ?? 'Candidato' }); return; }
+    if (stage.kind === 'HIRED') {
+      if (role === 'RH_RS') { toast.error('Seu perfil pode conduzir o processo seletivo, mas não efetivar contratações.'); return; }
+      setHire({ id: applicationId, name: app?.candidate?.name ?? 'Candidato' }); return;
+    }
     if (stage.kind === 'REJECTED') { setRejectStageId(stageId); setReject({ ids: [applicationId] }); return; }
     try { await jobsApi.move(applicationId, { stageId }); toast.success(`Movido para ${stage.name}.`); refresh(); }
     catch (cause) { toast.error(message(cause, 'Não foi possível mover o candidato.')); }
   }
 
   async function bulkMove() {
+    if (!canUseBulkActions) return;
     const stage = pipeline?.stages.find((item) => item.id === bulkStage);
     if (!stage || selectedIds.size === 0) return;
     if (stage.kind === 'HIRED') { toast.error('Contrate candidatos individualmente para informar departamento e contrato.'); return; }
@@ -84,6 +89,7 @@ export default function JobCandidatesPage() {
 
   async function confirmReject(reason: string) {
     if (!reject) return;
+    if (reject.ids.length > 1 && !canUseBulkActions) { toast.error('Este perfil precisa reprovar candidatos individualmente.'); return; }
     try {
       if (reject.ids.length === 1) await jobsApi.move(reject.ids[0], { stageId: rejectStageId, rejectionReason: reason });
       else await jobsApi.bulk({ ids: reject.ids, action: 'MOVE', stageId: rejectStageId, rejectionReason: reason });
@@ -93,6 +99,7 @@ export default function JobCandidatesPage() {
   }
 
   async function bulkSimple(action: 'FAVORITE' | 'TAG_ADD' | 'TAG_REMOVE') {
+    if (!canUseBulkActions) return;
     try {
       await jobsApi.bulk({ ids: [...selectedIds], action, tagId: bulkTag || undefined, value: true });
       toast.success('Atualizado.'); refresh();
@@ -150,7 +157,7 @@ export default function JobCandidatesPage() {
         onViewsChanged={views.refetch} total={applications.length}
         onExport={async () => { try { await jobsApi.exportCsv(jobId, debounced); } catch (cause) { toast.error(message(cause, 'Não foi possível exportar.')); } }} />
 
-      {selectedIds.size > 0 && pipeline && (
+      {canUseBulkActions && selectedIds.size > 0 && pipeline && (
         <div role="region" aria-label="Ações em lote" className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border border-purple-300 bg-purple-50 p-3 text-sm shadow">
           <strong>{selectedIds.size} selecionado(s)</strong>
           <select aria-label="Mover para etapa" className="input-v2 text-sm" value={bulkStage} onChange={(event) => setBulkStage(event.target.value)}>

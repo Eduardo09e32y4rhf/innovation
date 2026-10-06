@@ -30,7 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'escalas', label: 'Escalas', href: '/dashboard/escalas', icon: CalendarRange, group: 'Trabalho', roles: ALL_ROLES.filter(hasScheduleModule), moduleKey: 'time-track' },
   { id: 'vacations', label: 'Férias', href: '/dashboard/vacations', icon: CalendarDays, group: 'Trabalho', roles: COMPANY_ROLES, moduleKey: 'vacations' },
   { id: 'management', label: 'Gestão', href: '/dashboard/management', icon: ShieldCheck, group: 'Trabalho', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'], moduleKey: 'management', anyPermission: ['platform.manage', 'users.view_team'] },
-  { id: 'jobs', label: 'Vagas', href: '/dashboard/jobs', icon: Briefcase, group: 'Trabalho', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'], moduleKey: 'recruitment' },
+  { id: 'jobs', label: 'Vagas', href: '/dashboard/jobs', icon: Briefcase, group: 'Trabalho', roles: ['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR'], moduleKey: 'recruitment' },
   { id: 'users', label: 'Usuários', href: '/dashboard/users', icon: UserRoundCog, group: 'Administração', roles: ['DEV', 'ADMIN', 'RH'], anyPermission: ['users.manage_employees'] },
   { id: 'faturas', label: 'Faturas', href: '/dashboard/faturas', icon: Receipt, group: 'Administração', roles: ALL_ROLES, anyPermission: ['faturas.ver'] },
   { id: 'settings', label: 'Configurações', href: '/dashboard/settings', icon: Settings2, group: 'Administração', roles: ALL_ROLES },

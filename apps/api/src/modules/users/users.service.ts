@@ -206,7 +206,8 @@ export class UsersService {
   /** Atrela (ou desatrela) o usuário a um funcionário. Não é obrigatório: sem vínculo o usuário acessa só conforme a sua visão. */
   async linkEmployee(companyId: string, actor: JwtUser, id: string, employeeId: string | null, meta?: { ip?: string; userAgent?: string }) {
     const user = await this.get(companyId, actor, id);
-    if (user.role && !this.canManageRole(actor.role, user.role)) throw new ForbiddenException('Voce nao tem permissao para alterar este usuario.');
+    const own = user.id === actor.sub;
+    if (!own && user.role && !this.canManageRole(actor.role, user.role)) throw new ForbiddenException('Voce nao tem permissao para alterar este usuario.');
     let employee: { id: string; name: string; registration: string | null; userId: string | null } | null = null;
     if (employeeId) {
       employee = await this.repository.findEmployeeForLink(user.companyId, employeeId);

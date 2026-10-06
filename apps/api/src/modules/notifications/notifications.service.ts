@@ -326,6 +326,9 @@ export class NotificationsService {
           : body.action === 'ACCEPT'
             ? 'ACCEPTED'
             : 'REFUSED_ACKNOWLEDGMENT';
+      const respondedAt = new Date().toISOString();
+      const observation = String(body.reason ?? '').trim() || null;
+      const responseLabel = body.action === 'REFUSE' ? 'RECUSADO' : 'CIENTE';
 
       return this.prisma.notificationRecipient.update({
         where: { id: recipient.id },
@@ -334,8 +337,13 @@ export class NotificationsService {
           readAt: new Date(),
           responseJson: {
             action: body.action,
-            reason: body.reason ?? null,
-            respondedAt: new Date().toISOString(),
+            reason: observation,
+            respondedAt,
+            termoId: notification.id,
+            colaboradorId: recipient.employeeId,
+            status: responseLabel,
+            observacao: observation,
+            dataResposta: respondedAt,
           },
         },
       });

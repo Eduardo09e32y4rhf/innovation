@@ -6,7 +6,8 @@ export const ROLE_INFO: Record<UserRole, { label: string; vision: string }> = {
   CONTABIL: { label: 'Contábil', vision: 'Financeiro, planos, cupons, contratos e fechamentos.' },
   COMERCIAL: { label: 'Comercial', vision: 'Carteira de clientes, propostas e contratos.' },
   ADMIN: { label: 'Administrador', vision: 'Administra toda a empresa: usuários, configurações e cobrança.' },
-  RH: { label: 'RH', vision: 'Pessoas: funcionários, escalas, férias, vagas e fechamento.' },
+  RH: { label: 'RH - Empresas', vision: 'Pessoas: funcionários, escalas, férias, vagas e fechamento.' },
+  RH_RS: { label: 'RH - R&S', vision: 'Recrutamento e seleção: acesso somente às vagas e candidaturas.' },
   GESTOR: { label: 'Gestor', vision: 'Sua equipe: aprova pedidos e ajusta escalas.' },
   FUNCIONARIO: { label: 'Funcionário', vision: 'Seus próprios dados, ponto, escala e solicitações.' },
   CONSULTA: { label: 'Consulta', vision: 'Acompanha informações em modo somente leitura.' },
@@ -14,10 +15,10 @@ export const ROLE_INFO: Record<UserRole, { label: string; vision: string }> = {
 
 /** Espelha ROLE_MANAGEMENT do servidor (a decisão final é sempre do servidor). */
 const MANAGES: Record<string, UserRole[]> = {
-  DEV: ['DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
-  CEO: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
-  ADMIN: ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
-  RH: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  DEV: ['DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  CEO: ['ADMIN', 'RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  ADMIN: ['ADMIN', 'RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
+  RH: ['RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'],
 };
 
 export const rolesFor = (actorRole: string): UserRole[] => MANAGES[actorRole] ?? [];

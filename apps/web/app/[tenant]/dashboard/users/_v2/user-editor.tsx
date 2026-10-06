@@ -191,6 +191,7 @@ export function UserEditor({ user, isOpen, onClose, actorRole, actorId, onChange
           {tab === 'permissoes' && (
             <div className="space-y-4">
               <p className="text-sm text-fg-sub">Por padrão o usuário segue as permissões da visão <strong>{ROLE_INFO[user.role]?.label}</strong>. Personalize apenas se precisar de exceções.</p>
+              <p className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2.5 text-sm text-violet-950">O perfil <strong>RH - Empresas</strong> acessa as áreas da empresa e Vagas conforme os módulos do plano. Para liberar somente recrutamento, altere a visão na aba <strong>Dados e visão</strong> para <strong>RH - R&amp;S</strong>.</p>
               <div className="flex gap-4 text-sm">
                 <label className="flex min-h-11 items-center gap-2"><input type="radio" name="perm-mode" disabled={!manageable} checked={custom === null} onChange={() => setCustom(null)} />Padrão da visão</label>
                 <label className="flex min-h-11 items-center gap-2"><input type="radio" name="perm-mode" disabled={!manageable} checked={custom !== null} onChange={() => setCustom(effectivePermissions)} />Personalizar</label>
