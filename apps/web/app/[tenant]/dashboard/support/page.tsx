@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { ErrorState, EmptyState, LoadingState } from '@/app/components/data-states';
 import { toast } from 'sonner';
-import PlatformSupportPage from '../platform/support/page';
+import { SuporteView as PlatformSupportPage } from '../platform/_hub/suporte-view';
 import { TicketWizardSlideover } from './_components/ticket-wizard-slideover';
 
 interface SupportMessage {

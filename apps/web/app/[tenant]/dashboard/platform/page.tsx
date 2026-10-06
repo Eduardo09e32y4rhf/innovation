@@ -13,8 +13,17 @@ import { CompanyManageModal } from './_components/company-manage-modal';
 import { getPlatformNavGroups } from './_components/platform-nav-config';
 import { CompaniesView } from './_hub/companies-view';
 import { errorText } from './_hub/format';
-import { AuditView, CommercialView, SettingsView, SupportView } from './_hub/more-views';
+import { AcessosView } from './_hub/acessos-view';
+import { AuditoriaView } from './_hub/auditoria-view';
+import { ConfiguracaoView } from './_hub/configuracao-view';
+import { ContratosView } from './_hub/contratos-view';
+import { InteligenciaView } from './_hub/inteligencia-view';
 import { OverviewView } from './_hub/overview-view';
+import { PermissoesView } from './_hub/permissoes-view';
+import { PropostasView } from './_hub/propostas-view';
+import { resolveSub, subsFor } from './_hub/sections';
+import { SubNav } from './_hub/sub-nav';
+import { SuporteView } from './_hub/suporte-view';
 import { ScopePicker } from './_hub/scope-picker';
 import { TAB_LABEL, TAB_POLICY, type CompanyOption, type HubTab } from './_hub/types';
 
@@ -34,10 +43,12 @@ function Hub() {
 
   const companyId = params.get('company') ?? undefined;
   const companyName = params.get('cn') ?? undefined;
-  const allowed = TAB_POLICY[role] ?? [];
+  const allowed = useMemo(() => TAB_POLICY[role] ?? [], [role]);
   const tabs = useMemo(() => allowed.filter((tab) => (companyId ? !['empresas', 'configuracoes'].includes(tab) : true)), [allowed, companyId]);
   const requested = params.get('tab') as HubTab | null;
   const tab = tabs.includes(requested as HubTab) ? (requested as HubTab) : tabs[0] ?? 'resumo';
+  const subs = subsFor(tab, role);
+  const sub = resolveSub(tab, params.get('sub'), role);
   const shortcuts = useMemo(() => getPlatformNavGroups(role).filter((group) => !['overview', 'finance', 'plans', 'subscriptions', 'coupons'].includes(group.key)), [role]);
 
   // Contabilidade agora e uma aba propria do menu; links antigos (?tab=contabilidade) seguem para ela.
@@ -103,21 +114,26 @@ function Hub() {
       <nav aria-label="Seções da Plataforma" className="-mx-1 overflow-x-auto px-1">
         <ul className="flex min-w-max gap-1.5">
           {tabs.map((item) => (
-            <li key={item}><button type="button" aria-current={tab === item ? 'page' : undefined} onClick={() => update({ tab: item })}
+            <li key={item}><button type="button" aria-current={tab === item ? 'page' : undefined} onClick={() => update({ tab: item, sub: null })}
               className={`min-h-11 rounded-full px-4 text-sm font-bold transition ${tab === item ? 'bg-slate-900 text-white shadow' : 'border border-border text-fg-sub hover:bg-bg-sub hover:text-fg'}`}>{TAB_LABEL[item]}</button></li>
           ))}
         </ul>
       </nav>
 
       <main className="space-y-6">
-        {tab === 'resumo' && <OverviewView companyId={companyId} onOpenCompany={openCompany} onTab={goTab} />}
-        {tab === 'empresas' && <CompaniesView onOpenCompany={openCompany} />}
-        {tab === 'comercial' && <CommercialView companyId={companyId} base={base} />}
-        {tab === 'suporte' && <SupportView companyId={companyId} base={base} />}
-        {tab === 'auditoria' && <AuditView companyId={companyId} />}
-        {tab === 'configuracoes' && <SettingsView base={base} />}
+        <SubNav items={subs} current={sub} label="Subseções" onSelect={(key) => update({ sub: key })} />
 
-        {tab === 'resumo' && !companyId && shortcuts.length > 0 && (
+        {tab === 'resumo' && sub === 'alertas' && <InteligenciaView params={{ tenant }} />}
+        {tab === 'resumo' && sub !== 'alertas' && <OverviewView companyId={companyId} onOpenCompany={openCompany} onTab={goTab} />}
+        {tab === 'empresas' && <CompaniesView onOpenCompany={openCompany} />}
+        {tab === 'comercial' && sub === 'propostas' && <PropostasView />}
+        {tab === 'comercial' && sub !== 'propostas' && <ContratosView params={{ tenant }} />}
+        {tab === 'suporte' && <SuporteView />}
+        {tab === 'auditoria' && <AuditoriaView />}
+        {tab === 'configuracoes' && sub === 'permissoes' && <PermissoesView />}
+        {tab === 'configuracoes' && sub === 'acessos' && <AcessosView />}
+        {tab === 'configuracoes' && sub !== 'permissoes' && sub !== 'acessos' && <ConfiguracaoView params={{ tenant }} />}
+        {tab === 'resumo' && sub !== 'alertas' && !companyId && shortcuts.length > 0 && (
           <section aria-label="Atalhos">
             <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-fg-mut">Atalhos</h2>
             <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
