@@ -10,6 +10,15 @@ const SUBS: Record<string, Array<SubSection & { roles: readonly string[] }>> = {
     { key: 'contratos', label: 'Contratos', roles: ['DEV', 'COMERCIAL'] },
     { key: 'propostas', label: 'Propostas', roles: ['DEV', 'COMERCIAL'] },
   ],
+  dossie: [
+    { key: 'general', label: 'Resumo', roles: ['DEV', 'CEO', 'COMERCIAL'] },
+    { key: 'subscription', label: 'Assinatura', roles: ['DEV', 'CEO', 'COMERCIAL'] },
+    { key: 'finance', label: 'Financeiro', roles: ['DEV', 'CEO', 'COMERCIAL'] },
+    { key: 'users', label: 'Usuários', roles: ['DEV', 'CEO', 'COMERCIAL'] },
+    { key: 'documents', label: 'Documentos', roles: ['DEV', 'CEO', 'COMERCIAL'] },
+    { key: 'support', label: 'Chamados', roles: ['DEV', 'CEO', 'COMERCIAL'] },
+    { key: 'logs', label: 'Auditoria', roles: ['DEV', 'CEO', 'COMERCIAL'] },
+  ],
   configuracoes: [
     { key: 'global', label: 'Configuração global', roles: ['DEV'] },
     { key: 'permissoes', label: 'Permissões', roles: ['DEV'] },

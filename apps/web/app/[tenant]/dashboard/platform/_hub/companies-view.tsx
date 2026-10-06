@@ -1,13 +1,16 @@
 'use client';
 
-import { ChevronRight, CreditCard, Plus, Search } from 'lucide-react';
+import { CreditCard, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button } from '@/app/components/ui';
-import { useQuery } from '@/app/hooks/use-data';
-import { api } from '@/app/lib/api';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { useMutation, useQuery } from '@/app/hooks/use-data';
+import { api, type PlatformCompany } from '@/app/lib/api';
+import { CompanyActionMenu } from '../_components/company-action-menu';
+import { CompanyEditModal } from '../_components/company-edit-modal';
 import { NewCompanyModal } from '../_components/new-company-modal';
 import { BILLING_STATUS, COMPANY_STATUS, date } from './format';
 
@@ -38,8 +41,36 @@ export function CompaniesView({ onOpenCompany }: { onOpenCompany: (id: string, n
   const [billing, setBilling] = useState('');
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<PlatformCompany | null>(null);
+  const { user } = useAuth();
+  const role = String(user?.profile ?? user?.role ?? '').toUpperCase();
+  const isSuperAdmin = role === 'DEV';
+  // COMERCIAL so gere usuarios e licencas da propria carteira (a API tambem valida).
+  const ownsCompany = (company: PlatformCompany) => isSuperAdmin || (role === 'COMERCIAL' && company.commercialOwnerId === user?.id);
   useEffect(() => { const timer = setTimeout(() => { setDebounced(search.trim()); setPage(1); }, 300); return () => clearTimeout(timer); }, [search]);
   const list = useQuery(() => api.platform.listCompanies({ page, limit: PAGE_SIZE, search: debounced || undefined, status: status || undefined, billingStatus: billing || undefined }), [page, debounced, status, billing]);
+  const toggleActive = useMutation(({ id, status, suspensionReason }: { id: string; status: 'ACTIVE' | 'SUSPENDED' | 'CANCELLED'; suspensionReason?: string | null }) => api.platform.updateCompany(id, { status, suspensionReason }), { onSuccess: () => list.refetch() });
+  const remove = useMutation((id: string) => api.platform.deleteCompany(id), { onSuccess: () => list.refetch() });
+  const purge = useMutation((id: string) => api.platform.purgeCompany(id), { onSuccess: () => list.refetch() });
+
+  async function handleToggle(company: PlatformCompany) {
+    if (!isSuperAdmin) return;
+    const current = company.status ?? (company.isActive ? 'ACTIVE' : 'SUSPENDED');
+    if (current !== 'ACTIVE') { await toggleActive.mutate({ id: company.id, status: 'ACTIVE', suspensionReason: null }).catch(() => {}); return; }
+    const reason = window.prompt('Motivo: inadimplencia ou solicitacao_voluntaria?', 'inadimplencia');
+    if (reason === null) return;
+    const normalized = reason.trim() === 'solicitacao_voluntaria' ? 'solicitacao_voluntaria' : reason.trim() === 'não informado' ? 'não informado' : 'inadimplencia';
+    await toggleActive.mutate({ id: company.id, status: 'SUSPENDED', suspensionReason: normalized }).catch(() => {});
+  }
+  async function handleDelete(company: PlatformCompany) {
+    if (!isSuperAdmin || !window.confirm(`Arquivar "${company.name}"? O acesso será bloqueado e o histórico será preservado.`)) return;
+    await remove.mutate(company.id).catch(() => {});
+  }
+  async function handlePurge(company: PlatformCompany) {
+    if (!isSuperAdmin || !window.confirm(`ATENÇÃO: deletar definitivamente "${company.name}" e TODOS os dados associados (usuários, faturas, escalas)? Esta ação é IRREVERSÍVEL!`)) return;
+    await purge.mutate(company.id).catch(() => {});
+  }
+
   const total = list.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rows = list.data?.data ?? [];
@@ -69,16 +100,17 @@ export function CompaniesView({ onOpenCompany }: { onOpenCompany: (id: string, n
       {list.loading && !list.data ? <LoadingState label="Carregando empresas…" /> : rows.length === 0 ? <EmptyState message="Nenhuma empresa encontrada com esses filtros." /> : (
         <ul className="grid gap-3 xl:grid-cols-2">
           {rows.map((company) => (
-            <li key={company.id} className="rounded-2xl border border-border bg-bg p-4 shadow-sm transition hover:shadow-md">
-              <button type="button" onClick={() => onOpenCompany(company.id, company.name)} className="flex w-full items-start gap-3 text-left">
+            <li key={company.id} className="relative rounded-2xl border border-border bg-bg p-4 shadow-sm transition hover:shadow-md">
+              <button type="button" onClick={() => onOpenCompany(company.id, company.name)} className="flex w-full items-start gap-3 pr-10 text-left">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-teal-500 text-lg font-black text-white">{company.name.trim().charAt(0).toUpperCase()}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-base font-bold text-fg">{company.name}</span>
                   <span className="block text-xs text-fg-sub">{company.document || 'Sem documento'} · desde {date(company.createdAt)}</span>
                   <span className="mt-2 flex flex-wrap items-center gap-1.5"><Chip map={COMPANY_STATUS} value={company.status} /><Chip map={BILLING_STATUS} value={company.billingStatus} />{company.plan && <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">{company.plan}</span>}</span>
                 </span>
-                <ChevronRight size={16} className="mt-1 shrink-0 text-fg-mut" aria-hidden="true" />
+
               </button>
+              <div className="absolute right-2 top-2"><CompanyActionMenu company={company} tenant={tenant} isSuperAdmin={isSuperAdmin} canManageUsers={ownsCompany(company)} canManageLicenses={ownsCompany(company)} status={company.status ?? (company.isActive ? 'ACTIVE' : 'SUSPENDED')} onEdit={() => setEditing(company)} onToggleStatus={() => handleToggle(company)} onDelete={() => handleDelete(company)} onPurge={() => handlePurge(company)} loadingToggle={toggleActive.loading} loadingDelete={remove.loading} loadingPurge={purge.loading} /></div>
               <div className="mt-3 grid grid-cols-2 gap-4 border-t border-border pt-3">
                 <div><p className="text-[11px] font-semibold uppercase tracking-wide text-fg-mut">Usuários</p><Bar used={company.usersCount} max={company.maxUsers} /></div>
                 <div><p className="text-[11px] font-semibold uppercase tracking-wide text-fg-mut">Funcionários</p><Bar used={company.employeesCount} max={company.maxEmployees} /></div>
@@ -100,6 +132,7 @@ export function CompaniesView({ onOpenCompany }: { onOpenCompany: (id: string, n
         </nav>
       )}
       {creating && <NewCompanyModal onClose={() => setCreating(false)} onDone={() => { setCreating(false); list.refetch(); }} />}
+      {editing && <CompanyEditModal company={editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); list.refetch(); }} />}
     </div>
   );
 }

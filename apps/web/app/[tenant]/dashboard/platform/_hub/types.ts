@@ -1,14 +1,14 @@
-export type HubTab = 'resumo' | 'empresas' | 'financeiro' | 'contabilidade' | 'comercial' | 'suporte' | 'auditoria' | 'configuracoes';
+export type HubTab = 'resumo' | 'empresas' | 'financeiro' | 'contabilidade' | 'comercial' | 'suporte' | 'auditoria' | 'configuracoes' | 'dossie';
 
 export const TAB_LABEL: Record<HubTab, string> = {
   resumo: 'Resumo', empresas: 'Empresas', financeiro: 'Financeiro', contabilidade: 'Contabilidade',
-  comercial: 'Comercial', suporte: 'Suporte', auditoria: 'Auditoria', configuracoes: 'Configurações',
+  comercial: 'Comercial', suporte: 'Suporte', auditoria: 'Auditoria', configuracoes: 'Configurações', dossie: 'Empresa',
 };
 
 export const TAB_POLICY: Record<string, HubTab[]> = {
-  DEV: ['resumo', 'empresas', 'comercial', 'suporte', 'auditoria', 'configuracoes'],
-  CEO: ['resumo', 'empresas', 'suporte', 'auditoria'],
-  COMERCIAL: ['resumo', 'empresas', 'comercial'],
+  DEV: ['resumo', 'empresas', 'dossie', 'comercial', 'suporte', 'auditoria', 'configuracoes'],
+  CEO: ['resumo', 'empresas', 'dossie', 'suporte', 'auditoria'],
+  COMERCIAL: ['resumo', 'empresas', 'dossie', 'comercial'],
   CONTABIL: ['resumo'],
 };
 

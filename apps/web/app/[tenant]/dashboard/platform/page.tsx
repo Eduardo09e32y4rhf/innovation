@@ -17,6 +17,7 @@ import { AcessosView } from './_hub/acessos-view';
 import { AuditoriaView } from './_hub/auditoria-view';
 import { ConfiguracaoView } from './_hub/configuracao-view';
 import { ContratosView } from './_hub/contratos-view';
+import { DossieView, type DossieTab } from './_hub/dossie-view';
 import { InteligenciaView } from './_hub/inteligencia-view';
 import { OverviewView } from './_hub/overview-view';
 import { PermissoesView } from './_hub/permissoes-view';
@@ -44,7 +45,7 @@ function Hub() {
   const companyId = params.get('company') ?? undefined;
   const companyName = params.get('cn') ?? undefined;
   const allowed = useMemo(() => TAB_POLICY[role] ?? [], [role]);
-  const tabs = useMemo(() => allowed.filter((tab) => (companyId ? !['empresas', 'configuracoes'].includes(tab) : true)), [allowed, companyId]);
+  const tabs = useMemo(() => allowed.filter((item) => (companyId ? !['empresas', 'configuracoes'].includes(item) : item !== 'dossie')), [allowed, companyId]);
   const requested = params.get('tab') as HubTab | null;
   const tab = tabs.includes(requested as HubTab) ? (requested as HubTab) : tabs[0] ?? 'resumo';
   const subs = subsFor(tab, role);
@@ -68,7 +69,7 @@ function Hub() {
     router.replace(`?${next.toString()}`, { scroll: false });
   }, [params, router]);
 
-  const openCompany = (id: string, name?: string) => update({ company: id, cn: name ?? null, tab: tab === 'empresas' ? 'resumo' : tab });
+  const openCompany = (id: string, name?: string) => update(tab === 'empresas' ? { company: id, cn: name ?? null, tab: 'dossie', sub: 'general' } : { company: id, cn: name ?? null, tab });
   const selectCompany = (company: CompanyOption | null) => update(company ? { company: company.id, cn: company.name } : { company: null, cn: null });
 
   if (!user) return <LoadingState label="Carregando acesso…" />;
@@ -126,6 +127,7 @@ function Hub() {
         {tab === 'resumo' && sub === 'alertas' && <InteligenciaView params={{ tenant }} />}
         {tab === 'resumo' && sub !== 'alertas' && <OverviewView companyId={companyId} onOpenCompany={openCompany} onTab={goTab} />}
         {tab === 'empresas' && <CompaniesView onOpenCompany={openCompany} />}
+        {tab === 'dossie' && companyId && <DossieView params={{ tenant, companyId }} tab={(sub ?? 'general') as DossieTab} onTab={(next) => update({ sub: next })} />}
         {tab === 'comercial' && sub === 'propostas' && <PropostasView />}
         {tab === 'comercial' && sub !== 'propostas' && <ContratosView params={{ tenant }} />}
         {tab === 'suporte' && <SuporteView />}
