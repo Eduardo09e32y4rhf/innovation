@@ -7,6 +7,8 @@ export interface TimeCalculationInput {
   exitTime?: Date | null;
   workDate: Date;
   manualReason?: string | null;
+  /** Hora extra do dia ja autorizada por gestor/RH/ADM/DEV; so entao ela abate atraso e saida antecipada. */
+  overtimeAuthorized?: boolean;
 }
 
 export interface TimeCalculationOutput {
@@ -198,12 +200,18 @@ export class TimeCalculationRulesService {
     const isJustified = this.isPartialJustification(input.manualReason);
     if (balance < 0 && isJustified) balance = 0;
 
-    result.dailyBalanceMinutes = balance;
     result.lateMinutes = isJustified ? 0 : this.countDeviation(lateDeviations, rule);
     result.earlyLeaveMinutes = isJustified ? 0 : this.countDeviation(earlyDeviations, rule);
     result.overtime50Minutes = this.countDeviation(overtimeDeviations, rule);
 
     const scheduleDebt = result.lateMinutes + result.earlyLeaveMinutes;
+    // Hora extra NAO compensa atraso nem saida antecipada por conta propria: so depois de autorizada
+    // (gestor/RH/ADM/DEV) ela soma ao trabalhado e abate a ocorrencia. Sem autorizacao, o debito fica inteiro.
+    if (scheduleDebt > 0 && result.overtime50Minutes > 0 && !input.overtimeAuthorized) {
+      balance = -scheduleDebt;
+      result.overtimeApprovalNeeded = true;
+    }
+    result.dailyBalanceMinutes = balance;
     const netDebt = Math.max(0, -balance);
     const residualAbsence = Math.max(0, netDebt - scheduleDebt);
     result.absenceMinutes = residualAbsence || null;

@@ -74,8 +74,36 @@ describe('TimeCalculationRulesService - jornada CLT', () => {
     expect(result.lateMinutes).toBe(60);
     expect(result.overtime50Minutes).toBe(120);
     expect(result.absenceMinutes).toBeNull();
-    expect(result.dailyBalanceMinutes).toBe(60);
+    // Hora extra nao compensa atraso: sem autorizacao o debito de 60 min fica inteiro.
+    expect(result.dailyBalanceMinutes).toBe(-60);
+    expect(result.overtimeApprovalNeeded).toBe(true);
     expect(result.incidentType).toBe('atraso');
+  });
+
+  it('depois de autorizada, a hora extra abate o atraso', () => {
+    const result = service.calculateTotals({
+      workDate: at('2026-07-15', '00:00'),
+      entryTime: at('2026-07-15', '09:00'),
+      lunchStartTime: at('2026-07-15', '12:00'),
+      lunchReturnTime: at('2026-07-15', '13:00'),
+      exitTime: at('2026-07-15', '19:00'),
+      overtimeAuthorized: true,
+    }, employee, rule, null);
+    expect(result.lateMinutes).toBe(60);
+    expect(result.overtime50Minutes).toBe(120);
+    expect(result.dailyBalanceMinutes).toBe(60);
+  });
+
+  it('hora extra sem atraso nem saida antecipada vira credito sem depender de autorizacao do abatimento', () => {
+    const result = service.calculateTotals({
+      workDate: at('2026-07-15', '00:00'),
+      entryTime: at('2026-07-15', '08:00'),
+      lunchStartTime: at('2026-07-15', '12:00'),
+      lunchReturnTime: at('2026-07-15', '13:00'),
+      exitTime: at('2026-07-15', '18:00'),
+    }, employee, rule, null);
+    expect(result.dailyBalanceMinutes).toBe(60);
+    expect(result.overtime50Minutes).toBe(60);
   });
 
   it('mantem entrada antecipada e saida antecipada como ocorrencias independentes', () => {
@@ -90,8 +118,21 @@ describe('TimeCalculationRulesService - jornada CLT', () => {
     expect(result.earlyLeaveMinutes).toBe(60);
     expect(result.overtime50Minutes).toBe(60);
     expect(result.absenceMinutes).toBeNull();
-    expect(result.dailyBalanceMinutes).toBe(0);
+    // Extra anterior nao compensa a saida antecipada sem autorizacao.
+    expect(result.dailyBalanceMinutes).toBe(-60);
     expect(result.incidentType).toBe('saida_antecipada');
+  });
+
+  it('extra anterior compensa a saida antecipada quando autorizada', () => {
+    const result = service.calculateTotals({
+      workDate: at('2026-07-15', '00:00'),
+      entryTime: at('2026-07-15', '07:00'),
+      lunchStartTime: at('2026-07-15', '12:00'),
+      lunchReturnTime: at('2026-07-15', '13:00'),
+      exitTime: at('2026-07-15', '16:00'),
+      overtimeAuthorized: true,
+    }, employee, rule, null);
+    expect(result.dailyBalanceMinutes).toBe(0);
   });
 
   it('registra ausencia total sem duplicar atraso ou saida antecipada', () => {

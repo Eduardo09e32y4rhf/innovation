@@ -192,6 +192,7 @@ export class TimeTrackService {
           exitTime: field === 'exit' ? timestampToRecord : currentTrack?.exit,
           workDate: targetDate,
           manualReason: dto.manualReason,
+          overtimeAuthorized: currentTrack?.overtimeApprovalStatus === 'APPROVED',
         },
         employeeForCalculation,
         rule,
@@ -307,6 +308,7 @@ export class TimeTrackService {
         exitTime: nextExit,
         workDate: current.date,
         manualReason: current.manualReason,
+        overtimeAuthorized: current.overtimeApprovalStatus === 'APPROVED',
       },
       employeeForCalculation,
       rule,
@@ -329,7 +331,8 @@ export class TimeTrackService {
       earlyLeaveMinutes: calculation.earlyLeaveMinutes,
       absenceMinutes: calculation.absenceMinutes,
       overtimeExceedsLimit: calculation.overtimeExceedsLimit,
-      overtimeApprovalStatus: calculation.overtimeApprovalNeeded ? 'PENDING' : 'APPROVED',
+      overtimeApprovalStatus: calculation.overtimeApprovalNeeded && current.overtimeApprovalStatus === 'REJECTED' ? 'REJECTED'
+        : calculation.overtimeApprovalNeeded && current.overtimeApprovalStatus !== 'APPROVED' ? 'PENDING' : 'APPROVED',
       overtimeHandling: current.overtimeHandling,
       overtimeBankMinutes: current.overtimeHandling === 'BANK' ? (calculation.overtime50Minutes + calculation.overtime100Minutes) : (current.overtimeHandling === 'SPLIT' ? Math.floor((calculation.overtime50Minutes + calculation.overtime100Minutes) / 2) : 0),
       overtimePaymentMinutes: current.overtimeHandling === 'PAYMENT' ? (calculation.overtime50Minutes + calculation.overtime100Minutes) : (current.overtimeHandling === 'SPLIT' ? Math.ceil((calculation.overtime50Minutes + calculation.overtime100Minutes) / 2) : 0),
@@ -396,6 +399,8 @@ export class TimeTrackService {
       await this.updateOvertimeBank(companyId, track.employeeId, bankMinutes);
     }
 
+    // Autorizada, a extra passa a abater atraso/saida antecipada; recusada, o debito fica inteiro.
+    await this.update(companyId, actor, id, {} as UpdateTimeTrackDto);
     return updated;
   }
 
