@@ -61,3 +61,8 @@ export class RecalculateClosingsDto {
   @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, { message: 'Mes invalido. Use AAAA-MM.' }) month!: string;
   @IsUUID() companyId!: string;
 }
+
+export class WorkflowDto {
+  @IsIn(['REVIEW', 'APPROVE', 'RETURN']) action!: 'REVIEW' | 'APPROVE' | 'RETURN';
+  @IsOptional() @IsString() @MaxLength(500) reason?: string;
+}

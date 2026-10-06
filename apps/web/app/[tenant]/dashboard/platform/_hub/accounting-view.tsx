@@ -66,9 +66,47 @@ function Obligations({ month, inss, irrf, fgts }: { month: string; inss: number;
   );
 }
 
-// ---------- edição ----------
+/** Fluxo da contabilidade: revisar, aprovar ou devolver ao RH com motivo. */
+function WorkflowBar({ kind, id, status, onDone, onClose }: { kind: 'closing' | 'payroll'; id: string; status: string; onDone: () => void; onClose: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [returning, setReturning] = useState(false);
+  const [reason, setReason] = useState('');
+  const canReview = kind === 'closing' && status === 'DRAFT';
+  const canApprove = status === 'DRAFT' || (kind === 'closing' && status === 'IN_REVIEW');
+  const canReturn = status === 'APPROVED' || (kind === 'closing' && status === 'IN_REVIEW');
+  if (!canReview && !canApprove && !canReturn) return null;
 
-function PayrollDialog({ item, onClose, onDone }: { item: Payroll | null; onClose: () => void; onDone: () => void }) {
+  async function run(action: 'REVIEW' | 'APPROVE' | 'RETURN', success: string) {
+    setBusy(true);
+    try {
+      if (kind === 'closing') await platformHub.closingWorkflow(id, action, reason.trim() || undefined);
+      else await platformHub.payrollWorkflow(id, action === 'REVIEW' ? 'APPROVE' : action, reason.trim() || undefined);
+      toast.success(success); onDone(); onClose();
+    } catch (cause) { toast.error(errorText(cause, 'Não foi possível concluir.')); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="mb-4 space-y-2 rounded-2xl border border-border bg-bg-sub p-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-fg-sub">Revisão da contabilidade</p>
+      {returning ? (
+        <div className="space-y-2">
+          <textarea className={`${input} min-h-16`} maxLength={500} placeholder="Explique ao RH o que precisa ser corrigido" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <div className="flex justify-end gap-2"><Button variant="outline" size="sm" onClick={() => setReturning(false)} disabled={busy}>Voltar</Button><Button size="sm" isLoading={busy} disabled={reason.trim().length < 5} onClick={() => run('RETURN', 'Devolvido ao RH.')}>Devolver ao RH</Button></div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {canReview && <Button variant="outline" size="sm" isLoading={busy} onClick={() => run('REVIEW', 'Marcado em revisão.')}>Marcar em revisão</Button>}
+          {canApprove && <Button size="sm" isLoading={busy} onClick={() => run('APPROVE', 'Aprovado pela contabilidade.')}><CheckCircle2 size={14} aria-hidden="true" /> Aprovar</Button>}
+          {canReturn && <Button variant="outline" size="sm" disabled={busy} onClick={() => setReturning(true)}>Devolver ao RH</Button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- edição ----------
+function PayrollDialog({ item, canEdit, onClose, onDone }: { item: Payroll | null; canEdit: boolean; onClose: () => void; onDone: () => void }) {
   const [values, setValues] = useState({ baseSalary: '', overtimeAmount: '', nightShiftAmount: '' });
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -90,6 +128,7 @@ function PayrollDialog({ item, onClose, onDone }: { item: Payroll | null; onClos
           <div key={label} className="flex justify-between border-b border-border/60 py-1.5"><dt className="text-fg-sub">{label}</dt><dd className={`font-semibold tabular-nums ${deduction ? 'text-rose-600' : label === 'Líquido' ? 'text-emerald-600' : ''}`}>{money(value)}</dd></div>
         ))}
       </dl>
+      {canEdit && <WorkflowBar kind="payroll" id={item.id} status={item.status} onDone={onDone} onClose={onClose} />}
       {!editable ? <p className="rounded-xl bg-bg-sub p-3 text-sm text-fg-sub">Folhas aprovadas ou pagas não podem ser alteradas por aqui. O RH precisa reabrir a folha.</p> : (
         <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void run(() => platformHub.correctPayroll(item.id, { ...(values.baseSalary ? { baseSalary: Number(values.baseSalary) } : {}), ...(values.overtimeAmount ? { overtimeAmount: Number(values.overtimeAmount) } : {}), ...(values.nightShiftAmount ? { nightShiftAmount: Number(values.nightShiftAmount) } : {}), reason: reason.trim() }), 'Folha corrigida e impostos recalculados.'); }}>
           <p className="text-xs text-fg-sub">Corrija só os proventos. INSS, IRRF, FGTS e líquido são sempre recalculados pelas regras da Contabilidade.</p>
@@ -107,7 +146,7 @@ function PayrollDialog({ item, onClose, onDone }: { item: Payroll | null; onClos
   );
 }
 
-function ClosingDialog({ item, onClose, onDone }: { item: Closing | null; onClose: () => void; onDone: () => void }) {
+function ClosingDialog({ item, canEdit, onClose, onDone }: { item: Closing | null; canEdit: boolean; onClose: () => void; onDone: () => void }) {
   const [field, setField] = useState<(typeof CLOSING_FIELDS)[number][0]>('salaryBase');
   const [value, setValue] = useState('');
   const [reason, setReason] = useState('');
@@ -120,6 +159,7 @@ function ClosingDialog({ item, onClose, onDone }: { item: Closing | null; onClos
       <dl className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
         {rows.map(([label, v, deduction]) => <div key={label} className="flex justify-between border-b border-border/60 py-1.5"><dt className="text-fg-sub">{label}</dt><dd className={`font-semibold tabular-nums ${deduction ? 'text-rose-600' : label === 'Líquido' ? 'text-emerald-600' : ''}`}>{money(v)}</dd></div>)}
       </dl>
+      {canEdit && <WorkflowBar kind="closing" id={item.id} status={item.status} onDone={onDone} onClose={onClose} />}
       {!editable ? <p className="rounded-xl bg-bg-sub p-3 text-sm text-fg-sub">Fechamentos aprovados ou fechados só podem ser alterados pelo RH, reabrindo o período.</p> : (
         <form className="space-y-3" onSubmit={async (event) => { event.preventDefault(); setBusy(true); try { await platformHub.adjustClosing(item.id, { field, newValue: Number(value), reason: reason.trim() }); toast.success('Ajuste registrado; valores recalculados.'); onDone(); onClose(); } catch (cause) { toast.error(errorText(cause, 'Não foi possível ajustar.')); } finally { setBusy(false); } }}>
           <label className="block space-y-1 text-xs font-semibold">Campo<select className={input} value={field} onChange={(event) => setField(event.target.value as typeof field)}>{CLOSING_FIELDS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
@@ -214,6 +254,18 @@ function CompanyCompetencia({ c, month, canEdit, refetch }: { c: AccountingCompa
   const pending = c.closings.filter((r) => ['DRAFT', 'IN_REVIEW'].includes(r.status)).length;
   const rule = Object.values(c.ruleVersions).filter(Boolean).join(' · ');
 
+  const approvable = list.filter((row) => row.status === 'DRAFT' || (tab === 'fechamentos' && row.status === 'IN_REVIEW'));
+  async function approveAll() {
+    if (!window.confirm(`Aprovar  item(ns) de uma vez? Confira os valores antes.`)) return;
+    setBusy(true);
+    let ok = 0; let fail = 0;
+    for (const row of approvable) {
+      try { if (tab === 'fechamentos') await platformHub.closingWorkflow(row.id, 'APPROVE'); else await platformHub.payrollWorkflow(row.id, 'APPROVE'); ok++; } catch { fail++; }
+    }
+    setBusy(false); refetch();
+    if (fail) toast.warning(` aprovado(s);  não puderam ser aprovados (confira valores inválidos).`); else toast.success(` item(ns) aprovado(s).`);
+  }
+
   async function recalc() {
     setBusy(true);
     try { const out = await platformHub.recalculateClosings(c.company.id, month); toast.success(`${out.generated} fechamento(s) recalculado(s) com as regras atuais.`); refetch(); }
@@ -230,6 +282,7 @@ function CompanyCompetencia({ c, month, canEdit, refetch }: { c: AccountingCompa
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-bg p-4 shadow-sm">
         <div className="min-w-0"><h2 className="truncate text-lg font-black text-fg">{c.company.name}</h2><p className="text-xs text-fg-sub">{c.company.document ?? 'Sem CNPJ'}{rule ? ` · regras: ${rule}` : ''}</p></div>
         <div className="flex flex-wrap gap-2">
+          {canEdit && approvable.length > 0 && <Button isLoading={busy} onClick={approveAll}><CheckCircle2 size={15} aria-hidden="true" /> Aprovar {approvable.length} pendente(s)</Button>}
           {canEdit && <Button variant="outline" isLoading={busy} onClick={recalc}><RefreshCw size={15} aria-hidden="true" /> Recalcular rascunhos</Button>}
           <Button variant="outline" onClick={() => saveCsv(`${c.company.name}-${tab}-${month}.csv`, [['Funcionário', 'Cargo', 'Situação', 'Bruto', 'INSS', 'IRRF', 'FGTS', 'Líquido'], ...filtered.map((row) => { const f = fields(row); return [row.employee?.name ?? '', row.employee?.position ?? '', WORKFLOW_STATUS[row.status] ?? row.status, f.gross, f.inss, f.irrf, f.fgts, f.net]; })])}><Download size={15} aria-hidden="true" /> CSV</Button>
         </div>
@@ -286,8 +339,8 @@ function CompanyCompetencia({ c, month, canEdit, refetch }: { c: AccountingCompa
           </div>
         )}
       </section>
-      <PayrollDialog item={payroll} onClose={() => setPayroll(null)} onDone={refetch} />
-      <ClosingDialog item={closing} onClose={() => setClosing(null)} onDone={refetch} />
+      <PayrollDialog item={payroll} canEdit={canEdit} onClose={() => setPayroll(null)} onDone={refetch} />
+      <ClosingDialog item={closing} canEdit={canEdit} onClose={() => setClosing(null)} onDone={refetch} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
-import { AdjustClosingDto, CorrectPayrollDto, MonthQueryDto, RecalculateClosingsDto, SaveRuleDto, SimulateDto } from './accounting.dto';
+import { AdjustClosingDto, CorrectPayrollDto, MonthQueryDto, RecalculateClosingsDto, SaveRuleDto, SimulateDto, WorkflowDto } from './accounting.dto';
 import { AccountingHubService } from './accounting-hub.service';
 import { AccountingRulesService } from './accounting-rules.service';
 
@@ -57,6 +57,17 @@ export class AccountingController {
   @Patch('closings/:id/adjust')
   adjustClosing(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: AdjustClosingDto) {
     return this.hub.adjustClosing(actor, id, dto);
+  }
+
+  @Post('closings/:id/workflow')
+  closingWorkflow(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: WorkflowDto) {
+    return this.hub.closingWorkflow(actor, id, dto.action, dto.reason);
+  }
+
+  @Post('payroll/:id/workflow')
+  payrollWorkflow(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: WorkflowDto) {
+    if (dto.action === 'REVIEW') dto.action = 'APPROVE';
+    return this.hub.payrollWorkflow(actor, id, dto.action as 'APPROVE' | 'RETURN', dto.reason);
   }
 
   @Post('payroll/:id/recalculate')

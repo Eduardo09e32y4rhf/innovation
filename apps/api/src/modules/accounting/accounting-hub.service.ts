@@ -108,14 +108,40 @@ export class AccountingHubService {
     };
   }
 
-  /** Recalcula INSS/IRRF/FGTS/líquido de uma folha com as regras vigentes na competência. */
+  /**
+   * Recalcula INSS/IRRF/FGTS/líquido de uma folha com as regras vigentes na competência.
+   * Parte dos lançamentos da folha (salário, extras, DSR, bônus, faltas, adiantamentos), para nunca perder o que o RH lançou.
+   */
   private async recalcPayrollRow(tx: any, payroll: any) {
-    const reference = new Date(Date.UTC(payroll.referenceYear, payroll.referenceMonth - 1, 1));
+    const reference = new Date(payroll.periodEnd ?? Date.UTC(payroll.referenceYear, payroll.referenceMonth - 1, 1));
     const ctx = await this.payroll.resolveTaxContext(reference);
     const dependentsData = payroll.employee?.dependents as unknown;
     const dependents = Array.isArray(dependentsData) ? dependentsData.length : 0;
-    const gross = round(num(payroll.baseSalary) + num(payroll.overtimeAmount) + num(payroll.nightShiftAmount));
-    const result = this.payroll.applyTaxes(gross, dependents, ctx);
+
+    // Valores corrigidos nas colunas viram lançamentos (salário, horas extras, noturno).
+    const ensureItem = async (type: 'BASE_SALARY' | 'OVERTIME' | 'NIGHT_SHIFT', description: string, amount: number) => {
+      const existing = await tx.payrollItem.findFirst({ where: { payrollId: payroll.id, type } });
+      if (existing) {
+        if (amount > 0) await tx.payrollItem.update({ where: { id: existing.id }, data: { amount } });
+        else await tx.payrollItem.delete({ where: { id: existing.id } });
+      } else if (amount > 0) {
+        await tx.payrollItem.create({ data: { payrollId: payroll.id, companyId: payroll.companyId, type, description, amount, isDeduction: false } });
+      }
+    };
+    await ensureItem('BASE_SALARY', 'Salário base', num(payroll.baseSalary));
+    await ensureItem('OVERTIME', 'Horas extras', num(payroll.overtimeAmount));
+    await ensureItem('NIGHT_SHIFT', 'Adicional noturno', num(payroll.nightShiftAmount));
+
+    const items: Array<{ type: string; amount: unknown; isDeduction: boolean }> = await tx.payrollItem.findMany({ where: { payrollId: payroll.id } });
+    const sum = (pick: (i: (typeof items)[number]) => boolean) => round(items.filter(pick).reduce((total, i) => total + num(i.amount), 0));
+    const earnings = sum((i) => !i.isDeduction && i.type !== 'FGTS');
+    const preTaxDeductions = sum((i) => i.type === 'ABSENCE_DEDUCTION');
+    const postTaxDeductions = sum((i) => i.type === 'ADVANCE' || i.type === 'OTHER_DEDUCTION');
+    const gross = round(Math.max(0, earnings - preTaxDeductions));
+    const taxes = this.payroll.applyTaxes(gross, dependents, ctx);
+    const net = round(Math.max(0, taxes.netPay - postTaxDeductions));
+    const result = { ...taxes, netPay: net };
+
     const updated = await tx.payroll.update({
       where: { id: payroll.id },
       data: {
@@ -124,12 +150,11 @@ export class AccountingHubService {
         taxTableSnapshot: JSON.parse(JSON.stringify(ctx)),
       },
     });
-    for (const [type, amount] of [['BASE_SALARY', num(payroll.baseSalary)], ['INSS', result.inssDiscount], ['IRRF', result.irrfDiscount], ['FGTS', result.fgtsAmount]] as const) {
+    for (const [type, amount] of [['INSS', result.inssDiscount], ['IRRF', result.irrfDiscount], ['FGTS', result.fgtsAmount]] as const) {
       await tx.payrollItem.updateMany({ where: { payrollId: payroll.id, type }, data: { amount } });
     }
     return { updated, result, builtin: ctx.builtin ?? [] };
   }
-
   private async loadEditablePayroll(id: string) {
     const payroll = await this.prisma.payroll.findFirst({ where: { id, deletedAt: null }, include: { employee: { select: { name: true, dependents: true } } } });
     if (!payroll) throw new NotFoundException('Folha não encontrada.');
@@ -179,6 +204,41 @@ export class AccountingHubService {
     const last = `${period.key}-${String(period.last.getUTCDate()).padStart(2, '0')}`;
     const generated = await this.closing.generate(companyId, { ...actor, companyId, role: 'ADMIN' }, { periodStart: `${period.key}-01`, periodEnd: last, month: period.month, year: period.year } as any);
     return { generated: Array.isArray(generated) ? generated.length : 0 };
+  }
+
+  /** Fluxo da contabilidade nos fechamentos: revisar, aprovar ou devolver ao RH (com motivo). */
+  async closingWorkflow(actor: JwtUser, id: string, action: 'REVIEW' | 'APPROVE' | 'RETURN', reason?: string) {
+    const closing = await this.prisma.timeClosing.findUnique({ where: { id }, select: { companyId: true, status: true } });
+    if (!closing) throw new NotFoundException('Fechamento não encontrado.');
+    let result: unknown;
+    if (action === 'REVIEW') result = await this.closing.submitReview(closing.companyId, id);
+    else if (action === 'APPROVE') {
+      if (closing.status === 'DRAFT') await this.closing.submitReview(closing.companyId, id);
+      result = await this.closing.approve(closing.companyId, id);
+    } else {
+      if (!reason?.trim()) throw new BadRequestException('Informe o motivo da devolução ao RH.');
+      if (!['IN_REVIEW', 'APPROVED'].includes(closing.status)) throw new BadRequestException('Só fechamento em revisão ou aprovado pode ser devolvido.');
+      result = await this.prisma.timeClosing.update({ where: { id }, data: { status: 'DRAFT', reopenedAt: new Date(), reopenedBy: actor.sub, reopenReason: reason.trim() } });
+    }
+    await this.prisma.auditLog.create({ data: { companyId: closing.companyId, userId: actor.sub, action: `ACCOUNTING_CLOSING_${action}`, entity: 'TimeClosing', entityId: id, metadata: { previous: closing.status, reason: reason?.trim() ?? null, actorEmail: actor.email } } });
+    return result;
+  }
+
+  /** Fluxo da contabilidade nas folhas: aprovar ou devolver ao RH (com motivo). */
+  async payrollWorkflow(actor: JwtUser, id: string, action: 'APPROVE' | 'RETURN', reason?: string) {
+    const payroll = await this.prisma.payroll.findFirst({ where: { id, deletedAt: null }, select: { companyId: true, status: true, grossSalary: true, netSalary: true } });
+    if (!payroll) throw new NotFoundException('Folha não encontrada.');
+    if (action === 'APPROVE') {
+      if (payroll.status !== 'DRAFT') throw new BadRequestException('Só folha em rascunho pode ser aprovada.');
+      if (!Number.isFinite(Number(payroll.grossSalary)) || !Number.isFinite(Number(payroll.netSalary))) throw new BadRequestException('A folha tem valores inválidos. Recalcule antes de aprovar.');
+      await this.prisma.payroll.update({ where: { id }, data: { status: 'APPROVED', approvedBy: actor.sub, approvedAt: new Date() } });
+    } else {
+      if (!reason?.trim()) throw new BadRequestException('Informe o motivo da devolução ao RH.');
+      if (payroll.status !== 'APPROVED') throw new BadRequestException('Só folha aprovada (e não paga) pode ser devolvida.');
+      await this.prisma.payroll.update({ where: { id }, data: { status: 'DRAFT', approvedBy: null, approvedAt: null, observations: `[Devolvida pela contabilidade] ${reason.trim()}` } });
+    }
+    await this.prisma.auditLog.create({ data: { companyId: payroll.companyId, userId: actor.sub, action: `ACCOUNTING_PAYROLL_${action}`, entity: 'Payroll', entityId: id, metadata: { previous: payroll.status, reason: reason?.trim() ?? null, actorEmail: actor.email } } });
+    return { id, status: action === 'APPROVE' ? 'APPROVED' : 'DRAFT' };
   }
 
   /** Relatório contábil em PDF (todas as empresas ou uma empresa) com a versão das regras usadas. */

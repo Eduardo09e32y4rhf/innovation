@@ -21,6 +21,8 @@ export const platformHub = {
   simulate: (body: Record<string, unknown>) => request<SimulationResult>('/accounting/rules/simulate', { method: 'POST', body }),
   recalculateClosings: (companyId: string, month: string) => request<{ generated: number }>('/accounting/closings/recalculate', { method: 'POST', body: { companyId, month }, timeoutMs: 120000 }),
   adjustClosing: (id: string, body: { field: string; newValue: number; reason: string }) => request<unknown>(`/accounting/closings/${encodeURIComponent(id)}/adjust`, { method: 'PATCH', body }),
+  closingWorkflow: (id: string, action: 'REVIEW' | 'APPROVE' | 'RETURN', reason?: string) => request<unknown>(`/accounting/closings/${encodeURIComponent(id)}/workflow`, { method: 'POST', body: { action, reason } }),
+  payrollWorkflow: (id: string, action: 'APPROVE' | 'RETURN', reason?: string) => request<unknown>(`/accounting/payroll/${encodeURIComponent(id)}/workflow`, { method: 'POST', body: { action, reason } }),
   recalculatePayroll: (id: string) => request<unknown>(`/accounting/payroll/${encodeURIComponent(id)}/recalculate`, { method: 'POST', body: {} }),
   correctPayroll: (id: string, body: { baseSalary?: number; overtimeAmount?: number; nightShiftAmount?: number; reason: string }) => request<unknown>(`/accounting/payroll/${encodeURIComponent(id)}`, { method: 'PUT', body }),
 };
