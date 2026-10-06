@@ -34,10 +34,10 @@ describe('RH_RS (recrutamento e selecao)', () => {
 
   it('RH_RS e perfil pessoal podem usar ping', () => expect(guardAllows(UsersController, 'ping', 'RH_RS')).toBe(true));
 
-  it('so DEV/CEO/ADMIN atribuem RH_RS; RH e o proprio RH_RS nao', () => {
-    for (const a of ['DEV', 'CEO', 'ADMIN']) expect(canManageRole(a, 'RH_RS')).toBe(true);
-    for (const a of ['RH', 'RH_RS', 'GESTOR', 'COMERCIAL', 'CONTABIL']) expect(canManageRole(a, 'RH_RS')).toBe(false);
-    expect(() => assertRoleChangeAllowed('RH', 'RH_RS')).toThrow();
+  it('RH, ADMIN, CEO e DEV podem atribuir RH_RS; RH_RS nao pode gerir usuarios', () => {
+    for (const a of ['DEV', 'CEO', 'ADMIN', 'RH']) expect(canManageRole(a, 'RH_RS')).toBe(true);
+    for (const a of ['RH_RS', 'GESTOR', 'COMERCIAL', 'CONTABIL']) expect(canManageRole(a, 'RH_RS')).toBe(false);
+    expect(() => assertRoleChangeAllowed('RH', 'RH_RS')).not.toThrow();
     expect(() => assertRoleChangeAllowed('RH_RS', 'RH_RS')).toThrow();
     expect(() => assertRoleChangeAllowed('ADMIN', 'RH_RS')).not.toThrow();
   });
