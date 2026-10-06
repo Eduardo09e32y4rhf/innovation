@@ -548,6 +548,7 @@ export interface PublicPlatformPlan {
   discountPercent?: number;
   baseMonthlyPrice?: number;
   userMonthlyPrice?: number;
+  includedUnits?: number;
   asaasCycle?: string;
   pricingVersion?: string;
   isRecommended?: boolean;

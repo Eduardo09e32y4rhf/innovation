@@ -990,6 +990,7 @@ export class PlatformFinanceService {
       seatQuantity: unknown,
       discountValue: unknown,
       allowZero: boolean,
+      includedUnits: unknown = 0,
     ): number | null => {
       const baseCents = toNonNegativeCents(baseValue);
       const userCents = toNonNegativeCents(userValue);
@@ -1007,7 +1008,8 @@ export class PlatformFinanceService {
         return null;
       }
       const discountedBaseCents = Math.round(baseCents * (100 - discount) / 100);
-      const totalCents = discountedBaseCents + userCents * seats;
+      const extraSeats = Math.max(0, seats - Math.max(0, Math.trunc(Number(includedUnits)) || 0));
+      const totalCents = discountedBaseCents + userCents * extraSeats;
       return totalCents > 0 || allowZero ? totalCents : null;
     };
 
@@ -1022,6 +1024,7 @@ export class PlatformFinanceService {
         subscription.seatQuantity,
         subscription.discountPercent ?? plan?.discountPercent,
         Boolean(plan?.isFree),
+        plan?.includedUnits,
       );
       const companyContracts = contractsByCompany.get(subscription.companyId) ?? [];
 
@@ -1082,6 +1085,7 @@ export class PlatformFinanceService {
             company.maxUsers,
             plan.discountPercent,
             plan.isFree,
+            plan.includedUnits,
           )
         : null;
 

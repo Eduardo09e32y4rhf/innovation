@@ -118,7 +118,7 @@ function CadastroForm() {
 
   const unitPrice = plan ? num(plan.baseMonthlyPrice) || num(plan.price) : 0;
   const seatPrice = plan ? num(plan.userMonthlyPrice) : 0;
-  const estimate = unitPrice + seats * seatPrice;
+  const estimate = unitPrice + Math.max(0, seats - (plan?.includedUnits ?? 0)) * seatPrice;
 
   return (
     <AuthShell wide title="Crie sua empresa" subtitle={step === 1 ? 'Etapa 1 de 2 · Dados da empresa e do administrador' : 'Etapa 2 de 2 · Plano e confirmação'}

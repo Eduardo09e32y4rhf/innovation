@@ -192,7 +192,8 @@ export class TimeTrackService {
           exitTime: field === 'exit' ? timestampToRecord : currentTrack?.exit,
           workDate: targetDate,
           manualReason: dto.manualReason,
-          overtimeAuthorized: currentTrack?.overtimeApprovalStatus === 'APPROVED',
+          // 'APPROVED' tambem e o valor padrao de quem nao precisa de aprovacao: autorizacao real tem aprovador registrado.
+          overtimeAuthorized: currentTrack?.overtimeApprovalStatus === 'APPROVED' && Boolean(currentTrack?.overtimeApprovedByUserId),
         },
         employeeForCalculation,
         rule,
@@ -308,7 +309,7 @@ export class TimeTrackService {
         exitTime: nextExit,
         workDate: current.date,
         manualReason: current.manualReason,
-        overtimeAuthorized: current.overtimeApprovalStatus === 'APPROVED',
+        overtimeAuthorized: current.overtimeApprovalStatus === 'APPROVED' && Boolean(current.overtimeApprovedByUserId),
       },
       employeeForCalculation,
       rule,

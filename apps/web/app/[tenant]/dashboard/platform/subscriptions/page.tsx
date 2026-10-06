@@ -120,7 +120,7 @@ function planPricing(plan?: PublicPlatformPlan | null, seats = 0) {
   const base = Number(plan.baseMonthlyPrice ?? plan.price ?? 0);
   const user = Number(plan.userMonthlyPrice ?? 0);
   const currentSeats = Math.max(0, Number(seats) || 0);
-  const total = plan.isFree ? 0 : base + (user * currentSeats);
+  const total = plan.isFree ? 0 : base + (user * Math.max(0, currentSeats - Number(plan.includedUnits ?? 0)));
   return { base, user, total, currentSeats };
 }
 

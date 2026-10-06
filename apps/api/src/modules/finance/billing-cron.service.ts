@@ -230,7 +230,7 @@ export class BillingCronService {
           description: 'Proposta gerada automaticamente cinco dias antes do encerramento do período de avaliação.',
           startDate: company.trialEndsAt,
           planType: plan.code || plan.name,
-          monthlyPrice: Number(plan.baseMonthlyPrice) + Number(plan.userMonthlyPrice) * company.subscription!.seatQuantity,
+          monthlyPrice: this.pricing.calculate(1, company.subscription!.seatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price, includedUnits: plan.includedUnits }).total,
           usersLimit: company.subscription!.seatQuantity,
           employeesLimit: plan.maxEmployees,
           features: plan.activeModules,

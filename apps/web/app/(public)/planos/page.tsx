@@ -12,6 +12,7 @@ interface PlatformPlan {
   price: number | string;
   baseMonthlyPrice: number | string;
   userMonthlyPrice: number | string;
+  includedUnits?: number;
   cycle: string;
   isRecommended: boolean;
   maxUsers: number;
@@ -42,7 +43,9 @@ export default function PlanosPage() {
   const calculatePrice = (plan: PlatformPlan) => {
     const base = Number(plan.baseMonthlyPrice) || 0;
     const userPrice = Number(plan.userMonthlyPrice) || 0;
-    let total = base + userPrice * seatQuantity;
+    // Mesma regra do servidor: a base inclui N usuarios/vagas e so o excedente paga o adicional.
+    const included = Number(plan.includedUnits) || 0;
+    let total = base + userPrice * Math.max(0, seatQuantity - included);
     if (billingCycle === 'YEARLY') {
       total = total * 0.9; // 10% discount on yearly
     }
