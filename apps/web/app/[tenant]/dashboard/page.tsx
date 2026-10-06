@@ -15,6 +15,7 @@ import {
   Users, UserX,
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { RecruitmentDashboard } from './_components/recruitment-dashboard';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { VACATION_STATUS_LABEL, formatMinutes, formatPeriod, formatTime } from '@/app/lib/format';
@@ -37,6 +38,10 @@ const PAGE = 'px-[clamp(1rem,2.5vw,2.5rem)] py-[clamp(1rem,1.8vw,2rem)] w-full';
 export default function DashboardHome() {
   const params = useParams();
   const tenant = String(params?.tenant ?? '');
+  const { user } = useAuth();
+
+  // RH - R&S: painel exclusivo de recrutamento. O painel geral nem monta, entao folha/ponto/funcionarios/ferias nao sao consultados.
+  if (user?.profile?.toUpperCase() === 'RH_RS') return <div className={PAGE}><RecruitmentDashboard tenant={tenant} /></div>;
 
   return (
     <div className={PAGE}>

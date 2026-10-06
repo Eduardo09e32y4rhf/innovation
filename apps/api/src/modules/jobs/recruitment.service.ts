@@ -555,7 +555,7 @@ export class RecruitmentService {
     const now = new Date();
     const since30 = new Date(now.getTime() - 30 * 86_400_000);
     const stale = new Date(now.getTime() - 3 * 86_400_000);
-    const [jobs, applications, bySource, last30, waiting, nextInterviews] = await Promise.all([
+    const [jobs, applications, bySource, last30, waiting, nextInterviews, upcomingInterviews, pendingDocuments] = await Promise.all([
       this.prisma.job.groupBy({ by: ['status'], where: { companyId, ...jobScope }, _count: true }),
       this.prisma.application.groupBy({ by: ['status'], where: { companyId, job: { is: jobScope } }, _count: true }),
       this.prisma.application.groupBy({ by: ['source'], where: { companyId, job: { is: jobScope } }, _count: true }),
@@ -567,6 +567,9 @@ export class RecruitmentService {
         take: 5,
         include: { application: { select: { id: true, jobId: true, candidate: { select: { name: true } }, job: { select: { title: true } } } } },
       }),
+      // Totais (nao limitados a lista exibida) para os indicadores do dashboard.
+      this.prisma.applicationInterview.count({ where: { scheduledAt: { gte: now }, application: { companyId, job: { is: jobScope } } } }),
+      this.prisma.recruitmentDocument.count({ where: { companyId, status: 'RECEIVED', supersededAt: null, application: { job: { is: jobScope } } } }),
     ]);
     const count = (rows: { status: string; _count: number }[], status: string) => rows.find((row) => row.status === status)?._count ?? 0;
     return {
@@ -578,6 +581,7 @@ export class RecruitmentService {
         byStatus: Object.fromEntries((applications as any[]).map((row) => [row.status, row._count])),
         bySource: Object.fromEntries((bySource as any[]).map((row) => [row.source ?? 'OUTRO', row._count])),
       },
+      totals: { upcomingInterviews, pendingDocuments },
       nextInterviews: nextInterviews.map((item) => ({
         id: item.id,
         scheduledAt: item.scheduledAt,

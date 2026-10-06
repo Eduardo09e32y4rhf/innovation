@@ -172,6 +172,7 @@ export interface Stats {
     byStatus: Record<string, number>;
     bySource: Record<string, number>;
   };
+  totals?: { upcomingInterviews: number; pendingDocuments: number };
   nextInterviews: { id: string; scheduledAt: string; kind: string; applicationId: string; jobId: string; candidateName: string; jobTitle: string }[];
 }
 

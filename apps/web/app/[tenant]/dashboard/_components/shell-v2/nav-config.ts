@@ -25,7 +25,7 @@ const ALL_ROLES = [...COMPANY_ROLES, 'CEO', 'CONTABIL', 'COMERCIAL'];
 
 /** Used by every navigation surface. The server remains responsible for authorization. */
 export const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, group: 'Trabalho', roles: ALL_ROLES },
+  { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, group: 'Trabalho', roles: [...ALL_ROLES, 'RH_RS'] },
   { id: 'employees', label: 'Funcionários', href: '/dashboard/employees', icon: Users, group: 'Trabalho', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR', 'CONSULTA'], moduleKey: 'employees', anyPermission: ['users.manage_employees', 'users.view_team'] },
   { id: 'escalas', label: 'Escalas', href: '/dashboard/escalas', icon: CalendarRange, group: 'Trabalho', roles: ALL_ROLES.filter(hasScheduleModule), moduleKey: 'time-track' },
   { id: 'vacations', label: 'Férias', href: '/dashboard/vacations', icon: CalendarDays, group: 'Trabalho', roles: COMPANY_ROLES, moduleKey: 'vacations' },
