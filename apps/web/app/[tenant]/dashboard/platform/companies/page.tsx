@@ -141,7 +141,7 @@ export default function CompaniesPage() {
               />
             </div>
           </div>
-          <div className="p-0 min-h-[400px]">
+          <div className="p-0 min-h-[400px] overflow-x-auto">
             <table className="w-full min-w-[980px] text-left">
               <thead>
                 <tr className="border-b border-slate-100 text-[11px] font-medium text-slate-500 uppercase tracking-wider bg-white">

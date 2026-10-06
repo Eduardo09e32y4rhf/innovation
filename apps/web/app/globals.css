@@ -366,6 +366,13 @@
 .workspace-content { width: 100%; max-width: 1600px; margin-inline: auto; padding: 24px; min-width: 0; }
 .workspace-content > .app-page > .app-page-container { padding: 0; max-width: none; }
 .workspace-content .app-page-container { min-width: 0; }
+/* Nunca deixa a pagina ficar maior que a tela: filhos de grid/flex podem encolher (tabelas largas rolam dentro do proprio quadro)
+   e o que ainda sobrar nao cria rolagem horizontal da pagina. :where() mantem especificidade zero, entao min-w-* explicito continua valendo. */
+:where(.workspace-content .grid) > *, :where(.workspace-content .flex) > * { min-width: 0; }
+.workspace-content { overflow-x: clip; }
+.workspace-content :where(img, video, canvas) { max-width: 100%; height: auto; }
+.workspace-content :where(table) { max-width: none; }
+.workspace-content :where(.overflow-x-auto) { max-width: 100%; -webkit-overflow-scrolling: touch; }
 .workspace-sidebar { width: 248px; flex-shrink: 0; background: rgb(var(--bg-elevated)); border-right: 1px solid var(--border); }
 .workspace-nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-nav-group { font-size: 11px; font-weight: 600; color: rgb(var(--fg-subtle)); padding: 16px 12px 8px; }
