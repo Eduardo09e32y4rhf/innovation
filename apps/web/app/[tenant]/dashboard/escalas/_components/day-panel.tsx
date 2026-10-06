@@ -56,6 +56,10 @@ export function DayPanel({ target, overview, onClose, onRequest, onOverride }: {
             )}
           </section>
 
+          {data.occurrence && (
+            <p role="status" className={`rounded-lg border px-3 py-2 text-sm font-semibold ${data.occurrence === 'Sem ocorrência' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>{data.occurrence}</p>
+          )}
+
           <section>
             <h3 className="mb-2 text-sm font-semibold">Como o dia foi calculado</h3>
             <dl className="divide-y divide-border rounded-lg border border-border text-sm">

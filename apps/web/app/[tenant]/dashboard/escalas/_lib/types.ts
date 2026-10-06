@@ -73,6 +73,8 @@ export interface CalendarPayload {
 export interface DayDetail {
   employee: { id: string; name: string; department: string | null } | null;
   date: string;
+  /** Texto automatico do dia: "Sem ocorrência", "Ocorrência: atraso de X minutos" ou "Falta integral". */
+  occurrence?: string;
   scheduled: ResolvedDay;
   track: { entry: string | null; lunchStart: string | null; lunchReturn: string | null; exit: string | null; totalWorked: number | null; dailyBalance: number | null; manualStatus: string | null; overtimeApprovalStatus: string | null; incidentType: string | null } | null;
   events: { id: string; type: string; origin: string; occurredAt: string; withinFence: boolean | null; distanceMeters: number | null; flags: string[]; justification: string | null; receipt: string; latitude?: number | null; longitude?: number | null; accuracyMeters?: number | null; address?: string | null }[];

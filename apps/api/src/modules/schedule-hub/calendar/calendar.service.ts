@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { bankBalanceOf } from '../../time-track/overtime-policy';
+import { occurrenceLabel } from '../../time-track/occurrence-label';
 import type { JwtUser } from '../../../common/types/auth.types';
 import { toDateOnly } from '../../../common/utils/date.utils';
 import { scopeOf } from '../../schedule/access/schedule-access';
@@ -111,9 +112,14 @@ export class CalendarService {
       explain.push({ label: 'Sem registro', value: 'Falta', hint: 'Nenhuma batida encontrada. Envie uma justificativa ou ajuste.' });
     }
 
+    const isPastWorkingDay = resolved.working && date < dateKey(toDateOnly(new Date()));
+    // Texto automatico: o funcionario ve o que o sistema validou do dia, sem precisar descrever.
+    const occurrence = !track && isPastWorkingDay ? 'Falta integral' : resolved.working || track ? occurrenceLabel(track) : 'Sem ocorrência';
+
     return {
       employee,
       date,
+      occurrence,
       scheduled: resolved,
       track: track && { entry: track.entry, lunchStart: track.lunchStart, lunchReturn: track.lunchReturn, exit: track.exit, totalWorked: track.totalWorked, dailyBalance: track.dailyBalance, manualStatus: track.manualStatus, overtimeApprovalStatus: track.overtimeApprovalStatus, incidentType: track.incidentType },
       events: events.map((event) => ({
