@@ -43,6 +43,16 @@ export class JobScopeService {
     await this.prisma.jobRecruiter.create({ data: { companyId, jobId, userId: actor.sub, assignedById: actor.sub } });
   }
 
+  /** Usuarios que podem ser responsaveis por vaga: ativos da propria empresa, perfil RH ou RH - R&S.
+   */
+  async eligibleRecruiters(companyId: string) {
+    return this.prisma.user.findMany({
+      where: { companyId, isActive: true, role: { in: ASSIGNABLE_ROLES as any } },
+      select: { id: true, name: true, role: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async listRecruiters(companyId: string, actor: Actor, jobId: string) {
     await this.assertJob(companyId, actor, jobId);
     const rows = await this.prisma.jobRecruiter.findMany({

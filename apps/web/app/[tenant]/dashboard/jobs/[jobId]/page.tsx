@@ -14,6 +14,8 @@ import { Pill } from '../_components/bits';
 import { CandidateDrawer } from '../_components/candidate-drawer';
 import { CandidatesTable, KanbanBoard } from '../_components/candidate-views';
 import { HireDialog, RejectDialog } from '../_components/dialogs';
+import { JobRecruiters } from '../_components/job-recruiters';
+import { selectableStages } from '../stage-access';
 import { FiltersBar } from '../_components/filters-bar';
 import { jobsApi } from '../jobs-api';
 import { JOB_STATUS_LABEL, WORK_MODE_LABEL, type ApplicationFilters, type ApplicationsPayload } from '../types';
@@ -58,6 +60,7 @@ export default function JobCandidatesPage() {
   const payload = list.data ?? cache;
   const applications = useMemo(() => payload?.applications ?? [], [payload]);
   const pipeline = payload?.pipeline;
+  const movablePipeline = pipeline ? { ...pipeline, stages: selectableStages(role, pipeline.stages) } : pipeline;
 
   const refresh = () => { list.refetch(); };
 
@@ -153,6 +156,8 @@ export default function JobCandidatesPage() {
         </div>
       </header>
 
+      {['DEV', 'ADMIN', 'RH'].includes(role) && <JobRecruiters jobId={jobId} />}
+
       <FiltersBar filters={filters} onChange={setFilters} pipeline={pipeline} tags={tags.data ?? []} questions={payload?.questions ?? []} views={views.data ?? []}
         onViewsChanged={views.refetch} total={applications.length}
         onExport={async () => { try { await jobsApi.exportCsv(jobId, debounced); } catch (cause) { toast.error(message(cause, 'Não foi possível exportar.')); } }} />
@@ -161,7 +166,7 @@ export default function JobCandidatesPage() {
         <div role="region" aria-label="Ações em lote" className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border border-purple-300 bg-purple-50 p-3 text-sm shadow">
           <strong>{selectedIds.size} selecionado(s)</strong>
           <select aria-label="Mover para etapa" className="input-v2 text-sm" value={bulkStage} onChange={(event) => setBulkStage(event.target.value)}>
-            <option value="">Mover para…</option>{pipeline.stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
+            <option value="">Mover para…</option>{selectableStages(role, pipeline.stages).map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
           </select>
           <Button size="sm" disabled={!bulkStage} onClick={bulkMove}>Mover</Button>
           <select aria-label="Tag" className="input-v2 text-sm" value={bulkTag} onChange={(event) => setBulkTag(event.target.value)}>
@@ -180,11 +185,11 @@ export default function JobCandidatesPage() {
       ) : view === 'kanban' ? (
         <KanbanBoard pipeline={payload.pipeline} applications={applications} selectedIds={selectedIds} onToggle={toggle} onOpen={setOpenId} onDrop={moveOne} />
       ) : (
-        <CandidatesTable pipeline={payload.pipeline} applications={applications} selectedIds={selectedIds} onToggle={toggle} onOpen={setOpenId} onStageChange={moveOne}
+        <CandidatesTable pipeline={movablePipeline ?? payload.pipeline} applications={applications} selectedIds={selectedIds} onToggle={toggle} onOpen={setOpenId} onStageChange={moveOne}
           onToggleAll={() => setSelectedIds(selectedIds.size === applications.length ? new Set() : new Set(applications.map((app) => app.id)))} />
       )}
 
-      <CandidateDrawer applicationId={openId} pipeline={pipeline} tags={tags.data ?? []} onClose={() => setOpenId(null)} onChanged={refresh} onRequestMove={moveOne} />
+      <CandidateDrawer applicationId={openId} pipeline={movablePipeline} tags={tags.data ?? []} onClose={() => setOpenId(null)} onChanged={refresh} onRequestMove={moveOne} />
       <RejectDialog isOpen={Boolean(reject)} count={reject?.ids.length ?? 0} onClose={() => setReject(null)} onConfirm={confirmReject} />
       <HireDialog isOpen={Boolean(hire)} name={hire?.name ?? ''} onClose={() => setHire(null)} onConfirm={confirmHire} />
     </div>

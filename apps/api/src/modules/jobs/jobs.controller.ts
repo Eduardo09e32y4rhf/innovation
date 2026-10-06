@@ -70,6 +70,13 @@ export class JobsController {
     return copy;
   }
 
+  /** Lista de quem pode ser responsavel (rota estatica: tem prioridade sobre :id). */
+  @Roles('DEV', 'ADMIN', 'RH')
+  @Get('recruiters/eligible')
+  eligibleRecruiters(@CurrentCompany() companyId: string) {
+    return this.scope.eligibleRecruiters(companyId);
+  }
+
   /** Atribuicao de responsaveis: quem recruta nao define o proprio escopo. */
   @Roles('DEV', 'ADMIN', 'RH')
   @Get(':id/recruiters')

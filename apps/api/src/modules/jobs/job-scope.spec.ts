@@ -62,4 +62,13 @@ describe('escopo por vaga (RH_RS)', () => {
       expect(roles).toEqual(['DEV', 'ADMIN', 'RH']);
     }
   });
+
+  it('lista elegivel: so usuarios ativos da propria empresa com perfil RH ou RH_RS; rota fechada ao RH_RS', async () => {
+    const { svc, prisma } = build();
+    await svc.eligibleRecruiters('c1');
+    expect(prisma.user.findMany.mock.calls[0][0].where).toEqual({ companyId: 'c1', isActive: true, role: { in: ['RH_RS', 'RH'] } });
+    expect(prisma.user.findMany.mock.calls[0][0].select).toEqual({ id: true, name: true, role: true });
+    const roles: string[] = Reflect.getMetadata(ROLES_KEY, (JobsController.prototype as any).eligibleRecruiters);
+    expect(roles).toEqual(['DEV', 'ADMIN', 'RH']);
+  });
 });

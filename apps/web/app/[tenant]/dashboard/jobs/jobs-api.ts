@@ -92,6 +92,10 @@ export const jobsApi = {
   createView: (name: string, filters: ApplicationFilters) => request<SavedView>('/jobs/views', { method: 'POST', body: { name, filters } }),
   deleteView: (id: string) => request<unknown>(`/jobs/views/${enc(id)}`, { method: 'DELETE' }),
 
+  recruiters: (jobId: string) => request<{ userId: string; name: string; role: string; assignedAt: string }[]>(`/jobs/${enc(jobId)}/recruiters`),
+  eligibleRecruiters: () => request<{ id: string; name: string; role: string }[]>('/jobs/recruiters/eligible'),
+  assignRecruiters: (jobId: string, userIds: string[]) => request<{ userId: string }[]>(`/jobs/${enc(jobId)}/recruiters`, { method: 'PUT', body: { userIds } }),
+
   // Documentos do candidato (RH e RH - R&S). O token do link so volta na criacao.
   documents: (applicationId: string) => request<DocumentsPayload>(`/jobs/applications/${enc(applicationId)}/documents`),
   createDocumentRequest: (applicationId: string, items: string[], expiresInDays?: number) => request<CreatedRequest>(`/jobs/applications/${enc(applicationId)}/document-requests`, { method: 'POST', body: { items, expiresInDays } }),
