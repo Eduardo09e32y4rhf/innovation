@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -18,6 +18,13 @@ export class PunchController {
   @Get('today')
   today(@CurrentUser() actor: JwtUser) {
     return this.service.today(actor);
+  }
+
+  @Get('receipt/:receipt/pdf')
+  async receiptPdf(@CurrentUser() actor: JwtUser, @Param('receipt') receipt: string, @Res() res: any) {
+    const { buffer, filename } = await this.service.receiptPdf(actor, receipt);
+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="' + filename + '"', 'Content-Length': buffer.length, 'Cache-Control': 'private, no-store' });
+    res.end(buffer);
   }
 
   @Post()

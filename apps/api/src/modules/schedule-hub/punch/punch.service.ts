@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../database/prisma.service';
 import type { JwtUser } from '../../../common/types/auth.types';
@@ -9,6 +9,7 @@ import { DayResolver, minutesBetween } from '../calendar/day-resolver';
 import { HubNotifyService } from '../notify.service';
 import { PolicyService } from '../policy/policy.service';
 import { PunchDto } from './punch.dto';
+import { buildPunchReceiptPdf } from './punch-receipt-pdf';
 import { PUNCH_TYPE_LABEL, describeDistance, evaluateFences, nextPunchType, punchReceipt, speedKmh, type FencePoint, type PunchType } from './punch-rules';
 
 export interface PunchMeta { ipAddress?: string; userAgent?: string }
@@ -61,6 +62,33 @@ export class PunchService {
     } catch {
       return null;
     }
+  }
+
+  /** Comprovante em PDF de uma batida. Cada funcionario so obtem os proprios comprovantes. */
+  async receiptPdf(actor: JwtUser, receipt: string) {
+    const employee = await this.employeeFor(actor);
+    const event = await this.prisma.punchEvent.findFirst({ where: { receipt, companyId: actor.companyId, employeeId: employee.id } });
+    if (!event) throw new NotFoundException('Comprovante nao encontrado.');
+    const company = await this.prisma.company.findUnique({ where: { id: actor.companyId }, select: { name: true, document: true } });
+    const buffer = await buildPunchReceiptPdf({
+      company: { name: company?.name ?? 'Empresa', document: company?.document },
+      employee: { name: employee.name, registration: employee.registration, cpf: employee.cpf, position: employee.position },
+      event: {
+        receipt: event.receipt,
+        typeLabel: PUNCH_TYPE_LABEL[event.type as PunchType] ?? event.type,
+        occurredAt: event.occurredAt,
+        origin: event.origin,
+        address: event.address,
+        latitude: event.latitude,
+        longitude: event.longitude,
+        withinFence: event.withinFence,
+        distanceMeters: event.distanceMeters,
+        ipAddress: event.ipAddress,
+        userAgent: event.userAgent,
+      },
+      issuedAt: new Date(),
+    });
+    return { buffer, filename: `comprovante-ponto-${event.receipt}.pdf` };
   }
 
   /** Estado do ponto de hoje: batidas, próxima batida esperada, escala do dia e política vigente. */

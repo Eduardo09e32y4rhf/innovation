@@ -1,7 +1,10 @@
 'use client';
 
-import { ExternalLink, MapPin } from 'lucide-react';
+import { useState } from 'react';
+import { ExternalLink, FileDown, MapPin } from 'lucide-react';
 import { Button, Drawer } from '@/app/components/ui';
+import { API_URL } from '@/app/lib/api';
+import { readAuthSession } from '@/app/lib/auth-session';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useQuery } from '@/app/hooks/use-data';
 import { hubApi } from '../_lib/hub-api';
@@ -24,6 +27,23 @@ export function DayPanel({ target, overview, onClose, onRequest, onOverride }: {
   const mine = Boolean(target && overview.me?.employee.id === target.employeeId);
   const canWrite = Boolean(overview.capabilities['schedule.write']);
   const today = overview.today;
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [receiptError, setReceiptError] = useState('');
+
+  async function downloadReceipt(receipt: string) {
+    if (downloading) return;
+    setDownloading(receipt); setReceiptError('');
+    try {
+      const token = readAuthSession().token;
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+      const response = await fetch(`${API_URL}/escalas/punch/receipt/${encodeURIComponent(receipt)}/pdf`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) { const body = await response.json().catch(() => null); throw new Error(body?.message || 'Não foi possível gerar o comprovante.'); }
+      const url = URL.createObjectURL(await response.blob());
+      try { const anchor = document.createElement('a'); anchor.href = url; anchor.download = `comprovante-ponto-${receipt}.pdf`; anchor.click(); }
+      finally { URL.revokeObjectURL(url); }
+    } catch (error) { setReceiptError(error instanceof Error ? error.message : 'Não foi possível gerar o comprovante.'); }
+    finally { setDownloading(null); }
+  }
 
   return (
     <Drawer isOpen={Boolean(target)} onClose={onClose} title={target ? fmtDateLong(target.date) : ''} description={data?.employee?.name} maxWidth="max-w-lg">
@@ -49,7 +69,9 @@ export function DayPanel({ target, overview, onClose, onRequest, onOverride }: {
                     )}
                     {event.flags.length > 0 && <p className="mt-1 text-xs text-amber-700">{event.flags.map((flag) => FLAG_LABEL[flag] ?? flag).join(' · ')}</p>}
                     {event.justification && <p className="mt-1 text-xs italic">“{event.justification}”</p>}
-                    <p className="mt-1 font-mono text-[10px] text-fg-sub">Comprovante {event.receipt}</p>
+                    <p className="mt-1 font-mono text-[10px] text-fg-sub">Código {event.receipt}</p>
+                    {mine && <Button type="button" variant="outline" className="mt-2" disabled={downloading === event.receipt} onClick={() => void downloadReceipt(event.receipt)}><FileDown size={15} aria-hidden="true" /> {downloading === event.receipt ? 'Gerando…' : 'Comprovante em PDF'}</Button>}
+                    {receiptError && downloading === null && <p role="alert" className="mt-1 text-xs text-rose-700">{receiptError}</p>}
                   </li>
                 ))}
               </ul>
