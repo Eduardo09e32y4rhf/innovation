@@ -85,7 +85,7 @@ export function buildPunchReceiptPdf(data: PunchReceiptData): Promise<Buffer> {
       ['CPF', maskCpf(data.employee.cpf)],
       ['Cargo', data.employee.position || '—'],
     ]);
-    y += 4;
+    y += 16;
     const place = data.event.address
       || (data.event.latitude != null && data.event.longitude != null ? `${data.event.latitude.toFixed(5)}, ${data.event.longitude.toFixed(5)}` : 'Local não informado');
     const fence = data.event.withinFence == null ? '—' : data.event.withinFence ? 'Dentro da área permitida' : `Fora da área permitida${data.event.distanceMeters != null ? ` (${data.event.distanceMeters} m)` : ''}`;
@@ -97,7 +97,7 @@ export function buildPunchReceiptPdf(data: PunchReceiptData): Promise<Buffer> {
       ['Dispositivo', describeDevice(data.event.userAgent)],
       ['Origem', data.event.origin],
     ]);
-    y += 4;
+    y += 16;
     section('Autenticação', [
       ['Código', data.event.receipt],
       ['Emitido em', `${fmtDate(data.issuedAt)} ${fmtTime(data.issuedAt)}`],
