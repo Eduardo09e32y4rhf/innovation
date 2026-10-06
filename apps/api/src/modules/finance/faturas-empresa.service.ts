@@ -42,7 +42,7 @@ export class FaturasEmpresaService {
     let quote: { total: number; couponDiscount: number } | null = null;
     if (plan && !plan.isFree) {
       const coupon = sub?.couponType && (sub.couponCyclesLeft ?? 1) > 0 ? couponDiscount({ type: sub.couponType, value: sub.couponValue }) : null;
-      const q = this.pricing.calculate((plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, sub?.seatQuantity || 1, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price }, coupon);
+      const q = this.pricing.calculate((plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, sub?.seatQuantity || 1, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price, includedUnits: plan.includedUnits }, coupon);
       quote = { total: Number(q.total), couponDiscount: Number(q.couponDiscount ?? 0) };
     }
     const overdue = open.filter((i) => i.status === 'OVERDUE');
@@ -149,7 +149,7 @@ export class FaturasEmpresaService {
     return plans.map((p) => {
       let monthlyTotal: number | null = null;
       if (!p.isFree) {
-        try { monthlyTotal = Number(this.pricing.calculate((p.commitmentMonths as 1 | 3 | 6 | 12) || 1, seats, { baseMonthlyPrice: p.baseMonthlyPrice, userMonthlyPrice: p.userMonthlyPrice, price: p.price }).total); } catch { monthlyTotal = null; }
+        try { monthlyTotal = Number(this.pricing.calculate((p.commitmentMonths as 1 | 3 | 6 | 12) || 1, seats, { baseMonthlyPrice: p.baseMonthlyPrice, userMonthlyPrice: p.userMonthlyPrice, price: p.price, includedUnits: p.includedUnits }).total); } catch { monthlyTotal = null; }
       } else monthlyTotal = 0;
       return { id: p.id, name: p.name, description: p.description, maxUsers: p.maxUsers, maxEmployees: p.maxEmployees, commitmentMonths: p.commitmentMonths, activeModules: p.activeModules, isFree: p.isFree, isRecommended: p.isRecommended, monthlyTotal, current: p.id === sub?.planId };
     });

@@ -27,6 +27,8 @@ export class PricingService {
       baseMonthlyPrice?: number | string | any;
       userMonthlyPrice?: number | string | any;
       price?: number | string | any;
+      /** Usuarios (ou vagas, no plano R&S) cobertos pela base; so o que passar disso paga o adicional. */
+      includedUnits?: number | string | any;
     },
     coupon?: CouponDiscountInput | null,
   ) {
@@ -59,7 +61,9 @@ export class PricingService {
     const baseGrossCents = baseMonthlyCents * normalizedMonths;
     const baseNetCents = Math.round(baseGrossCents * (10_000 - discountBps) / 10_000);
     const baseDiscountCents = baseGrossCents - baseNetCents;
-    const seatAmountCents = userMonthlyCents * seatQuantity * normalizedMonths;
+    const includedUnits = Math.max(0, Math.trunc(Number(customPricing?.includedUnits ?? 0)) || 0);
+    const extraSeats = Math.max(0, seatQuantity - includedUnits);
+    const seatAmountCents = userMonthlyCents * extraSeats * normalizedMonths;
     const totalBeforeCouponCents = baseNetCents + seatAmountCents;
     const couponDiscountCents = this.couponDiscountCents(totalBeforeCouponCents, normalizedMonths, coupon);
     const totalCents = totalBeforeCouponCents - couponDiscountCents;
@@ -67,6 +71,8 @@ export class PricingService {
     return {
       commitmentMonths: normalizedMonths,
       seatQuantity,
+      includedUnits,
+      extraSeats,
 
       baseMonthlyCents,
       userMonthlyCents,

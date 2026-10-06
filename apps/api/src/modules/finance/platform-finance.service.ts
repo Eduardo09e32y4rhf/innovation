@@ -299,6 +299,7 @@ export class PlatformFinanceService {
           baseMonthlyPrice: plan.baseMonthlyPrice,
           userMonthlyPrice: plan.userMonthlyPrice,
           price: plan.price,
+          includedUnits: plan.includedUnits,
         },
         this.subscriptionCoupon(company.subscription),
       ) : null;
@@ -326,6 +327,7 @@ export class PlatformFinanceService {
           baseMonthlyPrice: plan.baseMonthlyPrice,
           userMonthlyPrice: plan.userMonthlyPrice,
           price: plan.price,
+          includedUnits: plan.includedUnits,
         },
         this.subscriptionCoupon(company.subscription),
       );
@@ -423,6 +425,7 @@ export class PlatformFinanceService {
             baseMonthlyPrice: plan.baseMonthlyPrice,
             userMonthlyPrice: plan.userMonthlyPrice,
             price: plan.price,
+            includedUnits: plan.includedUnits,
           },
           this.subscriptionCoupon(company.subscription),
         );
@@ -671,7 +674,7 @@ export class PlatformFinanceService {
     const quote = this.pricingService.calculate(
       (company.platformPlan.commitmentMonths as any) || 1,
       subscription.seatQuantity,
-      { baseMonthlyPrice: company.platformPlan.baseMonthlyPrice, userMonthlyPrice: company.platformPlan.userMonthlyPrice, price: company.platformPlan.price },
+      { baseMonthlyPrice: company.platformPlan.baseMonthlyPrice, userMonthlyPrice: company.platformPlan.userMonthlyPrice, price: company.platformPlan.price, includedUnits: company.platformPlan.includedUnits },
       this.subscriptionCoupon(subscription),
     );
     const subscriptionId = await this.createRecurringSubscription({ ...company, subscription: { ...subscription, asaasSubscriptionId: null } }, customerId, quote.total);
@@ -708,7 +711,7 @@ export class PlatformFinanceService {
 
     const commitmentMonths = subscription.plan.commitmentMonths as 1 | 3 | 6 | 12;
     const plan = subscription.plan;
-    const quote = this.pricingService.calculate(commitmentMonths, nextSeatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price }, this.subscriptionCoupon(subscription));
+    const quote = this.pricingService.calculate(commitmentMonths, nextSeatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price, includedUnits: plan.includedUnits }, this.subscriptionCoupon(subscription));
 
     if (nextSeatQuantity < subscription.seatQuantity) {
       const updated = await this.prisma.companySubscription.update({

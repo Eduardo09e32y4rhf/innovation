@@ -176,7 +176,7 @@ export class AsaasWebhookProcessorService {
     const remoteId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
     try {
       if (remoteId && subscription.plan && this.asaas.isConfigured()) {
-        const full = this.pricing.calculate((subscription.plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, subscription.seatQuantity, { baseMonthlyPrice: subscription.plan.baseMonthlyPrice, userMonthlyPrice: subscription.plan.userMonthlyPrice, price: subscription.plan.price });
+        const full = this.pricing.calculate((subscription.plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, subscription.seatQuantity, { baseMonthlyPrice: subscription.plan.baseMonthlyPrice, userMonthlyPrice: subscription.plan.userMonthlyPrice, price: subscription.plan.price, includedUnits: subscription.plan.includedUnits });
         await this.asaas.updateSubscription(remoteId, { value: full.total });
       }
       await this.prisma.companySubscription.update({ where: { companyId }, data: { couponCyclesLeft: 0, couponType: null, couponValue: null } });

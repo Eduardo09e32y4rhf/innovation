@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
-const PLAN_FIELDS = ['code', 'name', 'description', 'price', 'cycle', 'commitmentMonths', 'discountPercent', 'baseMonthlyPrice', 'userMonthlyPrice', 'asaasCycle', 'displayOrder', 'isRecommended', 'pricingVersion', 'maxUsers', 'maxEmployees', 'activeModules', 'isActive', 'isFree', 'isHidden'] as const;
+const PLAN_FIELDS = ['code', 'name', 'description', 'price', 'cycle', 'commitmentMonths', 'discountPercent', 'baseMonthlyPrice', 'userMonthlyPrice', 'includedUnits', 'asaasCycle', 'displayOrder', 'isRecommended', 'pricingVersion', 'maxUsers', 'maxEmployees', 'activeModules', 'isActive', 'isFree', 'isHidden'] as const;
 
 @Injectable()
 export class PlatformPlansService {

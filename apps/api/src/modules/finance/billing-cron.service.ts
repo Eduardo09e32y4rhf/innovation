@@ -124,7 +124,7 @@ export class BillingCronService {
         const quote = this.pricing.calculate(
           subscription.plan.commitmentMonths as 1 | 3 | 6 | 12,
           nextSeatQuantity,
-          { baseMonthlyPrice: subscription.plan.baseMonthlyPrice, userMonthlyPrice: subscription.plan.userMonthlyPrice, price: subscription.plan.price },
+          { baseMonthlyPrice: subscription.plan.baseMonthlyPrice, userMonthlyPrice: subscription.plan.userMonthlyPrice, price: subscription.plan.price, includedUnits: subscription.plan.includedUnits },
           coupon,
         );
         const asaasSubscriptionId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
@@ -172,7 +172,7 @@ export class BillingCronService {
       try {
         const plan = subscription.pendingPlanId ? await this.prisma.platformPlan.findUnique({ where: { id: subscription.pendingPlanId } }) : null;
         if (!plan) { await this.prisma.companySubscription.update({ where: { id: subscription.id }, data: { pendingPlanId: null } }); continue; }
-        const quote = this.pricing.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, subscription.seatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price }, subscription.couponType && !(subscription.couponCyclesLeft !== null && subscription.couponCyclesLeft <= 0) ? couponDiscount({ type: subscription.couponType, value: subscription.couponValue }) : null);
+        const quote = this.pricing.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, subscription.seatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price, includedUnits: plan.includedUnits }, subscription.couponType && !(subscription.couponCyclesLeft !== null && subscription.couponCyclesLeft <= 0) ? couponDiscount({ type: subscription.couponType, value: subscription.couponValue }) : null);
         const asaasSubscriptionId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
         if (asaasSubscriptionId && this.asaas.isConfigured()) await this.asaas.updateSubscription(asaasSubscriptionId, { value: quote.total });
         await this.platformFinance.syncMercadoPagoAmount(subscription.companyId, quote.total);

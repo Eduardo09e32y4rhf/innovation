@@ -16,6 +16,15 @@ describe('PricingService', () => {
     expect(() => service.calculate(2, 10)).toThrow(BadRequestException);
   });
 
+  it('cobra so o excedente dos usuarios/vagas incluidos (Premium, R&S, Basico)', () => {
+    const premium = { baseMonthlyPrice: 199.99, userMonthlyPrice: 2, includedUnits: 10 };
+    expect(service.calculate(1, 10, premium).total).toBe(199.99);
+    expect(service.calculate(1, 20, premium).total).toBe(219.99);
+    const rs = { baseMonthlyPrice: 99.99, userMonthlyPrice: 2, includedUnits: 50 };
+    expect(service.calculate(1, 70, rs).total).toBe(139.99);
+    expect(service.calculate(1, 15, { ...rs, includedUnits: 10 }).total).toBe(109.99);
+  });
+
   it('should calculate 1 month correctly (0% discount)', () => {
     // 1 user
     let res = service.calculate(1, 1);

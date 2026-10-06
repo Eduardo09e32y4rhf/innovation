@@ -121,7 +121,7 @@ export class FaturasAcoesService {
 
     const coupon = couponDiscount({ type: dto.kind, value: dto.value });
     const quote = this.pricing.calculate(sub.plan.commitmentMonths as 1 | 3 | 6 | 12, sub.seatQuantity,
-      { baseMonthlyPrice: sub.plan.baseMonthlyPrice, userMonthlyPrice: sub.plan.userMonthlyPrice, price: sub.plan.price }, coupon);
+      { baseMonthlyPrice: sub.plan.baseMonthlyPrice, userMonthlyPrice: sub.plan.userMonthlyPrice, price: sub.plan.price, includedUnits: sub.plan.includedUnits }, coupon);
     if (quote.total <= 0) throw new BadRequestException('O desconto zera a mensalidade.');
 
     const providerSynced = await this.syncRecurringAmount(sub, quote.total);
@@ -235,7 +235,7 @@ export class FaturasAcoesService {
     if (!sub?.plan) throw new NotFoundException('Assinatura ativa nao encontrada.');
     if (sub.plan.maxUsers && seatQuantity > sub.plan.maxUsers) throw new BadRequestException(`O plano atual permite no maximo ${sub.plan.maxUsers} usuarios.`);
     const coupon = sub.couponType && !(sub.couponCyclesLeft !== null && sub.couponCyclesLeft <= 0) ? couponDiscount({ type: sub.couponType, value: sub.couponValue }) : null;
-    const prices = { baseMonthlyPrice: sub.plan.baseMonthlyPrice, userMonthlyPrice: sub.plan.userMonthlyPrice, price: sub.plan.price };
+    const prices = { baseMonthlyPrice: sub.plan.baseMonthlyPrice, userMonthlyPrice: sub.plan.userMonthlyPrice, price: sub.plan.price, includedUnits: sub.plan.includedUnits };
     const months = sub.plan.commitmentMonths as 1 | 3 | 6 | 12;
     const current = this.pricing.calculate(months, sub.seatQuantity, prices, coupon);
     const next = this.pricing.calculate(months, seatQuantity, prices, coupon);
@@ -293,7 +293,7 @@ export class FaturasAcoesService {
     }
     const coupon = sub.couponType && !(sub.couponCyclesLeft !== null && sub.couponCyclesLeft <= 0) ? couponDiscount({ type: sub.couponType, value: sub.couponValue }) : null;
     const months = sub.plan.commitmentMonths as 1 | 3 | 6 | 12;
-    const priceOf = (p: typeof next) => this.pricing.calculate(months, sub.seatQuantity, { baseMonthlyPrice: p.baseMonthlyPrice, userMonthlyPrice: p.userMonthlyPrice, price: p.price }, coupon);
+    const priceOf = (p: typeof next) => this.pricing.calculate(months, sub.seatQuantity, { baseMonthlyPrice: p.baseMonthlyPrice, userMonthlyPrice: p.userMonthlyPrice, price: p.price, includedUnits: p.includedUnits }, coupon);
     const current = priceOf(sub.plan);
     const upcoming = priceOf(next);
     const periodEnd = sub.nextDueDate ?? sub.currentPeriodEnd;
@@ -374,7 +374,7 @@ export class FaturasAcoesService {
     if (plan.maxUsers && input.seatQuantity > plan.maxUsers) throw new BadRequestException(`O plano permite no maximo ${plan.maxUsers} usuarios.`);
 
     const months = plan.commitmentMonths as 1 | 3 | 6 | 12;
-    const quote = this.pricing.calculate(months, input.seatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price });
+    const quote = this.pricing.calculate(months, input.seatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price, includedUnits: plan.includedUnits });
     const now = new Date();
     const end = new Date(now);
     end.setUTCMonth(end.getUTCMonth() + months);
@@ -472,7 +472,7 @@ export class FaturasAcoesService {
       const discount = couponDiscount(coupon);
       if (!discount) throw new BadRequestException('Este cupom nao tem desconto aplicavel.');
       const quote = this.pricing.calculate(sub.plan.commitmentMonths as 1 | 3 | 6 | 12, sub.seatQuantity,
-        { baseMonthlyPrice: sub.plan.baseMonthlyPrice, userMonthlyPrice: sub.plan.userMonthlyPrice, price: sub.plan.price }, discount);
+        { baseMonthlyPrice: sub.plan.baseMonthlyPrice, userMonthlyPrice: sub.plan.userMonthlyPrice, price: sub.plan.price, includedUnits: sub.plan.includedUnits }, discount);
       if (quote.total <= 0) throw new BadRequestException('O cupom zera a mensalidade.');
       const providerSynced = await this.syncRecurringAmount(sub, quote.total);
       await this.prisma.companySubscription.update({

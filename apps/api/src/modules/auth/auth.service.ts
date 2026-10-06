@@ -74,6 +74,7 @@ export class AuthService {
       baseMonthlyPrice: plan.baseMonthlyPrice ? Number(plan.baseMonthlyPrice) : undefined,
       userMonthlyPrice: plan.userMonthlyPrice ? Number(plan.userMonthlyPrice) : undefined,
       price: plan.price ? Number(plan.price) : undefined,
+      includedUnits: plan.includedUnits ?? 0,
     };
     if (!dto.couponCode) return { ...this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, pricing), trialDays: 0, couponApplied: false };
     const coupon = await this.repository.findCouponByCode(dto.couponCode);
