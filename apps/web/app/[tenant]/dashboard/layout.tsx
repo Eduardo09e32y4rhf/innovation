@@ -16,12 +16,15 @@ import { WorkspaceProvider } from './_components/shell-v2/workspace-context';
 import { WorkspaceRouteGate } from './_components/shell-v2/route-gate';
 import type { SidebarMode } from './_components/shell-v2/sidebar';
 import { resolveUserRole } from '@/app/lib/user-role';
+import { ceoOnboardingPending } from '../../ceo-onboarding/steps';
 import { readParsedAuthSession } from '@/app/lib/auth-session';
 import { api } from '@/app/lib/api';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const ceoPending = ceoOnboardingPending(user as any);
+  useEffect(() => { if (ceoPending) router.replace('/ceo-onboarding'); }, [ceoPending, router]);
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('auto');

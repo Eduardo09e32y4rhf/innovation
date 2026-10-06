@@ -81,4 +81,23 @@ export class DocumentService {
     const stream = await this.storageService.getFileStream(doc.storageKey);
     return { stream, filename: `${doc.title}.pdf`, size: doc.sizeBytes };
   }
+
+  /** Bytes do PDF gerado. O chamador e responsavel por autorizar o acesso ao documento. */
+  async readBuffer(documentId: string): Promise<Buffer> {
+    const doc = await this.prisma.generatedDocument.findUnique({ where: { id: documentId } });
+    if (!doc) throw new BadRequestException('Documento não encontrado');
+    const stream = await this.storageService.getFileStream(doc.storageKey);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream as AsyncIterable<Buffer | string>) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    return Buffer.concat(chunks);
+  }
+
+  /** Registra um PDF recebido de fora (ex.: assinado no gov.br) em armazenamento privado, com SHA-256. */
+  async storeExternalPdf(companyId: string, title: string, buffer: Buffer, authorId?: string): Promise<{ id: string; storageKey: string; sha256: string }> {
+    const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+    const storageKey = `docs/${companyId}/signed-${Date.now()}-${sha256.substring(0, 8)}.pdf`;
+    await this.storageService.saveFile(storageKey, buffer);
+    const record = await this.prisma.generatedDocument.create({ data: { companyId, type: 'CONTRACT', title, storageKey, sha256, sizeBytes: buffer.length, createdBy: authorId } });
+    return { id: record.id, storageKey, sha256 };
+  }
 }

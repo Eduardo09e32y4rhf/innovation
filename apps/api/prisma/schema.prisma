@@ -544,6 +544,15 @@ model CEOContract {
   challengeUsedAt    DateTime?
   signatureHash      String?
   signedAt           DateTime?
+  /// Assinatura externa (gov.br): PDF assinado enviado pelas partes, conferido e confirmado pelo DEV.
+  signedPdfDocumentId String?
+  signedPdfIntegrity  String?
+  signatureCount      Int       @default(0)
+  signedUploadedById  String?   @db.Uuid
+  signedUploadedAt    DateTime?
+  verifiedById        String?   @db.Uuid
+  verifiedAt          DateTime?
+  verificationNote    String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 

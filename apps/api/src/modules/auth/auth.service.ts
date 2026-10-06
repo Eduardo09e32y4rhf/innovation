@@ -575,11 +575,13 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.newPassword, 12);
     
     const nextPrevious = [freshUser.passwordHash, ...freshUser.previousPasswords].slice(0, 10);
+    // CEO em onboarding: a troca de senha libera o preenchimento dos proprios dados (a identidade e comprovada na assinatura gov.br).
+    const nextOnboarding = freshUser.role === 'CEO' && freshUser.onboardingState === 'PASSWORD_CHANGE' ? 'PROFILE_REQUIRED' : undefined;
     await this.repository.updatePassword(
       freshUser.id,
       passwordHash,
       nextPrevious,
-      undefined,
+      nextOnboarding,
     );
     // Troca de senha encerra as outras sessões; a atual (cookie) continua.
     await this.sessions.revokeAllForUser(freshUser.id, (await this.sessions.familyOf(refreshToken)) ?? undefined);

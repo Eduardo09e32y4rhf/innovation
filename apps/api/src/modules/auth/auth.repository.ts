@@ -222,7 +222,7 @@ export class AuthRepository {
     });
   }
 
-  updatePassword(userId: string, passwordHash: string, previousPasswords: string[] = [], onboardingState?: 'FACE_ENROLLMENT') {
+  updatePassword(userId: string, passwordHash: string, previousPasswords: string[] = [], onboardingState?: 'PROFILE_REQUIRED') {
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.user.update({
         where: { id: userId },

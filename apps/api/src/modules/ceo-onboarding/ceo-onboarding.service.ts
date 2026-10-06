@@ -1,11 +1,12 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { DocumentService } from '../documents/document.service';
 import type { JwtUser } from '../../common/types/auth.types';
 import { UpdateCeoProfileDto } from './dto/update-ceo-profile.dto';
 import { IssueCeoContractDto } from './dto/issue-ceo-contract.dto';
+import { canConfirm, checkSignedUpload } from './signed-pdf.rules';
 
 @Injectable()
 export class CeoOnboardingService {
@@ -64,17 +65,74 @@ export class CeoOnboardingService {
     return { ...updated, documentId: document.id };
   }
 
-  async createChallenge(actor: JwtUser) {
-    const contract = await this.prisma.cEOContract.findFirst({ where: { ceoUserId: actor.sub, signedAt: null }, orderBy: { createdAt: 'desc' } });
-    if (!contract) throw new NotFoundException('Contrato pendente nao encontrado.');
-    if (actor.role !== 'CEO') throw new ForbiddenException('Somente o CEO pode iniciar a assinatura.');
-    const challenge = randomBytes(32).toString('base64url');
-    await this.prisma.cEOContract.update({ where: { id: contract.id }, data: { challengeHash: createHash('sha256').update(challenge).digest('hex'), challengeExpiresAt: new Date(Date.now() + 10 * 60 * 1000), challengeUsedAt: null } });
-    return { challenge, contractId: contract.id, contentHash: contract.contentHash, expiresInSeconds: 600 };
+  // ─── Assinatura pelo gov.br (gratuita; a biometria facial e feita pelo proprio gov.br na conta prata/ouro) ───
+
+  private async loadContract(actor: JwtUser, contractId: string) {
+    const contract = await this.prisma.cEOContract.findUnique({ where: { id: contractId }, include: { ceo: { select: { id: true, companyId: true, onboardingState: true } } } });
+    const allowed = contract && (actor.role === 'DEV' || (actor.role === 'CEO' && contract.ceoUserId === actor.sub));
+    if (!contract || !allowed) throw new NotFoundException('Contrato nao encontrado.');
+    return contract;
   }
 
-  async sign(actor: JwtUser, contractId: string, challenge: string, contentHash: string) {
-    if (actor.role !== 'CEO') throw new ForbiddenException('Somente o CEO pode assinar.');
-    throw new BadRequestException('Assinatura bloqueada: a verificacao facial real do servidor ainda nao foi habilitada.');
+  /** PDF da minuta (para assinar) ou a versao assinada mais recente. So o CEO titular e o DEV leem. */
+  async contractFile(actor: JwtUser, contractId: string, which: 'original' | 'signed') {
+    const contract = await this.loadContract(actor, contractId);
+    const documentId = which === 'signed' ? contract.signedPdfDocumentId : contract.pdfDocumentId;
+    if (!documentId) throw new NotFoundException('Arquivo nao disponivel.');
+    return { buffer: await this.documents.readBuffer(documentId), name: `contrato-ceo-${contract.version}${which === 'signed' ? '-assinado' : ''}.pdf` };
   }
-}
+
+  /** Cada parte (CEO e DEV) envia o PDF com a sua assinatura nova; cada envio precisa acrescentar uma assinatura. */
+  async uploadSigned(actor: JwtUser, contractId: string, file: Buffer) {
+    const contract = await this.loadContract(actor, contractId);
+    if (contract.verifiedAt || contract.signedAt) throw new ConflictException('Este contrato ja foi concluido.');
+    if (actor.role === 'CEO' && contract.ceo.onboardingState !== 'CONTRACT_PENDING') throw new ConflictException('O contrato ainda nao esta liberado para assinatura nesta etapa.');
+    if (!contract.pdfDocumentId) throw new ConflictException('A minuta em PDF nao foi gerada.');
+
+    const previous = await this.documents.readBuffer(contract.signedPdfDocumentId ?? contract.pdfDocumentId);
+    const check = checkSignedUpload(previous, contract.signatureCount, file);
+    if (!check.ok) throw new BadRequestException(check.reason);
+
+    const integrity = contract.signedPdfIntegrity === 'NOT_VERIFIABLE' || check.integrity === 'NOT_VERIFIABLE' ? 'NOT_VERIFIABLE' : 'PREFIX_MATCH';
+    const stored = await this.documents.storeExternalPdf(contract.ceo.companyId, `Contrato CEO ${contract.version} assinado (${check.signatureCount} assinatura(s))`, file, actor.sub);
+    // Concorrencia: so avanca se ninguem enviou outra versao nesse meio tempo.
+    const result = await this.prisma.cEOContract.updateMany({
+      where: { id: contractId, signatureCount: contract.signatureCount, verifiedAt: null },
+      data: { signedPdfDocumentId: stored.id, signedPdfIntegrity: integrity, signatureCount: check.signatureCount, signatureHash: stored.sha256, signedUploadedById: actor.sub, signedUploadedAt: new Date() },
+    });
+    if (!result.count) throw new ConflictException('Outra versao foi enviada ao mesmo tempo. Baixe a versao mais recente e assine novamente.');
+    await this.prisma.auditLog.create({ data: { companyId: contract.ceo.companyId, userId: actor.sub, action: 'CEO_CONTRACT_SIGNED_PDF_UPLOADED', entity: 'CEOContract', entityId: contractId, metadata: { signatureCount: check.signatureCount, integrity, sha256: stored.sha256 } } });
+    return { signatureCount: check.signatureCount, integrity, awaitingOtherParty: check.signatureCount < 2 };
+  }
+
+  async pendingVerification(actor: JwtUser) {
+    if (actor.role !== 'DEV') throw new ForbiddenException('Somente o DEV confirma assinaturas.');
+    return this.prisma.cEOContract.findMany({
+      where: { signedPdfDocumentId: { not: null }, verifiedAt: null },
+      orderBy: { signedUploadedAt: 'desc' },
+      select: { id: true, ceoUserId: true, version: true, signatureCount: true, signedPdfIntegrity: true, signedUploadedAt: true },
+    });
+  }
+
+  /**
+   * O DEV confirma depois de validar o PDF em https://validar.iti.gov.br e conferir que e a minuta emitida.
+   * So entao o contrato conta como assinado e o CEO e liberado.
+   */
+  async confirm(actor: JwtUser, contractId: string, dto: { checkedItiValidator: boolean; documentMatches: boolean; note?: string }) {
+    if (actor.role !== 'DEV') throw new ForbiddenException('Somente o DEV confirma assinaturas.');
+    if (dto.checkedItiValidator !== true || dto.documentMatches !== true) {
+      throw new BadRequestException('Confirme que validou as assinaturas no validador do ITI e que o PDF e a minuta emitida.');
+    }
+    const contract = await this.loadContract(actor, contractId);
+    const verdict = canConfirm(contract);
+    if (!verdict.ok) throw new ConflictException(verdict.reason);
+    const now = new Date();
+    const note = dto.note?.trim().slice(0, 500) || null;
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.cEOContract.updateMany({ where: { id: contractId, verifiedAt: null }, data: { verifiedById: actor.sub, verifiedAt: now, signedAt: now, verificationNote: note } });
+      if (!result.count) throw new ConflictException('Contrato ja confirmado.');
+      await tx.user.update({ where: { id: contract.ceoUserId }, data: { onboardingState: 'ACTIVE' } });
+      await tx.auditLog.create({ data: { companyId: contract.ceo.companyId, userId: actor.sub, action: 'CEO_CONTRACT_CONFIRMED', entity: 'CEOContract', entityId: contractId, metadata: { integrity: contract.signedPdfIntegrity, signatureCount: contract.signatureCount, note } } });
+    });
+    return { confirmed: true, onboardingState: 'ACTIVE' };
+  }}
