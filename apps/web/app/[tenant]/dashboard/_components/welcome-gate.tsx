@@ -7,7 +7,7 @@ import { request } from '@/app/lib/api';
 /** Estilos escopados (prefixo iw-) do modal de boas-vindas. */
 const CSS = `
 .iw-overlay{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(15,20,38,.63);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.iw-modal{position:relative;width:min(100%,1050px);min-height:min(610px,calc(100vh - 48px));max-height:calc(100vh - 48px);overflow-y:auto;display:grid;grid-template-columns:53% 47%;border-radius:28px;background:linear-gradient(145deg,#fff 0%,#fefeff 60%,#f5efff 100%);box-shadow:0 40px 100px rgba(5,5,25,.42);animation:iw-enter .55s cubic-bezier(.16,1,.3,1)}
+.iw-modal{position:relative;width:min(100%,1050px);align-items:end;max-height:calc(100vh - 48px);overflow-y:auto;display:grid;grid-template-columns:53% 47%;border-radius:28px;background:linear-gradient(145deg,#fff 0%,#fefeff 60%,#f5efff 100%);box-shadow:0 40px 100px rgba(5,5,25,.42);animation:iw-enter .55s cubic-bezier(.16,1,.3,1)}
 @keyframes iw-enter{from{opacity:0;transform:translateY(35px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
 .iw-content{position:relative;z-index:5;padding:44px 30px 36px 54px}
 .iw-first{display:inline-flex;align-items:center;gap:8px;padding:8px 13px;border-radius:999px;background:linear-gradient(90deg,#eee5ff,#e4d8ff);color:#6521ef;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
@@ -26,10 +26,10 @@ const CSS = `
 .iw-start:disabled{opacity:.7;cursor:wait}
 .iw-start .iw-arrow{font-size:22px;transition:transform .2s ease}
 .iw-start:hover:not(:disabled) .iw-arrow{transform:translateX(5px)}
-.iw-visual{position:relative;overflow:hidden;min-height:610px;background:#f4eeff}
-.iw-visual img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:left center;user-select:none;-webkit-user-drag:none}
-@media (max-width:900px){.iw-modal{grid-template-columns:1fr;max-height:calc(100vh - 30px);overflow-y:auto}.iw-content{padding:40px 35px}.iw-visual{min-height:430px}}
-@media (max-width:560px){.iw-overlay{padding:10px}.iw-modal{border-radius:20px}.iw-content{padding:28px 20px}.iw-title{font-size:34px}.iw-desc{font-size:14px}.iw-feature{min-height:70px}.iw-start{width:100%}.iw-visual{min-height:350px}}
+.iw-visual{align-self:end;line-height:0}
+.iw-visual img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 16%),linear-gradient(180deg,transparent 0,#000 8%);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent 0,#000 16%),linear-gradient(180deg,transparent 0,#000 8%);mask-composite:intersect}
+@media (max-width:900px){.iw-modal{grid-template-columns:1fr;max-height:calc(100vh - 30px);overflow-y:auto}.iw-content{padding:40px 35px}.iw-visual{width:min(100%,440px);margin:0 auto;align-self:center}}
+@media (max-width:560px){.iw-overlay{padding:10px}.iw-modal{border-radius:20px}.iw-content{padding:28px 20px}.iw-title{font-size:34px}.iw-desc{font-size:14px}.iw-feature{min-height:70px}.iw-start{width:100%}}
 @media (prefers-reduced-motion:reduce){.iw-modal{animation:none}}
 `;
 
