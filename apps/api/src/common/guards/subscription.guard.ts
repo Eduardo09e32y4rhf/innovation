@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
 import { SKIP_SUBSCRIPTION_CHECK_KEY } from '../decorators/skip-subscription-check.decorator';
 import type { JwtUser } from '../types/auth.types';
+import { assertAccessToken } from './access-token';
 
 /** Rotas que continuam abertas para a empresa regularizar a situação. */
 const ALWAYS_ALLOWED = ['/auth/', '/health', '/finance/company/', '/faturas/empresa', '/faturas/permissoes/minhas', '/legal/', '/finance/webhook/'];
@@ -61,7 +62,9 @@ export class SubscriptionActiveGuard implements CanActivate {
   private async readJwt(authorization?: string): Promise<JwtUser | null> {
     if (!authorization?.startsWith('Bearer ')) return null;
     try {
-      return await this.jwt.verifyAsync<JwtUser>(authorization.slice(7));
+      const payload = await this.jwt.verifyAsync<JwtUser>(authorization.slice(7));
+      assertAccessToken(payload);
+      return payload;
     } catch {
       return null; // O JwtAuthGuard rejeita tokens inválidos.
     }

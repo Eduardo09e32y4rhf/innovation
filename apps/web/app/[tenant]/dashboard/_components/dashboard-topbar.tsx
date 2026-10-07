@@ -44,9 +44,8 @@ export function DashboardTopbar({
     setProfileOpen(false);
   }
 
-  function handleLogout() {
-    logout();
-    router.push('/login');
+  async function handleLogout() {
+    if (await logout()) router.push('/login');
   }
 
   return (

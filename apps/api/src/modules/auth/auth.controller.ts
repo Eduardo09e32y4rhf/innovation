@@ -163,8 +163,8 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
-  changePassword(@CurrentUser() user: JwtUser, @Body() dto: ChangePasswordDto, @Req() request: any) {
-    return this.service.changePassword(user, dto, getRequestMeta(request), request.cookies?.[REFRESH_COOKIE]);
+  async changePassword(@CurrentUser() user: JwtUser, @Body() dto: ChangePasswordDto, @Req() request: any, @Res({ passthrough: true }) reply: any) {
+    return withRefreshCookie(reply, await this.service.changePassword(user, dto, getRequestMeta(request), request.cookies?.[REFRESH_COOKIE]));
   }
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'RH', 'DEV')

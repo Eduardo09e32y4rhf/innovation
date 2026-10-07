@@ -1,6 +1,7 @@
 'use client';
 
 import { clearAuthSession, persistAuthSession, readAuthSession, readParsedAuthSession } from './auth-session';
+import { refreshSession } from './refresh-session';
 import { resetAllQueryStates } from '@/app/hooks/use-data';
 
 /**
@@ -82,9 +83,8 @@ export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
 
   if (res.status === 401 && path !== '/auth/refresh') {
     try {
-      const refresh = await fetch(`${API_URL}/auth/refresh`, { method: 'POST', credentials: 'include' });
-      if (refresh.ok) {
-        const refreshed = await refresh.json().catch(() => null);
+      const refreshed = await refreshSession(API_URL);
+      if (refreshed) {
         const nextToken = refreshed?.data?.access_token ?? refreshed?.access_token;
         if (nextToken && typeof window !== 'undefined') {
           const session = readParsedAuthSession();

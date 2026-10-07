@@ -20,7 +20,7 @@ export default function PortalLayout({ children, params }: { children: React.Rea
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand/10 font-semibold text-brand" aria-hidden>{user?.name?.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?'}</span>
           <span className="max-w-[180px] break-words text-sm">{user?.name}</span>
-          <Button type="button" variant="outline" onClick={() => { logout(); router.replace('/login'); }}>Sair</Button>
+          <Button type="button" variant="outline" onClick={async () => { if (await logout()) router.replace('/login'); }}>Sair</Button>
         </div>
       </div>
       <nav aria-label="Portal do funcionário" className="flex flex-wrap gap-1">{items.map(([suffix, label]) => <Link key={suffix} href={base + suffix} aria-current={pathname === base + suffix ? 'page' : undefined}

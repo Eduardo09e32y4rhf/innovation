@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Unauthor
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
 import { isCeoOnboardingRestricted, isRouteAllowedDuringCeoOnboarding } from './ceo-onboarding-gate';
+import { assertAccessToken } from './access-token';
 
 const SESSION_DENIED_MESSAGE = 'Não foi possível entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
@@ -26,6 +27,7 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token, { secret: process.env.JWT_SECRET });
+      assertAccessToken(payload);
       const freshUser = await this.prisma.user.findUnique({
         where: { id: payload.sub },
         include: { company: true },
@@ -36,11 +38,15 @@ export class JwtAuthGuard implements CanActivate {
       const companyActive = freshUser.company && (freshUser.company.status ?? 'ACTIVE') === 'ACTIVE' && freshUser.company.billingStatus !== 'CANCELED';
       if (role !== 'DEV' && !companyActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
-      const tokenIssuedAt = typeof payload?.iat === 'number' ? payload.iat * 1000 : null;
       const passwordChangedAt = freshUser.passwordChangedAt ? new Date(freshUser.passwordChangedAt).getTime() : 0;
-      if (tokenIssuedAt && passwordChangedAt && tokenIssuedAt < passwordChangedAt) {
+      if (payload.passwordVersion !== passwordChangedAt || typeof payload.sessionFamily !== 'string') {
         throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
       }
+      const session = await this.prisma.refreshSession.findFirst({
+        where: { userId: freshUser.id, family: payload.sessionFamily, revokedAt: null, expiresAt: { gt: new Date() } },
+        select: { id: true },
+      });
+      if (!session) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
       const changedAt = freshUser.passwordChangedAt ? new Date(freshUser.passwordChangedAt).getTime() : 0;
       const passwordExpired =
@@ -52,6 +58,9 @@ export class JwtAuthGuard implements CanActivate {
       }
 
       request.user = {
+        purpose: 'access',
+        sessionFamily: payload.sessionFamily,
+        passwordVersion: payload.passwordVersion,
         sub: freshUser.id,
         email: freshUser.email,
         name: freshUser.name,

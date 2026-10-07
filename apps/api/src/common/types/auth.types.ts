@@ -1,6 +1,9 @@
 export type UserRole = 'DEV' | 'CEO' | 'CONTABIL' | 'COMERCIAL' | 'ADMIN' | 'RH' | 'RH_RS' | 'GESTOR' | 'FUNCIONARIO' | 'CONSULTA';
 
 export interface JwtUser {
+  purpose?: 'access';
+  sessionFamily?: string;
+  passwordVersion?: number;
   sub: string;
   email: string;
   name?: string;
