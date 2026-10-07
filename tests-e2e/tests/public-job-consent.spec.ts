@@ -43,8 +43,11 @@ test('candidatura publica nao envia dados sem consentimento explicito', async ({
 
   const consent = page.getByRole('checkbox', { name: /Autorizo o tratamento/ });
   await expect(consent).not.toBeChecked();
-  await page.getByRole('button', { name: 'Enviar candidatura' }).click();
+  await expect(page.getByRole('button', { name: 'Enviar candidatura' })).toBeDisabled();
 
   expect(await consent.evaluate((element: HTMLInputElement) => element.checkValidity())).toBe(false);
   expect(applicationRequests).toBe(0);
+  await consent.check();
+  await page.getByRole('button', { name: 'Enviar candidatura' }).click();
+  await expect.poll(() => applicationRequests).toBe(1);
 });
