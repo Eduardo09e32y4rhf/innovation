@@ -10,7 +10,10 @@ describe('subsecoes da Plataforma', () => {
   });
   it('Configuracoes so para DEV; Resumo: alertas so DEV e COMERCIAL', () => {
     expect(subsFor('configuracoes', 'DEV').map((s) => s.key)).toEqual(['global', 'permissoes', 'acessos']);
-    for (const role of ['CEO', 'COMERCIAL', 'CONTABIL', 'ADMIN', 'RH_RS']) expect(subsFor('configuracoes', role)).toEqual([]);
+    // Quem tinha Configuracao/Acessos no menu antigo continua com acesso (CEO: global + acessos; COMERCIAL: acessos).
+    expect(subsFor('configuracoes', 'CEO').map((s) => s.key)).toEqual(['global', 'acessos']);
+    expect(subsFor('configuracoes', 'COMERCIAL').map((s) => s.key)).toEqual(['acessos']);
+    for (const role of ['CONTABIL', 'ADMIN', 'RH_RS']) expect(subsFor('configuracoes', role)).toEqual([]);
     expect(subsFor('resumo', 'DEV').map((s) => s.key)).toEqual(['visao', 'alertas']);
     expect(subsFor('resumo', 'CEO').map((s) => s.key)).toEqual(['visao']);
   });

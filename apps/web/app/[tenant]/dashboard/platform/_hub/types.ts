@@ -7,8 +7,8 @@ export const TAB_LABEL: Record<HubTab, string> = {
 
 export const TAB_POLICY: Record<string, HubTab[]> = {
   DEV: ['resumo', 'empresas', 'dossie', 'comercial', 'suporte', 'auditoria', 'configuracoes'],
-  CEO: ['resumo', 'empresas', 'dossie', 'suporte', 'auditoria'],
-  COMERCIAL: ['resumo', 'empresas', 'dossie', 'comercial'],
+  CEO: ['resumo', 'empresas', 'dossie', 'suporte', 'auditoria', 'configuracoes'],
+  COMERCIAL: ['resumo', 'empresas', 'dossie', 'comercial', 'configuracoes'],
   CONTABIL: ['resumo'],
 };
 

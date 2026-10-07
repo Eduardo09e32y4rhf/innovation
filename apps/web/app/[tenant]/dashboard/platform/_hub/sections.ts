@@ -20,9 +20,9 @@ const SUBS: Record<string, Array<SubSection & { roles: readonly string[] }>> = {
     { key: 'logs', label: 'Auditoria', roles: ['DEV', 'CEO', 'COMERCIAL'] },
   ],
   configuracoes: [
-    { key: 'global', label: 'Configuração global', roles: ['DEV'] },
+    { key: 'global', label: 'Configuração global', roles: ['DEV', 'CEO'] },
     { key: 'permissoes', label: 'Permissões', roles: ['DEV'] },
-    { key: 'acessos', label: 'Acessos técnicos', roles: ['DEV'] },
+    { key: 'acessos', label: 'Acessos técnicos', roles: ['DEV', 'CEO', 'COMERCIAL'] },
   ],
 };
 
