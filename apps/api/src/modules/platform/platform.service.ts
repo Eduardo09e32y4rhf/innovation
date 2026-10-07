@@ -73,6 +73,9 @@ export class PlatformService {
 
     // Mantem a identidade do DEV: nao impersona o admin da empresa
     const payload = {
+      purpose: 'access' as const,
+      sessionFamily: actor.sessionFamily,
+      passwordVersion: actor.passwordVersion,
       sub: actor.sub,
       email: actor.email,
       name: actor.name,

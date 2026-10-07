@@ -1,9 +1,9 @@
-﻿FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
 COPY apps/web/package*.json ./apps/web/
-RUN npm install
+RUN npm ci
 COPY . .
 RUN cd apps/api && npx prisma generate
 RUN npm run build:api

@@ -11,6 +11,8 @@ import {
 } from '@/app/lib/auth-session';
 import api from '@/app/lib/api';
 import { setFaturasPermissions } from '@/app/lib/permissions';
+import { toast } from 'sonner';
+import { refreshSession } from '@/app/lib/refresh-session';
 
 export interface User {
   id: string;
@@ -45,7 +47,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   verifyMfa: (mfaToken: string, code: string, recoveryCode?: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<boolean>;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
   isDev: boolean;
@@ -135,10 +137,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!session.token) {
         // Após um reload, o access token volta do cookie httpOnly por rotação.
         try {
-          const refreshed = await fetch(`${getApiUrl()}/auth/refresh`, { method: 'POST', credentials: 'include' });
-          if (refreshed.ok) {
-            const payload = await refreshed.json();
-            const authData = payload.data ?? payload;
+          const authData = await refreshSession(getApiUrl());
+          if (authData) {
             const authUser = authData.user;
             if (authData.access_token && authUser) {
               const nextUser: User = {
@@ -338,6 +338,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok) throw new Error(payload?.message || payload?.error?.message || 'Não foi possível trocar a senha.');
+    const authData = payload?.data ?? payload;
+    if (!authData?.access_token || !user || !company) throw new Error('Entre novamente para concluir a troca de senha.');
+    const nextUser = { ...user, onboardingState: authData.onboardingState ?? user.onboardingState };
+    const nextCompany = authData.company ?? company;
+    persistAuthSession(authData.access_token, nextUser, nextCompany, false, isIsolatedTab);
+    setToken(authData.access_token);
+    setUser(nextUser);
+    setCompany(nextCompany);
     setPasswordChangeRequired(false);
   };
 
@@ -350,10 +358,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (currentToken !== token) setToken(currentToken);
     await refreshStoredUser(currentToken, currentCompany);
   };
-  const logout = React.useCallback(() => {
-    clearStoredSession();
-    setError(null);
-  }, []);
+  const logout = async (): Promise<boolean> => {
+    try {
+      if (token !== LOCAL_SESSION_TOKEN) {
+        const response = await fetch(`${getApiUrl()}/auth/logout`, {
+          method: 'POST', credentials: 'include',
+        });
+        if (!response.ok) throw new Error('Não foi possível encerrar a sessão no servidor. Tente sair novamente.');
+      }
+      clearStoredSession();
+      setFaturasPermissions(null);
+      setError(null);
+      return true;
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Não foi possível encerrar a sessão. Tente novamente.';
+      setError(message);
+      toast.error(message);
+      return false;
+    }
+  };
 
   // Permissões de Faturas resolvidas pelo servidor (inclui o que o DEV definiu para o perfil). Mudar o estado re-renderiza os consumidores.
   const [, setFaturasVersion] = useState(0);

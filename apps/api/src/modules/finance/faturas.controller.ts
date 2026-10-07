@@ -92,7 +92,8 @@ export class FaturasController {
     return this.service.createManualMercadoPagoLink(id, actor);
   }
 
-  // ---- Visão da empresa: trocar plano e usuários (com rateio) ----  @Get('empresa/seats/quote')
+  // ---- Visão da empresa: trocar plano e usuários (com rateio) ----
+  @Get('empresa/seats/quote')
   @RequireFaturasPermission('faturas.plano')
   companySeatsQuote(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Query('seatQuantity') seatQuantity: string) {
     return this.acoes.quoteSeats(companyId, Number(seatQuantity), actor);

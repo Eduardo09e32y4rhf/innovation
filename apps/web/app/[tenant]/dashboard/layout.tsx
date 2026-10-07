@@ -85,7 +85,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Suspense>
 
           <div className="workspace-body flex flex-col">
-            {assisted && <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-50 px-4 py-2 text-sm text-amber-950"><span>Acesso assistido: você está na empresa do cliente.</span><button type="button" className="btn btn-outline" onClick={() => { logout(); router.replace('/login'); }}>Encerrar acesso assistido</button></div>}
+            {assisted && <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-50 px-4 py-2 text-sm text-amber-950"><span>Acesso assistido: você está na empresa do cliente.</span><button type="button" className="btn btn-outline" onClick={async () => { if (await logout()) router.replace('/login'); }}>Encerrar acesso assistido</button></div>}
             {billingBlocked && (
               <div className="bg-danger text-white text-center py-2 px-4 text-sm font-bold">
                 Sua fatura está vencida. Regularize o pagamento para evitar o bloqueio da plataforma.

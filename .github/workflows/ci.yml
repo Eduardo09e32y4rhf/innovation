@@ -15,7 +15,9 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '24'
+  # Validação do schema e geração do client não abrem conexão. Jobs de banco sobrescrevem esta URL.
+  DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_validation?schema=public
 
 jobs:
   validate:
@@ -67,7 +69,7 @@ jobs:
         run: >
           npm --prefix apps/api exec --
           prisma migrate diff --from-url "$DATABASE_URL"
-          --to-schema-datamodel prisma/schema.prisma --exit-code
+          --to-schema-datamodel apps/api/prisma/schema.prisma --exit-code
 
   integration:
     name: Testes de integracao
@@ -107,13 +109,19 @@ jobs:
       - run: npm run build:api
       - run: npm run build:web
 
+  browser-e2e:
+    name: Browser E2E
+    uses: ./.github/workflows/e2e.yml
+
   # Job unico a exigir na protecao de branch da main.
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [validate, unit, migrations-empty-db, integration, build]
+    needs: [validate, unit, migrations-empty-db, integration, build, browser-e2e]
     runs-on: ubuntu-latest
     steps:
       - run: |
-          if echo '${{ toJSON(needs.*.result) }}' | grep -Eq 'failure|cancelled'; then exit 1; fi
+          node -e 'const results = JSON.parse(process.env.JOB_RESULTS); if (!results.length || results.some(result => result !== "success")) process.exit(1);'
           echo "CI verde"
+        env:
+          JOB_RESULTS: ${{ toJSON(needs.*.result) }}

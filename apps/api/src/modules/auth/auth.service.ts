@@ -257,6 +257,7 @@ export class AuthService {
 
   private payloadFor(user: any, role: UserRole): JwtUser {
     return {
+      passwordVersion: user.passwordChangedAt ? new Date(user.passwordChangedAt).getTime() : 0,
       sub: user.id,
       email: user.email,
       name: user.name,
@@ -584,7 +585,8 @@ export class AuthService {
       nextOnboarding,
     );
     // Troca de senha encerra as outras sessões; a atual (cookie) continua.
-    await this.sessions.revokeAllForUser(freshUser.id, (await this.sessions.familyOf(refreshToken)) ?? undefined);
+    const currentFamily = await this.sessions.familyOf(refreshToken, freshUser.id);
+    await this.sessions.revokeAllForUser(freshUser.id, currentFamily ?? undefined);
     void this.mail.send(freshUser.email, securityAlertEmail({ name: freshUser.name, title: 'Sua senha foi alterada', detail: 'A senha da sua conta foi trocada. As outras sessões foram encerradas.', ip: requestMeta.ipAddress, userAgent: requestMeta.userAgent, at: new Date() }));
     
     await this.repository.createAuditLog({
@@ -597,10 +599,14 @@ export class AuthService {
       ipAddress: requestMeta.ipAddress,
       userAgent: requestMeta.userAgent,
     });
+    const updatedUser = await this.repository.findUserById(freshUser.id);
+    if (!updatedUser) throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
+    const auth = await this.buildAuthResponse(this.payloadFor(updatedUser, this.resolveRole(updatedUser)), false, requestMeta, currentFamily ? refreshToken : undefined);
     return {
+      ...auth,
       changed: true,
       passwordChangeRequired: false,
-      onboardingState: null,
+      onboardingState: updatedUser.onboardingState ?? null,
     };
   }
 
@@ -683,9 +689,12 @@ export class AuthService {
     const company = await this.repository.findCompanyAuthContext(payload.companyId);
     if (!company) throw new UnauthorizedException('Company not found');
 
-    const refreshToken = existingRefresh ?? (await this.sessions.create(payload.sub, { ip: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent })).token;
+    const existingFamily = await this.sessions.familyOf(existingRefresh, payload.sub);
+    const created = existingFamily ? null : await this.sessions.create(payload.sub, { ip: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent });
+    const refreshToken = existingFamily ? existingRefresh! : created!.token;
+    const sessionFamily = existingFamily ?? created!.session.family;
     return {
-      access_token: await this.jwtService.signAsync(payload),
+      access_token: await this.jwtService.signAsync({ ...payload, purpose: 'access', sessionFamily }),
       refreshToken,
       user: payload,
       company: {

@@ -2,7 +2,7 @@
   "name": "innovation-rh-connect",
   "version": "1.0.1",
   "private": true,
-  "description": "Sistema de RH com controle de ponto e comunicação via WhatsApp para pequenas e médias empresas",
+  "description": "Sistema de RH com controle de ponto e comunica\u00e7\u00e3o via WhatsApp para pequenas e m\u00e9dias empresas",
   "scripts": {
     "dev": "npm run dev:web",
     "dev:web": "npm --prefix apps/web run dev",
@@ -75,5 +75,9 @@
     "react-dom": "^18.3.1",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
+  },
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=11 <12"
   }
 }

@@ -49,9 +49,23 @@ export class SessionService {
     }
     if (current.expiresAt < new Date()) return { status: 'invalid' };
 
-    const next = await this.create(current.userId, meta, current.family);
-    await this.prisma.refreshSession.update({ where: { id: current.id }, data: { revokedAt: new Date(), lastUsedAt: new Date(), replacedBy: next.session.id } });
-    return { status: 'ok', userId: current.userId, token: next.token, sessionId: next.session.id, family: current.family };
+    const nextToken = randomBytes(48).toString('base64url');
+    const next = await this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const consumed = await tx.refreshSession.updateMany({
+        where: { id: current.id, revokedAt: null, expiresAt: { gt: now } },
+        data: { revokedAt: now, lastUsedAt: now },
+      });
+      if (consumed.count !== 1) return null;
+      const successor = await tx.refreshSession.create({
+        data: { userId: current.userId, family: current.family, tokenHash: hashToken(nextToken),
+          ip: meta.ip ?? null, userAgent: meta.userAgent?.slice(0, 300) ?? null, expiresAt: new Date(now.getTime() + ttlMs()) },
+      });
+      await tx.refreshSession.update({ where: { id: current.id }, data: { replacedBy: successor.id } });
+      return successor;
+    });
+    if (!next) return { status: 'invalid' };
+    return { status: 'ok', userId: current.userId, token: nextToken, sessionId: next.id, family: current.family };
   }
 
   /** Encerra a sessão do cookie atual (logout). */
@@ -74,10 +88,10 @@ export class SessionService {
     return result.count;
   }
 
-  async familyOf(token: string | undefined) {
+  async familyOf(token: string | undefined, userId?: string) {
     if (!token) return null;
-    const session = await this.prisma.refreshSession.findUnique({ where: { tokenHash: hashToken(token) }, select: { family: true, revokedAt: true } });
-    return session && !session.revokedAt ? session.family : null;
+    const session = await this.prisma.refreshSession.findUnique({ where: { tokenHash: hashToken(token) }, select: { family: true, revokedAt: true, expiresAt: true, userId: true } });
+    return session && !session.revokedAt && session.expiresAt > new Date() && (!userId || session.userId === userId) ? session.family : null;
   }
 
   /** Uma linha por dispositivo (família), a mais recente. */
@@ -91,7 +105,7 @@ export class SessionService {
     const seen = new Set<string>();
     const device = new Set<string>();
     return rows.filter((row) => {
-      const key = `|`;
+      const key = JSON.stringify([row.userAgent, row.ip]);
       // Mesma família ou mesmo aparelho (navegador + rede): mostra só a mais recente.
       if (seen.has(row.family) || device.has(key)) return false;
       seen.add(row.family); device.add(key);

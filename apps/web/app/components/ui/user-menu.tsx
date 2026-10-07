@@ -52,7 +52,7 @@ export function UserMenu({ showName = false, placement = 'bottom' }: { showName?
         {([{ value: 'light', label: 'Claro', icon: Sun }, { value: 'dark', label: 'Escuro', icon: Moon }, { value: 'system', label: 'Sistema', icon: Monitor }] as const).map(({ value, label, icon: Icon }) => <button key={value} role="menuitemradio" aria-checked={appearance === value} type="button" onClick={() => setAppearance(value)} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm text-fg hover:bg-bg-sub"><Icon size={18} aria-hidden="true" />{label}{appearance === value && <span className="ml-auto text-brand-600 dark:text-brand-300" aria-hidden="true">✓</span>}</button>)}
       </div>
       <button role="menuitem" type="button" onClick={() => go('support')} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm text-fg hover:bg-bg-sub"><HelpCircle size={18} aria-hidden="true" />Ajuda e suporte</button>
-      <button role="menuitem" type="button" onClick={() => { setOpen(false); logout(); router.replace('/login'); }} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm text-danger hover:bg-danger/10"><LogOut size={18} aria-hidden="true" />Sair</button>
+      <button role="menuitem" type="button" onClick={async () => { if (await logout()) { setOpen(false); router.replace('/login'); } }} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm text-danger hover:bg-danger/10"><LogOut size={18} aria-hidden="true" />Sair</button>
     </div>}
   </div>;
 }

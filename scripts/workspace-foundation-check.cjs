@@ -18,7 +18,11 @@ const required = [
   'apps/api/Dockerfile',
   'apps/web/Dockerfile',
   'docker-compose.prod.yml',
-  '.github/workflows/ci-cd.yml',
+  '.github/workflows/ci.yml',
+  '.github/workflows/e2e.yml',
+  '.github/workflows/deploy.yml',
+  '.github/workflows/rollback.yml',
+  '.github/workflows/release.yml',
 ];
 
 let missing = 0;

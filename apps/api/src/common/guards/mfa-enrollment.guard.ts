@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { JwtUser } from '../types/auth.types';
+import { assertAccessToken } from './access-token';
 
 /** Rotas que continuam abertas enquanto o MFA não foi configurado (para conseguir configurá-lo e sair). */
 const ALLOWED_PREFIXES = ['/auth/', '/health'];
@@ -21,6 +22,7 @@ export class MfaEnrollmentGuard implements CanActivate {
     if (ALLOWED_PREFIXES.some((prefix) => path.startsWith(prefix))) return true;
     try {
       const payload = await this.jwt.verifyAsync<JwtUser>(header.slice(7));
+      assertAccessToken(payload);
       if (payload?.mfaPending) {
         throw new ForbiddenException({ code: 'MFA_ENROLLMENT_REQUIRED', message: 'Configure a autenticação em duas etapas para continuar.' });
       }

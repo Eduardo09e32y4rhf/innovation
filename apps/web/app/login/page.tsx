@@ -85,7 +85,7 @@ export default function LoginPage() {
         <div className="space-y-3">
           <p className="text-center text-sm text-zinc-600">Sessão ativa de <strong>{user?.name}</strong>.</p>
           <button type="button" className={authButton} onClick={() => router.replace(destination())}>Continuar sessão</button>
-          <button type="button" className="min-h-11 w-full rounded-lg border border-zinc-300 text-sm font-medium text-zinc-700 hover:bg-zinc-50" onClick={() => { logout(); setPassword(''); }}>Entrar com outra conta</button>
+          <button type="button" className="min-h-11 w-full rounded-lg border border-zinc-300 text-sm font-medium text-zinc-700 hover:bg-zinc-50" onClick={async () => { if (await logout()) setPassword(''); }}>Entrar com outra conta</button>
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-4" noValidate={false}>

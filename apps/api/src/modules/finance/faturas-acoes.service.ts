@@ -504,6 +504,7 @@ export class FaturasAcoesService {
     const sub = await this.prisma.companySubscription.findUnique({ where: { companyId }, select: { asaasSubscriptionId: true } });
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { asaasSubscriptionId: true } });
     const asaasId = sub?.asaasSubscriptionId || company?.asaasSubscriptionId;
+    if (asaasId && !this.asaas.isConfigured()) throw new BadRequestException('Configure o Asaas para cancelar a assinatura recorrente.');
     if (asaasId && this.asaas.isConfigured()) {
       try { await this.asaas.deleteSubscription(asaasId); }
       catch (error) {

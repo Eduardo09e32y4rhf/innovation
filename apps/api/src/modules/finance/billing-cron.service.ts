@@ -338,12 +338,12 @@ export class BillingCronService {
 
         if (stage === 'CANCEL') {
           this.logger.warn(`Empresa ${company.id} com fatura atrasada há ${diffDays} dias. Cancelando...`);
+          // Se o provedor falhar, a empresa continua elegível para nova tentativa.
+          await this.platformFinance.cancelMercadoPagoSubscription(company.id);
           await this.prisma.company.update({
             where: { id: company.id },
             data: { status: 'SUSPENDED', billingStatus: 'CANCELED', isActive: false, suspensionReason: 'cancelamento_por_inadimplencia' },
           });
-          // Cancelamento definitivo: a assinatura recorrente no Mercado Pago não pode continuar cobrando.
-          await this.platformFinance.cancelMercadoPagoSubscription(company.id);
         } else if (stage === 'BLOCK' && !suspendedByDebt) {
           this.logger.warn(`Empresa ${company.id} com fatura atrasada há ${diffDays} dias. Bloqueando...`);
           await this.prisma.company.update({

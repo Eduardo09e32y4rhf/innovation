@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Unauthor
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../types/auth.types';
+import { assertAccessToken } from './access-token';
 
 @Injectable()
 export class TenantGuard implements CanActivate {
@@ -61,7 +62,9 @@ export class TenantGuard implements CanActivate {
   private async readJwt(authorization?: string): Promise<JwtUser | null> {
     if (!authorization?.startsWith('Bearer ')) return null;
     try {
-      return await this.jwt.verifyAsync<JwtUser>(authorization.slice(7));
+      const payload = await this.jwt.verifyAsync<JwtUser>(authorization.slice(7));
+      assertAccessToken(payload);
+      return payload;
     } catch {
       // Authentication guards remain responsible for rejecting invalid tokens.
       return null;

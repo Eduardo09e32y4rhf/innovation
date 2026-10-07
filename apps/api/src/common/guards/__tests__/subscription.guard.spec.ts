@@ -10,7 +10,7 @@ function setup(options: { billingStatus: string; overdueInvoice?: boolean; role?
     company: { findUnique: vi.fn().mockResolvedValue({ billingStatus: options.billingStatus }) },
     platformInvoice: { findFirst: vi.fn().mockResolvedValue(options.overdueInvoice ? { id: 'inv' } : null) },
   };
-  const jwt = { verifyAsync: vi.fn().mockResolvedValue({ sub: 'u1', companyId: 'c1', role: options.role ?? 'ADMIN' }) };
+  const jwt = { verifyAsync: vi.fn().mockResolvedValue({ purpose: 'access', sub: 'u1', companyId: 'c1', role: options.role ?? 'ADMIN' }) };
   const reflector = { getAllAndOverride: vi.fn().mockReturnValue(false) } as unknown as Reflector;
   const guard = new SubscriptionActiveGuard(prisma as never, reflector, jwt as never);
   const context = {

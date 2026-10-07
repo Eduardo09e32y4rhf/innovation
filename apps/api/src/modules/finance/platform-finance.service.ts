@@ -1,5 +1,5 @@
 import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { Prisma, $Enums } from '@prisma/client';
 type InvoiceStatus = $Enums.InvoiceStatus;
 const InvoiceStatus = $Enums.InvoiceStatus;
@@ -31,16 +31,17 @@ export class PlatformFinanceService {
     return couponDiscount({ type: subscription.couponType, value: subscription.couponValue });
   }
 
-  /** Cancela a assinatura recorrente do Mercado Pago (se houver). Falha só é registrada: o chamador não deve travar por isso. */
+  /** Só confirma o cancelamento local após encerrar a recorrência no provedor. */
   async cancelMercadoPagoSubscription(companyId: string) {
     const sub = await this.prisma.companySubscription.findUnique({ where: { companyId }, select: { mpPreapprovalId: true } });
-    if (!sub?.mpPreapprovalId || !this.mercadoPago.isConfigured()) return;
+    if (!sub?.mpPreapprovalId) return;
+    if (!this.mercadoPago.isConfigured()) throw new ServiceUnavailableException('Configure o Mercado Pago para cancelar a assinatura recorrente.');
     try {
       await this.mercadoPago.cancelSubscription(sub.mpPreapprovalId);
     } catch (error) {
       if (!(error instanceof NotFoundException)) {
         this.logger.error(`ALERTA: nao foi possivel cancelar a assinatura MP ${sub.mpPreapprovalId} da empresa ${companyId}: ${String(error)}`);
-        return;
+        throw new ServiceUnavailableException('O Mercado Pago não confirmou o cancelamento. Tente novamente.');
       }
     }
     await this.prisma.companySubscription.updateMany({ where: { companyId }, data: { mpPreapprovalId: null } });
