@@ -31,6 +31,17 @@ export interface PassoRegistro {
   quando: number;
 }
 
+/** Resumo de uma aba/etapa, pronto para copiar e colar. */
+export interface ResumoAba {
+  perfil: string;
+  aba: string;
+  passou: number;
+  falhou: number;
+  inconclusivo: number;
+  naoTestado: number;
+  texto: string;
+}
+
 export interface UsuarioTeste {
   perfil: string;
   nome: string;
@@ -65,6 +76,7 @@ export interface Estado {
   tourIdx: number;
   passos: PassoRegistro[];
   achados: Achado[];
+  abas?: ResumoAba[];
   agora: string;
   perfilAtual: string;
   tenant: string;

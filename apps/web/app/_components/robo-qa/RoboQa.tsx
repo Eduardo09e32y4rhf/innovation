@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { resolveUserRole } from '@/app/lib/user-role';
-import { carregarContas, carregarRelatorio, contagem, criarMotor, limparContas, PERFIS_DE_TESTE, type Modo, type Motor, type Ritmo } from './engine';
+import { carregarContas, carregarRelatorio, contagem, criarMotor, limparContas, PERFIS_DE_TESTE, textoParaCopiar, type Modo, type Motor, type Ritmo } from './engine';
 
 const ROTULO_PERFIL: Record<string, string> = { ADMIN: 'Administrador', RH: 'RH - Empresas', RH_RS: 'RH - R&S', GESTOR: 'Gestor', FUNCIONARIO: 'Funcionário', CONSULTA: 'Consulta', COMERCIAL: 'Comercial', CONTABIL: 'Contábil' };
 
@@ -28,6 +28,7 @@ export default function RoboQa() {
   const [verRelatorio, setVerRelatorio] = useState(false);
   const [perfis, setPerfis] = useState<string[]>([...PERFIS_DE_TESTE]);
   const [ritmo, setRitmo] = useState<Ritmo>('normal');
+  const [copiado, setCopiado] = useState('');
 
   const usuarioRef = useRef(user); usuarioRef.current = user;
   const logoutRef = useRef(logout); logoutRef.current = logout;
@@ -56,7 +57,16 @@ export default function RoboQa() {
   const icone = (s: string) => (s === 'ok' ? '✅' : s === 'falha' ? '❌' : s === 'inconclusivo' ? '⚠️' : '⏭️');
   const iniciar = (modo: Modo) => motor.iniciar(perfis, modo === 'rapido' ? 'rapido' : ritmo, modo);
   const ultimosPassos = estado ? estado.passos.slice(-6).reverse() : [];
-  const concluidos = estado ? estado.usuarios.filter((u) => u.situacao === 'testado' || u.situacao === 'erro').length : 0;
+  const abas = estado?.abas ?? [];
+  const textoTudo = estado ? textoParaCopiar(estado) : '';
+  const copiar = (chave: string, texto: string) => {
+    const ok = () => { setCopiado(chave); setTimeout(() => setCopiado(''), 1800); };
+    navigator.clipboard?.writeText(texto).then(ok, () => {
+      const ta = document.createElement('textarea'); ta.value = texto; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); ok(); } finally { ta.remove(); }
+    });
+  };
+  const concluidos =estado ? estado.usuarios.filter((u) => u.situacao === 'testado' || u.situacao === 'erro').length : 0;
 
   return (
     <div id="robo-qa-raiz" style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 2147483000, fontFamily: 'system-ui, sans-serif' }} data-pathname={pathname}>
@@ -70,6 +80,10 @@ export default function RoboQa() {
           {!ativo && (
             <>
               <p style={{ fontSize: 13, color: '#374151' }}>Abre cada página como uma pessoa usaria, <b>cria usuários de teste</b> (nome “ROBO-QA …”), sai e entra como cada um, e no final mostra um relatório do que não funcionou.</p>
+              <button type="button" disabled={perfis.length === 0 || !ehDev} onClick={() => iniciar('completo')} style={{ width: '100%', minHeight: 56, borderRadius: 12, border: 0, background: '#16a34a', color: '#fff', fontWeight: 800, fontSize: 18, cursor: 'pointer', margin: '6px 0', opacity: perfis.length === 0 || !ehDev ? 0.5 : 1 }}>▶ LIGAR O TESTE</button>
+              <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 6px' }}>Testa como um analista de qualidade / cliente: todos os perfis, aba por aba. No fim de cada aba aparece um resumo que dá para copiar.</p>
+              <details>
+              <summary style={{ fontSize: 12, color: '#6b7280', cursor: 'pointer' }}>Opções (perfis, velocidade, teste rápido)</summary>
               <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 8, margin: '8px 0' }}>
                 <legend style={{ fontSize: 12, color: '#6b7280' }}>Perfis a testar (além do DEV)</legend>
                 {PERFIS_DE_TESTE.map((p) => (
@@ -89,6 +103,7 @@ export default function RoboQa() {
                 <button type="button" disabled={perfis.length === 0 || !ehDev} onClick={() => iniciar('completo')} title="Todos os perfis e as funcionalidades previstas" style={{ flex: 1, minHeight: 44, borderRadius: 10, border: 0, background: '#7c3aed', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: perfis.length === 0 || !ehDev ? 0.5 : 1 }}>🔎 Teste completo</button>
               </div>
               <p style={{ fontSize: 12, color: '#6b7280', margin: '6px 0 0' }}>Rápido: login, menus e telas principais. Completo: todas as funcionalidades previstas.</p>
+              </details>
               <p style={{ fontSize: 12, color: '#6b7280', margin: '4px 0 0' }}>Contas de teste salvas: {contasSalvas}. Elas são reaproveitadas (só criadas na primeira vez).{contasSalvas > 0 && <> <button type="button" onClick={() => { if (window.confirm('Esquecer as contas de teste salvas? Na próxima execução o robô cria contas novas.')) { limparContas(); forcar((n) => n + 1); } }} style={{ border: 0, background: 'transparent', color: '#7c3aed', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>Recriar contas de teste</button></>}</p>
               {!ehDev && <p style={{ fontSize: 12, color: '#b91c1c' }}>Só um usuário DEV pode iniciar.</p>}
             </>
@@ -109,6 +124,21 @@ export default function RoboQa() {
                 {ultimosPassos.map((p, i) => <div key={`${p.quando}-${i}`}>{icone(p.status)} {p.nome.slice(0, 70)}</div>)}
               </div>
             </>
+          )}
+
+          {abas.length > 0 && (
+            <div style={{ marginTop: 10, borderTop: '1px solid #e5e7eb', paddingTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <b style={{ fontSize: 13 }}>Resumo por aba ({abas.length})</b>
+                <button type="button" onClick={() => copiar('tudo', textoTudo)} style={{ minHeight: 32, borderRadius: 8, border: '1px solid #7c3aed', background: '#f5f3ff', padding: '0 10px', cursor: 'pointer', fontSize: 12 }}>{copiado === 'tudo' ? '✔ Copiado' : '📋 Copiar tudo'}</button>
+              </div>
+              {abas.slice().reverse().map((a, i) => (
+                <div key={`${a.perfil}-${a.aba}-${i}`} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, padding: '4px 0', borderBottom: '1px dashed #e5e7eb' }}>
+                  <span style={{ flex: 1 }}>{a.falhou ? '❌' : a.inconclusivo ? '⚠️' : '✅'} <b>{a.perfil}</b> · {a.aba} <span style={{ color: '#6b7280' }}>({a.passou}✅ {a.falhou}❌ {a.inconclusivo}⚠️ {a.naoTestado}⏭️)</span></span>
+                  <button type="button" onClick={() => copiar(`${a.perfil}-${a.aba}-${i}`, a.texto)} aria-label={`Copiar resumo de ${a.aba}`} style={{ minHeight: 28, minWidth: 28, borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>{copiado === `${a.perfil}-${a.aba}-${i}` ? '✔' : '📋'}</button>
+                </div>
+              ))}
+            </div>
           )}
 
           {!ativo && (estado?.fase === 'fim' || relatorio) && (

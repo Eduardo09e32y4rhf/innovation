@@ -6,6 +6,7 @@ import { registrarSegredo } from './seguranca';
 import { htmlRelatorio, markdownRelatorio, veredito } from './relatorio';
 import { tratarPortoes } from './portoes';
 import { blocosDoTour } from './tour';
+import { resumirAba } from './relatorio';
 import type { Anfitriao, Contexto, Estado, Modo, Ritmo } from './tipos';
 import { mostrarOverlay } from './ui';
 import { criarUsuarioDeTeste } from './usuarios';
@@ -84,6 +85,7 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
       estado.tourIdx = i;
       salvar(estado);
       ctx.prazo = Date.now() + LIMITE_BLOCO_MS[estado.modo];
+      const p0 = estado.passos.length; const a0 = estado.achados.length;
       try {
         await blocos[i].rodar(ctx);
       } catch (erro) {
@@ -99,7 +101,12 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
             ? `A etapa "${blocos[i].nome}" passou do limite de ${Math.round(LIMITE_BLOCO_MS[estado.modo] / 1000)} s. Pode ser lentidão ou travamento do sistema, ou do próprio robô. O teste seguiu para a próxima etapa.`
             : `Na etapa "${blocos[i].nome}" aconteceu algo inesperado do lado do robô (${mensagem.split('\n')[0].slice(0, 160)}). O teste seguiu para a próxima etapa.`,
         }, 'inconclusivo');
-      } finally { ctx.prazo = 0; }
+      } finally {
+        ctx.prazo = 0;
+        (estado.abas ??= []).push(resumirAba(perfil, blocos[i].nome, estado.passos.slice(p0), estado.achados.slice(a0)));
+        salvar(estado);
+        ctx.atualizar();
+      }
     }
     estado.tourIdx = 0;
   }

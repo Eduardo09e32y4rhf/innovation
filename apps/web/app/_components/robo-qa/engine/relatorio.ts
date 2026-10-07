@@ -1,6 +1,6 @@
 import { GRAVIDADE_ORDEM } from './explicacoes';
 import { limpar } from './seguranca';
-import type { Achado, Estado, Gravidade } from './tipos';
+import type { Achado, Estado, Gravidade, PassoRegistro, ResumoAba } from './tipos';
 
 const esc = (v: unknown) => String(limpar(v ?? '')).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 const caminho = (url: string) => { try { return new URL(url, 'http://x').pathname; } catch { return url; } };
@@ -81,10 +81,29 @@ ${secoes}
 </body></html>`;
 }
 
+const ICONE_RES: Record<string, string> = { falha: '❌', inconclusivo: '⚠️', 'nao-testado': '⏭️' };
+
+/** Resumo curto de uma aba: contagem + o que nao passou (esperado x obtido), sem senhas/tokens. */
+export function resumirAba(perfil: string, aba: string, passos: PassoRegistro[], achados: Achado[]): ResumoAba {
+  const passou = passos.filter((p) => p.status === 'ok').length;
+  const cont = (r: string) => achados.filter((a) => a.resultado === r).length;
+  const falhou = cont('falha'); const inconclusivo = cont('inconclusivo'); const naoTestado = cont('nao-testado');
+  const linhas = [`[${perfil}] ${aba}: ✅ ${passou} · ❌ ${falhou} · ⚠️ ${inconclusivo} · ⏭️ ${naoTestado}`];
+  for (const a of achados.slice(0, 6)) linhas.push(`  ${ICONE_RES[a.resultado] ?? '•'} ${a.titulo} — tela: ${a.url}; esperado: ${a.esperado}; obtido: ${a.obtido}`);
+  if (achados.length > 6) linhas.push(`  … e mais ${achados.length - 6}`);
+  return { perfil, aba, passou, falhou, inconclusivo, naoTestado, texto: limpar(linhas.join('\n')) };
+}
+
+/** Texto unico para copiar e enviar: veredito + resumo de cada aba. */
+export function textoParaCopiar(e: Estado): string {
+  return [`Robô QA — ${veredito(e).texto}`, ...(e.abas ?? []).map((a) => a.texto)].join('\n');
+}
+
 export function markdownRelatorio(e: Estado): string {
   const v = veredito(e);
   const out = ['# Relatório do Robô QA', '', `- Início: ${new Date(e.inicio).toLocaleString('pt-BR')} · modo ${e.modo === 'rapido' ? 'rápido' : 'completo'} · ${e.passos.length} passos`, '- Sem senhas nem tokens', '', `**${v.texto}**`, '', '## Resumo por perfil', '', '| Perfil | Situação | ✅ Passou | ❌ Falhou | ⚠️ Inconclusivo | ⏭️ Não testado |', '|---|---|---|---|---|---|'];
   for (const l of resumoPorPerfil(e)) out.push(`| ${l.perfil} | ${l.situacao}${l.motivo ? ` (${l.motivo})` : ''} | ${l.passou} | ${l.falhou} | ${l.inconclusivo} | ${l.naoTestado} |`);
+  out.push('', '## Resumo por aba', '', '```', ...(e.abas ?? []).map((a) => a.texto), '```');
   for (const s of SECOES) {
     const grupos = agrupar(e.achados, s.resultado);
     out.push('', `## ${s.icone} ${s.titulo} (${grupos.length})`, '', `_${s.ajuda}_`, '');

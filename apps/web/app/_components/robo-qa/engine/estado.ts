@@ -18,7 +18,7 @@ export function novoEstado(perfis: string[], ritmo: Ritmo, tenant: string, modo:
   return {
     versao: 1, ativo: true, pausado: false, cancelado: false, fase: 'dev', ritmo, modo, inicio: Date.now(), perfis,
     usuarios: perfis.map(usuarioParaPerfil), idxUsuario: 0, subEtapa: 'sair', tourIdx: 0,
-    passos: [], achados: [], agora: 'iniciando', perfilAtual: 'DEV', tenant,
+    passos: [], achados: [], abas: [], agora: 'iniciando', perfilAtual: 'DEV', tenant,
   };
 }
 
