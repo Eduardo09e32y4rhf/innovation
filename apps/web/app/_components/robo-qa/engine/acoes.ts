@@ -43,6 +43,22 @@ export async function clicar(ctx: Contexto, el: HTMLElement, descricao: string) 
   await esperarAssentar(300, 4000);
 }
 
+/** Clica duas vezes rapido no mesmo botao (duplo clique de verdade, sem querer): serve para achar cadastro duplicado/corrida. */
+export async function cliqueDuplo(ctx: Contexto, el: HTMLElement, descricao: string) {
+  await ctx.checarControle();
+  falar(ctx, `Clicando duas vezes rápido (teste de clique duplo) em: ${descricao}`);
+  el.scrollIntoView({ block: 'center', inline: 'nearest' });
+  await dormir(60);
+  const caixa = el.getBoundingClientRect();
+  moverCursor(caixa.left + caixa.width / 2, caixa.top + caixa.height / 2);
+  destacar(caixa);
+  el.focus?.({ preventScroll: true });
+  el.click();
+  el.click();
+  await ctx.aguardar(ctx.ritmo.depois);
+  await esperarAssentar(300, 4000);
+}
+
 export async function digitar(ctx: Contexto, campo: HTMLInputElement | HTMLTextAreaElement, texto: string, descricao: string) {
   await ctx.checarControle();
   falar(ctx, `Digitando em: ${descricao}`);

@@ -1,6 +1,6 @@
 // Cenarios de "uso de verdade": o robo cadastra, bate ponto, pede ferias, cria vaga e cliente, sempre pelos
 // mesmos formularios que uma pessoa usaria. Tudo que ele cria leva o nome "ROBO-QA ..." para o DEV limpar depois.
-import { clicar, digitar, falar, ir, naoTestado, passo, registrarAchado } from './acoes';
+import { clicar, cliqueDuplo, digitar, falar, ir, naoTestado, passo, registrarAchado } from './acoes';
 import { acharPorTexto, dormir, esperarAssentar, esperarAte, rotulo, setValor, todos } from './dom';
 import { gerarSenhaForte } from './portoes';
 import { registrarSegredo } from './seguranca';
@@ -62,6 +62,25 @@ async function abrirAbaCadastro(ctx: Contexto, nome: string) {
 export async function cadastrarFuncionario(ctx: Contexto, nome: string, email: string, acesso: boolean): Promise<string> {
   await ir(ctx, tenantUrl(ctx, '/dashboard/employees/new'), 'Abrindo o cadastro de funcionário');
   const formulario = await esperarAte(() => document.querySelector('form[novalidate]') ?? document.querySelector('form'), { descricao: 'o formulário de funcionário' });
+
+  // Forca o formulario vazio primeiro: o sistema deveria barrar com uma lista de pendencias, nunca salvar nem quebrar.
+  await passo(ctx, 'Tentar salvar o formulário em branco (deve ser barrado, não deve salvar nem quebrar)', async () => {
+    await clicar(ctx, await esperarAte(() => botaoTexto(/^salvar funcion[aá]rio/i), { descricao: 'o botão "Salvar funcionário"' }), 'botão Salvar funcionário (formulário vazio)');
+    await dormir(400);
+    if (!/\/employees\/new/.test(ctx.anfitriao.caminhoAtual())) throw new Error('ESPERADO: o formulário vazio não deveria ser salvo (faltam campos obrigatórios), mas o sistema saiu da tela como se tivesse salvo.');
+    const codigoIndevido = todos('code').map(rotulo).find((t) => t.length >= 5);
+    if (codigoIndevido) throw new Error('ESPERADO: o sistema não deveria criar um funcionário a partir de um formulário em branco, mas mostrou uma senha provisória.');
+  }, { verificarTela: false });
+
+  // E-mail invalido: o sistema deve recusar sem quebrar.
+  const campoEmailInvalido = await esperarAte(() => campoDe(formulario, 'E-mail'), { descricao: 'o campo "E-mail"' });
+  await preencher(ctx, campoEmailInvalido, 'nao-e-um-email', 'campo E-mail (valor inválido, de propósito)');
+  await passo(ctx, 'Tentar salvar com e-mail inválido (deve ser barrado, não deve salvar nem quebrar)', async () => {
+    await clicar(ctx, await esperarAte(() => botaoTexto(/^salvar funcion[aá]rio/i), { descricao: 'o botão "Salvar funcionário"' }), 'botão Salvar funcionário (e-mail inválido)');
+    await dormir(400);
+    if (!/\/employees\/new/.test(ctx.anfitriao.caminhoAtual())) throw new Error('ESPERADO: um e-mail inválido ("nao-e-um-email") não deveria ser aceito, mas o sistema saiu da tela como se tivesse salvo.');
+  }, { verificarTela: false });
+
   await preencherPorRotulo(ctx, formulario, 'Nome completo', nome);
   await preencherPorRotulo(ctx, formulario, 'CPF', cpfValido());
   await preencherPorRotulo(ctx, formulario, 'E-mail', email);
@@ -85,7 +104,8 @@ export async function cadastrarFuncionario(ctx: Contexto, nome: string, email: s
     await preencherPorRotulo(ctx, formulario, 'Permitir acesso ao painel', 'Sim');
     await preencherPorRotulo(ctx, formulario, 'Perfil de acesso', 'Funcionário');
   }
-  await clicar(ctx, await esperarAte(() => botaoTexto(/^salvar funcion[aá]rio/i), { descricao: 'o botão "Salvar funcionário"' }), 'botão Salvar funcionário');
+  // Clique duplo de proposito no botao de salvar: o sistema nao pode criar dois funcionarios por causa de um duplo clique sem querer.
+  await cliqueDuplo(ctx, await esperarAte(() => botaoTexto(/^salvar funcion[aá]rio/i), { descricao: 'o botão "Salvar funcionário"' }), 'botão Salvar funcionário (clique duplo de propósito)');
 
   const resultado = await esperarAte(() => {
     const codigo = todos('code').map(rotulo).find((t) => t.length >= 5);
@@ -124,7 +144,9 @@ export const blocoCadastrarFuncionario: BlocoCenario = {
       await ir(ctx, tenantUrl(ctx, '/dashboard/employees'), 'Voltando à lista de funcionários');
       const busca = todos<HTMLInputElement>('input[type="search"], input[placeholder*="uscar"]').find(Boolean);
       if (busca) { setValor(busca, nome); await dormir(600); await esperarAssentar(400, 5000); }
-      if (!(document.body.innerText ?? '').includes(nome)) registrarAchado(ctx, 'Funcionário cadastrado não apareceu na lista', { gravidade: 'media', titulo: 'Inconclusivo: o funcionário salvo não apareceu na lista', explicacao: `Depois de salvar "${nome}", a lista de funcionários não mostrou esse nome (pode ser paginação ou filtro). Confira manualmente.` }, 'inconclusivo');
+      const ocorrencias = (document.body.innerText ?? '').split(nome).length - 1;
+      if (ocorrencias === 0) registrarAchado(ctx, 'Funcionário cadastrado não apareceu na lista', { gravidade: 'media', titulo: 'Inconclusivo: o funcionário salvo não apareceu na lista', explicacao: `Depois de salvar "${nome}", a lista de funcionários não mostrou esse nome (pode ser paginação ou filtro). Confira manualmente.` }, 'inconclusivo');
+      if (ocorrencias > 1) throw new Error(`ESPERADO: o clique duplo no botão "Salvar funcionário" deveria criar só um funcionário, mas "${nome}" aparece ${ocorrencias} vezes na lista.`);
     });
   },
 };
@@ -146,10 +168,17 @@ export const blocoCriarVaga: BlocoCenario = {
       await preencher(ctx, descricao, 'Vaga criada automaticamente pelo robô de teste (ROBO-QA). Pode ser apagada.', 'campo Descrição da vaga');
       for (let i = 0; i < 4 && proxima(); i++) await clicar(ctx, proxima() as HTMLElement, 'botão Próxima');
       const rascunho = await esperarAte(() => botaoTexto(/salvar (como )?rascunho/i), { descricao: 'o botão "Salvar como rascunho"' });
-      await clicar(ctx, rascunho, 'botão Salvar como rascunho');
+      // Clique duplo de proposito: nao pode criar duas vagas iguais por causa de um clique repetido sem querer.
+      await cliqueDuplo(ctx, rascunho, 'botão Salvar como rascunho (clique duplo de propósito)');
       await esperarAte(() => !/\/jobs\/new/.test(ctx.anfitriao.caminhoAtual()) || todos('[role="alert"]').map(rotulo).find(Boolean), { timeout: 15000, descricao: 'a vaga ser salva' });
       const alerta = todos('[role="alert"]').map(rotulo).find(Boolean);
       if (alerta && /\/jobs\/new/.test(ctx.anfitriao.caminhoAtual())) throw new Error(`ESPERADO: a vaga deveria ser salva, mas a tela mostrou: "${alerta.slice(0, 200)}".`);
+    });
+    await passo(ctx, 'Conferir que o clique duplo não criou duas vagas iguais', async () => {
+      await ir(ctx, tenantUrl(ctx, '/dashboard/jobs'), 'Voltando à lista de vagas');
+      const titulo = `ROBO-QA Vaga ${id}`;
+      const ocorrencias = (document.body.innerText ?? '').split(titulo).length - 1;
+      if (ocorrencias > 1) throw new Error(`ESPERADO: o clique duplo em "Salvar como rascunho" deveria criar só uma vaga, mas "${titulo}" aparece ${ocorrencias} vezes na lista.`);
     });
   },
 };
@@ -167,8 +196,9 @@ export const blocoPonto: BlocoCenario = {
       if (!botao) break;
       const rotuloBotao = rotulo(botao);
       let parar = false;
-      await passo(ctx, `Bater ponto: ${rotuloBotao}`, async () => {
-        await clicar(ctx, botao, rotuloBotao);
+      await passo(ctx, `Bater ponto: ${rotuloBotao}${i === 0 ? ' (clique duplo de propósito)' : ''}`, async () => {
+        // Na primeira marcação, clique duplo de proposito: o sistema nao pode registrar duas batidas por um clique repetido sem querer.
+        if (i === 0) await cliqueDuplo(ctx, botao, rotuloBotao); else await clicar(ctx, botao, rotuloBotao);
         const r = await esperarAte(() => {
           const area = secao() as Element | null;
           if (!area) return null;
@@ -191,6 +221,14 @@ export const blocoPonto: BlocoCenario = {
       const texto = rotulo(document.body);
       if (batidas > 0 && !/\d{2}:\d{2}/.test(texto)) throw new Error('ESPERADO: depois de bater o ponto, a tela deveria mostrar o horário registrado.');
     });
+    if (batidas > 0) {
+      await passo(ctx, 'Conferir sinal de marcação duplicada depois do clique duplo na primeira batida', () => {
+        const linhas = todos('li, tr', secao() as Element ?? document.body).map(rotulo).filter((t) => /\d{2}:\d{2}/.test(t));
+        const repetida = linhas.find((t, i) => linhas.indexOf(t) !== i);
+        // So uma pista (pode ser texto repetido por acaso em outro lugar da tela): registra para o DEV conferir manualmente, sem acusar defeito sozinho.
+        if (repetida) registrarAchado(ctx, 'Ponto: possível marcação duplicada', { gravidade: 'media', titulo: 'Inconclusivo: pode ter batido o ponto duas vezes no clique duplo', explicacao: `Depois do clique duplo de propósito, a linha "${repetida.slice(0, 120)}" aparece mais de uma vez na lista de hoje. Confira manualmente se o clique duplo criou duas marcações.` }, 'inconclusivo');
+      });
+    }
   },
 };
 
