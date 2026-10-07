@@ -49,7 +49,7 @@ describe('PlatformFinanceService.summary', () => {
     const result = await service.summary({});
 
     expect(result.mrr).toBe(250);
-    expect(result.totals).toEqual({ billed: 0, received: 0, open: 0, overdue: 0, canceled: 0 });
+    expect(result.totals).toEqual({ billed: 0, received: 0, refunded: 0, open: 0, overdue: 0, canceled: 0 });
     expect(result.conversionRate).toBe(0);
     expect(result.mrrQuality).toMatchObject({
       status: 'COMPLETE',
@@ -72,7 +72,7 @@ describe('PlatformFinanceService.summary', () => {
 
     const result = await service.summary({});
 
-    expect(result.totals).toEqual({ billed: 210, received: 100, open: 80, overdue: 30, canceled: 25 });
+    expect(result.totals).toEqual({ billed: 210, received: 100, refunded: 0, open: 80, overdue: 30, canceled: 25 });
     expect(result.conversionRate).toBe(47.6);
     expect(result.monthly).toEqual([{ month: '2026-07', billed: 210, received: 100 }]);
   });

@@ -1778,6 +1778,27 @@ enum InvoiceStatus {
   CANCELED
 }
 
+model PaymentRefund {
+  id               String   @id @default(uuid()) @db.Uuid
+  invoiceId        String   @db.Uuid
+  requestKey       String   @unique
+  kind             String
+  amount           Decimal  @db.Decimal(10, 2)
+  provider         String
+  providerRefundId String?
+  status           String   @default("PROCESSING")
+  reason           String
+  actorId          String?  @db.Uuid
+  errorMessage     String?
+  receiptUrl       String?
+  confirmedAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  invoice          PlatformInvoice @relation(fields: [invoiceId], references: [id])
+  @@index([invoiceId, status])
+  @@index([status, updatedAt])
+}
+
 model GlobalRolePermission {
   role        UserRole @id
   permissions String[]
@@ -1830,6 +1851,11 @@ model PlatformInvoice {
   mpPreferenceId  String?
   invoiceUrl      String?
   paidAt          DateTime?
+  refundedAmount  Decimal       @default(0) @db.Decimal(10, 2)
+  refundStatus    String?
+  paymentProcessingStatus String @default("LOCAL")
+  chargeRequestKey String? @unique
+  refunds         PaymentRefund[]
   deletedAt       DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt

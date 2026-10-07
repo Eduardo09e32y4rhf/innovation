@@ -73,7 +73,7 @@ test.describe('Faturas: integração da interface com API isolada', () => {
     await dialog.getByRole('button', { name: 'Confirmar', exact: true }).click();
     await expect.poll(() => body?.sendToAsaas).toBe(false);
     expect(body).toMatchObject({ companyId: company.id, amount: 150, description: 'Taxa manual E2E' });
-    await expect(page.getByText('Cobrança criada.', { exact: true })).toBeVisible();
+    await expect(page.getByText('Fatura local registrada.', { exact: true })).toBeVisible();
   });
 
   test('sincroniza uma cobrança existente com o provedor', async ({ page }) => {
@@ -102,4 +102,18 @@ test.describe('Faturas: integração da interface com API isolada', () => {
     await expect(dialog).toBeVisible();
     await expect(page.getByText('Assinatura cancelada.', { exact: true })).toHaveCount(0);
   });
+});
+
+
+test('aba Devoluções acompanha a confirmação sem declarar estorno antecipado', async ({ page }) => {
+  await mockPlatform(page);
+  const paid = { ...invoice, status: 'PAID', paidAt: '2026-10-06', refundedAmount: 0, refundStatus: 'PROCESSING',
+    refunds: [{ id: 'refund-e2e', kind: 'PARTIAL', amount: 40, status: 'UNKNOWN', reason: 'Ajuste acordado', createdAt: '2026-10-07' }] };
+  await page.route(`**/faturas/plataforma/companies/${company.id}/invoices`, route => route.fulfill({ json: [paid] }));
+  await openCompany(page);
+  await page.getByRole('button', { name: 'Devoluções', exact: true }).click();
+  await expect(page.getByText('Confirmação pendente: sincronize')).toBeVisible();
+  await expect(page.getByText('Ajuste acordado')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reembolso parcial' })).toHaveCount(0);
+  await expect(page.getByText('Devolução confirmada')).toHaveCount(0);
 });

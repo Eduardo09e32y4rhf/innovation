@@ -10,6 +10,7 @@ import { PricingService } from './pricing.service';
 import { MercadoPagoService } from './mercadopago.service';
 import { couponDiscount } from '../coupons/coupon-rules';
 import { PaymentProviderService } from './payment-provider.service';
+import { PaymentRefundService } from './payment-refund.service';
 import { CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
 
 @Injectable()
@@ -22,6 +23,7 @@ export class PlatformFinanceService {
     private readonly pricingService: PricingService,
     private readonly mercadoPago: MercadoPagoService,
     private readonly providers: PaymentProviderService,
+    private readonly refunds?: PaymentRefundService,
   ) {}
 
   /** Cupom de desconto vigente na assinatura (null quando acabou ou não existe). */
@@ -56,21 +58,33 @@ export class PlatformFinanceService {
   }
 
   /** Cria a fatura local e o link de pagamento do Mercado Pago (Pix, cartão e saldo MP). */
-  private async createMercadoPagoInvoice(input: { companyId: string; planId?: string | null; description: string; amount: number; dueDate: Date; payerEmail?: string; pricingSnapshot?: Prisma.InputJsonValue }) {
-    if (!this.mercadoPago.isConfigured()) throw new BadRequestException('A integracao Mercado Pago nao esta configurada.');
-    const invoice = await this.prisma.platformInvoice.create({
-      data: {
-        companyId: input.companyId, planId: input.planId ?? undefined, description: input.description, amount: input.amount, dueDate: input.dueDate,
-        status: 'OPEN', billingType: 'UNDEFINED', provider: 'MERCADOPAGO', pricingSnapshot: input.pricingSnapshot,
-      },
+  private async createMercadoPagoInvoice(input: { companyId: string; planId?: string | null; description: string; amount: number; dueDate: Date; payerEmail?: string; pricingSnapshot?: Prisma.InputJsonValue; chargeRequestKey?: string }) {
+    if (!this.mercadoPago.isConfigured()) throw new BadRequestException('A integração Mercado Pago não está configurada.');
+    const reserved = await this.prisma.platformInvoice.create({
+      data: { companyId: input.companyId, planId: input.planId ?? undefined, description: input.description,
+        amount: input.amount, dueDate: input.dueDate, status: 'OPEN', billingType: 'UNDEFINED',
+        provider: 'MERCADOPAGO', pricingSnapshot: input.pricingSnapshot, chargeRequestKey: input.chargeRequestKey,
+        paymentProcessingStatus: 'PROCESSING' },
+    }).then(invoice => ({ invoice, created: true })).catch(async error => {
+      if (input.chargeRequestKey && error?.code === 'P2002') {
+        const previous = await this.prisma.platformInvoice.findUnique({ where: { chargeRequestKey: input.chargeRequestKey } });
+        if (previous) return { invoice: previous, created: false };
+      }
+      throw error;
     });
+    const { invoice } = reserved;
+    if (!reserved.created) {
+      if (invoice.companyId !== input.companyId || Number(invoice.amount) !== input.amount || invoice.description !== input.description || invoice.dueDate.getTime() !== input.dueDate.getTime() || invoice.provider !== 'MERCADOPAGO') throw new BadRequestException('Chave de cobrança já usada com outros dados.');
+      return invoice;
+    }
     try {
       const preference = await this.mercadoPago.createCheckoutPreference({ title: input.description, amount: input.amount, externalReference: `inv:${invoice.id}`, payerEmail: input.payerEmail });
       const url = this.mercadoPago.mode() === 'sandbox' ? preference.sandbox_init_point ?? preference.init_point : preference.init_point;
-      return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { invoiceUrl: url, mpPreferenceId: preference.id } });
-    } catch (error) {
-      await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: 'CANCELED', deletedAt: new Date() } }).catch(() => undefined);
-      throw error;
+      if (!preference.id || !url) throw new Error('Resposta incompleta do provedor.');
+      return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { invoiceUrl: url, mpPreferenceId: preference.id, paymentProcessingStatus: 'LINK_READY' } });
+    } catch {
+      await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { paymentProcessingStatus: 'UNKNOWN' } }).catch(() => undefined);
+      throw new ServiceUnavailableException(`Cobrança ${invoice.id} precisa de conciliação com o Mercado Pago.`);
     }
   }
 
@@ -605,6 +619,7 @@ export class PlatformFinanceService {
         deletedAt: null,
         ...(commercialOwnerId ? { company: { commercialOwnerId } } : {}),
       },
+      include: { refunds: { orderBy: { createdAt: 'desc' }, select: { id: true, kind: true, amount: true, status: true, reason: true, receiptUrl: true, createdAt: true, confirmedAt: true, errorMessage: true } } },
       orderBy: [{ dueDate: 'desc' }, { createdAt: 'desc' }],
       take: 100,
     });
@@ -907,7 +922,7 @@ export class PlatformFinanceService {
     const [invoices, activeSubscriptions, activeCompaniesWithoutSub, manualContracts] = await Promise.all([
       this.prisma.platformInvoice.findMany({
         where,
-        select: { amount: true, status: true, dueDate: true, paidAt: true },
+        select: { amount: true, refundedAmount: true, status: true, dueDate: true, paidAt: true },
       }),
       this.prisma.companySubscription.findMany({
         where: {
@@ -936,7 +951,7 @@ export class PlatformFinanceService {
       }),
     ]);
 
-    const totals = { billed: 0, received: 0, open: 0, overdue: 0, canceled: 0 };
+    const totals = { billed: 0, received: 0, refunded: 0, open: 0, overdue: 0, canceled: 0 };
     const monthly = new Map<string, { month: string; billed: number; received: number }>();
 
     for (const invoice of invoices) {
@@ -948,8 +963,10 @@ export class PlatformFinanceService {
         bucket.billed += amount;
       }
       if (invoice.status === 'PAID') {
-        totals.received += amount;
-        bucket.received += amount;
+        const refunded = Number(invoice.refundedAmount ?? 0);
+        totals.refunded += refunded;
+        totals.received += Math.max(0, amount - refunded);
+        bucket.received += Math.max(0, amount - refunded);
       }
       if (invoice.status === 'OPEN') totals.open += amount;
       if (invoice.status === 'OVERDUE') totals.overdue += amount;
@@ -1294,50 +1311,55 @@ export class PlatformFinanceService {
     if (!(Number(dto.amount) > 0)) throw new BadRequestException('Informe um valor maior que zero para a fatura.');
     if (Number.isNaN(new Date(dto.dueDate).getTime())) throw new BadRequestException('Informe um vencimento válido.');
 
-    let payment: AsaasPayment | undefined;
-    let customerId: string | null | undefined = company.asaasCustomerId;
-    // Empresa ainda sem cadastro no Asaas: cria o cliente na hora em vez de gerar fatura sem link de pagamento.
-    if (dto.sendToAsaas && this.asaas.isConfigured() && !customerId && company.document && company.users[0]) {
-      try {
-        customerId = await this.ensureAsaasCustomer(company, company.users[0]);
-      } catch (err) {
-        this.logger.warn(`Falha ao cadastrar cliente no Asaas, registrando fatura localmente: ${String(err)}`);
+    const include = { company: { select: { id: true, name: true } }, plan: { select: { id: true, name: true } } } as const;
+    const key = dto.idempotencyKey ? `${dto.companyId}:${dto.idempotencyKey}` : undefined;
+    if (key) {
+      const previous = await this.prisma.platformInvoice.findUnique({ where: { chargeRequestKey: key }, include });
+      if (previous) {
+        if (Number(previous.amount) !== dto.amount || previous.description !== dto.description || previous.dueDate.toISOString().slice(0, 10) !== dto.dueDate.slice(0, 10) || previous.billingType !== dto.billingType || (previous.paymentProcessingStatus === 'LOCAL') !== !dto.sendToAsaas) throw new BadRequestException('Chave de cobrança já usada com outros dados.');
+        return previous;
       }
     }
-    if (dto.sendToAsaas && this.asaas.isConfigured() && customerId) {
-      try {
-        payment = await this.asaas.createCharge(customerId, {
-          value: dto.amount,
-          dueDate: dto.dueDate.slice(0, 10),
-          description: dto.description,
-          billingType: dto.billingType,
-          externalReference: dto.companyId,
-        });
-      } catch (err) {
-        this.logger.warn(`Falha ao criar cobrança no Asaas, registrando localmente: ${String(err)}`);
+    if (dto.sendToAsaas && !this.asaas.isConfigured()) throw new ServiceUnavailableException('Asaas indisponível. Escolha registro local ou tente novamente.');
+    const reserved = await this.prisma.platformInvoice.create({
+      data: { companyId: dto.companyId, planId: dto.planId, description: dto.description, amount: dto.amount,
+        dueDate: new Date(dto.dueDate), billingType: dto.billingType, status: 'OPEN',
+        chargeRequestKey: key, paymentProcessingStatus: dto.sendToAsaas ? 'PROCESSING' : 'LOCAL' }, include,
+    }).then(invoice => ({ invoice, created: true })).catch(async error => {
+      if (key && error?.code === 'P2002') {
+        const previous = await this.prisma.platformInvoice.findUnique({ where: { chargeRequestKey: key }, include });
+        if (previous) return { invoice: previous, created: false };
       }
-    }
-
-    return this.prisma.platformInvoice.create({
-      data: {
-        companyId: dto.companyId,
-        planId: dto.planId,
-        description: dto.description,
-        amount: Number(dto.amount),
-        dueDate: new Date(dto.dueDate),
-        billingType: dto.billingType,
-        status: this.mapAsaasStatus(payment?.status) ?? 'OPEN',
-        asaasPaymentId: payment?.id,
-        invoiceUrl: payment?.invoiceUrl,
-        paidAt: this.isPaid(payment?.status) ? new Date() : null,
-      },
-      include: { company: { select: { id: true, name: true } }, plan: { select: { id: true, name: true } } },
+      throw error;
     });
+    const { invoice } = reserved;
+    if (!reserved.created || !dto.sendToAsaas) return invoice;
+    try {
+      let customerId = company.asaasCustomerId;
+      if (!customerId && company.document && company.users[0]) customerId = await this.ensureAsaasCustomer(company, company.users[0]);
+      if (!customerId) throw new BadRequestException('Empresa sem cadastro de cliente para emissão da cobrança.');
+      const payment = await this.asaas.createCharge(customerId, {
+        value: dto.amount, dueDate: dto.dueDate.slice(0, 10), description: dto.description,
+        billingType: dto.billingType, externalReference: `inv:${invoice.id}`,
+      });
+      if (!payment.id || Number(payment.value) !== Number(invoice.amount)) throw new BadRequestException('Cobrança retornada pelo provedor precisa de conciliação.');
+      return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: {
+        status: this.mapAsaasStatus(payment.status) ?? 'OPEN', asaasPaymentId: payment.id,
+        invoiceUrl: payment.invoiceUrl, paymentProcessingStatus: 'LINK_READY',
+        paidAt: this.isPaid(payment.status) ? new Date() : null,
+      }, include });
+    } catch (error) {
+      await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { paymentProcessingStatus: 'UNKNOWN' } }).catch(() => undefined);
+      this.logger.warn(`Cobrança ${invoice.id} precisa de conciliação: ${error instanceof Error ? error.name : 'erro externo'}`);
+      return { ...invoice, paymentProcessingStatus: 'UNKNOWN' };
+    }
   }
 
   /** Cobrança avulsa pelo provedor ativo: no Mercado Pago gera o link de checkout; no Asaas usa o fluxo padrão. */
   async createCharge(dto: CreatePlatformInvoiceDto) {
-    if ((await this.providers.active()) !== 'MERCADOPAGO' || !this.mercadoPago.isConfigured()) return this.create(dto);
+    if (!dto.sendToAsaas) return this.create(dto);
+    if ((await this.providers.active()) !== 'MERCADOPAGO') return this.create(dto);
+    if (!this.mercadoPago.isConfigured()) throw new ServiceUnavailableException('Mercado Pago indisponível. Nenhuma cobrança foi enviada.');
     const company = await this.prisma.company.findUnique({
       where: { id: dto.companyId },
       select: { id: true, users: { where: { role: 'ADMIN', isActive: true }, select: { email: true }, take: 1 } },
@@ -1345,7 +1367,7 @@ export class PlatformFinanceService {
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
     return this.createMercadoPagoInvoice({
       companyId: dto.companyId, planId: dto.planId, description: dto.description, amount: Number(dto.amount),
-      dueDate: new Date(dto.dueDate), payerEmail: company.users[0]?.email,
+      dueDate: new Date(dto.dueDate), payerEmail: company.users[0]?.email, chargeRequestKey: dto.idempotencyKey ? `${dto.companyId}:${dto.idempotencyKey}` : undefined,
     });
   }
   /**
@@ -1356,6 +1378,9 @@ export class PlatformFinanceService {
     if (!this.mercadoPago.isConfigured()) throw new BadRequestException('O Mercado Pago não está configurado (MERCADOPAGO_ACCESS_TOKEN).');
     const invoice = await this.findActive(id);
     if (invoice.status !== 'OPEN' && invoice.status !== 'OVERDUE') throw new BadRequestException('Só é possível gerar link para fatura aberta ou vencida.');
+    if (invoice.asaasPaymentId) throw new BadRequestException('Esta fatura já tem cobrança ativa no Asaas. Concilie ou cancele a cobrança antes de escolher outro provedor.');
+    if (invoice.paymentProcessingStatus === 'UNKNOWN' || invoice.paymentProcessingStatus === 'PROCESSING') throw new ServiceUnavailableException('Cobrança pendente de conciliação.');
+    if (invoice.mpPreferenceId) return invoice;
     const admin = await this.prisma.user.findFirst({ where: { companyId: invoice.companyId, role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, select: { email: true } });
     const preference = await this.mercadoPago.createCheckoutPreference({
       title: invoice.description || 'Mensalidade Innovation RH', amount: Number(invoice.amount), externalReference: `inv:${invoice.id}`, payerEmail: admin?.email,
@@ -1402,11 +1427,19 @@ export class PlatformFinanceService {
   }
 
   async sync(id: string, actor?: JwtUser) {
-    const invoice = await this.findActive(id);
+    let invoice = await this.findActive(id);
+    if (invoice.paymentProcessingStatus === 'UNKNOWN' && !invoice.asaasPaymentId && invoice.provider === 'ASAAS') {
+      const found = await this.asaas.findChargesByReference(invoice.id);
+      const matches = found.data.filter(payment => payment.externalReference === `inv:${invoice.id}` && Number(payment.value) === Number(invoice.amount));
+      if (found.hasMore || matches.length !== 1) throw new ServiceUnavailableException('Cobrança ainda sem correspondência única no Asaas. Verifique no provedor antes de emitir outra.');
+      invoice = await this.prisma.platformInvoice.update({ where: { id }, data: { asaasPaymentId: matches[0].id, invoiceUrl: matches[0].invoiceUrl, paymentProcessingStatus: 'LINK_READY' } });
+    }
+    if (this.refunds && invoice.status === 'PAID' && (invoice.asaasPaymentId || invoice.mpPaymentId)) await this.refunds.reconcile(id);
     if (invoice.provider === 'MERCADOPAGO') return this.syncMercadoPago(invoice, actor);
     if (!invoice.asaasPaymentId) throw new BadRequestException('Esta fatura e somente local.');
     const payment = await this.asaas.getCharge(invoice.asaasPaymentId);
-    const status = this.mapAsaasStatus(payment.status) ?? invoice.status;
+    const mapped = this.mapAsaasStatus(payment.status) ?? invoice.status;
+    const status = ['REFUNDED', 'REFUND_REQUESTED', 'REFUND_IN_PROGRESS'].includes(payment.status ?? '') || (invoice.status === 'PAID' && ['OPEN', 'OVERDUE'].includes(mapped)) ? invoice.status : mapped;
     const updated = await this.prisma.platformInvoice.update({
       where: { id },
       data: {
@@ -1428,7 +1461,8 @@ export class PlatformFinanceService {
   private async syncMercadoPago(invoice: { id: string; companyId: string; status: InvoiceStatus; paidAt: Date | null; mpPaymentId: string | null }, actor?: JwtUser) {
     const payment = await this.mercadoPago.findPaymentForInvoice(invoice.id, invoice.mpPaymentId);
     if (!payment) throw new BadRequestException('Nenhum pagamento encontrado no Mercado Pago para esta fatura.');
-    const status = this.mercadoPago.mapStatus(payment.status);
+    const mapped = this.mercadoPago.mapStatus(payment.status);
+    const status = payment.status === 'refunded' || (invoice.status === 'PAID' && mapped === 'OPEN') ? invoice.status : mapped;
     const updated = await this.prisma.platformInvoice.update({
       where: { id: invoice.id },
       data: { status, mpPaymentId: String(payment.id), paidAt: status === 'PAID' ? invoice.paidAt ?? new Date() : invoice.paidAt },
@@ -1440,81 +1474,28 @@ export class PlatformFinanceService {
 
   async remove(id: string, actor?: JwtUser) {
     const invoice = await this.findActive(id);
-    if (invoice.asaasPaymentId && invoice.status !== 'PAID' && invoice.status !== 'CANCELED') {
-      try {
-        await this.asaas.deleteCharge(invoice.asaasPaymentId);
-      } catch (err) {
-        this.logger.warn(`Asaas falhou ao deletar cobranca ${invoice.asaasPaymentId}: ${String(err)}`);
-      }
+    if (invoice.status !== 'OPEN' && invoice.status !== 'OVERDUE') throw new BadRequestException('Somente faturas não pagas podem ser canceladas.');
+    if (invoice.mpPaymentId || invoice.mpPreferenceId) throw new ServiceUnavailableException('Concilie ou cancele a cobrança no Mercado Pago antes de cancelar a fatura.');
+    if (invoice.asaasPaymentId) {
+      if (!this.asaas.isConfigured()) throw new ServiceUnavailableException('Não foi possível confirmar o cancelamento com o Asaas.');
+      try { await this.asaas.deleteCharge(invoice.asaasPaymentId); }
+      catch { throw new ServiceUnavailableException('Cancelamento não confirmado pelo Asaas. Sincronize a fatura antes de tentar novamente.'); }
     }
-    await this.prisma.platformInvoice.update({
-      where: { id },
-      data: { status: 'CANCELED', deletedAt: new Date() },
-    });
-    this.logger.log(`Fatura ${id} cancelada e removida da listagem.`);
-    await this.audit(invoice.companyId, 'INVOICE_CANCELED', {
-      invoiceId: invoice.id,
-      previousStatus: invoice.status,
-      asaasPaymentId: invoice.asaasPaymentId ?? null,
-    }, actor, 'Billing', invoice.id);
+    await this.prisma.platformInvoice.update({ where: { id }, data: { status: 'CANCELED' } });
+    await this.audit(invoice.companyId, 'INVOICE_CANCELED', { invoiceId: id, previousStatus: invoice.status }, actor, 'Billing', id);
     return { id };
   }
 
-  async requestRefund(id: string, companyId?: string, actor?: JwtUser) {
-    const invoice = await this.prisma.platformInvoice.findFirst({
-      where: { id, companyId, deletedAt: null },
-    });
+  async requestRefund(id: string, companyId?: string, actor?: JwtUser, reason = 'Devolução total solicitada', key?: string) {
+    const invoice = await this.prisma.platformInvoice.findFirst({ where: { id, companyId, deletedAt: null } });
     if (!invoice) throw new NotFoundException('Fatura nao encontrada.');
-    if (invoice.status !== 'PAID') throw new BadRequestException('A fatura precisa estar paga para ser estornada.');
+    if (!this.refunds) throw new ServiceUnavailableException('Processamento de devoluções indisponível.');
+    return this.refunds.request(id, { reason, key, actorId: actor?.sub });
+  }
 
-    const paidAt = invoice.paidAt || new Date();
-    const daysSincePayment = (new Date().getTime() - paidAt.getTime()) / (1000 * 3600 * 24);
-
-    if (invoice.provider === 'MERCADOPAGO' && invoice.mpPaymentId && daysSincePayment <= 7) {
-      try {
-        await this.mercadoPago.refund(invoice.mpPaymentId);
-      } catch (error) {
-        this.logger.error(`Falha ao estornar a fatura ${id} no Mercado Pago: ${String(error)}`);
-        throw new BadRequestException('O Mercado Pago recusou o pedido de estorno. Verifique o saldo ou estorne manualmente.');
-      }
-    } else if (invoice.asaasPaymentId && daysSincePayment <= 7) {
-      try {
-        await this.asaas.refundPayment(invoice.asaasPaymentId);
-      } catch (error) {
-        this.logger.error(`Falha ao solicitar estorno da fatura ${id}: ${String(error)}`);
-        throw new BadRequestException('O Asaas recusou o pedido de estorno. Verifique o saldo ou realize o estorno manualmente.');
-      }
-    }
-
-    const updated = await this.prisma.platformInvoice.update({
-      where: { id },
-      data: { status: 'CANCELED' },
-      include: { company: { select: { id: true, name: true } }, plan: { select: { id: true, name: true } } },
-    });
-
-    if (daysSincePayment <= 7) {
-      await this.prisma.company.update({
-        where: { id: invoice.companyId },
-        data: { status: 'SUSPENDED', isActive: false, billingStatus: 'PAST_DUE', suspensionReason: 'pagamento_estornado_7_dias' },
-      });
-    } else {
-      await this.prisma.company.update({
-        where: { id: invoice.companyId },
-        data: { status: 'ACTIVE', isActive: true, billingStatus: 'CANCELED', suspensionReason: 'cancelamento_aviso_30_dias' },
-      });
-    }
-
-    // Estorno encerra a relação (suspensa ou cancelada): a assinatura recorrente não pode continuar cobrando.
-    await this.cancelMercadoPagoSubscription(invoice.companyId);
-
-    await this.audit(invoice.companyId, 'INVOICE_REFUND_REQUESTED', {
-      invoiceId: invoice.id,
-      paidAt: paidAt.toISOString(),
-      daysSincePayment: Number(daysSincePayment.toFixed(1)),
-      refundedWithinWindow: daysSincePayment <= 7,
-    }, actor, 'Billing', invoice.id);
-
-    return updated;
+  async requestPartialRefund(id: string, amount: number, reason: string, actor: JwtUser, key?: string) {
+    if (!this.refunds) throw new ServiceUnavailableException('Processamento de devoluções indisponível.');
+    return this.refunds.request(id, { amount, reason, key, actorId: actor.sub });
   }
 
   private async findActive(id: string) {

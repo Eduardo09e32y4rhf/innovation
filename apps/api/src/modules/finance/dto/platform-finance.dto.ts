@@ -63,6 +63,9 @@ export class AuditLogsQueryDto {
 }
 
 export class CreatePlatformInvoiceDto {
+  @IsOptional()
+  @IsUUID()
+  idempotencyKey?: string;
   @IsUUID()
   companyId!: string;
 

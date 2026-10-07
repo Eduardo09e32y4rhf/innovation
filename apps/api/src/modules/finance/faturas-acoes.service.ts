@@ -195,37 +195,13 @@ export class FaturasAcoesService {
   // ---------- reembolso parcial ----------
 
   async partialRefund(invoiceId: string, dto: PartialRefundDto, actor: JwtUser) {
-    const invoice = await this.invoiceFor(actor, invoiceId);
-    if (invoice.status !== 'PAID') throw new BadRequestException('A fatura precisa estar paga para ser reembolsada.');
-    const agg = await this.prisma.invoiceAdjustment.aggregate({ where: { invoiceId, type: 'PARTIAL_REFUND' }, _sum: { amount: true } });
-    const already = Number(agg._sum.amount ?? 0);
-    const available = round2(Number(invoice.amount) - already);
-    if (dto.amount > available) throw new BadRequestException(`Valor acima do disponivel para reembolso (R$ ${available.toFixed(2)}).`);
-
-    try {
-      if (invoice.provider === 'MERCADOPAGO' && invoice.mpPaymentId) await this.mercadoPago.refund(invoice.mpPaymentId, dto.amount);
-      else if (invoice.asaasPaymentId) await this.asaas.refundPayment(invoice.asaasPaymentId, dto.amount, dto.reason);
-      else throw new BadRequestException('Esta fatura nao tem pagamento no provedor. Reembolse manualmente e registre fora do sistema.');
-    } catch (error) {
-      if (error instanceof BadRequestException) throw error;
-      this.logger.error(`Falha no reembolso parcial da fatura ${invoiceId}: ${String(error)}`);
-      throw new BadRequestException('O provedor recusou o reembolso. Confira o prazo e o saldo.');
-    }
-
-    return this.record(actor, {
-      companyId: invoice.companyId, invoiceId, type: 'PARTIAL_REFUND', amount: dto.amount, reason: dto.reason,
-      metadata: { provider: invoice.provider, remainingRefundable: round2(available - dto.amount) },
-    });
+    await this.invoiceFor(actor, invoiceId);
+    return this.finance.requestPartialRefund(invoiceId, dto.amount, dto.reason, actor, dto.idempotencyKey);
   }
 
-  /** Reembolso total: mantem a regra existente (estorno + suspensao conforme a janela de 7 dias). */
-  async fullRefund(invoiceId: string, reason: string, actor: JwtUser) {
+  async fullRefund(invoiceId: string, reason: string, actor: JwtUser, key?: string) {
     const invoice = await this.invoiceFor(actor, invoiceId);
-    const result = await this.finance.requestRefund(invoiceId, invoice.companyId, actor);
-    await this.prisma.auditLog.create({
-      data: { companyId: invoice.companyId, userId: actor.sub, action: 'FATURAS_FULL_REFUND_REASON', entity: 'PlatformInvoice', entityId: invoiceId, metadata: { reason, actorEmail: actor.email } },
-    });
-    return result;
+    return this.finance.requestRefund(invoiceId, invoice.companyId, actor, reason, key);
   }
 
   // ---------- usuarios (upgrade/downgrade) com rateio ----------

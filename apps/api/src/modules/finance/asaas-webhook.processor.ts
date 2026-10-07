@@ -6,6 +6,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AsaasService } from './asaas.service';
 import { FinanceNotificationService, FinanceNotificationType } from './finance-notification.service';
 import { PricingService } from './pricing.service';
+import { PaymentRefundService } from './payment-refund.service';
 
 type InvoiceStatus = 'OPEN' | 'PAID' | 'OVERDUE' | 'CANCELED';
 
@@ -67,6 +68,7 @@ export class AsaasWebhookProcessorService {
     private readonly notifications: FinanceNotificationService,
     private readonly asaas: AsaasService,
     private readonly pricing: PricingService,
+    private readonly refunds?: PaymentRefundService,
   ) {}
 
   async processStoredEvent(eventId: string) {
@@ -85,7 +87,7 @@ export class AsaasWebhookProcessorService {
       if (payload.payment?.id) await this.handlePaymentEvent(event, payload.payment);
       if (payload.invoice?.id) await this.handleInvoiceEvent(event, payload.invoice);
 
-      const recognized = Boolean(this.statusFromEvent(event) || ['INVOICE_AUTHORIZED', 'INVOICE_CANCELED', 'INVOICE_ERROR'].includes(event));
+      const recognized = Boolean(this.statusFromEvent(event) || ['PAYMENT_PARTIALLY_REFUNDED', 'INVOICE_AUTHORIZED', 'INVOICE_CANCELED', 'INVOICE_ERROR'].includes(event));
       await this.prisma.asaasWebhookEvent.update({
         where: { id: eventId },
         data: {
@@ -105,6 +107,13 @@ export class AsaasWebhookProcessorService {
   }
 
   private async handlePaymentEvent(event: string, payment: AsaasWebhookPayment) {
+    if (['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS'].includes(event)) {
+      const invoice = await this.prisma.platformInvoice.findUnique({ where: { asaasPaymentId: payment.id } });
+      if (!invoice) throw new Error('Devolução sem fatura vinculada: conciliação pendente.');
+      if (!this.refunds) throw new Error('Serviço de devoluções indisponível.');
+      await this.refunds.reconcile(invoice.id);
+      return;
+    }
     const status = this.statusFromEvent(event);
     if (!status) return;
     const company = await this.resolveCompany(payment);
@@ -114,7 +123,9 @@ export class AsaasWebhookProcessorService {
     }
 
     await this.syncProposal(company.id, event, payment);
-    const existing = await this.prisma.platformInvoice.findUnique({ where: { asaasPaymentId: payment.id } });
+    const existing = await this.prisma.platformInvoice.findUnique({ where: { asaasPaymentId: payment.id } })
+      ?? (payment.externalReference?.startsWith('inv:') ? await this.prisma.platformInvoice.findUnique({ where: { id: payment.externalReference.slice(4) } }).catch(() => null) : null);
+    if (existing && (existing.companyId !== company.id || Number(existing.amount) !== payment.value || (existing.asaasPaymentId && existing.asaasPaymentId !== payment.id))) throw new Error('Cobrança não corresponde à fatura reservada.');
     // Evento fora de ordem: uma fatura já paga nunca volta para aberta/vencida (só estorno/cancelamento a altera).
     if (existing?.status === 'PAID' && (status === 'OPEN' || status === 'OVERDUE')) {
       this.logger.warn(`Evento ${event} ignorado: fatura ${existing.id} já está paga (fora de ordem).`);
@@ -142,8 +153,8 @@ export class AsaasWebhookProcessorService {
 
     const [invoice] = await this.prisma.$transaction([
       existing
-        ? this.prisma.platformInvoice.update({ where: { id: existing.id }, data: invoiceData })
-        : this.prisma.platformInvoice.create({ data: { ...invoiceData, asaasPaymentId: payment.id } }),
+        ? this.prisma.platformInvoice.update({ where: { id: existing.id }, data: { ...invoiceData, asaasPaymentId: payment.id, paymentProcessingStatus: 'LINK_READY' } })
+        : this.prisma.platformInvoice.create({ data: { ...invoiceData, asaasPaymentId: payment.id, paymentProcessingStatus: 'LINK_READY' } }),
       ...(Object.keys(companyData).length ? [this.prisma.company.update({ where: { id: company.id }, data: companyData })] : []),
     ]);
 
@@ -248,6 +259,10 @@ export class AsaasWebhookProcessorService {
         select: { id: true },
       });
       if (company) return company;
+    }
+    if (payment.externalReference?.startsWith('inv:')) {
+      const invoice = await this.prisma.platformInvoice.findUnique({ where: { id: payment.externalReference.slice(4) }, select: { company: { select: { id: true } } } }).catch(() => null);
+      return invoice?.company ?? null;
     }
     if (payment.externalReference) {
       const companyId = payment.externalReference.startsWith('signup:')

@@ -448,7 +448,11 @@ export interface PlatformCompany {
 }
 export type PlatformInvoiceStatus = 'OPEN' | 'PAID' | 'OVERDUE' | 'CANCELED';
 export type PlatformBillingType = 'UNDEFINED' | 'PIX' | 'BOLETO' | 'CREDIT_CARD';
+export interface PaymentRefund {
+  id: string; kind: string; amount: number | string; status: 'PROCESSING' | 'PENDING' | 'UNKNOWN' | 'CONFIRMED' | 'FAILED'; reason: string; createdAt: string; confirmedAt?: string | null; receiptUrl?: string | null; errorMessage?: string | null;
+}
 export interface PlatformInvoice {
+  refundedAmount?: number | string; refundStatus?: string | null; paymentProcessingStatus?: string | null; refunds?: PaymentRefund[];
   id: string; companyId: string; planId?: string | null; description?: string | null;
   amount: number | string; dueDate: string; status: PlatformInvoiceStatus; billingType: PlatformBillingType;
   asaasPaymentId?: string | null; invoiceUrl?: string | null; paidAt?: string | null; provider?: string | null; mpPaymentId?: string | null; receiptUrl?: string | null;
@@ -535,7 +539,7 @@ export interface PlatformInvoiceQuery {
 }
 export interface CreatePlatformInvoiceInput {
   companyId: string; planId?: string; description: string; amount: number; dueDate: string;
-  billingType?: PlatformBillingType; sendToAsaas?: boolean;
+  billingType?: PlatformBillingType; sendToAsaas?: boolean; idempotencyKey?: string;
 }
 export interface UpdatePlatformInvoiceInput {
   description?: string; amount?: number; dueDate?: string; billingType?: PlatformBillingType; status?: PlatformInvoiceStatus;
@@ -991,8 +995,8 @@ export const api = {
     charge: (input: CreatePlatformInvoiceInput) => request<PlatformInvoice>('/faturas/plataforma/invoices', { method: 'POST', body: input }),
     cancelInvoice: (id: string, reason: string) => request<{ id: string }>(`/faturas/plataforma/invoices/${id}`, { method: 'DELETE', body: { reason } }),
     discountInvoice: (id: string, input: { kind: 'PERCENT' | 'FIXED'; value: number; reason: string }) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/discount`, { method: 'POST', body: input }),
-    refundPartial: (id: string, input: { amount: number; reason: string }) => request<InvoiceAdjustment>(`/faturas/plataforma/invoices/${id}/refund-partial`, { method: 'POST', body: input }),
-    refundFull: (id: string, reason: string) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/refund`, { method: 'POST', body: { reason } }),
+    refundPartial: (id: string, input: { amount: number; reason: string; idempotencyKey?: string }) => request<PaymentRefund>(`/faturas/plataforma/invoices/${id}/refund-partial`, { method: 'POST', body: input }),
+    refundFull: (id: string, reason: string, idempotencyKey?: string) => request<PaymentRefund>(`/faturas/plataforma/invoices/${id}/refund`, { method: 'POST', body: { reason, idempotencyKey } }),
     attachFiscal: (id: string, input: { reason: string; invoiceNumber?: string; fiscalPdfUrl?: string; fiscalXmlUrl?: string; receiptUrl?: string }) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/fiscal`, { method: 'POST', body: input }),
     recurringDiscount: (companyId: string, input: { kind: 'PERCENT' | 'FIXED'; value: number; cycles: number; reason: string }) => request<{ total: number; discountPerCycle: number; cycles: number; providerSynced: boolean }>(`/faturas/plataforma/companies/${companyId}/recurring-discount`, { method: 'POST', body: input }),
     freeDays: (companyId: string, input: { days: number; reason: string }) => request<{ nextDueDate: string; movedInvoices: number; providerSynced: boolean }>(`/faturas/plataforma/companies/${companyId}/free-days`, { method: 'POST', body: input }),

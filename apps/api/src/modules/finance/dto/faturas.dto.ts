@@ -62,13 +62,16 @@ export class FreeDaysDto extends ReasonDto {
 }
 
 export class PartialRefundDto extends ReasonDto {
+  @IsOptional() @IsUUID() idempotencyKey?: string;
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   amount!: number;
 }
 
-export class FullRefundDto extends ReasonDto {}
+export class FullRefundDto extends ReasonDto {
+  @IsOptional() @IsUUID() idempotencyKey?: string;
+}
 
 export class ChangeSeatsDto extends ReasonDto {
   @Type(() => Number)
