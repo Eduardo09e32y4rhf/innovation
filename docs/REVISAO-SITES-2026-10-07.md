@@ -5,7 +5,8 @@ Base: 5e8cdab5af2c052f5bc23d05f92376f9899ad68e. Esta entrega é uma primeira eta
 ## Alterações
 
 - Node 24/npm 11 definidos no pacote, .nvmrc, CI e Docker. Docker usa npm ci. Removidos os overrides opcionais SWC 14.2.35 do frontend: Next 14.2.35 declara SWC 14.2.33. O lockfile usa agora a árvore publicada pelo Next.
-- Workspace verifica os workflows atuais. ci-ok rejeita todo resultado diferente de success. CI define URL local para validação do schema; jobs de banco têm URL própria.
+- Comparação de migrations usa o caminho correto do schema. Defaults UUID de três tabelas de recrutamento refletem o gen_random_uuid() já existente nas migrations, sem alteração do banco.
+- Workspace verifica os workflows atuais. ci-ok rejeita todo resultado diferente de success. Browser E2E entra no gate obrigatório e não usa bypass de lockfile. CI define URL local para validação do schema; jobs de banco têm URL própria.
 - JWT de acesso tem finalidade explícita. Guards não utilizam JWT de MFA, recuperação ou confirmação como identidade de acesso. Tokens antigos devem ser renovados pelo cookie ou exigir novo login.
 - Access token vinculado à família de sessão ativa; logout/revogação bloqueiam access tokens dessa família. Versão da senha usa o timestamp persistido em milissegundos, evitando comparação com iat truncado.
 - Refresh consome condicionalmente a sessão e cria um sucessor na mesma transação. Falha na criação reverte o consumo. O cliente compartilha uma promessa por aba e usa Web Locks quando disponíveis para serializar abas.
@@ -21,8 +22,10 @@ Base: 5e8cdab5af2c052f5bc23d05f92376f9899ad68e. Esta entrega é uma primeira eta
 - npm ci: aprovado em Linux com Node 24.19.0 e npm 11.9.0.
 - npm run validate: aprovado com DATABASE_URL local de teste (validação do schema, sem conexão ao banco).
 - npm run test:unit: 96 arquivos, 539 testes aprovados, incluindo rejeição de JWT restrito, família encerrada e versão de senha, além de cancelamento MP.
-- Build API e Web: aprovados. Build Web foi executado antes da última atualização de sessão; typecheck e validação foram repetidos depois. Rodar o build final no CI.
-- Não executados: migrations em banco vazio/existente, integração com PostgreSQL/Redis, E2E com browser, sandbox dos provedores e piloto. O ambiente local não dispõe desses serviços e não recebeu credenciais de teste.
+- Builds finais API/Web: aprovados, incluindo a atualização de sessão.
+- CI remoto: validação, unitários/cobertura e build passaram. Migrations foram aplicadas em banco vazio; a verificação inicial de drift revelou caminho incorreto e depois defaults UUID divergentes. Ambos foram corrigidos. Aguardar os checks do último SHA para certificar comparação, integração e Browser E2E.
+- Adicionados testes de integração em PostgreSQL real para consumo concorrente de refresh e invalidação do access token após logout.
+- Não executados localmente: integração/migrations com PostgreSQL/Redis, E2E com browser, sandbox financeiro e piloto. Não houve acesso a banco ou dados de clientes.
 - A disponibilidade HTTP 200 da API no domínio existente não confirma que esta branch foi implantada na VPS.
 
 ## Sites

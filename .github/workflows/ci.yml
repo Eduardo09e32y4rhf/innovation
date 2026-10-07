@@ -109,11 +109,15 @@ jobs:
       - run: npm run build:api
       - run: npm run build:web
 
+  browser-e2e:
+    name: Browser E2E
+    uses: ./.github/workflows/e2e.yml
+
   # Job unico a exigir na protecao de branch da main.
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [validate, unit, migrations-empty-db, integration, build]
+    needs: [validate, unit, migrations-empty-db, integration, build, browser-e2e]
     runs-on: ubuntu-latest
     steps:
       - run: |
