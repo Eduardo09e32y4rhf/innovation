@@ -1,0 +1,15 @@
+{
+  "urlBase": "http://localhost:3000",
+  "perfis": {
+    "DEV":         { "email": "", "senha": "" },
+    "CEO":         { "email": "", "senha": "" },
+    "COMERCIAL":   { "email": "", "senha": "" },
+    "CONTABIL":    { "email": "", "senha": "" },
+    "ADMIN":       { "email": "", "senha": "" },
+    "RH":          { "email": "", "senha": "" },
+    "RH_RS":       { "email": "", "senha": "" },
+    "GESTOR":      { "email": "", "senha": "" },
+    "FUNCIONARIO": { "email": "", "senha": "" },
+    "CONSULTA":    { "email": "", "senha": "" }
+  }
+}

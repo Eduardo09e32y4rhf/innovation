@@ -215,3 +215,7 @@ backup_before_recovery.sql
 
 infra/metrics_token
 infra/webhook_url
+
+# Robo QA provisorio: senhas de teste e relatorios gerados
+tools/robo-qa/robo.config.json
+tools/robo-qa/relatorios/
