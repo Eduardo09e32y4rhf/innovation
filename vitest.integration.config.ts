@@ -24,6 +24,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './apps/api/src'),
       '@prisma/client': path.resolve(__dirname, './apps/api/node_modules/@prisma/client'),
+      '@nestjs/jwt': path.resolve(__dirname, './apps/api/node_modules/@nestjs/jwt'),
     },
   },
 });

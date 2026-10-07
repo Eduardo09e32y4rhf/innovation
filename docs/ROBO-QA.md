@@ -3,13 +3,14 @@
 Botão flutuante 🤖 (só aparece para usuário DEV). Abre cada página como uma pessoa usaria, sai e entra como outros usuários e,
 no fim, mostra um relatório em português: ✅ passou · ❌ falhou · ⚠️ inconclusivo · ⏭️ não testado (sem senhas nem tokens).
 
-## Ligar / desligar na VPS (a chave é de BUILD)
+## Desenvolvimento local
+
+O robô fica desabilitado em builds de produção, mesmo com a flag ligada. Ao abrir uma versão de produção, as credenciais antigas em `roboQa.contas` e o estado de execução em `roboQa.v1` são removidos do navegador. O relatório sem segredos é preservado.
+
+Use apenas uma API e banco de teste local para executar o robô.
+
 ```bash
-# ligar
-sed -i 's/^NEXT_PUBLIC_ROBO_QA=.*/NEXT_PUBLIC_ROBO_QA=on/' .env || echo 'NEXT_PUBLIC_ROBO_QA=on' >> .env
-bash scripts/deploy/vps-update.sh
-# desligar (remove do pacote)
-sed -i 's/^NEXT_PUBLIC_ROBO_QA=.*/NEXT_PUBLIC_ROBO_QA=off/' .env && bash scripts/deploy/vps-update.sh
+NEXT_PUBLIC_ROBO_QA=on npm run dev --workspace apps/web
 ```
 Para apagar de vez: remover `apps/web/app/_components/robo-qa/` e as 3 linhas do `apps/web/app/layout.tsx`.
 
