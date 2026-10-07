@@ -1,4 +1,4 @@
-﻿# ProduÃ§Ã£o (VPS). Todos os segredos vÃªm do arquivo .env ao lado deste compose.
+# ProduÃ§Ã£o (VPS). Todos os segredos vÃªm do arquivo .env ao lado deste compose.
 # Primeiro uso:  bash scripts/security/bootstrap-env.sh   (gera segredos fortes sem sobrescrever os existentes)
 # Subir:         docker compose -f docker-compose.prod.yml up -d --build
 # O compose RECUSA subir se faltar segredo obrigatÃ³rio (sintaxe ${VAR:?}).
