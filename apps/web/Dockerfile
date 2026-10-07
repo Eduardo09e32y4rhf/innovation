@@ -7,6 +7,9 @@ RUN npm install
 COPY . .
 RUN cd apps/api && npx prisma generate
 ENV NEXT_PUBLIC_API_URL=/api
+# Robo de teste provisorio (botao flutuante, so DEV). Variavel de BUILD: "on" liga, "off" remove do pacote.
+ARG NEXT_PUBLIC_ROBO_QA=off
+ENV NEXT_PUBLIC_ROBO_QA=$NEXT_PUBLIC_ROBO_QA
 RUN npm run build:web
 EXPOSE 3000
 CMD ["npm", "run", "start:web"]

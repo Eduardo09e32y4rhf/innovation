@@ -1,6 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import dynamic from 'next/dynamic';
 import { Providers } from './contexts/Providers';
+
+// Robo de teste PROVISORIO: so entra no pacote quando NEXT_PUBLIC_ROBO_QA=on (ver docs/ROBO-QA.md).
+const ROBO_QA = process.env.NEXT_PUBLIC_ROBO_QA === 'on';
+const RoboQa = ROBO_QA ? dynamic(() => import('./_components/robo-qa/RoboQa'), { ssr: false }) : null;
 
 export const metadata: Metadata = {
   title: {
@@ -21,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('theme');var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light'}catch(e){}" }} />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>{children}{RoboQa ? <RoboQa /> : null}</Providers>
       </body>
     </html>
   );

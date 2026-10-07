@@ -32,6 +32,8 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:contract": "vitest run --config vitest.config.ts tests/contract",
     "test:security": "vitest run --config vitest.config.ts tests/security",
+    "test:qa:escala": "vitest run --config vitest.qa.config.ts tests/qa/schedule/escala.spec.ts",
+    "test:qa:ferias": "vitest run --config vitest.qa.config.ts tests/qa/vacations/ferias.spec.ts",
     "test:coverage": "vitest run --coverage --config vitest.config.ts",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:contract && npm run test:security && npm run test:e2e",
     "test:db:setup": "npx tsx scripts/test/setup-database.ts",

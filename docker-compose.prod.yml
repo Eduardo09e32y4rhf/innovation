@@ -111,6 +111,8 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_ROBO_QA: ${NEXT_PUBLIC_ROBO_QA:-off}
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
     ports: ["127.0.0.1:3000:3000"]
