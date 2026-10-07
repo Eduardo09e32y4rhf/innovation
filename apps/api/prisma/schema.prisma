@@ -3157,7 +3157,7 @@ model InvoiceAdjustment {
 
 /// Responsaveis por vaga. Vaga com responsaveis fica visivel so a eles (RH_RS); sem responsaveis, a toda a equipe de R&S da empresa.
 model JobRecruiter {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   companyId    String   @db.Uuid
   jobId        String   @db.Uuid
   userId       String   @db.Uuid
@@ -3179,7 +3179,7 @@ enum RecruitmentDocumentStatus {
 
 /// Link temporario para o candidato enviar documentos. O token bruto nunca e gravado: so o SHA-256.
 model RecruitmentDocumentRequest {
-  id            String    @id @default(uuid()) @db.Uuid
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   companyId     String    @db.Uuid
   applicationId String    @db.Uuid
   tokenHash     String    @unique
@@ -3197,7 +3197,7 @@ model RecruitmentDocumentRequest {
 
 /// Documento do candidato. So existe depois de passar na validacao e no scan; o arquivo fica em armazenamento privado.
 model RecruitmentDocument {
-  id           String                    @id @default(uuid()) @db.Uuid
+  id           String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   companyId    String                    @db.Uuid
   applicationId String                   @db.Uuid
   requestId    String                    @db.Uuid
