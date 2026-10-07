@@ -12,7 +12,6 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { friendlyValidationFactory } from './common/filters/friendly-validation';
 import { NoCacheInterceptor } from './common/interceptors/no-cache.interceptor';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import { REQUEST_ID_HEADER, resolveRequestId } from './common/request-id';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
@@ -47,18 +46,9 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({
-      logger: true,
-      bodyLimit: 10_485_760, // 10MB limit for base64 images
-      trustProxy: true,
-      requestIdHeader: false,
-      genReqId: (req) => resolveRequestId(req.headers[REQUEST_ID_HEADER]),
-    }),
+    new FastifyAdapter({ logger: true, bodyLimit: 10_485_760, trustProxy: true }), // 10MB limit for base64 images
   );
   app.useLogger(logger);
-  app.getHttpAdapter().getInstance().addHook('onRequest', async (request, reply) => {
-    reply.header(REQUEST_ID_HEADER, request.id);
-  });
 
   const reflector = app.get(Reflector);
   const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
@@ -96,8 +86,8 @@ async function bootstrap() {
       : process.env.NODE_ENV !== 'production',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-Id'],
-    exposedHeaders: ['X-Request-Id', 'Content-Disposition', 'Content-Length', 'Digest', 'ETag', 'X-Document-Id', 'X-Document-Sha256', 'X-Document-Type', 'X-Document-Version', 'X-Document-Generated-At', 'X-Document-Records', 'X-Calculation-Versions'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Content-Disposition', 'Content-Length', 'Digest', 'ETag', 'X-Document-Id', 'X-Document-Sha256', 'X-Document-Type', 'X-Document-Version', 'X-Document-Generated-At', 'X-Document-Records', 'X-Calculation-Versions'],
     maxAge: 86400,
   });
 

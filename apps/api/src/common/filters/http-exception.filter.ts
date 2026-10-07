@@ -1,7 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { reportError } from '../observability';
-import { responseMeta } from '../request-id';
 import { fieldLabel } from './friendly-validation';
 
 export interface MappedError {
@@ -78,21 +77,6 @@ export function mapException(exception: unknown): MappedError {
   return { status: HttpStatus.INTERNAL_SERVER_ERROR, body: { message: 'Erro interno.' }, log: true };
 }
 
-const DEFAULT_CODES: Record<number, string> = {
-  400: 'BAD_REQUEST', 401: 'UNAUTHENTICATED', 403: 'FORBIDDEN', 404: 'NOT_FOUND', 409: 'CONFLICT', 413: 'PAYLOAD_TOO_LARGE',
-  415: 'UNSUPPORTED_MEDIA_TYPE', 422: 'BUSINESS_RULE_VIOLATION', 429: 'TOO_MANY_REQUESTS', 500: 'INTERNAL_ERROR',
-  502: 'UPSTREAM_INVALID_RESPONSE', 503: 'SERVICE_UNAVAILABLE', 504: 'UPSTREAM_TIMEOUT',
-};
-
-export function defaultErrorCode(status: number): string {
-  return DEFAULT_CODES[status] ?? (status >= 500 ? 'INTERNAL_ERROR' : 'REQUEST_ERROR');
-}
-
-/** O cliente pode repetir a mesma requisição com chance de sucesso (limite, indisponibilidade, timeout). */
-export function isRetryable(status: number): boolean {
-  return status === 429 || status === 502 || status === 503 || status === 504;
-}
-
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger('HttpExceptionFilter');
@@ -103,10 +87,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest();
     const mapped = mapException(exception);
 
-    const meta = responseMeta(request);
     let requestId: string | undefined;
     if (mapped.status >= 500) {
-      requestId = meta.requestId ?? randomBytes(4).toString('hex');
+      requestId = randomBytes(4).toString('hex');
       const detail = exception instanceof Error ? exception.stack ?? exception.message : String(exception);
       this.logger.error(`[${requestId}] ${request?.method} ${request?.url} -> ${mapped.status}\n${detail}`);
       mapped.body.message = `Algo deu errado do nosso lado. Tente novamente; se continuar, informe o código ${requestId} ao suporte.`;
@@ -126,10 +109,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       success: false,
       statusCode: mapped.status,
       path: request?.url,
-      timestamp: meta.timestamp,
-      // `error.message` e `statusCode` são o contrato legado; `code`, `retryable` e `meta` são aditivos.
-      error: { ...mapped.body, code: mapped.body.code ?? defaultErrorCode(mapped.status), retryable: isRetryable(mapped.status) },
-      meta: { requestId: requestId ?? meta.requestId, timestamp: meta.timestamp },
+      timestamp: new Date().toISOString(),
+      error: mapped.body,
     });
   }
 }
