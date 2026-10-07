@@ -9,12 +9,12 @@ export const FATURAS_TAB_LABEL: Record<FaturasTab, string> = {
 
 /**
  * Quem ve cada aba na visao da plataforma. Espelha os perfis aceitos pela API
- * (plans.controller: DEV/CEO/CONTABIL/COMERCIAL; coupons.controller: DEV/CEO/CONTABIL). A API continua sendo a autoridade.
+ * (plans.controller: DEV/CEO/CONTABIL/COMERCIAL; a aba Faturas e so para DEV/CEO/CONTABIL, ver faturas-permissions.ts; coupons.controller: DEV/CEO/CONTABIL). A API continua sendo a autoridade.
  */
 const POLICY: Record<FaturasTab, readonly string[]> = {
-  faturas: ['DEV', 'CEO', 'CONTABIL', 'COMERCIAL'],
-  assinaturas: ['DEV', 'CEO', 'CONTABIL', 'COMERCIAL'],
-  planos: ['DEV', 'CEO', 'CONTABIL', 'COMERCIAL'],
+  faturas: ['DEV', 'CEO', 'CONTABIL'],
+  assinaturas: ['DEV', 'CEO', 'CONTABIL'],
+  planos: ['DEV', 'CEO', 'CONTABIL'],
   cupons: ['DEV', 'CEO', 'CONTABIL'],
 };
 

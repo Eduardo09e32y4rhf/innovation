@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser, UserRole } from '../types/auth.types';
-import { FATURAS_DEFAULTS, FATURAS_PERMISSIONS, FATURAS_ROLES, isFaturasPermission, userHasFaturasPermission, type FaturasPermission } from './faturas-permissions';
+import { FATURAS_DEFAULTS, FATURAS_PERMISSIONS, FATURAS_ROLES, FATURAS_ROLES_COM_ACESSO, faturasRoleAllows, isFaturasPermission, userHasFaturasPermission, type FaturasPermission } from './faturas-permissions';
 
 const SETTING_KEY = 'faturas.role-permissions';
 const CACHE_MS = 15_000;
@@ -23,6 +23,7 @@ export class FaturasPermissionsService {
 
   async has(user: { role?: UserRole; customPermissions?: unknown } | undefined, permission: FaturasPermission) {
     if (!user?.role || user.role === 'DEV') return Boolean(user?.role);
+    if (!faturasRoleAllows(user.role, permission)) return false; // teto por perfil: vale mais que permissao personalizada e que a config do DEV
     const custom = user.customPermissions;
     if (Array.isArray(custom) && custom.length > 0) return custom.includes(permission);
     const override = (await this.overrides())[user.role];
@@ -49,8 +50,11 @@ export class FaturasPermissionsService {
     if (actor.role !== 'DEV') throw new ForbiddenException('Apenas DEV altera as permissões de Faturas por perfil.');
     if (!(FATURAS_ROLES as readonly string[]).includes(role)) throw new BadRequestException('Perfil invalido.');
     if (role === 'DEV') throw new BadRequestException('O perfil DEV sempre tem acesso total.');
+    if (!(FATURAS_ROLES_COM_ACESSO as readonly string[]).includes(role)) throw new BadRequestException('Este perfil nao pode ter acesso a Faturas.');
     const invalid = permissions.filter((p) => !isFaturasPermission(p));
     if (invalid.length) throw new BadRequestException(`Permissoes invalidas: ${invalid.join(', ')}`);
+    const acimaDoTeto = permissions.filter((p) => isFaturasPermission(p) && !faturasRoleAllows(role as UserRole, p));
+    if (acimaDoTeto.length) throw new BadRequestException(`O perfil ${role} nao pode receber: ${acimaDoTeto.join(', ')}`);
     // Operacoes de dinheiro e visao global sem poder ver as faturas nao fazem sentido.
     const next = Array.from(new Set(permissions));
     if (next.length && !next.includes('faturas.ver')) next.unshift('faturas.ver');

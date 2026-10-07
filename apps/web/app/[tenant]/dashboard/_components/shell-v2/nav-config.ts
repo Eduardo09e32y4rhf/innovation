@@ -32,7 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'management', label: 'Gestão', href: '/dashboard/management', icon: ShieldCheck, group: 'Trabalho', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'], moduleKey: 'management', anyPermission: ['platform.manage', 'users.view_team'] },
   { id: 'jobs', label: 'Vagas', href: '/dashboard/jobs', icon: Briefcase, group: 'Trabalho', roles: ['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR'], moduleKey: 'recruitment' },
   { id: 'users', label: 'Usuários', href: '/dashboard/users', icon: UserRoundCog, group: 'Administração', roles: ['DEV', 'ADMIN', 'RH'], anyPermission: ['users.manage_employees'] },
-  { id: 'faturas', label: 'Faturas', href: '/dashboard/faturas', icon: Receipt, group: 'Administração', roles: ALL_ROLES, anyPermission: ['faturas.ver'] },
+  { id: 'faturas', label: 'Faturas', href: '/dashboard/faturas', icon: Receipt, group: 'Administração', roles: ['DEV', 'CEO', 'CONTABIL', 'ADMIN', 'RH'], anyPermission: ['faturas.ver'] },
   { id: 'settings', label: 'Configurações', href: '/dashboard/settings', icon: Settings2, group: 'Administração', roles: ALL_ROLES },
   { id: 'support', label: 'Suporte', href: '/dashboard/support', icon: HelpCircle, group: 'Administração', roles: ALL_ROLES },
   { id: 'platform', label: 'Plataforma', href: '/dashboard/platform', icon: Building2, group: 'Operação global', roles: ['DEV', 'CEO', 'COMERCIAL', 'CONTABIL'], anyPermission: ['platform.manage', 'platform.view_finance'] },

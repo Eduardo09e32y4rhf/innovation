@@ -167,9 +167,7 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
   ],
   'comercial': [
     'settings.change_own_password',
-    'platform.view_finance',
-    'faturas.ver',
-    'faturas.todas_empresas'
+    'platform.view_finance'
   ],
   'consulta': [
     'time_tracking.view_all',

@@ -73,8 +73,9 @@ export class FaturasController {
     return this.empresa.detalhes(companyId, id);
   }
 
+  // Pedir reembolso e decisao do administrador da empresa (faturas.plano): o RH paga, mas nao pede reembolso.
   @Post('empresa/invoices/:id/reembolso')
-  @RequireFaturasPermission('faturas.pagar')
+  @RequireFaturasPermission('faturas.plano')
   pedirReembolso(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: RefundRequestDto) {
     return this.empresa.pedirReembolso(companyId, id, dto.reason, actor);
   }
