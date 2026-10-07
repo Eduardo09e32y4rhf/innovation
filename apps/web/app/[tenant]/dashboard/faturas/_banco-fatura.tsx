@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Drawer } from '@/app/components/ui';
 import { ApiError, api, type FaturaDetalhes, type PlatformInvoice } from '@/app/lib/api';
 import { money, shortDate } from './_format';
+import { linhaDoTempo, situacaoDaFatura } from './_fatura-modelo';
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   OPEN: { label: 'Em aberto', cls: 'bg-amber-100 text-amber-800' },
@@ -54,7 +55,9 @@ export default function FaturaDrawer({ invoice, canRefund, onClose, onChanged }:
     finally { setBusy(false); }
   }
 
-  const st = invoice ? statusOf(invoice.status) : null;
+  const st = invoice ? situacaoDaFatura(invoice) : null;
+  const confirmando = st?.chave === 'CONFIRMING';
+  const podeReembolsar = canRefund && (st?.chave === 'PAID' || st?.chave === 'PARTIAL_REFUND');
   const pay = data?.payment;
   const nothingToPay = data?.canPay && pay && !pay.barcode && !pay.pixPayload && !pay.paymentPageUrl && !pay.bankSlipUrl;
 
@@ -71,7 +74,9 @@ export default function FaturaDrawer({ invoice, canRefund, onClose, onChanged }:
           {!data && !error && <p className="flex items-center gap-2 text-sm text-fg-sub"><Loader2 size={16} className="animate-spin" aria-hidden="true" /> Buscando os dados de pagamento…</p>}
           {error && <p role="alert" className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm font-medium text-rose-800">{error}</p>}
 
-          {data?.canPay && (
+          {confirmando && <p role="status" className="rounded-xl border border-sky-300 bg-sky-50 p-3 text-sm font-medium text-sky-900">Recebemos o seu pagamento e estamos aguardando a confirmação do banco. Não é preciso pagar de novo; esta tela atualiza sozinha quando confirmar.</p>}
+
+          {data?.canPay && !confirmando && (
             <section className="space-y-3">
               <h3 className="text-sm font-bold text-fg">Como pagar</h3>
               {pay?.pixPayload && (
@@ -115,7 +120,20 @@ export default function FaturaDrawer({ invoice, canRefund, onClose, onChanged }:
           )}
           {data && !data.fiscal && invoice.status === 'PAID' && <p className="text-xs text-fg-mut">A nota fiscal aparece aqui assim que for emitida.</p>}
 
-          {invoice.status === 'PAID' && canRefund && (
+          <section aria-label="Histórico da fatura" className="space-y-2">
+            <h3 className="text-sm font-bold text-fg">Histórico</h3>
+            <ol className="space-y-3 border-l border-line pl-4">
+              {linhaDoTempo(invoice).map((e, i) => (
+                <li key={`-`} className="relative">
+                  <span aria-hidden="true" className={`absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full ${e.tom === 'ok' ? 'bg-emerald-500' : e.tom === 'erro' ? 'bg-rose-500' : e.tom === 'alerta' ? 'bg-amber-500' : 'bg-slate-400'}`} />
+                  <p className="text-sm font-semibold text-fg">{e.titulo}{e.detalhe ? <span className="font-normal text-fg-sub"> · {e.detalhe}</span> : null}</p>
+                  <p className="text-xs text-fg-mut">{new Date(e.quando).toLocaleString('pt-BR')}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          {podeReembolsar && (
             <section className="space-y-2 border-t border-line pt-4">
               {!refunding ? (
                 <button type="button" className="btn btn-outline w-full text-sm" onClick={() => setRefunding(true)}><RotateCcw size={14} aria-hidden="true" /> Solicitar reembolso</button>

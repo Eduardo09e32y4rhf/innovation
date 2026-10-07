@@ -6,11 +6,11 @@ import { toast } from 'sonner';
 import api, { ApiError, type EmpresaResumo, type PlatformInvoice } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { hasPermission } from '@/app/lib/permissions';
-import FaturaDrawer, { statusOf } from './_banco-fatura';
+import FaturaDrawer from './_banco-fatura';
+import { buscaAceita, FILTROS, filtroAceita, situacaoDaFatura, type FiltroFatura } from './_fatura-modelo';
 import { CancelModal, PlanModal, SeatsModal } from './_banco-plano';
 import { money, shortDate } from './_format';
 
-type Filter = 'todas' | 'abertas' | 'pagas';
 const COMPANY_STATE: Record<string, { label: string; cls: string }> = {
   ACTIVE: { label: 'Em dia', cls: 'bg-emerald-400/20 text-emerald-100' },
   TRIAL: { label: 'Período de teste', cls: 'bg-sky-400/20 text-sky-100' },
@@ -38,7 +38,8 @@ export default function BancoView() {
   const [invoices, setInvoices] = useState<PlatformInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>('todas');
+  const [filter, setFilter] = useState<FiltroFatura>('todas')
+  const [busca, setBusca] = useState('');
   const [open, setOpen] = useState<PlatformInvoice | null>(null);
   const [modal, setModal] = useState<'plan' | 'seats' | 'cancel' | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -53,8 +54,16 @@ export default function BancoView() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  const shown = useMemo(() => invoices.filter((i) => filter === 'todas' ? true : filter === 'abertas' ? i.status === 'OPEN' || i.status === 'OVERDUE' : i.status === 'PAID'), [invoices, filter]);
-  const counts = { todas: invoices.length, abertas: invoices.filter((i) => i.status === 'OPEN' || i.status === 'OVERDUE').length, pagas: invoices.filter((i) => i.status === 'PAID').length };
+  // Pagamento ou reembolso em confirmação: consulta de novo a cada 15 s até o provedor confirmar (para ao sair da tela).
+  const aguardando = invoices.some((i) => ['CONFIRMING', 'REFUND_PENDING'].includes(situacaoDaFatura(i).chave));
+  useEffect(() => {
+    if (!aguardando) return;
+    const t = setInterval(() => { void load(); }, 15_000);
+    return () => clearInterval(t);
+  }, [aguardando, load]);
+
+  const shown = useMemo(() => invoices.filter((i) => filtroAceita(filter, i) && buscaAceita(i, busca)), [invoices, filter, busca]);
+  const counts = Object.fromEntries(FILTROS.map((f) => [f.id, invoices.filter((i) => filtroAceita(f.id, i)).length])) as Record<FiltroFatura, number>;
   const next = resumo?.invoices.next ? invoices.find((i) => i.id === resumo.invoices.next!.id) ?? null : null;
 
   async function generate() {
@@ -144,24 +153,26 @@ export default function BancoView() {
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
           <h2 className="text-base font-bold text-fg">Minhas faturas</h2>
           <div className="flex flex-wrap items-center gap-2">
-            {(['todas', 'abertas', 'pagas'] as Filter[]).map((f) => (
-              <button key={f} type="button" onClick={() => setFilter(f)} aria-pressed={filter === f}
-                className={`min-h-9 rounded-full px-3.5 text-xs font-bold capitalize ${filter === f ? 'bg-slate-900 text-white' : 'border border-line text-fg-sub hover:bg-black/5'}`}>{f} · {counts[f]}</button>
+            {FILTROS.map((f) => (
+              <button key={f.id} type="button" onClick={() => setFilter(f.id)} aria-pressed={filter === f.id}
+                className={`min-h-9 rounded-full px-3.5 text-xs font-bold ${filter === f.id ? 'bg-slate-900 text-white' : 'border border-line text-fg-sub hover:bg-black/5'}`}>{f.label} · {counts[f.id]}</button>
             ))}
             <button type="button" aria-label="Atualizar" onClick={() => void load()} disabled={loading} className="flex h-9 w-9 items-center justify-center rounded-full border border-line hover:bg-black/5"><RefreshCw size={14} className={loading ? 'animate-spin' : ''} aria-hidden="true" /></button>
           </div>
         </header>
 
+        <div className="border-b border-line p-3"><input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar fatura" placeholder="Buscar por descrição, valor ou nota fiscal" className="min-h-10 w-full rounded-xl border border-line bg-transparent px-3 text-sm text-fg" /></div>
+
         {shown.length === 0 ? (
           <div className="p-10 text-center text-sm text-fg-mut">
             <FileText className="mx-auto mb-2" size={28} aria-hidden="true" />
-            {filter === 'pagas' ? 'Ainda não há faturas pagas.' : filter === 'abertas' ? 'Nenhuma fatura em aberto. Está tudo em dia.' : 'Você ainda não tem faturas.'}
+            {busca.trim() ? 'Nenhuma fatura encontrada para esta busca.' : filter === 'pagas' ? 'Ainda não há faturas pagas.' : filter === 'abertas' ? 'Nenhuma fatura em aberto. Está tudo em dia.' : filter === 'encerradas' ? 'Nenhuma fatura cancelada ou reembolsada.' : 'Você ainda não tem faturas.'}
             {canPay && filter !== 'pagas' && counts.abertas === 0 && <div className="mt-3"><button type="button" className="btn btn-primary text-sm" disabled={generating} onClick={() => void generate()}>{generating ? 'Gerando…' : 'Gerar fatura do mês'}</button></div>}
           </div>
         ) : (
           <ul className="divide-y divide-line">
             {shown.map((invoice) => {
-              const st = statusOf(invoice.status);
+              const st = situacaoDaFatura(invoice);
               return (
                 <li key={invoice.id}>
                   <button type="button" onClick={() => setOpen(invoice)} className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-black/[0.03]">
@@ -180,7 +191,7 @@ export default function BancoView() {
         )}
       </section>
 
-      <FaturaDrawer invoice={open} canRefund={canPay} onClose={() => setOpen(null)} onChanged={() => void load()} />
+      <FaturaDrawer invoice={open} canRefund={canPlan} onClose={() => setOpen(null)} onChanged={() => void load()} />
       {modal === 'plan' && <PlanModal onClose={() => setModal(null)} onDone={() => void load()} />}
       {modal === 'seats' && sub && <SeatsModal current={sub.seatQuantity} used={resumo.usage.users} onClose={() => setModal(null)} onDone={() => void load()} />}
       {modal === 'cancel' && <CancelModal endDate={sub?.currentPeriodEnd} onClose={() => setModal(null)} onDone={() => void load()} />}
