@@ -179,7 +179,7 @@ export class FaturasController {
   @Post('plataforma/invoices/:id/refund')
   @RequireFaturasPermission('faturas.reembolsar')
   refundFull(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: FullRefundDto) {
-    return this.acoes.fullRefund(id, dto.reason, actor);
+    return this.acoes.fullRefund(id, dto.reason, actor, dto.idempotencyKey);
   }
 
   @Post('plataforma/invoices/:id/fiscal')

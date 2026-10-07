@@ -2,6 +2,7 @@ import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config';
 
 export interface AsaasPayment {
+  refunds?: Array<{ id?: string; status: string; value: number; description?: string; transactionReceiptUrl?: string }>;
   id: string;
   customer: string;
   subscription?: string;
@@ -138,6 +139,10 @@ export class AsaasService {
         ...(callback ? { callback } : {}),
       }),
     });
+  }
+
+  findChargesByReference(invoiceId: string) {
+    return this.request<{ data: AsaasPayment[]; hasMore: boolean }>(`/payments?externalReference=${encodeURIComponent(`inv:${invoiceId}`)}&limit=100`);
   }
 
   getCharge(paymentId: string) {

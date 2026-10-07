@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 
 export interface MercadoPagoPayment {
+  transaction_amount_refunded?: number;
   id: number | string;
   status: string; // approved | pending | in_process | rejected | cancelled | refunded | charged_back | authorized
   status_detail?: string;
@@ -171,10 +172,14 @@ export class MercadoPagoService {
     return list.find((p) => p.status === 'approved') ?? list[0] ?? null;
   }
 
-  refund(paymentId: string | number, amount?: number) {
+  getRefunds(paymentId: string | number) {
+    return this.request<Array<{ id: number; status: string; amount: number; description?: string }>>(`/v1/payments/${encodeURIComponent(String(paymentId))}/refunds`);
+  }
+
+  refund(paymentId: string | number, amount?: number, operationId?: string) {
     return this.request<{ id: number; status: string }>(`/v1/payments/${encodeURIComponent(String(paymentId))}/refunds`, {
       method: 'POST',
-      idempotencyKey: `refund:${paymentId}:${amount ?? 'full'}`,
+      idempotencyKey: operationId || `refund:${paymentId}:${amount ?? 'full'}`,
       body: JSON.stringify(amount ? { amount } : {}),
     });
   }

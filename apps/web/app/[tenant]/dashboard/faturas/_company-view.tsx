@@ -9,11 +9,12 @@ import { hasPermission } from '@/app/lib/permissions';
 import { money, shortDate } from './_format';
 import CompanyPlanActions from './_company-plan';
 
-type Tab = 'abertas' | 'pagas' | 'comprovantes' | 'notas';
+type Tab = 'abertas' | 'pagas' | 'comprovantes' | 'notas' | 'devolucoes';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'abertas', label: 'Em aberto' },
   { id: 'pagas', label: 'Pagas' },
+  { id: 'devolucoes', label: 'Devoluções' },
   { id: 'comprovantes', label: 'Comprovantes' },
   { id: 'notas', label: 'Notas fiscais' },
 ];
@@ -70,6 +71,7 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
     return {
       abertas: invoices.filter((i) => i.status === 'OPEN' || i.status === 'OVERDUE'),
       pagas: paid,
+      devolucoes: invoices.filter(i => i.refundStatus || i.refunds?.length || Number(i.refundedAmount ?? 0) > 0),
       comprovantes: paid,
       notas: invoices.filter((i) => i.fiscalPdfUrl || i.fiscalXmlUrl || i.invoiceNumber),
     } satisfies Record<Tab, PlatformInvoice[]>;
@@ -106,6 +108,7 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
   }
 
   const EMPTY: Record<Tab, string> = {
+    devolucoes: 'Nenhuma devolução registrada.',
     abertas: 'Nenhuma fatura em aberto. Está tudo em dia.',
     pagas: 'Ainda não há faturas pagas.',
     comprovantes: 'Os comprovantes aparecem aqui depois do primeiro pagamento.',
@@ -168,11 +171,12 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
                   <td className="p-3 text-fg">{invoice.description || 'Mensalidade Innovation RH'}</td>
                   <td className="p-3 text-fg-sub">{tab === 'abertas' ? day(invoice.dueDate) : day(invoice.paidAt ?? invoice.dueDate)}</td>
                   <td className="p-3 font-semibold text-fg">{brl(invoice.amount)}</td>
-                  <td className="p-3">{statusBadge(invoice)}</td>
+                  <td className="p-3">{statusBadge(invoice)}{['PROCESSING', 'UNKNOWN'].includes(invoice.paymentProcessingStatus ?? '') && <p className="mt-1 text-xs text-amber-600">Cobrança aguardando conciliação</p>}{Number(invoice.refundedAmount ?? 0) > 0 && <p className="mt-1 text-xs text-fg-mut">Devolvido: {brl(invoice.refundedAmount!)}</p>}</td>
                   <td className="p-3 text-right">
                     {tab === 'abertas' && (canPay
                       ? <button type="button" onClick={() => void pay(invoice)} className="btn btn-primary inline-flex items-center gap-1.5 text-xs"><CreditCard size={13} aria-hidden="true" /> Pagar</button>
                       : <span className="text-xs text-fg-mut">Sem permissão para pagar</span>)}
+                    {tab === 'devolucoes' && <div className="space-y-2 text-left text-xs">{invoice.refunds?.map(refund => <div key={refund.id}><strong>{brl(refund.amount)} — {({ PROCESSING: 'Em processamento', PENDING: 'Aguardando confirmação', UNKNOWN: 'Confirmação pendente: sincronize', CONFIRMED: 'Devolução confirmada', FAILED: 'Recusada ou cancelada' })[refund.status]}</strong><p>{refund.reason}</p><p>{day(refund.createdAt)}</p>{refund.receiptUrl && <LinkButton href={refund.receiptUrl}>Comprovante da devolução</LinkButton>}</div>)}</div>}
                     {tab === 'pagas' && <LinkButton href={invoice.receiptUrl || invoice.invoiceUrl}><Download size={13} aria-hidden="true" /> Recibo</LinkButton>}
                     {tab === 'comprovantes' && <LinkButton href={invoice.receiptUrl}><Download size={13} aria-hidden="true" /> Baixar</LinkButton>}
                     {tab === 'notas' && (

@@ -3,6 +3,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { PrismaService } from '../../database/prisma.service';
 import { FinanceNotificationService } from './finance-notification.service';
 import { MercadoPagoService } from './mercadopago.service';
+import { PaymentRefundService } from './payment-refund.service';
 
 interface MercadoPagoNotification {
   type?: string;
@@ -24,6 +25,7 @@ export class MercadoPagoWebhookController {
     private readonly prisma: PrismaService,
     private readonly mercadoPago: MercadoPagoService,
     private readonly notifications: FinanceNotificationService,
+    private readonly refunds?: PaymentRefundService,
   ) {}
 
   @Post('mercadopago')
@@ -76,6 +78,11 @@ export class MercadoPagoWebhookController {
     }
 
     const status = this.mercadoPago.mapStatus(payment.status);
+    if (payment.status === 'refunded' || Number(payment.transaction_amount_refunded ?? 0) > 0) {
+      if (!this.refunds) throw new Error('Serviço de devoluções indisponível.');
+      await this.refunds.reconcile(invoice.id);
+      if (payment.status === 'refunded') return { received: true, refunded: true };
+    }
     if (invoice.status === 'PAID' && status === 'PAID') return { received: true, duplicate: true };
     if (invoice.status === 'PAID' && status === 'OPEN') return { received: true, ignored: true }; // evento antigo chegando depois
 

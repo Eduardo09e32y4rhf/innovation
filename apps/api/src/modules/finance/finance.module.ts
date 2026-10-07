@@ -18,6 +18,7 @@ import { MercadoPagoWebhookController } from './mercadopago-webhook.controller';
 import { PaymentProviderService } from './payment-provider.service';
 import { FinanceNotificationService } from './finance-notification.service';
 import { PlatformFinanceService } from './platform-finance.service';
+import { PaymentRefundService } from './payment-refund.service';
 import { PricingService } from './pricing.service';
 import { QueueModule } from '../queue/queue.module';
 import { TimeTrackModule } from '../time-track/time-track.module';
@@ -39,6 +40,7 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     AsaasWebhookWorker,
     BillingCronService,
     PlatformFinanceService,
+    PaymentRefundService,
     FinanceNotificationService,
     PricingService,
     FaturasService,

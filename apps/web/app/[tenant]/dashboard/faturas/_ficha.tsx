@@ -30,6 +30,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; company: FaturasCompanyRow; onClose: () => void; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [refundKey] = useState(() => crypto.randomUUID());
+  const [chargeKey] = useState(() => crypto.randomUUID());
   const [reason, setReason] = useState('');
   const [text, setText] = useState<Record<string, string>>({});
   const [kind, setKind] = useState<'PERCENT' | 'FIXED'>('PERCENT');
@@ -72,8 +74,9 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
     try {
       switch (dialog.kind) {
         case 'charge':
-          await api.faturas.charge({ companyId: company.id, description: text.description ?? '', amount: num('amount'), dueDate: text.dueDate ?? '', billingType, sendToAsaas });
-          toast.success('Cobrança criada.'); break;
+          const invoice = await api.faturas.charge({ companyId: company.id, description: text.description ?? '', amount: num('amount'), dueDate: text.dueDate ?? '', billingType, sendToAsaas, idempotencyKey: chargeKey });
+          if (invoice.paymentProcessingStatus === 'UNKNOWN' || invoice.paymentProcessingStatus === 'PROCESSING') toast.info('Cobrança pendente de conciliação. Não emita outra antes de sincronizar.');
+          else toast.success(sendToAsaas ? 'Link de cobrança gerado.' : 'Fatura local registrada.'); break;
         case 'recurring': {
           const r = await api.faturas.recurringDiscount(company.id, { kind, value: num('value'), cycles: Math.trunc(num('cycles')), reason });
           toast.success(`Desconto aplicado. Nova mensalidade: ${brl(r.total)}${r.providerSynced ? '' : ' (valor no provedor não foi atualizado)'}`); break;
@@ -109,9 +112,9 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
         case 'discount':
           await api.faturas.discountInvoice(dialog.invoice.id, { kind, value: num('value'), reason }); toast.success('Desconto aplicado.'); break;
         case 'refundPartial':
-          await api.faturas.refundPartial(dialog.invoice.id, { amount: num('amount'), reason }); toast.success('Reembolso solicitado ao provedor.'); break;
+          await api.faturas.refundPartial(dialog.invoice.id, { amount: num('amount'), reason, idempotencyKey: refundKey }); toast.info('Solicitação registrada. Acompanhe a confirmação na aba Devoluções.'); break;
         case 'refundFull':
-          await api.faturas.refundFull(dialog.invoice.id, reason); toast.success('Reembolso total solicitado.'); break;
+          await api.faturas.refundFull(dialog.invoice.id, reason, refundKey); toast.info('Solicitação registrada. Acompanhe a confirmação na aba Devoluções.'); break;
         case 'cancel':
           await api.faturas.cancelInvoice(dialog.invoice.id, reason); toast.success('Fatura cancelada.'); break;
         case 'fiscal':
@@ -202,7 +205,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
           )}
         </>)}
         {dialog.kind === 'refundPartial' && <Field label="Valor a reembolsar (R$)"><input className={field} inputMode="decimal" required value={text.amount ?? ''} onChange={set('amount')} /></Field>}
-        {dialog.kind === 'refundFull' && <p className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-700">Estorno total: até 7 dias após o pagamento a empresa é suspensa; depois disso a assinatura é cancelada.</p>}
+        {dialog.kind === 'refundFull' && <p className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-700">Devolve o saldo restante após confirmação do provedor. O histórico do pagamento é preservado.</p>}
         {dialog.kind === 'fiscal' && (<>
           <Field label="Número da nota"><input className={field} value={text.invoiceNumber ?? ''} onChange={set('invoiceNumber')} /></Field>
           <Field label="Link do PDF da nota (https)"><input type="url" className={field} value={text.pdf ?? ''} onChange={set('pdf')} /></Field>
@@ -272,7 +275,7 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
         {open && can('faturas.desconto') && <button type="button" className={btn} onClick={() => setDialog({ kind: 'discount', invoice: inv })}>Desconto</button>}
         {open && can('faturas.cobrar') && <button type="button" className={btn} onClick={() => void manualMp(inv)} title="Use quando o Asaas falhar ou o cliente não conseguir pagar por ele">Link Mercado Pago</button>}
         {open && can('faturas.cobrar') && <button type="button" className={btn} onClick={() => setDialog({ kind: 'cancel', invoice: inv })}>Cancelar</button>}
-        {inv.status === 'PAID' && can('faturas.reembolsar') && <>
+        {inv.status === 'PAID' && inv.refundStatus !== 'PROCESSING' && Number(inv.refundedAmount ?? 0) < Number(inv.amount) && can('faturas.reembolsar') && <>
           <button type="button" className={btn} onClick={() => setDialog({ kind: 'refundPartial', invoice: inv })}>Reembolso parcial</button>
           <button type="button" className={btn} onClick={() => setDialog({ kind: 'refundFull', invoice: inv })}>Reembolso total</button>
         </>}
