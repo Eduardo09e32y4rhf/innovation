@@ -42,6 +42,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
   const [chargeNow, setChargeNow] = useState(true);
   const [releaseMethod, setReleaseMethod] = useState<'TRUST' | 'RECEIVED'>('RECEIVED');
   const [billingType, setBillingType] = useState<'UNDEFINED' | 'BOLETO' | 'PIX' | 'CREDIT_CARD'>('UNDEFINED');
+  const [sendToAsaas, setSendToAsaas] = useState(true);
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => setText((t) => ({ ...t, [key]: e.target.value }));
   const num = (key: string) => Number(String(text[key] ?? '').replace(',', '.'));
   const needsReason = dialog.kind !== 'charge';
@@ -71,7 +72,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
     try {
       switch (dialog.kind) {
         case 'charge':
-          await api.faturas.charge({ companyId: company.id, description: text.description ?? '', amount: num('amount'), dueDate: text.dueDate ?? '', billingType, sendToAsaas: true });
+          await api.faturas.charge({ companyId: company.id, description: text.description ?? '', amount: num('amount'), dueDate: text.dueDate ?? '', billingType, sendToAsaas });
           toast.success('Cobrança criada.'); break;
         case 'recurring': {
           const r = await api.faturas.recurringDiscount(company.id, { kind, value: num('value'), cycles: Math.trunc(num('cycles')), reason });
@@ -146,6 +147,8 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
         {dialog.kind === 'charge' && (<>
           <Field label="Descrição"><input className={field} required minLength={3} value={text.description ?? ''} onChange={set('description')} /></Field>
           <Field label="Forma de pagamento (Asaas)"><select className={field} value={billingType} onChange={(e) => setBillingType(e.target.value as typeof billingType)}><option value="UNDEFINED">Cliente escolhe</option><option value="BOLETO">Boleto</option><option value="PIX">Pix</option><option value="CREDIT_CARD">Cartão</option></select></Field>
+          <label className="flex items-start gap-2 text-sm text-fg"><input type="checkbox" checked={sendToAsaas} onChange={(e) => setSendToAsaas(e.target.checked)} />Enviar automaticamente ao Asaas</label>
+          {!sendToAsaas && <p className="text-xs text-fg-mut">Registro local: o pagamento deve ser recebido e conciliado por outro meio.</p>}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Valor em R$"><input className={field} inputMode="decimal" required value={text.amount ?? ''} onChange={set('amount')} /></Field>
             <Field label="Vencimento"><input type="date" className={field} required value={text.dueDate ?? ''} onChange={set('dueDate')} /></Field>
