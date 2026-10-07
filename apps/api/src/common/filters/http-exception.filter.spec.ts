@@ -1,6 +1,36 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
-import { mapException } from './http-exception.filter';
+import { defaultErrorCode, HttpExceptionFilter, isRetryable, mapException } from './http-exception.filter';
+
+function run(exception: unknown, requestId = 'req-abcdef12') {
+  const sent: any[] = [];
+  const reply: any = { status: (s: number) => ({ send: (b: any) => sent.push({ s, b }) }) };
+  const host: any = { switchToHttp: () => ({ getResponse: () => reply, getRequest: () => ({ id: requestId, method: 'GET', url: '/x' }) }) };
+  new HttpExceptionFilter().catch(exception, host);
+  return sent[0];
+}
+
+describe('HttpExceptionFilter envelope', () => {
+  it('erro 4xx mantém contrato legado e acrescenta code, retryable e meta', () => {
+    const { s, b } = run(new NotFoundException('Empresa nao encontrada.'));
+    expect(s).toBe(404);
+    expect(b).toMatchObject({ success: false, statusCode: 404, error: { message: 'Empresa nao encontrada.', code: 'NOT_FOUND', retryable: false }, meta: { requestId: 'req-abcdef12' } });
+  });
+
+  it('erro 500 usa o requestId da requisição e nunca vaza detalhe interno', () => {
+    const { s, b } = run(new Error('segredo interno'));
+    expect(s).toBe(500);
+    expect(b.meta.requestId).toBe('req-abcdef12');
+    expect(b.error.requestId).toBe('req-abcdef12');
+    expect(JSON.stringify(b)).not.toContain('segredo interno');
+  });
+
+  it('classifica códigos e retry', () => {
+    expect(defaultErrorCode(504)).toBe('UPSTREAM_TIMEOUT');
+    expect(isRetryable(503)).toBe(true);
+    expect(isRetryable(422)).toBe(false);
+  });
+});
 
 describe('mapException', () => {
   it('preserva exceções HTTP e mensagens de validação', () => {

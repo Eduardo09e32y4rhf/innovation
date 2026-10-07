@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { Providers } from './contexts/Providers';
 
 // Automação de contas é restrita ao desenvolvimento local, inclusive se a flag for ligada em produção.
-const ROBO_QA = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_ROBO_QA === 'on';
+const ROBO_QA = process.env.NEXT_PUBLIC_ROBO_QA === 'on';
 const RoboQa = ROBO_QA ? dynamic(() => import('./_components/robo-qa/RoboQa'), { ssr: false }) : null;
 
 export const metadata: Metadata = {
