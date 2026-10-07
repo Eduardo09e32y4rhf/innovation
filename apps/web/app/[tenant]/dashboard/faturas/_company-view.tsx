@@ -9,12 +9,13 @@ import { hasPermission } from '@/app/lib/permissions';
 import { money, shortDate } from './_format';
 import CompanyPlanActions from './_company-plan';
 
-type Tab = 'abertas' | 'pagas' | 'comprovantes' | 'notas' | 'devolucoes';
+type Tab = 'abertas' | 'pagas' | 'comprovantes' | 'notas' | 'devolucoes' | 'canceladas';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'abertas', label: 'Em aberto' },
   { id: 'pagas', label: 'Pagas' },
   { id: 'devolucoes', label: 'Devoluções' },
+  { id: 'canceladas', label: 'Canceladas' },
   { id: 'comprovantes', label: 'Comprovantes' },
   { id: 'notas', label: 'Notas fiscais' },
 ];
@@ -72,6 +73,7 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
       abertas: invoices.filter((i) => i.status === 'OPEN' || i.status === 'OVERDUE'),
       pagas: paid,
       devolucoes: invoices.filter(i => i.refundStatus || i.refunds?.length || Number(i.refundedAmount ?? 0) > 0),
+      canceladas: invoices.filter(i => i.status === 'CANCELED'),
       comprovantes: paid,
       notas: invoices.filter((i) => i.fiscalPdfUrl || i.fiscalXmlUrl || i.invoiceNumber),
     } satisfies Record<Tab, PlatformInvoice[]>;
@@ -109,6 +111,7 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
 
   const EMPTY: Record<Tab, string> = {
     devolucoes: 'Nenhuma devolução registrada.',
+    canceladas: 'Nenhuma fatura cancelada.',
     abertas: 'Nenhuma fatura em aberto. Está tudo em dia.',
     pagas: 'Ainda não há faturas pagas.',
     comprovantes: 'Os comprovantes aparecem aqui depois do primeiro pagamento.',
@@ -158,7 +161,7 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
             <thead className="text-xs uppercase text-fg-mut">
               <tr>
                 <th className="p-3">Descrição</th>
-                <th className="p-3">{tab === 'abertas' ? 'Vencimento' : 'Pago em'}</th>
+                <th className="p-3">{tab === 'abertas' || tab === 'canceladas' ? 'Vencimento' : 'Pago em'}</th>
                 <th className="p-3">Valor</th>
                 <th className="p-3">Status</th>
                 <th className="p-3 text-right">{tab === 'notas' ? 'Nota fiscal' : tab === 'comprovantes' ? 'Comprovante' : 'Ação'}</th>
@@ -169,7 +172,7 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
               {rows.map((invoice) => (
                 <tr key={invoice.id} className="border-t border-line">
                   <td className="p-3 text-fg">{invoice.description || 'Mensalidade Innovation RH'}</td>
-                  <td className="p-3 text-fg-sub">{tab === 'abertas' ? day(invoice.dueDate) : day(invoice.paidAt ?? invoice.dueDate)}</td>
+                  <td className="p-3 text-fg-sub">{tab === 'abertas' || tab === 'canceladas' ? day(invoice.dueDate) : day(invoice.paidAt ?? invoice.dueDate)}</td>
                   <td className="p-3 font-semibold text-fg">{brl(invoice.amount)}</td>
                   <td className="p-3">{statusBadge(invoice)}{['PROCESSING', 'UNKNOWN'].includes(invoice.paymentProcessingStatus ?? '') && <p className="mt-1 text-xs text-amber-600">Cobrança aguardando conciliação</p>}{Number(invoice.refundedAmount ?? 0) > 0 && <p className="mt-1 text-xs text-fg-mut">Devolvido: {brl(invoice.refundedAmount!)}</p>}</td>
                   <td className="p-3 text-right">

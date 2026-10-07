@@ -273,7 +273,7 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
     return (
       <span className="inline-flex flex-wrap justify-end gap-1.5">
         {open && can('faturas.desconto') && <button type="button" className={btn} onClick={() => setDialog({ kind: 'discount', invoice: inv })}>Desconto</button>}
-        {open && can('faturas.cobrar') && <button type="button" className={btn} onClick={() => void manualMp(inv)} title="Use quando o Asaas falhar ou o cliente não conseguir pagar por ele">Link Mercado Pago</button>}
+        {open && can('faturas.cobrar') && !inv.asaasPaymentId && !['PROCESSING', 'UNKNOWN'].includes(inv.paymentProcessingStatus ?? '') && <button type="button" className={btn} onClick={() => void manualMp(inv)} title="Gerar link para fatura local sem cobrança ativa no Asaas">Link Mercado Pago</button>}
         {open && can('faturas.cobrar') && <button type="button" className={btn} onClick={() => setDialog({ kind: 'cancel', invoice: inv })}>Cancelar</button>}
         {inv.status === 'PAID' && inv.refundStatus !== 'PROCESSING' && Number(inv.refundedAmount ?? 0) < Number(inv.amount) && can('faturas.reembolsar') && <>
           <button type="button" className={btn} onClick={() => setDialog({ kind: 'refundPartial', invoice: inv })}>Reembolso parcial</button>

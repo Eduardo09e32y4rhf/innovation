@@ -1357,7 +1357,9 @@ export class PlatformFinanceService {
 
   /** Cobrança avulsa pelo provedor ativo: no Mercado Pago gera o link de checkout; no Asaas usa o fluxo padrão. */
   async createCharge(dto: CreatePlatformInvoiceDto) {
-    if (!dto.sendToAsaas || (await this.providers.active()) !== 'MERCADOPAGO' || !this.mercadoPago.isConfigured()) return this.create(dto);
+    if (!dto.sendToAsaas) return this.create(dto);
+    if ((await this.providers.active()) !== 'MERCADOPAGO') return this.create(dto);
+    if (!this.mercadoPago.isConfigured()) throw new ServiceUnavailableException('Mercado Pago indisponível. Nenhuma cobrança foi enviada.');
     const company = await this.prisma.company.findUnique({
       where: { id: dto.companyId },
       select: { id: true, users: { where: { role: 'ADMIN', isActive: true }, select: { email: true }, take: 1 } },
@@ -1376,6 +1378,9 @@ export class PlatformFinanceService {
     if (!this.mercadoPago.isConfigured()) throw new BadRequestException('O Mercado Pago não está configurado (MERCADOPAGO_ACCESS_TOKEN).');
     const invoice = await this.findActive(id);
     if (invoice.status !== 'OPEN' && invoice.status !== 'OVERDUE') throw new BadRequestException('Só é possível gerar link para fatura aberta ou vencida.');
+    if (invoice.asaasPaymentId) throw new BadRequestException('Esta fatura já tem cobrança ativa no Asaas. Concilie ou cancele a cobrança antes de escolher outro provedor.');
+    if (invoice.paymentProcessingStatus === 'UNKNOWN' || invoice.paymentProcessingStatus === 'PROCESSING') throw new ServiceUnavailableException('Cobrança pendente de conciliação.');
+    if (invoice.mpPreferenceId) return invoice;
     const admin = await this.prisma.user.findFirst({ where: { companyId: invoice.companyId, role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, select: { email: true } });
     const preference = await this.mercadoPago.createCheckoutPreference({
       title: invoice.description || 'Mensalidade Innovation RH', amount: Number(invoice.amount), externalReference: `inv:${invoice.id}`, payerEmail: admin?.email,

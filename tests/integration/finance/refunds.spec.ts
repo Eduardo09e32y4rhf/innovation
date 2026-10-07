@@ -33,8 +33,12 @@ describe('Devoluções concorrentes com PostgreSQL real e provedores simulados',
   it('reserva o saldo, rejeita corrida e repete a mesma chave sem novo POST', async () => {
     mp.refund.mockResolvedValue({ id: 'refund-1', status: 'pending', amount: 60 });
     mp.getRefunds.mockResolvedValue([{ id: 'refund-1', status: 'pending', amount: 60 }]);
-    const first = await service.request(invoiceId, { amount: 60, reason: 'Ajuste acordado', key: 'one' });
-    expect(first.status).toBe('PENDING');
+    const [first, concurrent] = await Promise.all([
+      service.request(invoiceId, { amount: 60, reason: 'Ajuste acordado', key: 'one' }),
+      service.request(invoiceId, { amount: 60, reason: 'Ajuste acordado', key: 'one' }),
+    ]);
+    expect(first.status).toMatch(/PENDING|PROCESSING/);
+    expect(concurrent.id).toBe(first.id);
     await expect(service.request(invoiceId, { amount: 50, reason: 'Outro ajuste', key: 'two' })).rejects.toMatchObject({ status: 409 });
     const repeated = await service.request(invoiceId, { amount: 60, reason: 'Ajuste acordado', key: 'one' });
     expect(repeated.id).toBe(first.id);
