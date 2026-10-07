@@ -1,6 +1,7 @@
 import { clicar, ir, naoTestado, passo, registrarAchado } from './acoes';
 import { acharPorTexto, areaPrincipal, dormir, esperarAssentar, esperarAte, rotulo, todos } from './dom';
 import { explicacaoMenuFaltando, explicacaoMenuSobrando, explicacaoVazamento } from './explicacoes';
+import { cenariosDoPerfil } from './cenarios';
 import { explorarPagina } from './explorador';
 import { esperadoPara, FATURAS_ABAS, PLATAFORMA_ABAS, type ItemMenu } from './matriz';
 import type { Contexto, Modo } from './tipos';
@@ -211,6 +212,7 @@ export function blocosDoTour(perfil: string, modo: Modo = 'completo'): Bloco[] {
     ...permitidos.map((item) => blocoTela(item, true, 14)),
     ...incertos.map((item) => blocoTela(item, false, 14)),
     blocoPainel, blocoPlataforma, blocoFaturas, blocoVagas,
+    ...cenariosDoPerfil(perfil),
     ...negados.map(blocoBloqueio),
   ];
 }

@@ -45,6 +45,8 @@ export default function RoboQa() {
   useEffect(() => motor.aoMudar(() => forcar((n) => n + 1)), [motor]);
   // Depois de um recarregamento (login/logout), continua de onde parou, quando o login terminou de carregar.
   useEffect(() => { if (!loading) void motor.continuar(); }, [loading, motor]);
+  // Erro da pagina NAO pausa mais o robo (era isso que o deixava parado numa tela quebrada): o coletor registra o erro
+  // como defeito e o motor detecta a queda, volta ao painel e segue para a proxima etapa (engine/queda.ts, error.tsx, global-error.tsx).
 
   const estado = motor.estado();
   const relatorio = carregarRelatorio();

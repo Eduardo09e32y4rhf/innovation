@@ -6,6 +6,7 @@ import {
 } from './explicacoes';
 import type { Achado, Contexto, ResultadoPasso } from './tipos';
 import { limpar } from './seguranca';
+import { QUEDA, telaCaiu } from './queda';
 import { destacar, faixa, moverCursor, onda } from './ui';
 
 export function falar(ctx: Contexto, texto: string) {
@@ -62,7 +63,7 @@ export function verificarTela(ctx: Contexto): Array<Explicacao & { origem: strin
   const achados: Array<Explicacao & { origem: string }> = [];
   const texto = (document.body.innerText ?? '').replace(/\s+/g, ' ').trim();
   if (texto.length < 15) achados.push({ ...EXPLICACAO_TELA_BRANCA, origem: 'tela' });
-  if (/Application error|Unhandled Runtime Error/i.test(texto) || document.querySelector('nextjs-portal')) achados.push({ ...EXPLICACAO_ERRO_NEXT, origem: 'tela' });
+  if (/Application error|Unhandled Runtime Error/i.test(texto) || telaCaiu()) achados.push({ ...EXPLICACAO_ERRO_NEXT, origem: 'tela' });
   const alertas = [...document.querySelectorAll('[role="alert"]')].filter(visivel).map((a) => (a as HTMLElement).innerText.trim()).filter(Boolean);
   for (const alerta of alertas.slice(0, 2)) {
     if (ctx.esperaNegado && /acesso restrito|sem permiss|n[aã]o tem (autoriza|permiss)/i.test(alerta)) continue;
@@ -85,7 +86,7 @@ function guardar(ctx: Contexto, nome: string, itens: Item[], statusForcado?: Res
   for (const item of itens) {
     const resultado = item.resultado ?? classificar(item.origem, item, item.tecnico);
     if (resultado === 'falha') temFalha = true; else if (resultado === 'inconclusivo') temInconclusivo = true;
-    const mensagemEsperado = /^ESPERADO:/i.test(item.tecnico ?? '') ? undefined : undefined;
+    const mensagemEsperado = /^ESPERADO:/i.test(item.tecnico ?? '') ? limpar((item.tecnico ?? '').replace(/^ESPERADO:\s*/i, '')) : undefined;
     ctx.estado.achados.push({
       ...item, resultado, perfil: ctx.perfil, cenario: ctx.cenario, passo: nome, url, naTela: tela,
       acao: nome,
@@ -106,7 +107,7 @@ export async function passo(ctx: Contexto, nome: string, fn: () => Promise<void>
   await ctx.checarControle();
   falar(ctx, nome);
   let erro: unknown = null;
-  try { await fn(); } catch (e) { if (['CANCELADO', 'TEMPO_BLOCO'].includes((e as Error)?.message)) throw e; erro = e; }
+  try { await fn(); } catch (e) { if (['CANCELADO', 'TEMPO_BLOCO', QUEDA].includes((e as Error)?.message)) throw e; erro = e; }
   await dormir(150);
   const itens: Item[] = [];
   if (erro) itens.push({ ...explicarFalhaPasso(nome, erro), origem: 'passo', tecnico: String((erro as Error)?.message ?? erro).split('\n')[0] });
@@ -116,6 +117,8 @@ export async function passo(ctx: Contexto, nome: string, fn: () => Promise<void>
   }
   if (opcoes.verificarTela !== false && !erro) itens.push(...verificarTela(ctx));
   guardar(ctx, nome, itens);
+  // A tela caiu: ja foi registrado acima; nao adianta continuar clicando numa tela morta. O motor volta e testa a proxima.
+  if (opcoes.verificarTela !== false && telaCaiu()) throw new Error(QUEDA);
   return itens.length === 0;
 }
 

@@ -10,6 +10,8 @@ import { resumirAba } from './relatorio';
 import type { Anfitriao, Contexto, Estado, Modo, Ritmo } from './tipos';
 import { mostrarOverlay } from './ui';
 import { criarUsuarioDeTeste } from './usuarios';
+import { criarFuncionarioComAcesso } from './cenarios';
+import { QUEDA, telaCaiu } from './queda';
 
 export interface Motor {
   iniciar(perfis: string[], ritmo: Ritmo, modo: Modo): void;
@@ -25,11 +27,12 @@ export interface Motor {
 const CANCELADO = 'CANCELADO';
 const TEMPO_BLOCO = 'TEMPO_BLOCO';
 /** Limite de tempo por tela/bloco: passou disso, a tela e marcada como bloqueada (inconclusivo) e o teste segue. */
-const LIMITE_BLOCO_MS: Record<Modo, number> = { rapido: 90_000, completo: 180_000 };
+const LIMITE_BLOCO_MS: Record<Modo, number> = { rapido: 90_000, completo: 240_000 };
 
 export function criarMotor(anfitriao: Anfitriao): Motor {
   let e: Estado | null = carregar();
   let emExecucao = false;
+  let emBloco = false; // dentro de um bloco do tour: se a tela cair, o bloco e abandonado e o teste segue
   const ouvintes = new Set<() => void>();
   const avisar = () => ouvintes.forEach((o) => { try { o(); } catch { /* ouvinte com defeito nao derruba o robo */ } });
 
@@ -48,6 +51,7 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
           if (estado.cancelado) throw new Error(CANCELADO);
           if (!estado.pausado) {
             if (ctx.prazo && Date.now() > ctx.prazo) throw new Error(TEMPO_BLOCO);
+            if (emBloco && telaCaiu()) throw new Error(QUEDA);
             return;
           }
           ctx.prazo = ctx.prazo ? ctx.prazo + 250 : 0; // pausa nao conta como tempo gasto
@@ -77,6 +81,20 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
     }
   }
 
+  /** Depois de uma queda: volta ao painel; se a tela continuar caida, recarrega a pagina (o progresso ja esta salvo e o robo retoma). */
+  async function recuperarDaQueda(ctx: Contexto) {
+    falar(ctx, 'A tela caiu. Voltando ao início para testar a próxima etapa');
+    const inicio = `/${tenantAtual()}/dashboard`;
+    anfitriao.navegar(inicio);
+    for (let t = 0; t < 40; t++) { // ate ~8 s
+      await dormir(200);
+      if (!telaCaiu() && (document.body?.innerText ?? '').trim().length > 15) return;
+    }
+    salvar(ctx.estado);
+    window.location.assign(inicio);
+    await dormir(10_000); // a pagina vai recarregar; ao voltar, "continuar" retoma da proxima etapa
+  }
+
   async function rodarTour(ctx: Contexto, perfil: string) {
     const estado = ctx.estado;
     const blocos = blocosDoTour(perfil, estado.modo);
@@ -86,11 +104,21 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
       salvar(estado);
       ctx.prazo = Date.now() + LIMITE_BLOCO_MS[estado.modo];
       const p0 = estado.passos.length; const a0 = estado.achados.length;
+      let caiu = false;
       try {
+        emBloco = true;
         await blocos[i].rodar(ctx);
       } catch (erro) {
         const mensagem = String((erro as Error)?.message ?? erro);
         if (mensagem === CANCELADO) throw erro;
+        if (mensagem === QUEDA) {
+          // A tela caiu (tela de erro/branca): registra (se ainda nao registrado), abandona este bloco e VOLTA para testar o proximo.
+          caiu = true;
+          ctx.esperaNegado = false;
+          if (!estado.achados.slice(a0).some((a) => a.origem === 'tela')) {
+            registrarAchado(ctx, `Bloco "${blocos[i].nome}"`, { gravidade: 'alta', titulo: 'A tela caiu e mostrou erro', explicacao: `A etapa "${blocos[i].nome}" abriu uma tela de erro. O robo voltou ao inicio e seguiu para a proxima etapa.` });
+          }
+        } else {
         // Uma tela que nao carrega ou um erro inesperado NAO derruba o teste: registra e segue para a proxima.
         ctx.esperaNegado = false;
         const tempo = mensagem === TEMPO_BLOCO;
@@ -101,11 +129,18 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
             ? `A etapa "${blocos[i].nome}" passou do limite de ${Math.round(LIMITE_BLOCO_MS[estado.modo] / 1000)} s. Pode ser lentidão ou travamento do sistema, ou do próprio robô. O teste seguiu para a próxima etapa.`
             : `Na etapa "${blocos[i].nome}" aconteceu algo inesperado do lado do robô (${mensagem.split('\n')[0].slice(0, 160)}). O teste seguiu para a próxima etapa.`,
         }, 'inconclusivo');
+        }
       } finally {
+        emBloco = false;
         ctx.prazo = 0;
         (estado.abas ??= []).push(resumirAba(perfil, blocos[i].nome, estado.passos.slice(p0), estado.achados.slice(a0)));
         salvar(estado);
         ctx.atualizar();
+      }
+      if (caiu) {
+        estado.tourIdx = i + 1; // se a pagina recarregar, retoma na proxima etapa e nao na que caiu
+        salvar(estado);
+        await recuperarDaQueda(ctx);
       }
     }
     estado.tourIdx = 0;
@@ -132,7 +167,11 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
     for (const usuario of estado.usuarios) {
       if (usuario.criado || usuario.situacao === 'erro') continue; // conta ja existe (reaproveitada): nao cria de novo
       ctx.prazo = Date.now() + LIMITE_BLOCO_MS[estado.modo];
-      try { await criarUsuarioDeTeste(ctx, usuario); }
+      try {
+        // O funcionario de teste nasce com cadastro de verdade (para bater ponto e pedir ferias); se o cadastro falhar, cai no acesso simples.
+        const comCadastro = usuario.perfil === 'FUNCIONARIO' && estado.modo === 'completo' && (await criarFuncionarioComAcesso(ctx, usuario));
+        if (!comCadastro) await criarUsuarioDeTeste(ctx, usuario);
+      }
       catch (erro) { if ((erro as Error)?.message === CANCELADO) throw erro; usuario.situacao = 'erro'; usuario.motivo = 'não foi possível criar o acesso de teste (etapa interrompida)'; }
       finally { ctx.prazo = 0; }
       if (usuario.criado) salvarConta(usuario.perfil, { email: usuario.email, nome: usuario.nome, senha: usuario.senha });

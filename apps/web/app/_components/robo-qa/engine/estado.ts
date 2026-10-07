@@ -30,15 +30,17 @@ function usuarioParaPerfil(perfil: string): UsuarioTeste {
 
 const seguro = <T>(fn: () => T): T | null => { try { return fn(); } catch { return null; } };
 
+// localStorage (e nao sessionStorage): se a aba travar/fechar com um erro, o progresso nao se perde -
+// ao reabrir, o robo retoma do ultimo passo salvo em vez de comecar do zero.
 export function carregar(): Estado | null {
   return seguro(() => {
-    const bruto = sessionStorage.getItem(CHAVE);
+    const bruto = localStorage.getItem(CHAVE);
     const e = bruto ? (JSON.parse(bruto) as Estado) : null;
     return e && e.versao === 1 ? e : null;
   });
 }
-export function salvar(e: Estado) { seguro(() => sessionStorage.setItem(CHAVE, JSON.stringify(e))); }
-export function limpar() { seguro(() => sessionStorage.removeItem(CHAVE)); }
+export function salvar(e: Estado) { seguro(() => localStorage.setItem(CHAVE, JSON.stringify(e))); }
+export function limpar() { seguro(() => localStorage.removeItem(CHAVE)); }
 
 export interface RelatorioSalvo { quando: number; html: string; markdown: string; usuarios: string[]; resumo: string }
 export function salvarRelatorio(r: RelatorioSalvo) { seguro(() => localStorage.setItem(CHAVE_RELATORIO, JSON.stringify(r))); }
