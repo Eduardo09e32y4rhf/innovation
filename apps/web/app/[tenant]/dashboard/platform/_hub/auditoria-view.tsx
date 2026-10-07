@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, Download, AlertCircle, RefreshCw,
 } from 'lucide-react';
 import { request, type PlatformBillingAuditLog } from '@/app/lib/api';
+import { comoLista } from './lista';
 
 const PAGE_SIZE = 50;
 
@@ -86,8 +87,8 @@ export function AuditoriaView() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    request<any[]>('/platform/companies')
-      .then(setCompanies)
+    request<unknown>('/platform/companies?limit=200')
+      .then((res) => setCompanies(comoLista(res)))
       .catch((e) => setError(e.message));
   }, []);
 
@@ -97,7 +98,7 @@ export function AuditoriaView() {
     setError('');
     setPage(1);
     request<any>(`/platform/companies/${cid}/audit-logs?limit=100`)
-      .then((res) => setLogs(Array.isArray(res) ? res : (res?.data ?? [])))
+      .then((res) => setLogs(comoLista<PlatformBillingAuditLog>(res).filter((log) => typeof log?.action === 'string')))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   };
