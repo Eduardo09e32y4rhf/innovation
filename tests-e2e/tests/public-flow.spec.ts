@@ -62,5 +62,5 @@ test('cadastro expõe plano, licenças e cupom e exige consentimento sem overflo
   await page.getByRole('checkbox', { name: /Li e aceito/ }).check();
   await page.getByRole('button', { name: 'Criar minha empresa' }).click();
   await expect.poll(() => created).toBe(true);
-  await expect(page.getByRole('alert')).toContainText('Ambiente de teste');
+  await expect(page.getByRole('alert').filter({ hasText: 'Ambiente de teste' })).toBeVisible();
 });

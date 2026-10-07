@@ -15,8 +15,8 @@ const invoice = { id: 'invoice-sync', companyId: company.id, company, descriptio
 const permissions = ['faturas.ver', 'faturas.pagar', 'faturas.nf_anexar', 'faturas.cobrar', 'faturas.desconto', 'faturas.reembolsar', 'faturas.todas_empresas', 'faturas.plano'];
 
 async function mockPlatform(page: Page) {
-  await page.route('http://127.0.0.1:3999/**', route => {
-    const path = new URL(route.request().url()).pathname;
+  await page.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname.replace(/^\/api/, '');
     const data: Record<string, unknown> = {
       '/auth/refresh': auth, '/auth/me': user, '/companies/me': company,
       '/legal/terms/status': { required: false }, '/welcome/status': { show: false },
@@ -36,7 +36,7 @@ async function mockPlatform(page: Page) {
 }
 async function openCompany(page: Page) {
   await page.goto('/e2e/dashboard/faturas');
-  await page.getByText(company.name, { exact: true }).first().click();
+  await page.getByRole('row').filter({ hasText: company.name }).click();
   await expect(page.getByRole('button', { name: 'Nova cobrança', exact: true })).toBeVisible();
 }
 
@@ -50,7 +50,8 @@ test.describe('Faturas: integração da interface com API isolada', () => {
     });
     page.on('dialog', dialog => dialog.accept());
     await page.goto('/e2e/dashboard/faturas?aba=assinaturas');
-    await page.getByRole('button', { name: 'Asaas', exact: true }).click();
+    await page.getByRole('button', { name: 'Detalhes', exact: true }).click();
+    await page.getByRole('button', { name: 'Gerar cobrança', exact: true }).click();
     await expect.poll(() => checkoutCalled).toBe(true);
     await expect(page.getByText('Cobrança de onboarding gerada.', { exact: true })).toBeVisible();
   });

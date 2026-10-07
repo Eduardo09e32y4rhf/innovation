@@ -15,6 +15,8 @@ Base: 5e8cdab5af2c052f5bc23d05f92376f9899ad68e. Esta entrega é uma primeira eta
 - Corrigida rota GET /faturas/empresa/seats/quote.
 - Falhas no cancelamento Mercado Pago interrompem a operação e preservam o vínculo. Assinatura vinculada sem configuração não é tratada como cancelada. Rotina de inadimplência cancela o MP antes de marcar empresa como cancelada, permitindo retentativa.
 - Cancelamento Asaas de assinatura vinculada exige integração configurada.
+- Robô de QA restrito a desenvolvimento; produção remove credenciais e estado antigos do navegador, mesmo com a flag ligada.
+- Formulário de cobrança avulsa permite registro local sem envio ao Asaas.
 - Corrigida deduplicação de dispositivos, que usava uma chave constante e exibia apenas um aparelho.
 
 ## Validação local
@@ -23,17 +25,17 @@ Base: 5e8cdab5af2c052f5bc23d05f92376f9899ad68e. Esta entrega é uma primeira eta
 - npm run validate: aprovado com DATABASE_URL local de teste (validação do schema, sem conexão ao banco).
 - npm run test:unit: 96 arquivos, 539 testes aprovados, incluindo rejeição de JWT restrito, família encerrada e versão de senha, além de cancelamento MP.
 - Builds finais API/Web: aprovados, incluindo a atualização de sessão.
-- CI remoto: validação, unitários/cobertura e build passaram. Migrations foram aplicadas em banco vazio; a verificação inicial de drift revelou caminho incorreto e depois defaults UUID divergentes. Ambos foram corrigidos. Aguardar os checks do último SHA para certificar comparação, integração e Browser E2E.
+- CI remoto: validação, unitários/cobertura e build passaram. Migrations foram aplicadas em banco vazio; a verificação inicial de drift revelou caminho incorreto e depois defaults UUID divergentes. Ambos foram corrigidos. Comparação de migrations, os cinco testes de integração com PostgreSQL real, tipos, unitários/cobertura e build passaram no run 37676566122. Browser E2E ainda em execução; resultados da revisão posterior devem ser conferidos no PR 660.
 - Adicionados testes de integração em PostgreSQL real para consumo concorrente de refresh e invalidação do access token após logout.
 - Não executados localmente: integração/migrations com PostgreSQL/Redis, E2E com browser, sandbox financeiro e piloto. Não houve acesso a banco ou dados de clientes.
 - A disponibilidade HTTP 200 da API no domínio existente não confirma que esta branch foi implantada na VPS.
 
 ## Sites
 
-Projeto privado preparado: appgprj_6ac68bcf06ec81919b9cdb907cff64cc. A interface existente foi adaptada ao Vinext/Worker com build e TypeScript aprovados. API e banco permanecem na VPS. O proxy encaminha /api/ para https://innovationia.com.br e não repassa credenciais do ChatGPT. QA visual e login completo ainda não foram executados.
+Versão 2 salva, sem publicação. Projeto privado preparado: appgprj_6ac68bcf06ec81919b9cdb907cff64cc. A interface existente foi adaptada ao Vinext/Worker com build e TypeScript aprovados. API e banco permanecem na VPS. O proxy encaminha /api/ para https://innovationia.com.br e não repassa credenciais do ChatGPT. QA visual e login completo ainda não foram executados.
 
 ## Pendências do plano
 
 Permissões canônicas e migração dos dados antigos; RH_RS e alcance por empresa; unificação da navegação da Plataforma e abas dinâmicas de Faturas; estados financeiros e reconciliação/outbox; idempotência de estorno e cobrança; cadastro/vínculo usuário-funcionário e proteções completas por perfil; validação de ambientes, backup, rollback e piloto. Atualizar este registro conforme cada etapa for implementada e testada.
 
-Não fazer merge/deploy de produção, cobrança real ou operações com clientes automaticamente: o plano anexado exige autorização específica para publicação e operação. Esta branch é destinada à revisão.
+Não fazer merge/deploy de produção, cobrança real ou operações com clientes automaticamente: o plano anexado exige autorização específica para publicação e operação. O PR inicial 658 foi integrado no GitHub durante a validação por uma ação externa a esta execução. Correções posteriores estão no PR 660 para revisão; nenhuma publicação Sites ou alteração de VPS foi executada por esta entrega.
