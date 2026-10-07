@@ -12,7 +12,7 @@ const execAsync = promisify(exec);
 
 /** Remove credenciais de URLs de conexao (postgresql://usuario:senha@host) de qualquer texto antes de logar. */
 export function redactSecrets(text: string): string {
-  return String(text).replace(/(\b[a-z][a-z0-9+.-]*:\/\/)([^\s:@\/"']+):([^\s@\/"']+)@/gi, '$1$2:***@');
+  return String(text).replace(/(\b[a-z][a-z0-9+.-]*:\/\/)([^\s:@\/"']*):([^\s@\/"']+)@/gi, '$1$2:***@');
 }
 
 @Injectable()
