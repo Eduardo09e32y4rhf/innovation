@@ -1,7 +1,7 @@
-# Produção (VPS). Todos os segredos vêm do arquivo .env ao lado deste compose.
+﻿# ProduÃ§Ã£o (VPS). Todos os segredos vÃªm do arquivo .env ao lado deste compose.
 # Primeiro uso:  bash scripts/security/bootstrap-env.sh   (gera segredos fortes sem sobrescrever os existentes)
 # Subir:         docker compose -f docker-compose.prod.yml up -d --build
-# O compose RECUSA subir se faltar segredo obrigatório (sintaxe ${VAR:?}).
+# O compose RECUSA subir se faltar segredo obrigatÃ³rio (sintaxe ${VAR:?}).
 
 services:
   db:
@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-innovation}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: ${POSTGRES_DB:-innovation_db}
-    # Sem "ports": o banco só é acessível pela rede interna do compose.
+    # Sem "ports": o banco sÃ³ Ã© acessÃ­vel pela rede interna do compose.
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -71,7 +71,7 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-false}
       RECRUITMENT_RESUMES_PATH: /data/recruitment
       SUPPORT_ATTACHMENTS_PATH: /data/support
-      # Pagamentos (opcionais até receber os tokens; se informados, o webhook correspondente é exigido)
+      # Pagamentos (opcionais atÃ© receber os tokens; se informados, o webhook correspondente Ã© exigido)
       PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-asaas}
       ASAAS_API_KEY: ${ASAAS_API_KEY:-}
       ASAAS_API_URL: ${ASAAS_API_URL:-}
@@ -85,7 +85,7 @@ services:
       LOKI_HOST: ${LOKI_HOST:-}
     volumes:
       - api_data:/data
-    # Só o proxy reverso do servidor (localhost) fala com a API.
+    # SÃ³ o proxy reverso do servidor (localhost) fala com a API.
     ports: ["127.0.0.1:3333:3333"]
     depends_on:
       db:
@@ -112,7 +112,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_ROBO_QA: ${NEXT_PUBLIC_ROBO_QA:-off}
+        NEXT_PUBLIC_ROBO_QA: ${NEXT_PUBLIC_ROBO_QA:-on}
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
     ports: ["127.0.0.1:3000:3000"]
