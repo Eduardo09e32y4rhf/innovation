@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
-      - uses: appleboy/ssh-action@v1.2.0
+      - uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production # configure "Required reviewers" neste environment: e o clique de aprovacao
     steps:
-      - uses: appleboy/ssh-action@v1.2.0
+      - uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}
