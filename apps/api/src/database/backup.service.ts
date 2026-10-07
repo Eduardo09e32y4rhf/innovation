@@ -10,6 +10,11 @@ import * as path from 'path';
 
 const execAsync = promisify(exec);
 
+/** Remove credenciais de URLs de conexao (postgresql://usuario:senha@host) de qualquer texto antes de logar. */
+export function redactSecrets(text: string): string {
+  return String(text).replace(/(\b[a-z][a-z0-9+.-]*:\/\/)([^\s:@\/"']+):([^\s@\/"']+)@/gi, '$1$2:***@');
+}
+
 @Injectable()
 export class BackupService {
   private readonly logger = new Logger(BackupService.name);
@@ -53,7 +58,13 @@ export class BackupService {
       // Keep only last 7 backups
       this.cleanupOldBackups(backupDir);
     } catch (error: any) {
-      this.logger.error(`Database backup failed: ${error.message}`);
+      const message = redactSecrets(error?.message ?? String(error));
+      if (/pg_dump.*(not found|ENOENT)|not found/i.test(message)) {
+        // A imagem da API nao traz o cliente do Postgres. O backup diario oficial roda no servidor (scripts/backup/backup.sh via cron).
+        this.logger.warn('pg_dump indisponivel neste container; o backup diario e feito por scripts/backup/backup.sh (cron do servidor).');
+      } else {
+        this.logger.error(`Database backup failed: ${message}`);
+      }
     }
   }
 
