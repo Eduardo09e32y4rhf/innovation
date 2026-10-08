@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { RecruitmentDashboard } from './_components/recruitment-dashboard';
+import { RoboQaSwitch } from '@/app/_components/robo-qa/RoboQaSwitch';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { VACATION_STATUS_LABEL, formatMinutes, formatPeriod, formatTime } from '@/app/lib/format';
@@ -356,6 +357,8 @@ function DashboardContent({ tenant }: { tenant: string }) {
           })}
         </div>
       </header>
+
+      {profile === 'DEV' && <RoboQaSwitch />}
 
       {/* â”€â”€ Filtros â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {!isCommercial && (
