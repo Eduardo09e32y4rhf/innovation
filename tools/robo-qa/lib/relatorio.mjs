@@ -92,6 +92,9 @@ ${final ? `<div class="cartao veredito">${esc(v.texto)}</div>` : `<div class="ca
 ${resumo.map((l) => `<tr><td><b>${esc(l.perfil)}</b></td><td>${esc(l.situacao)}${l.motivo ? `<br><span class="mut">${esc(l.motivo)}</span>` : ''}</td><td>${l.total}</td><td>${l.ok}</td><td>${l.avisos}</td><td>${l.falhas}</td></tr>`).join('')}
 </tbody></table>
 
+<h2>Saúde das APIs</h2>
+<div class="cartao"><b>${this.estado.api?.total ?? 0}</b> respostas de API observadas · <b>${Object.entries(this.estado.api?.porStatus ?? {}).map(([s, n]) => `${s}: ${n}`).join(' · ') || 'sem respostas'}</b>${(this.estado.api?.lentas?.length ?? 0) ? `<br><span class="mut">Rotas lentas (&gt;1,5 s): ${esc(this.estado.api.lentas.slice(0, 8).map((x) => `${x.metodo} ${x.rota} (${x.duracaoMs} ms)`).join(' · '))}</span>` : ''}</div>
+
 <h2>O que não funcionou (em português simples)</h2>
 ${grupos.length ? grupos.map((g, i) => `<div class="cartao">
 <span class="tag" style="background:${COR_GRAV[g.gravidade]}">${ROTULO_GRAV[g.gravidade]}</span> <b>${i + 1}. ${esc(g.titulo)}</b>${g.total > 1 ? ` <span class="mut">(aconteceu ${g.total}x)</span>` : ''}
@@ -117,6 +120,7 @@ ${Object.keys(this.estado.perfis).map((perfil) => {
     const out = [`# Relatório do Robô QA`, '', `- Endereço testado: ${this.meta.urlBase}`, `- Modo: ${this.meta.modo}`, `- Início: ${this.meta.inicio} · Duração: ${this.meta.duracao ?? ''}`, '', `**${v.texto}**`, '', '## Resumo por perfil', '', '| Perfil | Situação | Passos | Certos | Avisos | Falhas |', '|---|---|---|---|---|---|'];
     for (const l of this.resumoPorPerfil()) out.push(`| ${l.perfil} | ${l.situacao}${l.motivo ? ` (${l.motivo})` : ''} | ${l.total} | ${l.ok} | ${l.avisos} | ${l.falhas} |`);
     out.push('', '## O que não funcionou', '');
+    out.splice(6, 0, '', '## Saúde das APIs', '', `- Respostas observadas: ${this.estado.api?.total ?? 0}`, `- Status: ${Object.entries(this.estado.api?.porStatus ?? {}).map(([s, n]) => `${s}: ${n}`).join(' · ') || 'sem respostas'}`, `- Rotas lentas (>1,5 s): ${(this.estado.api?.lentas ?? []).slice(0, 8).map((x) => `${x.metodo} ${x.rota} (${x.duracaoMs} ms)`).join(' · ') || 'nenhuma'}`);
     if (!grupos.length) out.push('Nada de errado foi encontrado.');
     grupos.forEach((g, i) => {
       out.push(`### ${i + 1}. [${ROTULO_GRAV[g.gravidade]}] ${g.titulo}${g.total > 1 ? ` (${g.total}x)` : ''}`, '', g.explicacao, '', `- Quem: ${[...g.perfis].join(', ')}`, `- Onde: ${[...g.locais].slice(0, 6).join(' · ')}`, `- Passo do robô: ${g.passos.join(' | ')}`);
@@ -127,3 +131,4 @@ ${Object.keys(this.estado.perfis).map((perfil) => {
     return out.join('\n');
   }
 }
+

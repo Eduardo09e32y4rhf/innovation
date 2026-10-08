@@ -26,6 +26,14 @@ Opções úteis: `--perfil=DEV,RH_RS` · `--celular` (confere cada tela no taman
 `--url=https://...` · `--semjanela` (escondido) · `--max=16` (cliques por tela) · `--ajuda`.
 
 ## O que ele testa
+
+O plano de cobertura completo está em [`docs/ROBO-QA-PLANO-COMPLETO.md`](../../docs/ROBO-QA-PLANO-COMPLETO.md). O modo `--critico` aumenta a profundidade, observa APIs, evita navegação redundante e faz logout explícito entre perfis.
+
+Para gerar o catálogo determinístico da execução longa (12.000 casos por padrão, a partir de um universo combinatório de 168.000):
+
+`node tools/robo-qa/catalogo-10000.mjs`
+
+Altere o limite com `QA_LIMITE=25000 node tools/robo-qa/catalogo-10000.mjs`. O arquivo guarda seed, universo, casos, perfil, empresa, domínio, ação, estado e transporte para permitir reprodução e auditoria.
 - **Login** de cada perfil (e avisa se o perfil exige MFA).
 - **Menu lateral:** mostra as funções certas para o perfil? (faltando ou sobrando)
 - **Cada tela permitida:** abre, e aperta o que é seguro (abas, filtros, abrir detalhes, "Novo ..." sem salvar). Se aparecer erro 500, erro de
@@ -51,5 +59,14 @@ aprovar, contratar, gerar link, baixar etc., e recusa qualquer janela de confirm
 - Contas com MFA não entram sozinhas. Use contas de teste sem MFA.
 
 ## Testar o próprio robô
-`node tools/robo-qa/robo.mjs --demo --semjanela --rapido` roda num sistema de mentira com defeitos plantados de propósito
+`node tools/robo-qa/robo.mjs --demo --semjanela --rapido` roda num sistema de mentira com defeitos plantados de propósito.
+
+Suíte crítica somente leitura:
+
+`node tools/robo-qa/robo.mjs --config=tools/robo-qa/robo.config.json --critico --semjanela`
+
+Jornada com criação de dados (exige ambiente descartável):
+
+`node tools/robo-qa/robo.mjs --config=tools/robo-qa/robo.config.json --critico --ambiente-teste --modo=completo --celular --semjanela`
 (erro 500, erro de JavaScript, vazamento de permissão, menu sobrando, tela larga no celular...) e mostra que o relatório os encontra.
+
