@@ -65,6 +65,7 @@ export default function RoboQa() {
   const contasSalvas = Object.keys(carregarContas()).length;
   const fixasAtivas = Boolean(carregarSenhaFixa());
   const icone = (s: string) => (s === 'ok' ? '✅' : s === 'falha' ? '❌' : s === 'inconclusivo' ? '⚠️' : '⏭️');
+  const podeIniciar = perfis.length > 0 && ehDev && fixasAtivas; // sem a senha do seed o robo criaria usuarios aleatorios (licenca, troca de senha): nao inicia
   const iniciar = (modo: Modo) => motor.iniciar(perfis, modo === 'rapido' ? 'rapido' : ritmo, modo);
   const ultimosPassos = estado ? estado.passos.slice(-6).reverse() : [];
   const abas = estado?.abas ?? [];
@@ -90,7 +91,16 @@ export default function RoboQa() {
           {!ativo && (
             <>
               <p style={{ fontSize: 13, color: '#374151' }}>Abre cada página como uma pessoa usaria, <b>entra como cada perfil</b> (contas fixas do seed, sem criar empresa nem plano), sai e entra como cada um, e no final mostra um relatório do que não funcionou.</p>
-              <button type="button" disabled={perfis.length === 0 || !ehDev} onClick={() => iniciar('completo')} style={{ width: '100%', minHeight: 56, borderRadius: 12, border: 0, background: '#16a34a', color: '#fff', fontWeight: 800, fontSize: 18, cursor: 'pointer', margin: '6px 0', opacity: perfis.length === 0 || !ehDev ? 0.5 : 1 }}>▶ LIGAR O TESTE</button>
+              {!fixasAtivas && (
+                <div style={{ border: '2px solid #f59e0b', background: '#fffbeb', borderRadius: 10, padding: 8, margin: '6px 0' }}>
+                  <p style={{ fontSize: 13, margin: '0 0 6px', color: '#92400e' }}><b>Falta a senha das contas do robô.</b> Digite a senha usada no seed (<code>npm run seed:robo-qa</code>) e toque em Salvar. Login do robô: <code>{emailFixo('DEV')}</code>.</p>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input type="password" autoComplete="off" aria-label="Senha das contas do robô" placeholder="Senha do seed" value={senhaDigitada} onChange={(ev) => setSenhaDigitada(ev.target.value)} style={{ flex: 1, minHeight: 36, minWidth: 0 }} />
+                    <button type="button" disabled={senhaDigitada.length < 10} onClick={() => { salvarSenhaFixa(senhaDigitada); setSenhaDigitada(''); forcar((x) => x + 1); }} style={{ minHeight: 36, borderRadius: 8, border: '1px solid #7c3aed', background: '#f5f3ff', padding: '0 12px', cursor: 'pointer', opacity: senhaDigitada.length < 10 ? 0.5 : 1 }}>Salvar</button>
+                  </div>
+                </div>
+              )}
+              <button type="button" disabled={!podeIniciar} onClick={() => iniciar('completo')} style={{ width: '100%', minHeight: 56, borderRadius: 12, border: 0, background: '#16a34a', color: '#fff', fontWeight: 800, fontSize: 18, cursor: 'pointer', margin: '6px 0', opacity: !podeIniciar ? 0.5 : 1 }}>▶ LIGAR O TESTE</button>
               <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 6px' }}>Testa como um analista de qualidade / cliente: todos os perfis, aba por aba. No fim de cada aba aparece um resumo que dá para copiar.</p>
               <details>
               <summary style={{ fontSize: 12, color: '#6b7280', cursor: 'pointer' }}>Opções (perfis, velocidade, teste rápido)</summary>
@@ -122,8 +132,8 @@ export default function RoboQa() {
               </fieldset>
               <p style={{ fontSize: 12, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 8 }}>Use uma empresa de homologação. O robô cria dados reais de teste, troca de perfil e solicita login DEV no final para limpar somente os IDs registrados. Empresas são arquivadas; dados antigos sem manifesto não são excluídos.</p>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" disabled={perfis.length === 0 || !ehDev} onClick={() => iniciar('rapido')} title="Login, menus e telas principais de cada perfil" style={{ flex: 1, minHeight: 44, borderRadius: 10, border: '2px solid #7c3aed', background: '#f5f3ff', color: '#5b21b6', fontWeight: 700, cursor: 'pointer', opacity: perfis.length === 0 || !ehDev ? 0.5 : 1 }}>⚡ Teste rápido</button>
-                <button type="button" disabled={perfis.length === 0 || !ehDev} onClick={() => iniciar('completo')} title="Todos os perfis e as funcionalidades previstas" style={{ flex: 1, minHeight: 44, borderRadius: 10, border: 0, background: '#7c3aed', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: perfis.length === 0 || !ehDev ? 0.5 : 1 }}>🔎 Teste completo</button>
+                <button type="button" disabled={!podeIniciar} onClick={() => iniciar('rapido')} title="Login, menus e telas principais de cada perfil" style={{ flex: 1, minHeight: 44, borderRadius: 10, border: '2px solid #7c3aed', background: '#f5f3ff', color: '#5b21b6', fontWeight: 700, cursor: 'pointer', opacity: !podeIniciar ? 0.5 : 1 }}>⚡ Teste rápido</button>
+                <button type="button" disabled={!podeIniciar} onClick={() => iniciar('completo')} title="Todos os perfis e as funcionalidades previstas" style={{ flex: 1, minHeight: 44, borderRadius: 10, border: 0, background: '#7c3aed', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: !podeIniciar ? 0.5 : 1 }}>🔎 Teste completo</button>
               </div>
               <p style={{ fontSize: 12, color: '#6b7280', margin: '6px 0 0' }}>Rápido: login, menus e telas principais. Completo: todas as funcionalidades previstas.</p>
               </details>

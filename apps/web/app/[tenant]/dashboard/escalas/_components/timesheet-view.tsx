@@ -38,9 +38,10 @@ export function TimesheetView({ overview, month, setMonth, initialEmployeeId, on
     finally { setDownloading(false); }
   }
 
+  const canPunch = overview.capabilities.punch && Boolean(myId); // sem cadastro de funcionario vinculado o servidor responde 403
   return (
-    <div className={`grid gap-5 ${overview.capabilities.punch ? 'xl:grid-cols-[380px_minmax(0,1fr)]' : ''}`}>
-      {overview.capabilities.punch && <div className="xl:sticky xl:top-4 xl:self-start"><PunchWidget onPunched={() => { sheet.refetch(); refresh(); }} /></div>}
+    <div className={`grid gap-5 ${canPunch ? 'xl:grid-cols-[380px_minmax(0,1fr)]' : ''}`}>
+      {canPunch && <div className="xl:sticky xl:top-4 xl:self-start"><PunchWidget onPunched={() => { sheet.refetch(); refresh(); }} /></div>}
 
       <div className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
