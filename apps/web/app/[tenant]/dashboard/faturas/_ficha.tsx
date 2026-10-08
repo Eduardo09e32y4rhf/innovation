@@ -7,6 +7,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { hasPermission, type Permission } from '@/app/lib/permissions';
 import CompanyInvoicesView from './_company-view';
 import { money } from './_format';
+import Integration from './_integration';
 
 type Dialog =
   | { kind: 'charge' } | { kind: 'recurring' } | { kind: 'freeDays' } | { kind: 'seats' } | { kind: 'plan' } | { kind: 'coupon' } | { kind: 'cancelSub' } | { kind: 'activate' } | { kind: 'release' }
@@ -229,6 +230,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
 export default function CompanyFicha({ company, onChanged }: { company: FaturasCompanyRow; onChanged?: () => void }) {
   const { user } = useAuth();
   const can = (p: Permission) => hasPermission(user, p);
+  const role = String(user?.profile ?? user?.role ?? '').toUpperCase();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [history, setHistory] = useState<InvoiceAdjustment[]>([]);
@@ -315,6 +317,12 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
         <div role="status" className="mx-3 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-800 sm:mx-5 lg:mx-6">
           <span>Esta empresa não tem assinatura ativa. Usuários, plano, descontos, dias grátis, cupom e pausa só funcionam depois de ativar.</span>
           {can('faturas.cobrar') && <button type="button" className="btn btn-primary text-sm" onClick={() => setDialog({ kind: 'activate' })}>Ativar assinatura</button>}
+        </div>
+      )}
+
+      {can('faturas.cobrar') && (
+        <div className="px-3 pt-4 sm:px-5 lg:px-6">
+          <Integration companyId={company.id} canRetry={role === 'DEV'} canSwitch={role === 'DEV' || role === 'CEO'} />
         </div>
       )}
 

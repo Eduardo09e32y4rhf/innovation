@@ -8,7 +8,7 @@ import { api } from '@/app/lib/api';
 import { dateTime, errorText } from '../platform/_hub/format';
 
 /** Eventos do provedor de pagamento (Asaas): falhas podem ser reprocessadas pelo DEV. */
-export default function Integration({ companyId, canRetry }: { companyId?: string; canRetry: boolean }) {
+export default function Integration({ companyId, canRetry, canSwitch = canRetry }: { companyId?: string; canRetry: boolean; canSwitch?: boolean }) {
   const events = useQuery(() => api.platform.finance.webhookEvents({ companyId, limit: 15 }), [companyId]);
   const fiscal = useQuery(() => api.faturas.fiscalStatus(), []);
   const health = useQuery(() => api.faturas.providerHealth(), []);
@@ -22,8 +22,8 @@ export default function Integration({ companyId, canRetry }: { companyId?: strin
     catch (cause) { toast.error(errorText(cause, 'Não foi possível trocar o provedor.')); }
   }
   return (
-    <details className="card-v2 p-4">
-      <summary className="cursor-pointer text-sm font-semibold">Integração de pagamentos ({rows.filter((row) => row.status === 'FAILED').length} com falha)</summary>
+    <details className="card-v2 p-4" open={health.data ? health.data.active !== 'ASAAS' : undefined}>
+      <summary className="cursor-pointer text-sm font-semibold">Integração de pagamentos{health.data ? ` · ${names[health.data.active]} ativo` : ''} ({rows.filter((row) => row.status === 'FAILED').length} com falha)</summary>
       {health.data && (
         <div className="mt-3 rounded-xl border border-line p-3 text-sm">
           <p className="font-semibold">Provedor de cobrança ativo: {names[health.data.active]}</p>
@@ -36,7 +36,7 @@ export default function Integration({ companyId, canRetry }: { companyId?: strin
                 <div key={key} className="min-w-0 flex-1 basis-[200px] rounded-lg border border-line p-2">
                   <p className="font-medium">{names[key]} <span className="text-xs font-normal text-fg-sub">· {info.configured ? `chave ${modes[info.mode] ?? info.mode}` : 'sem chave'}{info.configured && !info.webhookSecret ? ' · falta token do webhook' : ''}</span></p>
                   {!info.configured && <p className="break-words text-xs text-amber-700">Falta: {info.requiredEnv.join(', ')}</p>}
-                  {canRetry && <Button size="sm" variant={active ? 'outline' : 'primary'} disabled={active || !info.configured} onClick={() => void choose(key)}>{active ? 'Ativo' : `Usar ${names[key]}`}</Button>}
+                  {canSwitch && <Button size="sm" variant={active ? 'outline' : 'primary'} disabled={active || !info.configured} onClick={() => void choose(key)}>{active ? 'Ativo' : `Usar ${names[key]}`}</Button>}
                 </div>
               );
             })}

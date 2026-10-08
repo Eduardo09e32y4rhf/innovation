@@ -162,7 +162,7 @@ export default function PlatformInvoicesView() {
         </table>
       </section>
 
-      {hasPermission(user, 'faturas.cobrar') && <Integration canRetry={role === 'DEV'} />}
+      {hasPermission(user, 'faturas.cobrar') && <Integration canRetry={role === 'DEV'} canSwitch={role === 'DEV' || role === 'CEO'} />}
 
       {data && data.pagination.pages > 1 && (
         <nav className="flex flex-wrap items-center justify-between gap-2 text-sm text-fg-sub" aria-label="Paginação">
