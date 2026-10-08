@@ -35,7 +35,7 @@ export function mapException(exception: unknown): MappedError {
     const status = exception.getStatus();
     const response = exception.getResponse();
     if (status === 429) {
-      return { status, body: { message: 'Você fez muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo. Isso vale só para a sua conta; os demais usuários não são afetados.', code: 'TOO_MANY_ATTEMPTS' }, log: false };
+      return { status, body: { message: 'Você fez muitas tentativas em pouco tempo. Aguarde alguns minutos e tente de novo.', code: 'TOO_MANY_ATTEMPTS' }, log: false };
     }
     if (typeof response === 'string') return { status, body: { message: friendlyGeneric(status, response) }, log: status >= 500 };
     const { message, ...rest } = response as Record<string, any>;
