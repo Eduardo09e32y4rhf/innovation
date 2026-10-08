@@ -260,6 +260,11 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
     catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível sincronizar.'); }
   }
 
+  async function copyLink(inv: PlatformInvoice) {
+    try { await navigator.clipboard.writeText(inv.invoiceUrl ?? ''); toast.success('Link de pagamento copiado. Envie ao cliente.'); }
+    catch { toast.error('Não foi possível copiar. Abra a fatura e copie o endereço manualmente.'); }
+  }
+
   async function emitFiscal(inv: PlatformInvoice) {
     try { const r = await api.faturas.emitFiscal(inv.id); toast.success(r.message); refresh(); }
     catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível emitir a nota no Asaas.'); }
@@ -279,6 +284,7 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
     const btn = 'btn btn-outline text-xs';
     return (
       <span className="inline-flex flex-wrap justify-end gap-1.5">
+        {open && inv.invoiceUrl && can('faturas.ver') && <button type="button" className={btn} title="Copia o link de pagamento (Pix, boleto ou cartão) para enviar ao cliente" onClick={() => void copyLink(inv)}>Copiar link</button>}
         {open && can('faturas.desconto') && <button type="button" className={btn} onClick={() => setDialog({ kind: 'discount', invoice: inv })}>Desconto</button>}
         {open && can('faturas.cobrar') && !inv.asaasPaymentId && !['PROCESSING', 'UNKNOWN'].includes(inv.paymentProcessingStatus ?? '') && <button type="button" className={btn} onClick={() => void manualMp(inv)} title="Gerar link para fatura local sem cobrança ativa no Asaas">Link Mercado Pago</button>}
         {open && can('faturas.cobrar') && <button type="button" className={btn} onClick={() => setDialog({ kind: 'cancel', invoice: inv })}>Cancelar</button>}
