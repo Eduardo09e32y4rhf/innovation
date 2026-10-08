@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { carregarSenhaFixa, contaFixa, emailFixo, limparSenhaFixa, nomeFixo, PERFIS_FIXOS, salvarSenhaFixa } from '../../../apps/web/app/_components/robo-qa/engine/contasFixas';
+import { cenariosDoPerfil } from '../../../apps/web/app/_components/robo-qa/engine/cenarios';
 import { novoEstado } from '../../../apps/web/app/_components/robo-qa/engine/estado';
 import { PERFIS_DE_TESTE } from '../../../apps/web/app/_components/robo-qa/engine/matriz';
 import { ROTULO_PERFIL } from '../../../apps/web/app/_components/robo-qa/engine/usuarios';
@@ -86,5 +87,22 @@ describe('seed: só roda em banco de teste, com confirmação', () => {
   it('recusa DATABASE_URL ausente ou inválida', () => {
     expect(seed.avaliarAmbiente({ ...ok, DATABASE_URL: undefined }).ok).toBe(false);
     expect(seed.avaliarAmbiente({ ...ok, DATABASE_URL: 'isso-nao-e-url' }).ok).toBe(false);
+  });
+});
+
+describe('robô usa a empresa que já existe e testa o CEO', () => {
+  it('CEO é testado por conta fixa e o seed deixa o onboarding dele concluído', () => {
+    expect(PERFIS_DE_TESTE).toContain('CEO');
+    expect(PERFIS_FIXOS).toContain('CEO');
+    expect(emailFixo('CEO')).toBe('robo-qa.ceo@example.com');
+  });
+  it('sem a senha das contas fixas o CEO é ignorado (não dá para criá-lo pela tela)', () => {
+    const estado = novoEstado(['CEO', 'RH'], 'normal', 'empresa', 'completo');
+    expect(estado.usuarios.map((u) => u.perfil)).toEqual(['RH']);
+  });
+  it('o DEV não cria mais empresa nem planos de catálogo a cada rodada', () => {
+    const nomes = cenariosDoPerfil('DEV').map((b) => b.nome);
+    expect(nomes).not.toContain('Criar cliente (empresa)');
+    expect(nomes).not.toContain('Criar planos (catálogo)');
   });
 });

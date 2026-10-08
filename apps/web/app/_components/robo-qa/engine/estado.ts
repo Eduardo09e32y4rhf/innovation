@@ -18,7 +18,7 @@ export const RITMOS: Record<Ritmo, { antes: number; depois: number; digitacao: n
 export function novoEstado(perfis: string[], ritmo: Ritmo, tenant: string, modo: Modo = 'completo'): Estado {
   return {
     versao: 1, ativo: true, pausado: false, cancelado: false, fase: 'dev', ritmo, modo, inicio: Date.now(), perfis,
-    usuarios: perfis.map(usuarioParaPerfil), idxUsuario: 0, subEtapa: 'sair', tourIdx: 0,
+    usuarios: perfis.filter((p) => p !== 'CEO' || Boolean(carregarSenhaFixa())).map(usuarioParaPerfil), idxUsuario: 0, subEtapa: 'sair', tourIdx: 0,
     passos: [], achados: [], abas: [], agora: 'iniciando', perfilAtual: 'DEV', tenant,
   };
 }

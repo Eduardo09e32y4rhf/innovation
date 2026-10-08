@@ -53,6 +53,8 @@ async function semear(prisma, senha) {
       mfaRecoveryHashes: [],
       emailVerifiedAt: agora,
       welcomeSeenAt: agora,
+      // CEO real exige senha, facial, dados e contrato assinado no 1o acesso; a conta do robo ja nasce com isso concluido.
+      ...(perfil === 'CEO' ? { onboardingState: 'ACTIVE', onboardingCompletedAt: agora } : {}),
     };
     usuarios[perfil] = await prisma.user.upsert({ where: { email }, update: comuns, create: { email, ...comuns } });
   }

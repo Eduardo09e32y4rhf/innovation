@@ -26,6 +26,7 @@ ROBO_QA_BANCO_DE_TESTE=sim ROBO_QA_SENHA='Troque#Esta1' npm run seed:robo-qa
 | Perfil | E-mail |
 | --- | --- |
 | DEV (login do robô) | `robo-qa.dev@example.com` |
+| CEO (onboarding já concluído pelo seed) | `robo-qa.ceo@example.com` |
 | ADMIN, RH, RH_RS, GESTOR, FUNCIONARIO, CONSULTA, COMERCIAL, CONTABIL | `robo-qa.<perfil sem _ e em minúsculas>@example.com` (ex.: `robo-qa.rhrs@example.com`) |
 
 1. Entre no site como `robo-qa.dev@example.com` (um DEV só do robô; seu DEV pessoal fica livre).
@@ -35,6 +36,8 @@ ROBO_QA_BANCO_DE_TESTE=sim ROBO_QA_SENHA='Troque#Esta1' npm run seed:robo-qa
 - A empresa de teste é "ROBO-QA Empresa de Teste": sem CNPJ, ativa, sem cobrança pendente, 60 licenças. O FUNCIONARIO já tem cadastro e escala 5x2 (para bater ponto e pedir férias).
 - O seed pode rodar de novo quando quiser: restaura a senha e destrava as contas. Se o sistema obrigar a trocar a senha de uma conta fixa, o relatório avisa para rodar o seed.
 - Travas do seed: recusa `NODE_ENV=production` (a menos que `ROBO_QA_PERMITIR_PRODUCAO=sim`, para homologação que roda em modo produção) e banco que não seja local (a menos que `ROBO_QA_PERMITIR_BANCO_REMOTO=sim`). Ele cria um DEV com senha conhecida: **nunca rode no banco dos clientes**.
+- O robô **não cria mais empresa nem planos** de catálogo: usa a empresa que já existe. "Vendas" não é um perfil à parte no sistema: use COMERCIAL.
+- Entre como `robo-qa.dev@example.com` (e não como seu DEV pessoal) para o relatório só ter contas do robô; o painel avisa se você estiver com outro e-mail.
 - Sem a senha em "Contas fixas", o robô volta ao comportamento antigo (cria usuários "ROBO-QA …" pelo "Novo acesso").
 
 ## Empresa sem CNPJ (modo teste)

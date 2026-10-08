@@ -56,5 +56,5 @@ export const FATURAS_ABAS: Record<string, string[]> = {
   COMERCIAL: ['Faturas', 'Assinaturas', 'Planos'],
 };
 
-/** Perfis que o robo cria para testar (CEO fica de fora: exige contrato e assinatura gov.br no primeiro acesso). */
-export const PERFIS_DE_TESTE = ['ADMIN', 'RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA', 'COMERCIAL', 'CONTABIL'] as const;
+/** Perfis testados. CEO so entra por conta fixa (o CEO real exige contrato e assinatura gov.br no primeiro acesso e nao da para criar pela tela). */
+export const PERFIS_DE_TESTE = ['CEO', 'ADMIN', 'RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA', 'COMERCIAL', 'CONTABIL'] as const;

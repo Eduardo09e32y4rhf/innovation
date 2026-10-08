@@ -374,7 +374,7 @@ export function cenariosDoPerfil(perfil: string): BlocoCenario[] {
   const blocos: BlocoCenario[] = [];
   if (['DEV', 'ADMIN', 'RH'].includes(perfil)) blocos.push(blocoCadastrarFuncionario);
   if (['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR'].includes(perfil)) blocos.push(blocoCriarVaga);
-  if (perfil === 'DEV') blocos.push(blocoCriarCliente, blocoCriarPlanos);
+  // Criar empresa e criar planos NAO rodam mais: o robo usa a empresa que ja existe (cada rodada criava ~3 planos a mais).
   if (perfil === 'FUNCIONARIO') blocos.push(blocoEsqueciSenha); // uma vez basta: o fluxo e o mesmo pra qualquer perfil
   if (perfil === 'FUNCIONARIO') blocos.push(blocoPonto, blocoFerias);
   return blocos;
