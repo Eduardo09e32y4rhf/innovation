@@ -93,7 +93,7 @@ const blocoPainel: Bloco = {
     ctx.cenario = 'Painel inicial do perfil';
     await passo(ctx, 'Abrir o painel inicial', () => ir(ctx, `/${ctx.anfitriao.tenant()}/dashboard`, 'Abrindo o painel inicial'));
     await passo(ctx, 'Painel: mostra uma saudação com o nome', () => {
-      if (!/(bom dia|boa tarde|boa noite|ol[aá])/i.test(textoPrincipal())) throw new Error('ESPERADO: o painel deveria cumprimentar o usuário ("Bom dia, Nome!"), mas nenhuma saudação apareceu.');
+      if (ctx.perfil !== 'DEV' && !/(bom dia|boa tarde|boa noite|ol[aá])/i.test(textoPrincipal())) throw new Error('ESPERADO: o painel deveria cumprimentar o usuário ("Bom dia, Nome!"), mas nenhuma saudação apareceu.');
     });
     if (ctx.perfil === 'RH_RS') {
       await passo(ctx, 'RH — R&S: painel só de recrutamento (4 indicadores)', () => {

@@ -4,6 +4,7 @@ import { clicar, cliqueDuplo, digitar, falar, ir, naoTestado, passo, registrarAc
 import { acharPorTexto, dormir, esperarAssentar, esperarAte, rotulo, setValor, todos } from './dom';
 import { gerarSenhaForte } from './portoes';
 import { registrarSegredo } from './seguranca';
+import { ehLimiteDeLicencas } from './usuarios';
 import type { Contexto, UsuarioTeste } from './tipos';
 
 export interface BlocoCenario { nome: string; rodar: (ctx: Contexto) => Promise<void> }
@@ -108,6 +109,8 @@ export async function cadastrarFuncionario(ctx: Contexto, nome: string, email: s
   await cliqueDuplo(ctx, await esperarAte(() => botaoTexto(/^salvar funcion[aá]rio/i), { descricao: 'o botão "Salvar funcionário"' }), 'botão Salvar funcionário (clique duplo de propósito)');
 
   const resultado = await esperarAte(() => {
+    const licenca = todos('[role="alert"], [role="status"], [data-sonner-toast]').map(rotulo).find((t) => ehLimiteDeLicencas(t));
+    if (licenca) return { licenca };
     const codigo = todos('code').map(rotulo).find((t) => t.length >= 5);
     if (codigo) return { codigo };
     const alerta = todos('[role="alert"]').map(rotulo).find(Boolean);
@@ -115,6 +118,7 @@ export async function cadastrarFuncionario(ctx: Contexto, nome: string, email: s
     if (!acesso && !/\/employees\/new/.test(ctx.anfitriao.caminhoAtual())) return { codigo: '' };
     return null;
   }, { timeout: 20000, descricao: 'a confirmação do cadastro do funcionário' });
+  if ('licenca' in resultado) { ctx.estado.semLicencas = true; return ''; }
   if ('alerta' in resultado) throw new Error(`ESPERADO: o funcionário deveria ser cadastrado, mas a tela mostrou: "${resultado.alerta.slice(0, 200)}".`);
   if (acesso && !resultado.codigo) throw new Error('ESPERADO: ao liberar o acesso, o sistema deveria mostrar a senha provisória do funcionário.');
   if (resultado.codigo) registrarSegredo(resultado.codigo);

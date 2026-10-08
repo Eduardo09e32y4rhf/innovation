@@ -1,4 +1,4 @@
-import { clicar, digitar, falar, passo, registrarAchado } from './acoes';
+import { clicar, digitar, falar, naoTestado, passo, registrarAchado } from './acoes';
 import { drenarEventos, instalarColetor } from './coletor';
 import { acharPorTexto, dormir, esperarAte, rotulo, todos } from './dom';
 import { carregar, limpar, novoEstado, RITMOS, salvar, salvarConta, salvarRelatorio } from './estado';
@@ -9,7 +9,7 @@ import { blocosDoTour } from './tour';
 import { resumirAba } from './relatorio';
 import type { Anfitriao, Contexto, Estado, Modo, Ritmo } from './tipos';
 import { mostrarOverlay } from './ui';
-import { criarUsuarioDeTeste } from './usuarios';
+import { criarUsuarioDeTeste, novoUsuarioDeTeste } from './usuarios';
 import { criarFuncionarioComAcesso } from './cenarios';
 import { QUEDA, telaCaiu } from './queda';
 
@@ -166,16 +166,35 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
     const ctx = contexto('DEV');
     for (const usuario of estado.usuarios) {
       if (usuario.criado || usuario.situacao === 'erro') continue; // conta ja existe (reaproveitada): nao cria de novo
+      if (estado.semLicencas) { usuario.situacao = 'erro'; usuario.motivo = 'a empresa não tem licenças livres'; continue; } // nao adianta tentar de novo: o limite ja foi atingido
       ctx.prazo = Date.now() + LIMITE_BLOCO_MS[estado.modo];
+      const p0 = estado.passos.length; const a0 = estado.achados.length;
       try {
         // O funcionario de teste nasce com cadastro de verdade (para bater ponto e pedir ferias); se o cadastro falhar, cai no acesso simples.
         const comCadastro = usuario.perfil === 'FUNCIONARIO' && estado.modo === 'completo' && (await criarFuncionarioComAcesso(ctx, usuario));
-        if (!comCadastro) await criarUsuarioDeTeste(ctx, usuario);
+        if (!comCadastro && !estado.semLicencas) {
+          // A tentativa com cadastro pode ter criado o acesso antes de falhar: usa um e-mail novo para nao bater em "e-mail ja cadastrado".
+          if (usuario.perfil === 'FUNCIONARIO') usuario.email = novoUsuarioDeTeste(usuario.perfil).email;
+          await criarUsuarioDeTeste(ctx, usuario);
+        }
       }
-      catch (erro) { if ((erro as Error)?.message === CANCELADO) throw erro; usuario.situacao = 'erro'; usuario.motivo = 'não foi possível criar o acesso de teste (etapa interrompida)'; }
-      finally { ctx.prazo = 0; }
+      catch (erro) {
+        if ((erro as Error)?.message === CANCELADO) throw erro;
+        usuario.situacao = 'erro'; usuario.motivo = 'não foi possível criar o acesso de teste (etapa interrompida)';
+        if (!estado.achados.slice(a0).length) registrarAchado(ctx, `Criar acesso de teste (${usuario.perfil})`, { gravidade: 'alta', titulo: 'Não consegui criar o acesso de teste deste perfil', explicacao: `Erro inesperado ao criar "${usuario.nome}": ${String((erro as Error)?.message ?? erro).split('\n')[0]}` });
+      }
+      finally {
+        ctx.prazo = 0;
+        (estado.abas ??= []).push(resumirAba(usuario.perfil, `Criar acesso de teste (${usuario.perfil})`, estado.passos.slice(p0), estado.achados.slice(a0)));
+        salvar(estado);
+        ctx.atualizar();
+      }
       if (usuario.criado) salvarConta(usuario.perfil, { email: usuario.email, nome: usuario.nome, senha: usuario.senha });
       salvar(estado);
+    }
+    if (estado.semLicencas) {
+      const faltaram = estado.usuarios.filter((u) => !u.criado).map((u) => u.perfil).join(', ');
+      naoTestado(ctx, 'Criar os acessos de teste', `A empresa usada no teste não tem licenças livres, então o robô não criou os acessos (${faltaram || 'nenhum perfil faltou'}) e esses perfis não foram testados. Não é defeito do sistema. Aumente as licenças da empresa de teste, ou cancele acessos "ROBO-QA" antigos em Usuários, e rode de novo.`);
     }
     estado.fase = 'usuarios';
     estado.idxUsuario = 0;

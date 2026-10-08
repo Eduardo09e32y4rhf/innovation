@@ -80,6 +80,8 @@ export interface Estado {
   agora: string;
   perfilAtual: string;
   tenant: string;
+  /** A empresa de teste nao tem licencas livres: criar acessos nao e possivel (nao e defeito do sistema). */
+  semLicencas?: boolean;
 }
 
 /** O que o motor precisa do app hospedeiro (Next.js) e que nao da para fazer so com o DOM. */

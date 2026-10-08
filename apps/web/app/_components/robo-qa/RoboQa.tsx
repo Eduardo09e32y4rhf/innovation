@@ -135,10 +135,13 @@ export default function RoboQa() {
                 <button type="button" onClick={() => copiar('tudo', textoTudo)} style={{ minHeight: 32, borderRadius: 8, border: '1px solid #7c3aed', background: '#f5f3ff', padding: '0 10px', cursor: 'pointer', fontSize: 12 }}>{copiado === 'tudo' ? '✔ Copiado' : '📋 Copiar tudo'}</button>
               </div>
               {abas.slice().reverse().map((a, i) => (
-                <div key={`${a.perfil}-${a.aba}-${i}`} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, padding: '4px 0', borderBottom: '1px dashed #e5e7eb' }}>
-                  <span style={{ flex: 1 }}>{a.falhou ? '❌' : a.inconclusivo ? '⚠️' : '✅'} <b>{a.perfil}</b> · {a.aba} <span style={{ color: '#6b7280' }}>({a.passou}✅ {a.falhou}❌ {a.inconclusivo}⚠️ {a.naoTestado}⏭️)</span></span>
-                  <button type="button" onClick={() => copiar(`${a.perfil}-${a.aba}-${i}`, a.texto)} aria-label={`Copiar resumo de ${a.aba}`} style={{ minHeight: 28, minWidth: 28, borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>{copiado === `${a.perfil}-${a.aba}-${i}` ? '✔' : '📋'}</button>
-                </div>
+                <details key={`${a.perfil}-${a.aba}-${i}`} open={a.falhou > 0 || a.inconclusivo > 0} style={{ padding: '4px 0', borderBottom: '1px dashed #e5e7eb' }}>
+                  <summary style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, cursor: 'pointer' }}>
+                    <span style={{ flex: 1 }}>{a.falhou ? '❌' : a.inconclusivo ? '⚠️' : '✅'} <b>{a.perfil}</b> · {a.aba} <span style={{ color: '#6b7280' }}>({a.passou}✅ {a.falhou}❌ {a.inconclusivo}⚠️ {a.naoTestado}⏭️)</span></span>
+                    <button type="button" onClick={(ev) => { ev.preventDefault(); copiar(`${a.perfil}-${a.aba}-${i}`, a.texto); }} aria-label={`Copiar resumo de ${a.aba}`} style={{ minHeight: 28, minWidth: 28, borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>{copiado === `${a.perfil}-${a.aba}-${i}` ? '✔' : '📋'}</button>
+                  </summary>
+                  <pre style={{ margin: '6px 0 0', fontSize: 11, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6, padding: 8, fontFamily: 'ui-monospace, monospace' }}>{a.texto}</pre>
+                </details>
               ))}
             </div>
           )}

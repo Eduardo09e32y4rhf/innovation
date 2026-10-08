@@ -89,8 +89,8 @@ export function resumirAba(perfil: string, aba: string, passos: PassoRegistro[],
   const cont = (r: string) => achados.filter((a) => a.resultado === r).length;
   const falhou = cont('falha'); const inconclusivo = cont('inconclusivo'); const naoTestado = cont('nao-testado');
   const linhas = [`[${perfil}] ${aba}: ✅ ${passou} · ❌ ${falhou} · ⚠️ ${inconclusivo} · ⏭️ ${naoTestado}`];
-  for (const a of achados.slice(0, 6)) linhas.push(`  ${ICONE_RES[a.resultado] ?? '•'} ${a.titulo} — tela: ${a.url}; esperado: ${a.esperado}; obtido: ${a.obtido}`);
-  if (achados.length > 6) linhas.push(`  … e mais ${achados.length - 6}`);
+  for (const a of achados.slice(0, 12)) linhas.push(`  ${ICONE_RES[a.resultado] ?? '•'} ${a.titulo} — tela: ${a.url}; ação: ${a.acao}; esperado: ${a.esperado}; obtido: ${a.obtido}${a.evidencia ? `; evidência: ${a.evidencia}` : ''}`);
+  if (achados.length > 12) linhas.push(`  … e mais ${achados.length - 12}`);
   return { perfil, aba, passou, falhou, inconclusivo, naoTestado, texto: limpar(linhas.join('\n')) };
 }
 

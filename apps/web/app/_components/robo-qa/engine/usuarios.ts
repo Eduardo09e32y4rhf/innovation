@@ -8,6 +8,9 @@ export const ROTULO_PERFIL: Record<string, string> = {
   RH: 'RH - Empresas', RH_RS: 'RH - R&S', GESTOR: 'Gestor', FUNCIONARIO: 'Funcionário', CONSULTA: 'Consulta',
 };
 
+/** Mensagem de limite de licencas da empresa: pre-condicao do ambiente de teste, nao defeito do sistema. */
+export const ehLimiteDeLicencas = (texto: string) => /SEAT_LIMIT|licen[cç]as/i.test(texto);
+
 const aleatorio = () => Math.random().toString(36).slice(2, 8);
 
 export function novoUsuarioDeTeste(perfil: string): UsuarioTeste {
@@ -51,12 +54,13 @@ export async function criarUsuarioDeTeste(ctx: Contexto, usuario: UsuarioTeste):
       const erro = todos('[role="alert"]').map(rotulo).find(Boolean);
       return erro ? { erro } : null;
     }, { timeout: 20000, descricao: 'a senha provisória (ou uma mensagem de erro) depois de criar o acesso' });
+    if ('erro' in resultado && ehLimiteDeLicencas(resultado.erro)) { ctx.estado.semLicencas = true; return; }
     if ('erro' in resultado) throw new Error(`ESPERADO: o acesso deveria ser criado, mas a tela mostrou: "${resultado.erro}".`);
     provisoria = resultado.codigo;
     await clicar(ctx, await esperarAte(() => acharPorTexto('button', /^concluir$/i), { descricao: 'o botão "Concluir"' }), 'botão Concluir');
   });
   if (ok && provisoria) { registrarSegredo(provisoria); usuario.senha = provisoria; usuario.criado = true; return true; }
   usuario.situacao = 'erro';
-  usuario.motivo = 'não foi possível criar o acesso de teste';
+  usuario.motivo = ctx.estado.semLicencas ? 'a empresa não tem licenças livres' : 'não foi possível criar o acesso de teste';
   return false;
 }
