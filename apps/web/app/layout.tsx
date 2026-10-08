@@ -1,11 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import dynamic from 'next/dynamic';
 import { Providers } from './contexts/Providers';
-
-// Automação de contas é restrita ao desenvolvimento local, inclusive se a flag for ligada em produção.
-const ROBO_QA = process.env.NEXT_PUBLIC_ROBO_QA === 'on';
-const RoboQa = ROBO_QA ? dynamic(() => import('./_components/robo-qa/RoboQa'), { ssr: false }) : null;
+import { RoboQaGate } from './_components/robo-qa/RoboQaGate';
 
 export const metadata: Metadata = {
   title: {
@@ -27,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('theme');var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light'}catch(e){}" }} />
       </head>
       <body>
-        <Providers>{children}{RoboQa ? <RoboQa /> : null}</Providers>
+        <Providers>{children}<RoboQaGate /></Providers>
       </body>
     </html>
   );

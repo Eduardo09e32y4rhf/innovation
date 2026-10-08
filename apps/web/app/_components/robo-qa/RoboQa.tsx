@@ -17,7 +17,7 @@ function baixar(nome: string, conteudo: string, tipo: string) {
 }
 
 /**
- * Robo de teste PROVISORIO. So existe quando NEXT_PUBLIC_ROBO_QA=on (ver docs/ROBO-QA.md) e so um DEV inicia.
+ * Robo de teste PROVISORIO. So aparece para DEV com a chave ligada em Plataforma > Configuracoes (RoboQaGate) e so um DEV inicia.
  * Ele usa a tela como uma pessoa: nao tem acesso especial; todas as permissoes do servidor continuam valendo.
  */
 export default function RoboQa() {

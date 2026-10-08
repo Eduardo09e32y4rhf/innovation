@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { RoboQaSwitch } from '@/app/_components/robo-qa/RoboQaSwitch';
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -277,6 +278,8 @@ export function ConfiguracaoView({
           <p>Os dados anteriores foram preservados, mas a atualizacao falhou: {error}</p>
         </div>
       )}
+
+      <RoboQaSwitch />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
