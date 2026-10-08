@@ -40,7 +40,7 @@ Execução real dos casos em lote (500.000 por padrão):
 ```bash
 node tools/robo-qa/catalogo-500k.mjs /tmp/innovation-qa-500k.ndjson
 node tools/robo-qa/executor-500k.mjs --url=http://localhost:3000 \
-  --catalogo=/tmp/innovation-qa-500k.ndjson --concorrencia=16 --timeout=8000
+  --tenant=empresa-teste --catalogo=/tmp/innovation-qa-500k.ndjson --concorrencia=16 --timeout=8000
 ```
 
 O executor faz requisições reais, aplica timeout/retry, envia método/payload de teste, valida status permitido por estado, mede latência, registra falhas e grava um resultado por caso. A carga é limitada a 64 workers para não transformar a suíte em um ataque acidental ao ambiente.

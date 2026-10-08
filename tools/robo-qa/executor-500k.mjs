@@ -6,13 +6,15 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 
 const { values: args } = parseArgs({ options: {
-  url: { type: 'string' }, catalogo: { type: 'string' }, saida: { type: 'string' }, concorrencia: { type: 'string', default: '16' }, timeout: { type: 'string', default: '8000' }, retry: { type: 'string', default: '1' }, semabrir: { type: 'boolean', default: false }, ajuda: { type: 'boolean', default: false },
+  url: { type: 'string' }, tenant: { type: 'string' }, catalogo: { type: 'string' }, saida: { type: 'string' }, concorrencia: { type: 'string', default: '16' }, timeout: { type: 'string', default: '8000' }, retry: { type: 'string', default: '1' }, semabrir: { type: 'boolean', default: false }, ajuda: { type: 'boolean', default: false },
 } });
 if (args.ajuda || !args.url || !args.catalogo) {
-  console.log('Uso: node tools/robo-qa/executor-500k.mjs --url=http://localhost:3000 --catalogo=...ndjson [--concorrencia=16] [--timeout=8000]');
+  console.log('Uso: node tools/robo-qa/executor-500k.mjs --url=http://localhost:3000 --tenant=empresa-teste --catalogo=...ndjson [--concorrencia=16] [--timeout=8000]');
   process.exit(args.ajuda ? 0 : 2);
 }
 const baseUrl = String(args.url).replace(/\/+$/, '');
+const tenant = String(args.tenant ?? process.env.QA_TENANT ?? '').replace(/^\/+|\/+$/g, '');
+if (!tenant) { console.error('Informe --tenant ou QA_TENANT para nunca testar a empresa errada.'); process.exit(2); }
 const concorrencia = Math.max(1, Math.min(64, Number(args.concorrencia) || 16));
 const timeoutMs = Math.max(500, Number(args.timeout) || 8000);
 const retries = Math.max(0, Math.min(3, Number(args.retry) || 1));
@@ -31,8 +33,8 @@ const esperado = (caso) => {
 };
 async function executar(caso) {
   const caminho = rotas[caso.dominio] ?? '/dashboard';
-  const url = `${baseUrl}/qa/${caso.perfil.toLowerCase()}${caminho}`;
-  const headers = { accept: 'application/json,text/html', 'x-qa-case-id': caso.id, 'x-qa-profile': caso.perfil, 'x-qa-tenant-mode': caso.empresa };
+  const url = `${baseUrl}/${tenant}${caminho}`;
+  const headers = { accept: 'application/json,text/html', 'x-qa-case-id': caso.id, 'x-qa-profile': caso.perfil, 'x-qa-tenant-mode': caso.empresa, 'x-qa-dry-run': 'true' };
   const init = { method: metodo(caso.acao), headers, signal: AbortSignal.timeout(timeoutMs) };
   if (init.method !== 'GET') { headers['content-type'] = 'application/json'; init.body = JSON.stringify({ qaCaseId: caso.id, state: caso.estado, dryRun: true }); }
   let ultima;
