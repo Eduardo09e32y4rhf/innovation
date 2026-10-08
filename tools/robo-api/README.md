@@ -9,6 +9,7 @@ Diferente do robô de tela (`tools/robo-qa`, só leitura), este **cria e exclui 
 - Corrida: 8 cadastros simultâneos do mesmo e-mail/CPF devem criar só 1.
 - Empresa B tenta ler, editar e excluir dados da empresa A (esperado 403/404) e não pode aparecer nas listas.
 - Cálculos de folha: o simulador `POST /accounting/rules/simulate` roda 90 casos (salários de 1 mínimo a R$ 12 mil, horas extras, noturno, faltas, dependentes) e cada resultado é comparado com um **oráculo independente** (`oracle/folha-clt-2026.mjs`, escrito só a partir de `docs/CLT_PAYROLL_RULES_2026.md`). Também confere: perfis sem acesso levam 403, entradas inválidas levam 400 e regras fiscais mal formadas (INSS fora de ordem, FGTS de 90%, hora extra abaixo da CLT) são recusadas.
+- Documentos que o usuário recebe: baixa ficha, folha de ponto, ocorrências, relatório da contabilidade, extrato de cobranças, histórico de atividade (PDF) e o relatório de escalas (CSV) e confere os bytes: começa com %PDF- e termina com %%EOF, tem páginas, Content-Length e SHA-256 batem, nome do arquivo sem "%20", sem cache; no CSV, BOM, acentos, colunas por linha e negativos sem apóstrofo. Também testa mês inválido (400), outro perfil (403) e outra empresa (403/404).
 - Regra global: qualquer resposta 5xx vira defeito, com a chamada, o `requestId` e o arquivo provável do código.
 - No fim apaga tudo o que criou e avisa se sobrou algo.
 

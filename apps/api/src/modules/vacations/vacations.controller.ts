@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Res, UseGuards } from '@nestjs/common';
+import { contentDisposition } from '../../common/pdf/pdf-response';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -77,7 +78,7 @@ export class VacationsController {
   ) {
     const receipt = await this.service.generateReceiptPdf(companyId, actor, id);
     response.setHeader('Content-Type', 'application/pdf');
-    response.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(receipt.filename)}"`);
+    response.setHeader('Content-Disposition', contentDisposition(receipt.filename));
     response.setHeader('Content-Length', receipt.buffer.length);
     response.setHeader('X-Document-Id', receipt.documentId);
     response.setHeader('X-Document-Sha256', receipt.sha256);

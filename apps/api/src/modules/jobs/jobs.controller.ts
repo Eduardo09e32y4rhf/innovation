@@ -1,3 +1,4 @@
+import { contentDisposition } from '../../common/pdf/pdf-response';
 import {
   Body,
   Controller,
@@ -112,7 +113,7 @@ export class JobsController {
     await this.scope.assertApplication(companyId, actor, id);
     const file = await this.service.resume(companyId, id);
     reply.header('Content-Type', file.type);
-    reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(file.name)}"`);
+    reply.header('Content-Disposition', contentDisposition(file.name));
     return reply.send(file.stream);
   }
 }

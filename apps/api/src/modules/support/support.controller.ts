@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, UseInterceptors, UploadedFile, Res, BadRequestException } from '@nestjs/common';
+import { contentDisposition } from '../../common/pdf/pdf-response';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { SupportService } from './support.service';
@@ -84,7 +85,7 @@ export class SupportController {
     
     res.set({
       'Content-Type': mimetype || 'application/octet-stream',
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+      'Content-Disposition': contentDisposition(filename),
       'Content-Length': size
     });
 

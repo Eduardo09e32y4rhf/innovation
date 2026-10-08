@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { contentDisposition, EXPOSED_HEADERS } from '../../common/pdf/pdf-response';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -156,7 +157,9 @@ export class EmployeesController {
   ) {
     const document = await this.employeeDocuments.generate(companyId, actor, employeeId, kind, month);
     response.header('Content-Type', 'application/pdf');
-    response.header('Content-Disposition', `attachment; filename="${encodeURIComponent(document.filename)}"`);
+    response.header('Content-Disposition', contentDisposition(document.filename));
+    response.header('Cache-Control', 'private, no-store'); // ficha e ponto de funcionario: dado pessoal, nunca em cache
+    response.header('Access-Control-Expose-Headers', EXPOSED_HEADERS);
     response.header('Content-Length', document.size);
     response.header('X-Document-Id', document.documentId);
     response.header('X-Document-Sha256', document.sha256);

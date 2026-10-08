@@ -9,6 +9,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { compararFolha, folhaOraculo, invariantes } from './oracle/folha-clt-2026.mjs';
+import { validarCsv, validarPdf } from './lib/arquivos.mjs';
 import { fileURLToPath } from 'node:url';
 
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -40,6 +41,8 @@ const ARQUIVO_PROVAVEL = [
   [/^\/users/, 'apps/api/src/modules/users/users.controller.ts + users.service.ts'],
   [/^\/employees/, 'apps/api/src/modules/employees/employees.controller.ts + employees.service.ts'],
   [/^\/auth/, 'apps/api/src/modules/auth/auth.controller.ts + auth.service.ts'],
+  [/^\/escalas/, 'apps/api/src/modules/schedule-hub (hub.controller.ts + overview/overview.service.ts)'],
+  [/^\/faturas/, 'apps/api/src/modules/finance/faturas.controller.ts + platform-finance.service.ts'],
   [/^\/accounting/, 'apps/api/src/modules/accounting/accounting-rules.service.ts + time-track/payroll-calculation.service.ts'],
 ];
 const resultados = [];
@@ -286,6 +289,59 @@ async function suiteCalculos(tk) {
   if (versaoDiferente) registrar('Casos com regras fiscais personalizadas ignorados', null, { obtido: `O banco usa versões diferentes de PADRAO_2026 (${JSON.stringify(versaoDiferente)}). Esses casos não foram comparados com o oráculo.` });
   registrar(`Folha: ${avaliados} casos comparados com o oráculo, ${divergentes} divergência(s)`, divergentes === 0 && avaliados > 0, { obtido: avaliados === 0 ? 'nenhum caso pôde ser comparado' : `${divergentes} divergência(s) (veja os itens acima)`, arquivo: 'apps/api/src/modules/time-track/payroll-calculation.service.ts' });
 }
+/** Baixa um arquivo (PDF/CSV) sem converter para texto: o robô confere os bytes que o usuário receberia. */
+async function baixar(token, caminho) {
+  const t0 = Date.now();
+  try {
+    const res = await fetch(BASE + caminho, { headers: token ? { authorization: `Bearer ${token}` } : {} });
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const r = { status: res.status, headers: res.headers, buffer, texto: buffer.toString('utf8'), ms: Date.now() - t0, requestId: res.headers.get('x-request-id'), caminho, metodo: 'GET' };
+    if (r.status >= 500) registrar(`Servidor quebrou (${r.status}) ao gerar ${caminho}`, false, { endpoint: `GET ${caminho}`, status: r.status, obtido: r.texto.slice(0, 160), requestId: r.requestId, arquivo: arquivoDe(caminho), regra: 'nunca 5xx' });
+    return r;
+  } catch (e) { return { status: 0, headers: new Headers(), buffer: Buffer.alloc(0), texto: String(e), ms: Date.now() - t0, caminho, metodo: 'GET' }; }
+}
+
+function conferirArquivo(nome, r, validar, opcoes) {
+  if (r.status !== 200) return registrar(nome, false, { endpoint: `GET ${r.caminho}`, esperado: '200 com arquivo', status: r.status, obtido: `status ${r.status}: ${r.texto.slice(0, 140)}`, requestId: r.requestId, arquivo: arquivoDe(r.caminho) });
+  const erros = validar(validar === validarPdf ? r.buffer : r.texto, r.headers, opcoes);
+  registrar(`${nome} (${r.buffer.length} bytes, ${r.ms} ms)`, erros.length === 0, { endpoint: `GET ${r.caminho}`, esperado: 'arquivo íntegro, nome limpo, sem cache', obtido: erros.join(' | '), requestId: r.requestId, arquivo: arquivoDe(r.caminho) });
+}
+
+async function suiteDocumentos(tk) {
+  area = 'Documentos que o usuário recebe (PDF e CSV)';
+  const mes = new Date().toISOString().slice(0, 7);
+
+  // Funcionário de teste para ficha, folha de ponto e ocorrências
+  const e = await chamar(tk.RH, 'POST', '/employees', { name: 'ROBO API Documentos Açaí', cpf: cpfValido(Date.now() % 1e9 + 900), email: email('doc') });
+  const eid = idDe(e); if (eid) criados.employees.push(eid);
+  if (eid) {
+    conferirArquivo('Ficha do funcionário (PDF)', await baixar(tk.RH, `/employees/${eid}/documents/record.pdf`), validarPdf);
+    conferirArquivo('Folha de ponto do funcionário (PDF)', await baixar(tk.RH, `/employees/${eid}/documents/point-sheet.pdf?month=${mes}`), validarPdf);
+    conferirArquivo('Ocorrências do funcionário (PDF)', await baixar(tk.RH, `/employees/${eid}/documents/occurrences.pdf?month=${mes}`), validarPdf);
+    for (const perfil of ['GESTOR', 'FUNCIONARIO']) esperar(`${perfil} NÃO baixa a ficha de outro funcionário (403)`, await chamar(tk[perfil], 'GET', `/employees/${eid}/documents/record.pdf`), 403);
+    if (tk.ADMIN_B) esperar('Empresa B NÃO baixa a ficha de funcionário da empresa A (403/404)', await chamar(tk.ADMIN_B, 'GET', `/employees/${eid}/documents/record.pdf`), [403, 404]);
+    for (const ruim of ['2026-13', 'xx', '2026-1', '../../etc']) esperar(`Folha de ponto com mês inválido "${ruim}" é recusada (400)`, await chamar(tk.RH, 'GET', `/employees/${eid}/documents/point-sheet.pdf?month=${encodeURIComponent(ruim)}`), [400, 422]);
+  } else registrar('Documentos do funcionário', null, { obtido: 'não consegui criar o funcionário de teste' });
+  esperar('Ficha com ID que não é UUID é recusada (400/404)', await chamar(tk.RH, 'GET', '/employees/nao-e-uuid/documents/record.pdf'), [400, 404]);
+
+  // Contabilidade e cobrança
+  conferirArquivo('Relatório da contabilidade (PDF)', await baixar(tk.DEV, `/accounting/report/pdf?month=${mes}`), validarPdf);
+  esperar('Relatório da contabilidade com mês inválido é recusado (400)', await chamar(tk.DEV, 'GET', '/accounting/report/pdf?month=2026-99'), 400);
+  esperar('ADMIN NÃO baixa o relatório da contabilidade (403)', await chamar(tk.ADMIN, 'GET', `/accounting/report/pdf?month=${mes}`), 403);
+  conferirArquivo('Extrato de cobranças da plataforma (PDF)', await baixar(tk.DEV, '/faturas/plataforma/statements/pdf'), validarPdf);
+  esperar('ADMIN NÃO baixa o extrato de todas as empresas (403)', await chamar(tk.ADMIN, 'GET', '/faturas/plataforma/statements/pdf'), 403);
+
+  // Atividade de um usuário
+  const eu = await chamar(tk.ADMIN, 'GET', '/auth/me');
+  const meuId = eu.json?.data?.id ?? eu.json?.data?.user?.id ?? eu.json?.id;
+  if (meuId) conferirArquivo('Histórico de atividade do usuário (PDF)', await baixar(tk.ADMIN, `/users/${meuId}/activity/pdf?days=30`), validarPdf);
+
+  // CSV
+  const csv = await baixar(tk.RH, `/escalas/reports/export?month=${mes}`);
+  conferirArquivo('Relatório de escalas e ponto (CSV)', csv, validarCsv, { colunasMin: 8, cabecalhoEsperado: ['Funcionário', 'Setor', 'Cargo', 'Banco de horas'] });
+  esperar('Relatório de escalas com mês inválido é recusado (400)', await chamar(tk.RH, 'GET', '/escalas/reports/export?month=../../x'), [400, 422]);
+  esperar('FUNCIONARIO NÃO exporta o relatório de escalas (403)', await chamar(tk.FUNCIONARIO, 'GET', `/escalas/reports/export?month=${mes}`), 403);
+}
 async function limpar(tk) {
   area = 'Limpeza';
   let sobras = 0;
@@ -327,6 +383,7 @@ try {
     await suiteFuncionarios(tk);
     await suiteOutraEmpresa(tk);
     await suiteCalculos(tk);
+    await suiteDocumentos(tk);
   } else registrar('Suítes de usuários/funcionários', null, { obtido: 'faltou entrar com ADMIN/RH/GESTOR/FUNCIONARIO (rode o seed de teste)' });
 } finally {
   if (tk.ADMIN && tk.RH) await limpar(tk);

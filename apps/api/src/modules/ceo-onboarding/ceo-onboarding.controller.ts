@@ -1,4 +1,5 @@
 import { BadRequestException, Body, Controller, Get, Header, Param, ParseUUIDPipe, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { contentDisposition } from '../../common/pdf/pdf-response';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -58,7 +59,7 @@ export class CeoOnboardingController {
 
   private sendPdf(reply: any, file: { buffer: Buffer; name: string }) {
     reply.header('Content-Type', 'application/pdf');
-    reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(file.name)}"`);
+    reply.header('Content-Disposition', contentDisposition(file.name));
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('Cache-Control', 'private, no-store');
     return reply.send(file.buffer);

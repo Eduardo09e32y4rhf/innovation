@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { contentDisposition, safeFileName } from '../../common/pdf/pdf-response';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -68,7 +69,7 @@ export class HubController {
   async exportReport(@CurrentUser() actor: JwtUser, @Query('month') month: string, @Res() reply: any) {
     const csv = await this.overview.reportCsv(actor, month);
     reply.header('Content-Type', 'text/csv; charset=utf-8');
-    reply.header('Content-Disposition', `attachment; filename="escalas-${month}.csv"`);
+    reply.header('Content-Disposition', contentDisposition(`escalas-${safeFileName(month, 'mes')}.csv`));
     return reply.send(csv);
   }
 

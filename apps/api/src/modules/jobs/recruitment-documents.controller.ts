@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Header, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
+import { contentDisposition } from '../../common/pdf/pdf-response';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireModule } from '../../common/decorators/require-module.decorator';
@@ -54,7 +55,7 @@ export class RecruitmentDocumentsController {
   async download(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('documentId', ParseUUIDPipe) documentId: string, @Res() reply: any) {
     const file = await this.service.download(companyId, actor, documentId);
     reply.header('Content-Type', file.type);
-    reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(file.name)}"`);
+    reply.header('Content-Disposition', contentDisposition(file.name));
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('Cache-Control', 'private, no-store');
     return reply.send(file.stream);

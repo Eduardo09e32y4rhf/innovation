@@ -1,4 +1,5 @@
 import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
+import { contentDisposition } from '../../common/pdf/pdf-response';
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { TimeClosingStatus } from '@prisma/client';
 import { createHash } from 'node:crypto';
@@ -500,7 +501,7 @@ export class TimeClosingService {
     const digest = Buffer.from(artifact.hash, 'hex').toString('base64');
     const headers: Record<string, string> = {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${artifact.filename}"`,
+      'Content-Disposition': contentDisposition(artifact.filename),
       'Content-Length': String(artifact.buffer.length),
       'Cache-Control': 'private, no-store',
       'Digest': `sha-256=${digest}`,

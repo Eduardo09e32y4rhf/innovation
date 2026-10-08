@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { contentDisposition } from '../../common/pdf/pdf-response';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
 import { DocumentService } from '../documents/document.service';
@@ -266,7 +267,7 @@ export class ManagementDocumentsService {
     const stored = await this.documents.getDocumentStream(actor, result.id);
     const target = response.raw ?? response;
     target.setHeader('Content-Type', 'application/pdf');
-    target.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(result.filename)}"`);
+    target.setHeader('Content-Disposition', contentDisposition(result.filename));
     target.setHeader('Content-Length', String(stored.size));
     target.setHeader('Cache-Control', 'private, no-store');
     target.setHeader('X-Document-Id', result.id);
