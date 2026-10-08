@@ -4,6 +4,7 @@ import { clicar, cliqueDuplo, digitar, falar, ir, naoTestado, passo, registrarAc
 import { acharPorTexto, dormir, esperarAssentar, esperarAte, rotulo, setValor, todos } from './dom';
 import { gerarSenhaForte } from './portoes';
 import { registrarSegredo } from './seguranca';
+import { autorizarNome } from './recursos';
 import { ehLimiteDeLicencas } from './usuarios';
 import type { Contexto, UsuarioTeste } from './tipos';
 
@@ -61,6 +62,7 @@ async function abrirAbaCadastro(ctx: Contexto, nome: string) {
 
 /** Cadastra um funcionario pelo formulario completo. Com `acesso`, libera o painel e devolve a senha provisoria. */
 export async function cadastrarFuncionario(ctx: Contexto, nome: string, email: string, acesso: boolean): Promise<string> {
+  autorizarNome(nome);
   await ir(ctx, tenantUrl(ctx, '/dashboard/employees/new'), 'Abrindo o cadastro de funcionário');
   const formulario = await esperarAte(() => document.querySelector('form[novalidate]') ?? document.querySelector('form'), { descricao: 'o formulário de funcionário' });
 
@@ -160,6 +162,7 @@ export const blocoCriarVaga: BlocoCenario = {
   rodar: async (ctx) => {
     ctx.cenario = 'Criar vaga';
     const id = aleatorio();
+    autorizarNome(`ROBO-QA Vaga ${id}`);
     await passo(ctx, 'Criar uma vaga pelo passo a passo (salva como rascunho)', async () => {
       await ir(ctx, tenantUrl(ctx, '/dashboard/jobs/new'), 'Abrindo "Nova vaga"');
       const titulo = await esperarAte(() => todos<HTMLInputElement>('input').find((i) => /analista de rh/i.test(i.placeholder)), { descricao: 'o campo "Título da vaga"' });
@@ -280,6 +283,7 @@ export const blocoCriarCliente: BlocoCenario = {
   rodar: async (ctx) => {
     ctx.cenario = 'Criar cliente (empresa)';
     const id = aleatorio();
+    autorizarNome(`ROBO-QA Cliente ${id}`);
     await passo(ctx, 'Plataforma › Empresas › Nova empresa (cliente de teste, sem plano pago)', async () => {
       await ir(ctx, tenantUrl(ctx, '/dashboard/platform'), 'Abrindo a Plataforma');
       const nav = await esperarAte(() => document.querySelector('nav[aria-label="Seções da Plataforma"]'), { descricao: 'o menu de seções da Plataforma' });
@@ -325,6 +329,7 @@ export const blocoCriarPlanos: BlocoCenario = {
     const id = aleatorio();
     // 3 planos de teste, SEMPRE gratuitos e ocultos: nunca viram cobranca real nem aparecem para clientes de verdade.
     for (const nome of ['Básico', 'Intermediário', 'Avançado']) {
+      autorizarNome(`ROBO-QA ${nome} ${id}`);
       await passo(ctx, `Criar plano de teste "ROBO-QA ${nome} ${id}" (gratuito, oculto)`, async () => {
         await clicar(ctx, await esperarAte(() => acharPorTexto('button', /novo plano/i), { descricao: 'o botão "Novo Plano"' }), 'botão Novo Plano');
         const modal = await esperarAte(() => todos('div.fixed.inset-0').find((d) => /novo plano/i.test(rotulo(d))), { descricao: 'a janela "Novo Plano"' });

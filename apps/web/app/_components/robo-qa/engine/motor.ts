@@ -9,7 +9,10 @@ import { blocosDoTour } from './tour';
 import { resumirAba } from './relatorio';
 import type { Anfitriao, Contexto, Estado, Modo, Ritmo } from './tipos';
 import { mostrarOverlay } from './ui';
-import { criarUsuarioDeTeste, novoUsuarioDeTeste } from './usuarios';
+import { criarUsuarioDeTeste } from './usuarios';
+import { identidadeConfere } from './sessao';
+import { limparRecursos, manifesto } from './recursos';
+import { removerContasLimpas } from './estado';
 import { criarFuncionarioComAcesso } from './cenarios';
 import { QUEDA, telaCaiu } from './queda';
 
@@ -70,8 +73,8 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
     await clicar(ctx, await esperarAte(() => acharPorTexto('button', /^entrar/i), { descricao: 'o botão "Entrar"' }), 'botão Entrar');
     const desfecho = await esperarAte(() => {
       if (document.querySelector('input[aria-label="Código MFA"]')) return 'mfa';
-      if (anfitriao.usuario() && /\/(dashboard|ceo-onboarding|portal)(\/|$)/.test(anfitriao.caminhoAtual())) return 'entrou';
-      if (/troque sua senha/i.test(document.body.innerText ?? '')) return 'entrou';
+      if (identidadeConfere(anfitriao.usuario(), { email, perfil: ctx.perfil }) && /\/(dashboard|ceo-onboarding|portal)(\/|$)/.test(anfitriao.caminhoAtual())) return 'entrou';
+      if (identidadeConfere(anfitriao.usuario(), { email, perfil: ctx.perfil }) && /troque sua senha/i.test(document.body.innerText ?? '')) return 'entrou';
       return null;
     }, { timeout: 25000, descricao: 'o sistema abrir depois do login' }).catch(() => 'nada');
     if (desfecho === 'mfa') throw new Error('ESPERADO: este usuário exige o código do aplicativo autenticador (MFA). O robô não consegue passar dessa tela.');
@@ -100,7 +103,14 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
     const blocos = blocosDoTour(perfil, estado.modo);
     for (let i = estado.tourIdx; i < blocos.length; i++) {
       await ctx.checarControle();
+      const chave = `${perfil}:${i}:${blocos[i].nome}`;
+      if (estado.blocoEmAndamento === chave) {
+        naoTestado(ctx, blocos[i].nome, 'Interrompido durante execução anterior. Não repetido automaticamente para evitar cadastros duplicados.');
+        estado.blocoEmAndamento = undefined;
+        estado.tourIdx = i + 1; salvar(estado); continue;
+      }
       estado.tourIdx = i;
+      estado.blocoEmAndamento = chave;
       salvar(estado);
       ctx.prazo = Date.now() + LIMITE_BLOCO_MS[estado.modo];
       const p0 = estado.passos.length; const a0 = estado.achados.length;
@@ -132,6 +142,8 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
         }
       } finally {
         emBloco = false;
+        estado.blocoEmAndamento = undefined;
+        estado.tourIdx = i + 1;
         ctx.prazo = 0;
         (estado.abas ??= []).push(resumirAba(perfil, blocos[i].nome, estado.passos.slice(p0), estado.achados.slice(a0)));
         salvar(estado);
@@ -166,15 +178,15 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
     const ctx = contexto('DEV');
     for (const usuario of estado.usuarios) {
       if (usuario.criado || usuario.situacao === 'erro') continue; // conta ja existe (reaproveitada): nao cria de novo
+      if (usuario.criacaoIniciada) { usuario.situacao = 'erro'; usuario.motivo = 'criação interrompida: reconciliar antes de tentar novamente'; salvar(estado); continue; }
+      usuario.criacaoIniciada = true; salvar(estado);
       if (estado.semLicencas) { usuario.situacao = 'erro'; usuario.motivo = 'a empresa não tem licenças livres'; continue; } // nao adianta tentar de novo: o limite ja foi atingido
       ctx.prazo = Date.now() + LIMITE_BLOCO_MS[estado.modo];
       const p0 = estado.passos.length; const a0 = estado.achados.length;
       try {
         // O funcionario de teste nasce com cadastro de verdade (para bater ponto e pedir ferias); se o cadastro falhar, cai no acesso simples.
         const comCadastro = usuario.perfil === 'FUNCIONARIO' && estado.modo === 'completo' && (await criarFuncionarioComAcesso(ctx, usuario));
-        if (!comCadastro && !estado.semLicencas) {
-          // A tentativa com cadastro pode ter criado o acesso antes de falhar: usa um e-mail novo para nao bater em "e-mail ja cadastrado".
-          if (usuario.perfil === 'FUNCIONARIO') usuario.email = novoUsuarioDeTeste(usuario.perfil).email;
+        if (!comCadastro && !estado.semLicencas && !(usuario.perfil === 'FUNCIONARIO' && estado.modo === 'completo')) {
           await criarUsuarioDeTeste(ctx, usuario);
         }
       }
@@ -216,8 +228,8 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
           falar(ctx, `Saindo do sistema para entrar como ${usuario.perfil}`);
           estado.subEtapa = 'login';
           salvar(estado);
-          anfitriao.sair();
-          await dormir(1500);
+          await anfitriao.sair();
+          await esperarAte(() => !anfitriao.usuario() && anfitriao.caminhoAtual().startsWith('/login'), { timeout: 20000, descricao: 'encerramento confirmado da sessão anterior' });
         }
         estado.subEtapa = 'login';
         salvar(estado);
@@ -235,7 +247,7 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
             throw new Error('Não consegui entrar com a conta de teste salva (a senha pode ter sido alterada ou o acesso cancelado). Use "Recriar contas de teste" e rode de novo.');
           }
         }, { verificarTela: false });
-        if (!entrou && !anfitriao.usuario()) {
+        if (!entrou || !identidadeConfere(anfitriao.usuario(), usuario)) {
           usuario.situacao = 'erro'; usuario.motivo = usuario.reutilizada ? 'conta salva não entrou (recriar contas)' : 'não conseguiu entrar';
           estado.idxUsuario++; estado.subEtapa = 'sair'; salvar(estado);
           continue;
@@ -255,10 +267,9 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
 
       if (estado.subEtapa === 'tour') {
         const logado = anfitriao.usuario();
-        if (!logado) {
+        if (!identidadeConfere(logado, usuario)) {
           usuario.situacao = 'erro'; usuario.motivo = 'sessão perdida durante o teste';
         } else {
-          if (logado.perfil !== usuario.perfil) registrarAchado(ctx, 'Perfil do usuário', { gravidade: 'alta', titulo: 'O perfil do usuário logado não é o que foi criado', explicacao: `O acesso foi criado como ${usuario.perfil}, mas ao entrar o sistema mostra o perfil ${logado.perfil}.` });
           await rodarTour(ctx, usuario.perfil);
           usuario.situacao = 'testado';
         }
@@ -286,6 +297,26 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
     avisar();
   }
 
+  async function faseLimpeza() {
+    const estado = e as Estado;
+    const ctx = contexto('DEV');
+    if (!manifesto().recursos.some((r) => r.status === 'pendente')) { finalizar(); return; }
+    if (anfitriao.usuario()?.perfil !== 'DEV') {
+      estado.agora = 'Limpeza pendente: entre como DEV nesta aba e clique Continuar. Nenhuma nova criação será iniciada.';
+      estado.pausado = true; salvar(estado); avisar();
+      if (anfitriao.usuario()) await anfitriao.sair();
+      return;
+    }
+    if (!anfitriao.limparRecurso) throw new Error('O aplicativo não oferece limpeza autenticada.');
+    const erros = await limparRecursos(anfitriao.limparRecurso);
+    if (erros.length) {
+      naoTestado(ctx, 'Limpeza dos dados de teste', `Exclusões pendentes: ${erros.join(', ')}. Corrija a permissão/dependência e clique Continuar.`);
+      estado.pausado = true; salvar(estado); avisar(); return;
+    }
+    removerContasLimpas(manifesto().recursos.filter((r) => r.status === 'removido' && ['/users', '/employees'].includes(r.rota)).map((r) => r.nome));
+    finalizar('Testes encerrados; limpeza executada (empresas excluídas logicamente, sem purge).');
+  }
+
   async function executar() {
     if (!e || !e.ativo || emExecucao) return;
     emExecucao = true;
@@ -297,13 +328,9 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
       if (e.fase === 'dev') await faseDev();
       if (e.fase === 'criando') await faseCriando();
       if (e.fase === 'usuarios') await faseUsuarios();
-      if (e.fase !== 'fim') {
-        const ctx = contexto('DEV');
-        falar(ctx, 'Saindo para deixar o sistema como estava');
-        salvar(e);
-        finalizar();
-        anfitriao.sair();
-      } else if (e.ativo) finalizar();
+      if (e.fase === 'usuarios') { e.fase = 'limpeza'; salvar(e); }
+      if (e.fase === 'limpeza') await faseLimpeza();
+      else if (e.fase === 'fim' && e.ativo) finalizar();
     } catch (erro) {
       if ((erro as Error)?.message === CANCELADO) { finalizar('cancelado pelo usuário'); }
       else {
@@ -316,15 +343,16 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
 
   return {
     iniciar(perfis, ritmo, modo) {
-      if (emExecucao) return;
+      if (emExecucao || e?.ativo) return;
       limpar();
       e = novoEstado(perfis, ritmo, anfitriao.tenant(), modo);
+      if (manifesto().recursos.some((r) => r.status === 'pendente')) e.fase = 'limpeza';
       salvar(e);
       avisar();
       void executar();
     },
     pausar() { if (e) { e.pausado = true; salvar(e); avisar(); } },
-    retomar() { if (e) { e.pausado = false; salvar(e); avisar(); } },
+    retomar() { if (e) { e.pausado = false; salvar(e); avisar(); void executar(); } },
     cancelar() { if (e) { e.cancelado = true; e.pausado = false; salvar(e); avisar(); } },
     async continuar() {
       if (emExecucao) return; // ja esta rodando: nunca troca o estado em memoria por uma copia antiga do armazenamento

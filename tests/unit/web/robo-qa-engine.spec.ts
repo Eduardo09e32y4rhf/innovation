@@ -37,7 +37,9 @@ describe('modos do teste', () => {
     const completo = blocosDoTour('RH_RS', 'completo').map((b) => b.nome);
     expect(rapido.length).toBeLessThan(completo.length);
     expect(rapido).toContain('Menu lateral');
-    for (const nome of ['Plataforma', 'Faturas', 'Vagas']) { expect(rapido).not.toContain(nome); expect(completo).toContain(nome); }
+    for (const nome of ['Plataforma', 'Faturas', 'Vagas']) expect(rapido).not.toContain(nome);
+    expect(completo).toContain('Vagas');
+    expect(completo.indexOf('Vagas')).toBe(completo.indexOf('Tela: Vagas') + 1);
     expect(rapido.some((n) => n.startsWith('Bloqueio'))).toBe(false);
     expect(completo.some((n) => n.startsWith('Bloqueio'))).toBe(true);
   });

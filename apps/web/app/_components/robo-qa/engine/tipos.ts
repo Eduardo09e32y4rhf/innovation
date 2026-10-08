@@ -52,10 +52,11 @@ export interface UsuarioTeste {
   situacao: 'pendente' | 'testando' | 'testado' | 'erro';
   /** true quando a conta ja existia de uma execucao anterior (nao cria nem refaz o primeiro acesso). */
   reutilizada?: boolean;
+  criacaoIniciada?: boolean;
   motivo?: string;
 }
 
-export type Fase = 'ocioso' | 'dev' | 'criando' | 'usuarios' | 'fim';
+export type Fase = 'ocioso' | 'dev' | 'criando' | 'usuarios' | 'limpeza' | 'fim';
 export type SubEtapa = 'sair' | 'login' | 'portoes' | 'tour' | 'concluido';
 export type Ritmo = 'devagar' | 'normal' | 'rapido';
 
@@ -82,15 +83,18 @@ export interface Estado {
   tenant: string;
   /** A empresa de teste nao tem licencas livres: criar acessos nao e possivel (nao e defeito do sistema). */
   semLicencas?: boolean;
+  blocoEmAndamento?: string;
 }
 
 /** O que o motor precisa do app hospedeiro (Next.js) e que nao da para fazer so com o DOM. */
 export interface Anfitriao {
   navegar(caminho: string): void;
-  sair(): void;
+  sair(): void | Promise<void>;
+  limparRecurso?(caminho: string): Promise<void>;
   caminhoAtual(): string;
   usuario(): { nome: string; email: string; perfil: string } | null;
   tenant(): string;
+  empresaId?(): string;
 }
 
 export interface Contexto {

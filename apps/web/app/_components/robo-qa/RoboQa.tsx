@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { resolveUserRole } from '@/app/lib/user-role';
+import { request } from '@/app/lib/api';
 import { carregarContas, carregarRelatorio, contagem, criarMotor, limparContas, PERFIS_DE_TESTE, textoParaCopiar, type Modo, type Motor, type Ritmo } from './engine';
 
 const ROTULO_PERFIL: Record<string, string> = { ADMIN: 'Administrador', RH: 'RH - Empresas', RH_RS: 'RH - R&S', GESTOR: 'Gestor', FUNCIONARIO: 'Funcionário', CONSULTA: 'Consulta', COMERCIAL: 'Comercial', CONTABIL: 'Contábil' };
@@ -36,10 +37,15 @@ export default function RoboQa() {
 
   const motor = useMemo<Motor>(() => criarMotor({
     navegar: (caminho) => routerRef.current.push(caminho),
-    sair: () => { logoutRef.current(); routerRef.current.replace('/login'); },
+    sair: async () => {
+      if (!(await logoutRef.current())) throw new Error('Logout recusado pelo servidor; troca de conta interrompida.');
+      routerRef.current.replace('/login');
+    },
+    limparRecurso: async (caminho) => { await request(caminho, { method: 'DELETE', timeoutMs: 15000 }); },
     caminhoAtual: () => window.location.pathname + window.location.search,
     usuario: () => (usuarioRef.current ? { nome: usuarioRef.current.name ?? '', email: usuarioRef.current.email ?? '', perfil: resolveUserRole(usuarioRef.current) } : null),
     tenant: () => window.location.pathname.match(/^\/([^/]+)\/(dashboard|portal)/)?.[1] ?? '',
+    empresaId: () => usuarioRef.current?.companyId ?? '',
   }), []);
 
   useEffect(() => motor.aoMudar(() => forcar((n) => n + 1)), [motor]);
@@ -99,7 +105,7 @@ export default function RoboQa() {
                   <option value="devagar">Devagar (dá para acompanhar tudo)</option><option value="normal">Normal</option><option value="rapido">Rápido</option>
                 </select>
               </label>
-              <p style={{ fontSize: 12, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 8 }}>⚠️ Usuários de teste reais serão criados nesta empresa e a sua sessão será encerrada ao final. Não mexe em dados existentes.</p>
+              <p style={{ fontSize: 12, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 8 }}>Use uma empresa de homologação. O robô cria dados reais de teste, troca de perfil e solicita login DEV no final para limpar somente os IDs registrados. Empresas são arquivadas; dados antigos sem manifesto não são excluídos.</p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button type="button" disabled={perfis.length === 0 || !ehDev} onClick={() => iniciar('rapido')} title="Login, menus e telas principais de cada perfil" style={{ flex: 1, minHeight: 44, borderRadius: 10, border: '2px solid #7c3aed', background: '#f5f3ff', color: '#5b21b6', fontWeight: 700, cursor: 'pointer', opacity: perfis.length === 0 || !ehDev ? 0.5 : 1 }}>⚡ Teste rápido</button>
                 <button type="button" disabled={perfis.length === 0 || !ehDev} onClick={() => iniciar('completo')} title="Todos os perfis e as funcionalidades previstas" style={{ flex: 1, minHeight: 44, borderRadius: 10, border: 0, background: '#7c3aed', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: perfis.length === 0 || !ehDev ? 0.5 : 1 }}>🔎 Teste completo</button>
@@ -114,7 +120,7 @@ export default function RoboQa() {
           {ativo && estado && (
             <>
               <p style={{ margin: '10px 0 4px', fontSize: 13 }}><b>Agora:</b> {estado.perfilAtual} — {estado.agora}</p>
-              <p style={{ margin: 0, fontSize: 12, color: '#6b7280' }}>Fase: {estado.fase === 'dev' ? 'testando como DEV' : estado.fase === 'criando' ? 'criando usuários de teste' : 'testando cada usuário'} · usuários {concluidos}/{estado.usuarios.length} · modo {estado.modo === 'rapido' ? 'rápido' : 'completo'}</p>
+              <p style={{ margin: 0, fontSize: 12, color: '#6b7280' }}>Fase: {estado.fase === 'limpeza' ? 'limpeza — entre como DEV e clique Continuar' : estado.fase === 'dev' ? 'testando como DEV' : estado.fase === 'criando' ? 'criando usuários de teste' : 'testando cada usuário'} · usuários {concluidos}/{estado.usuarios.length} · modo {estado.modo === 'rapido' ? 'rápido' : 'completo'}</p>
               {c && <p style={{ margin: '4px 0 0', fontSize: 13, fontWeight: 600 }}>✅ {c.passou} · ❌ {c.falhou} · ⚠️ {c.inconclusivo} · ⏭️ {c.naoTestado}</p>}
               <div style={{ display: 'flex', gap: 8, margin: '10px 0' }}>
                 {estado.pausado

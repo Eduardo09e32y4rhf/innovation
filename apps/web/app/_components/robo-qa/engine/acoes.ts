@@ -19,7 +19,7 @@ export function falar(ctx: Contexto, texto: string) {
 export async function ir(ctx: Contexto, caminho: string, descricao?: string) {
   await ctx.checarControle();
   falar(ctx, descricao ?? `Abrindo ${caminho}`);
-  ctx.anfitriao.navegar(caminho);
+  if (ctx.anfitriao.caminhoAtual() !== caminho) ctx.anfitriao.navegar(caminho);
   await dormir(350);
   await esperarAssentar(500, 8000);
 }
