@@ -28,6 +28,12 @@ Opções úteis: `--perfil=DEV,RH_RS` · `--celular` (confere cada tela no taman
 ## O que ele testa
 
 O plano de cobertura completo está em [`docs/ROBO-QA-PLANO-COMPLETO.md`](../../docs/ROBO-QA-PLANO-COMPLETO.md). O modo `--critico` aumenta a profundidade, observa APIs, evita navegação redundante e faz logout explícito entre perfis.
+
+Para gerar o catálogo determinístico da execução longa (12.000 casos por padrão, a partir de um universo combinatório de 168.000):
+
+`node tools/robo-qa/catalogo-10000.mjs`
+
+Altere o limite com `QA_LIMITE=25000 node tools/robo-qa/catalogo-10000.mjs`. O arquivo guarda seed, universo, casos, perfil, empresa, domínio, ação, estado e transporte para permitir reprodução e auditoria.
 - **Login** de cada perfil (e avisa se o perfil exige MFA).
 - **Menu lateral:** mostra as funções certas para o perfil? (faltando ou sobrando)
 - **Cada tela permitida:** abre, e aperta o que é seguro (abas, filtros, abrir detalhes, "Novo ..." sem salvar). Se aparecer erro 500, erro de
