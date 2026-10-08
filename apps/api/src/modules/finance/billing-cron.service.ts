@@ -379,7 +379,7 @@ export class BillingCronService {
         .filter(d => !isNaN(d));
 
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      today.setUTCHours(0, 0, 0, 0); // dias de calendario em UTC: independe do fuso do servidor
 
       // Buscar cobranças abertas e vencidas (localmente)
       const openInvoices = await this.prisma.platformInvoice.findMany({
@@ -402,7 +402,7 @@ export class BillingCronService {
 
       for (const invoice of openInvoices) {
         const dueDate = new Date(invoice.dueDate);
-        dueDate.setHours(0, 0, 0, 0);
+        dueDate.setUTCHours(0, 0, 0, 0);
 
         const diffMs = dueDate.getTime() - today.getTime();
         const diffDays = Math.round(diffMs / (1000 * 3600 * 24)); // positivo = dias até vencer, negativo = dias após vencer

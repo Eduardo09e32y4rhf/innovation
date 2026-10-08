@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ASO_KINDS, computeDueDate, normalizePeriodicity, RENEWING_KINDS, type AsoKind } from './sst/aso-rules';
 import * as bcrypt from 'bcryptjs';
 import { encryptTemporaryPassword, generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
 import { PrismaService } from '../../database/prisma.service';
@@ -17,7 +18,8 @@ export class AsoService {
     try {
       const today = new Date();
       const expired = await this.prisma.employeeAsoRecord.findMany({
-        where: { companyId, status: 'COMPLETED', dueDate: { lte: today } },
+        // So ASO que renova, de quem ainda trabalha: demissional/complementar nao vencem e desligado nao faz periodico.
+        where: { companyId, status: 'COMPLETED', dueDate: { lte: today }, asoType: { in: RENEWING_KINDS as any }, employee: { status: { notIn: ['TERMINATED', 'INACTIVE'] } } },
         include: { employee: true }
       });
       for (const record of expired) {
@@ -37,7 +39,7 @@ export class AsoService {
             data: {
               companyId,
               title: `⚕️ ASO Periódico Pendente`,
-              message: `Um novo ASO de rotina (periódico) foi gerado automaticamente após 12 meses do último exame. Agende o quanto antes para evitar irregularidades.`,
+              message: `Um novo ASO de rotina (periódico) foi gerado automaticamente porque o último ASO venceu. Agende o quanto antes para evitar irregularidades.`,
               type: 'SYSTEM_NOTICE',
               status: 'SENT',
               targetType: 'ALL',
@@ -123,13 +125,11 @@ export class AsoService {
       const status = this.normalizeStatus(data.status);
       const result = this.normalizeResult(data.result);
       this.validateCompletion(status, result);
-      // Se exame foi feito e não há vencimento, calcula 12 meses
-      let dueDate = data.dueDate ? new Date(data.dueDate) : undefined;
-      if (!dueDate && data.examDate && status === 'COMPLETED') {
-        const exam = new Date(data.examDate);
-        dueDate = new Date(exam);
-        dueDate.setFullYear(dueDate.getFullYear() + 1);
-      }
+      const asoType = this.parseType(data.asoType ?? 'ADMISSIONAL');
+      const examDate = this.parseDate(data.examDate, 'examDate');
+      const periodicityMonths = data.periodicityMonths != null ? normalizePeriodicity(data.periodicityMonths) : undefined;
+      // Vencimento pela regra unica (sst/aso-rules): periodicidade 6/12/24 meses, sem vencimento para demissional e complementar.
+      const dueDate = this.parseDate(data.dueDate, 'dueDate') ?? (status === 'COMPLETED' && examDate ? computeDueDate(asoType, examDate, periodicityMonths) ?? undefined : undefined);
 
       const record = await this.prisma.$transaction(async (tx) => {
         const created = await tx.employeeAsoRecord.create({
@@ -137,11 +137,12 @@ export class AsoService {
             companyId,
             createdBy: userId,
             employeeId: data.employeeId,
-            asoType: data.asoType ?? 'ADMISSIONAL',
+            asoType,
             status,
             result,
-            examDate: data.examDate ? new Date(data.examDate) : undefined,
+            examDate,
             dueDate,
+            periodicityMonths,
             clinicName: data.clinicName,
             doctorName: data.doctorName,
             documentNumber: data.documentNumber,
@@ -201,13 +202,14 @@ export class AsoService {
       const status = data.status ? this.normalizeStatus(data.status) : current.status;
       const result = data.result !== undefined ? this.normalizeResult(data.result) : current.result;
       this.validateCompletion(status, result);
-      // Automação 12 meses a partir da data do exame
-      let dueDate = data.dueDate ? new Date(data.dueDate) : undefined;
-      if (!dueDate && status === 'COMPLETED') {
-        const base = data.examDate ? new Date(data.examDate) : new Date();
-        dueDate = new Date(base);
-        dueDate.setFullYear(dueDate.getFullYear() + 1);
-      }
+      const examDate = this.parseDate(data.examDate, 'examDate');
+      const asoType = data.asoType !== undefined ? this.parseType(data.asoType) : current.asoType;
+      const periodicityMonths = data.periodicityMonths !== undefined ? normalizePeriodicity(data.periodicityMonths) : current.periodicityMonths;
+      // O vencimento so e recalculado quando algo que o define muda (ou ao concluir). Editar clinica/observacao de um ASO ja concluido
+      // nao pode empurrar o vencimento para daqui a 1 ano (isso escondia ASO vencido).
+      let dueDate: Date | null | undefined = this.parseDate(data.dueDate, 'dueDate');
+      const recalcular = status === 'COMPLETED' && (current.status !== 'COMPLETED' || !current.dueDate || Boolean(examDate) || data.asoType !== undefined || data.periodicityMonths !== undefined);
+      if (!dueDate && recalcular) dueDate = computeDueDate(asoType, examDate ?? current.examDate ?? new Date(), periodicityMonths);
 
       const record = await this.prisma.$transaction(async (tx) => {
         const {
@@ -224,12 +226,14 @@ export class AsoService {
           where: { id },
           data: {
             ...this.pickEditable(editable),
+            asoType,
+            periodicityMonths,
             status,
             result,
             updatedBy: userId,
             completedBy: status === 'COMPLETED' ? userId : null,
             completedAt: status === 'COMPLETED' ? current.completedAt || new Date() : null,
-            examDate: data.examDate ? new Date(data.examDate) : undefined,
+            examDate,
             dueDate,
           },
           include: { employee: { select: { id: true, name: true } } },
@@ -259,8 +263,20 @@ export class AsoService {
   }
 
   /** Lista de campos editáveis: o corpo da requisição nunca escolhe companyId, createdBy etc. */
+  private parseDate(value: unknown, field: string): Date | undefined {
+    if (value === undefined || value === null || value === '') return undefined;
+    const date = new Date(value as string);
+    if (Number.isNaN(date.getTime())) throw new BadRequestException(`Data invalida em "${field}".`);
+    return date;
+  }
+
+  private parseType(value: unknown): AsoKind {
+    if (!(ASO_KINDS as readonly string[]).includes(String(value))) throw new BadRequestException('Tipo de ASO invalido.');
+    return value as AsoKind;
+  }
+
   private pickEditable(data: Record<string, any>) {
-    const allowed = ['asoType', 'clinicName', 'doctorName', 'documentNumber', 'attachmentId', 'periodicityMonths', 'restrictions', 'examsPerformed'];
+    const allowed = ['clinicName', 'doctorName', 'documentNumber', 'attachmentId', 'restrictions', 'examsPerformed']; // asoType e periodicityMonths sao validados e tratados a parte
     const out: Record<string, any> = {};
     for (const key of allowed) if (data[key] !== undefined) out[key] = data[key];
     if (data.notes !== undefined || data.observation !== undefined) out.observation = data.notes ?? data.observation;

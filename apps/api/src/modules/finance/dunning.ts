@@ -10,9 +10,10 @@ export interface DunningConfig {
 }
 
 export function dunningConfigFromEnv(env: NodeJS.ProcessEnv = process.env): DunningConfig {
-  const n = (v: string | undefined, d: number) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d);
+  const n = (v: string | undefined, d: number) => (v != null && v.trim() !== '' && Number.isFinite(Number(v)) && Number(v) > 0 ? Math.max(1, Math.floor(Number(v))) : d);
   const cfg = { warnDay: n(env.DUNNING_WARN_DAY, 3), blockDay: n(env.DUNNING_BLOCK_DAY, 5), cancelDay: n(env.DUNNING_CANCEL_DAY, 30) };
   // Garante a ordem aviso < bloqueio < cancelamento.
+  if (cfg.blockDay < 2) cfg.blockDay = 2; // com bloqueio no dia 1 nao sobraria dia para lembrete e aviso
   if (cfg.warnDay >= cfg.blockDay) cfg.warnDay = Math.max(1, cfg.blockDay - 1);
   if (cfg.cancelDay <= cfg.blockDay) cfg.cancelDay = cfg.blockDay + 25;
   return cfg;

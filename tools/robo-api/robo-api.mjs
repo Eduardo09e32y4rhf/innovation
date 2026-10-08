@@ -43,6 +43,7 @@ const ARQUIVO_PROVAVEL = [
   [/^\/auth/, 'apps/api/src/modules/auth/auth.controller.ts + auth.service.ts'],
   [/^\/escalas/, 'apps/api/src/modules/schedule-hub (hub.controller.ts + overview/overview.service.ts)'],
   [/^\/faturas/, 'apps/api/src/modules/finance/faturas.controller.ts + platform-finance.service.ts'],
+  [/^\/management\/aso/, 'apps/api/src/modules/management/aso.service.ts + sst/aso-rules.ts'],
   [/^\/accounting/, 'apps/api/src/modules/accounting/accounting-rules.service.ts + time-track/payroll-calculation.service.ts'],
 ];
 const resultados = [];
@@ -342,6 +343,39 @@ async function suiteDocumentos(tk) {
   esperar('Relatório de escalas com mês inválido é recusado (400)', await chamar(tk.RH, 'GET', '/escalas/reports/export?month=../../x'), [400, 422]);
   esperar('FUNCIONARIO NÃO exporta o relatório de escalas (403)', await chamar(tk.FUNCIONARIO, 'GET', `/escalas/reports/export?month=${mes}`), 403);
 }
+async function suiteAso(tk) {
+  area = 'ASO (exame ocupacional) e avisos';
+  const e = await chamar(tk.RH, 'POST', '/employees', { name: 'ROBO API ASO', cpf: cpfValido(Date.now() % 1e9 + 1300), email: email('aso') });
+  const eid = idDe(e); if (eid) criados.employees.push(eid);
+  if (!eid) return registrar('ASO', null, { obtido: 'não consegui criar o funcionário de teste' });
+
+  esperar('FUNCIONARIO NÃO cria ASO (403)', await chamar(tk.FUNCIONARIO, 'POST', '/management/aso', { employeeId: eid, asoType: 'PERIODICO' }), 403);
+  esperar('ASO com data inválida é recusado (400, não 500)', await chamar(tk.RH, 'POST', '/management/aso', { employeeId: eid, asoType: 'PERIODICO', status: 'COMPLETED', result: 'APTO', examDate: 'ontem' }), 400);
+  esperar('ASO com tipo inexistente é recusado (400)', await chamar(tk.RH, 'POST', '/management/aso', { employeeId: eid, asoType: 'SUPERMAN' }), 400);
+  esperar('ASO concluído sem resultado é recusado (400)', await chamar(tk.RH, 'POST', '/management/aso', { employeeId: eid, asoType: 'PERIODICO', status: 'COMPLETED', examDate: '2026-03-15' }), 400);
+  if (tk.ADMIN_B) esperar('Empresa B NÃO cria ASO para funcionário da empresa A (404)', await chamar(tk.ADMIN_B, 'POST', '/management/aso', { employeeId: eid, asoType: 'PERIODICO' }), [403, 404]);
+
+  // Vencimento de verdade: 29/02/2024 + 12 meses = 28/02/2025; demissional não vence; editar clínica não mexe no prazo
+  const per = await chamar(tk.RH, 'POST', '/management/aso', { employeeId: eid, asoType: 'PERIODICO', status: 'COMPLETED', result: 'APTO', examDate: '2024-02-29' });
+  const asoId = idDe(per);
+  if (esperar('Cria ASO periódico concluído', per, [200, 201]) && asoId) {
+    const venc = (r) => String((r.json?.data ?? r.json)?.dueDate ?? '').slice(0, 10);
+    registrar('Vencimento de 29/02/2024 + 12 meses é 28/02/2025', venc(per) === '2025-02-28', { endpoint: 'POST /management/aso', esperado: '2025-02-28', obtido: venc(per) || 'sem vencimento', arquivo: 'apps/api/src/modules/management/aso.service.ts' });
+    const ed = await chamar(tk.RH, 'PATCH', `/management/aso/${asoId}`, { clinicName: 'Clínica do Robô' });
+    esperar('Editar só a clínica', ed, [200, 201]);
+    registrar('Editar a clínica NÃO muda o vencimento', venc(ed) === '2025-02-28', { endpoint: `PATCH /management/aso/${asoId}`, esperado: '2025-02-28', obtido: venc(ed), arquivo: 'apps/api/src/modules/management/aso.service.ts' });
+    esperar('Excluir o ASO de teste', await chamar(tk.RH, 'DELETE', `/management/aso/${asoId}`), [200, 204]);
+  }
+  const dem = await chamar(tk.RH, 'POST', '/management/aso', { employeeId: eid, asoType: 'DEMISSIONAL', status: 'COMPLETED', result: 'APTO', examDate: '2026-03-15' });
+  const demId = idDe(dem);
+  if (esperar('Cria ASO demissional concluído', dem, [200, 201])) registrar('ASO demissional NÃO tem vencimento', !(dem.json?.data ?? dem.json)?.dueDate, { endpoint: 'POST /management/aso', esperado: 'sem vencimento', obtido: String((dem.json?.data ?? dem.json)?.dueDate), arquivo: 'apps/api/src/modules/management/aso.service.ts' });
+  if (demId) await chamar(tk.RH, 'DELETE', `/management/aso/${demId}`);
+
+  // Avisos
+  esperar('Contador de avisos não lidos responde', await chamar(tk.FUNCIONARIO, 'GET', '/notifications/unread-count'), 200);
+  esperar('FUNCIONARIO NÃO publica aviso para a empresa (403)', await chamar(tk.FUNCIONARIO, 'POST', '/notifications/admin', { title: 'x', message: 'y' }), 403);
+  esperar('Marcar aviso inexistente como lido não derruba (404/400)', await chamar(tk.FUNCIONARIO, 'PATCH', '/notifications/00000000-0000-4000-8000-000000000000/read'), [400, 404]);
+}
 async function limpar(tk) {
   area = 'Limpeza';
   let sobras = 0;
@@ -384,6 +418,7 @@ try {
     await suiteOutraEmpresa(tk);
     await suiteCalculos(tk);
     await suiteDocumentos(tk);
+    await suiteAso(tk);
   } else registrar('Suítes de usuários/funcionários', null, { obtido: 'faltou entrar com ADMIN/RH/GESTOR/FUNCIONARIO (rode o seed de teste)' });
 } finally {
   if (tk.ADMIN && tk.RH) await limpar(tk);

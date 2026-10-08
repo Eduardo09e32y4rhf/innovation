@@ -1,9 +1,13 @@
 // Regras do ASO / PCMSO (NR-7). Funções puras: sem banco, fáceis de testar.
 
-export type AsoKind = 'ADMISSIONAL' | 'PERIODICO' | 'RETORNO_AO_TRABALHO' | 'MUDANCA_DE_FUNCAO' | 'DEMISSIONAL' | 'COMPLEMENTAR';
+export const ASO_KINDS = ['ADMISSIONAL', 'PERIODICO', 'RETORNO_AO_TRABALHO', 'MUDANCA_DE_FUNCAO', 'DEMISSIONAL', 'COMPLEMENTAR'] as const;
+export type AsoKind = (typeof ASO_KINDS)[number];
 
 /** Exames que "renovam" a aptidão do trabalhador. Demissional e complementar não geram novo vencimento. */
 const RENEWING: ReadonlySet<string> = new Set(['ADMISSIONAL', 'PERIODICO', 'RETORNO_AO_TRABALHO', 'MUDANCA_DE_FUNCAO']);
+
+/** Tipos que renovam a aptidao (lista usada tambem para filtrar o cron do periodico). */
+export const RENEWING_KINDS = ['ADMISSIONAL', 'PERIODICO', 'RETORNO_AO_TRABALHO', 'MUDANCA_DE_FUNCAO'] as const;
 
 export const DEFAULT_PERIODICITY_MONTHS = 12;
 export const ALLOWED_PERIODICITY_MONTHS = [6, 12, 24] as const;

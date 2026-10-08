@@ -35,14 +35,15 @@ type NotifStatus = 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
 
 // ─── Helpers de formatação ────────────────────────────────────────────────────
 
-function formatBRL(value?: number): string {
+export function formatBRL(value?: number): string {
   if (value == null) return '—';
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
-function formatDate(date?: Date | null): string {
+/** Datas de vencimento ficam gravadas em UTC (meia-noite do dia): formatar no fuso do servidor mostrava o dia anterior fora de UTC. */
+export function formatDate(date?: Date | null): string {
   if (!date) return '—';
-  return date.toLocaleDateString('pt-BR');
+  return date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }
 
 function normalizePhone(phone: string): string {
