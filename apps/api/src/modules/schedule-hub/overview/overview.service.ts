@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { buildCsv } from '../../../common/utils/csv';
 import { PrismaService } from '../../../database/prisma.service';
 import { bankBalanceMinutes, bankBalanceOf } from '../../time-track/overtime-policy';
 import type { JwtUser } from '../../../common/types/auth.types';
@@ -178,10 +179,9 @@ export class OverviewService {
   async reportCsv(actor: JwtUser, month: string) {
     const rows = await this.reportRows(actor, month);
     const hm = (value: number) => `${value < 0 ? '-' : ''}${Math.floor(Math.abs(value) / 60)}:${String(Math.abs(value) % 60).padStart(2, '0')}`;
-    const esc = (value: unknown) => { const text = String(value ?? ''); return `"${(/^[=+\-@]/.test(text) ? `'${text}` : text).replace(/"/g, '""')}"`; };
     const header = ['Funcionário', 'Setor', 'Cargo', 'Dias com ponto', 'Horas trabalhadas', 'Saldo', 'Atrasos', 'HE 50%', 'HE 100%', 'Adicional noturno', 'Banco de horas'];
     const lines = rows.map((row) => [row.name, row.department, row.position, row.days, hm(row.worked), hm(row.balance), hm(row.late), hm(row.overtime50), hm(row.overtime100), hm(row.night), hm(row.bank)]);
-    return `﻿${[header, ...lines].map((line) => line.map(esc).join(';')).join('\r\n')}`;
+    return buildCsv(header, lines);
   }
 
   scopeLabel(actor: JwtUser) {

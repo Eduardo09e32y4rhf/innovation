@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { buildCsv } from '../../common/utils/csv';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import {
@@ -620,11 +621,6 @@ export class RecruitmentService {
   async exportCsv(companyId: string, jobId: string, filters: ApplicationFilters) {
     const { pipeline, questions, applications } = await this.listApplications(companyId, jobId, filters);
     const stageName = new Map(pipeline.stages.map((stage: any) => [stage.id, stage.name]));
-    const escape = (value: unknown) => {
-      const text = String(value ?? '').replace(/\r?\n/g, ' ');
-      const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
-      return `"${safe.replace(/"/g, '""')}"`;
-    };
     const header = ['Nome', 'E-mail', 'Telefone', 'Etapa', 'Pontuação', 'Avaliação', 'Origem', 'Inscrito em', 'Tags', ...questions.map((question) => question.label)];
     const rows = applications.map((app) => [
       app.candidate?.name,
@@ -638,7 +634,7 @@ export class RecruitmentService {
       app.tags.map((tag: any) => tag.name).join(', '),
       ...questions.map((question) => app.answers.find((answer: any) => answer.questionId === question.id)?.value ?? ''),
     ]);
-    return `﻿${[header, ...rows].map((row) => row.map(escape).join(';')).join('\r\n')}`;
+    return buildCsv(header, rows);
   }
 
   // ─── Usado pela candidatura pública ─────────────────────────────
