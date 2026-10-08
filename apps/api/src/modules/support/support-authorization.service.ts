@@ -115,6 +115,11 @@ export class SupportAuthorizationService {
       };
     }
     
+    // CEO, Contabil e Comercial podem abrir chamados (CEO/Contabil) mas a listagem dava 403: veem so os proprios.
+    if (['CEO', 'CONTABIL', 'COMERCIAL'].includes(actor.role)) {
+      return { ...baseWhere, OR: [{ createdByUserId: actor.sub }, { affectedUserId: actor.sub }] };
+    }
+
     throw new ForbiddenException('Perfil sem acesso ao suporte.');
   }
 
