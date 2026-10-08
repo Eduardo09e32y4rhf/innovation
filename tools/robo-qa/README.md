@@ -34,6 +34,16 @@ Para gerar o catálogo determinístico da execução longa (12.000 casos por pad
 `node tools/robo-qa/catalogo-10000.mjs`
 
 Altere o limite com `QA_LIMITE=25000 node tools/robo-qa/catalogo-10000.mjs`. O arquivo guarda seed, universo, casos, perfil, empresa, domínio, ação, estado e transporte para permitir reprodução e auditoria.
+
+Execução real dos casos em lote (500.000 por padrão):
+
+```bash
+node tools/robo-qa/catalogo-500k.mjs /tmp/innovation-qa-500k.ndjson
+node tools/robo-qa/executor-500k.mjs --url=http://localhost:3000 \
+  --tenant=empresa-teste --catalogo=/tmp/innovation-qa-500k.ndjson --concorrencia=16 --timeout=8000
+```
+
+O executor faz requisições reais, aplica timeout/retry, envia método/payload de teste, valida status permitido por estado, mede latência, registra falhas e grava um resultado por caso. A carga é limitada a 64 workers para não transformar a suíte em um ataque acidental ao ambiente.
 - **Login** de cada perfil (e avisa se o perfil exige MFA).
 - **Menu lateral:** mostra as funções certas para o perfil? (faltando ou sobrando)
 - **Cada tela permitida:** abre, e aperta o que é seguro (abas, filtros, abrir detalhes, "Novo ..." sem salvar). Se aparecer erro 500, erro de
