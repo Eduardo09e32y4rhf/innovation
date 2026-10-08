@@ -10,6 +10,8 @@ import { api, type PublicPlatformPlan } from '@/app/lib/api';
 import { persistAuthSession } from '@/app/lib/auth-session';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** Ambiente de teste do robo: CPF/CNPJ pode ficar em branco e nao e validado. Precisa casar com COMPANY_DOCUMENT_OPTIONAL da API. */
+const DOCUMENTO_OPCIONAL = process.env.NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL === 'true';
 const brl = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 function num(value: unknown): number {
@@ -78,7 +80,7 @@ function CadastroForm() {
 
   const stepOneError = useMemo(() => {
     if (form.companyName.trim().length < 2) return 'Informe o nome da empresa.';
-    if (!validDocument(form.document)) return 'Informe um CPF ou CNPJ válido.';
+    if (!DOCUMENTO_OPCIONAL && !validDocument(form.document)) return 'Informe um CPF ou CNPJ válido.';
     if (form.name.trim().length < 2) return 'Informe seu nome completo.';
     if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) return 'Informe um e-mail válido.';
     if (!isStrongPassword(form.password)) return 'A senha não atende a todos os requisitos.';
@@ -100,7 +102,7 @@ function CadastroForm() {
     pending.current = true; setLoading(true); setError('');
     try {
       const response = await api.auth.registerCompany({
-        companyName: form.companyName.trim(), document: form.document.replace(/\D/g, ''), name: form.name.trim(), email: form.email.trim().toLowerCase(),
+        companyName: form.companyName.trim(), document: form.document.replace(/\D/g, '') || undefined, name: form.name.trim(), email: form.email.trim().toLowerCase(),
         phone: form.phone.replace(/\D/g, '') || undefined, password: form.password, planId: plan.id, seatQuantity: seats, couponCode: form.couponCode.trim() || undefined,
       });
       const sessionUser: AuthUser = {
@@ -131,8 +133,8 @@ function CadastroForm() {
         <form onSubmit={next} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="c-company" label="Nome da empresa"><input id="c-company" required autoComplete="organization" className={authInput} value={form.companyName} onChange={(e) => set('companyName', e.target.value)} /></Field>
-            <Field id="c-doc" label="CNPJ ou CPF">
-              <input id="c-doc" required inputMode="numeric" className={authInput} value={form.document} onChange={(e) => set('document', maskDocument(e.target.value))} aria-invalid={form.document.replace(/\D/g, '').length >= 11 && !validDocument(form.document)} />
+            <Field id="c-doc" label={DOCUMENTO_OPCIONAL ? 'CNPJ ou CPF (opcional em teste)' : 'CNPJ ou CPF'}>
+              <input id="c-doc" required={!DOCUMENTO_OPCIONAL} inputMode="numeric" className={authInput} value={form.document} onChange={(e) => set('document', maskDocument(e.target.value))} aria-invalid={!DOCUMENTO_OPCIONAL && form.document.replace(/\D/g, '').length >= 11 && !validDocument(form.document)} />
             </Field>
             <Field id="c-name" label="Seu nome"><input id="c-name" required autoComplete="name" className={authInput} value={form.name} onChange={(e) => set('name', e.target.value)} /></Field>
             <Field id="c-phone" label="Telefone / WhatsApp (opcional)"><input id="c-phone" type="tel" autoComplete="tel" className={authInput} value={form.phone} onChange={(e) => set('phone', maskPhone(e.target.value))} /></Field>

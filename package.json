@@ -21,6 +21,7 @@
     "db:studio": "prisma studio --schema apps/api/prisma/schema.prisma",
     "db:seed": "npm --prefix apps/api run seed:mvp",
     "seed:pricing": "npm --prefix apps/api run seed:pricing",
+    "seed:robo-qa": "npm --prefix apps/api run seed:robo-qa",
     "lint:web": "npm --prefix apps/web run lint",
     "typecheck:api": "npm --prefix apps/api run build",
     "typecheck:web": "npm --prefix apps/web run typecheck",

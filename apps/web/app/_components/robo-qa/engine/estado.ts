@@ -1,4 +1,5 @@
 import type { Estado, Modo, Ritmo, UsuarioTeste } from './tipos';
+import { carregarSenhaFixa, contaFixa } from './contasFixas';
 import { novoUsuarioDeTeste } from './usuarios';
 
 const CHAVE = 'roboQa.v1';
@@ -23,6 +24,9 @@ export function novoEstado(perfis: string[], ritmo: Ritmo, tenant: string, modo:
 }
 
 function usuarioParaPerfil(perfil: string): UsuarioTeste {
+  // Contas fixas do seed (senha informada em "Contas fixas") tem prioridade: o robo entra direto, sem criar ninguem.
+  const senhaFixa = carregarSenhaFixa();
+  if (senhaFixa) return contaFixa(perfil, senhaFixa);
   const conta = carregarContas()[perfil];
   if (!conta?.email || !conta.senha) return novoUsuarioDeTeste(perfil);
   return { perfil, nome: conta.nome, email: conta.email, senha: conta.senha, criado: true, reutilizada: true, situacao: 'pendente' };

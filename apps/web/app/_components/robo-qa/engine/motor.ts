@@ -244,11 +244,13 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
           catch (erro) {
             if (!usuario.reutilizada || (erro as Error)?.message === CANCELADO || (erro as Error)?.message === TEMPO_BLOCO) throw erro;
             // Conta salva de outra execucao: senha trocada/acesso cancelado nao e defeito do sistema.
-            throw new Error('Não consegui entrar com a conta de teste salva (a senha pode ter sido alterada ou o acesso cancelado). Use "Recriar contas de teste" e rode de novo.');
+            throw new Error(usuario.fixa
+              ? 'Não consegui entrar com a conta fixa do robô (senha diferente da informada em "Contas fixas", ou o seed ainda não rodou). Rode o seed (npm --prefix apps/api run seed:robo-qa) e confira a senha.'
+              : 'Não consegui entrar com a conta de teste salva (a senha pode ter sido alterada ou o acesso cancelado). Use "Recriar contas de teste" e rode de novo.');
           }
         }, { verificarTela: false });
         if (!entrou || !identidadeConfere(anfitriao.usuario(), usuario)) {
-          usuario.situacao = 'erro'; usuario.motivo = usuario.reutilizada ? 'conta salva não entrou (recriar contas)' : 'não conseguiu entrar';
+          usuario.situacao = 'erro'; usuario.motivo = usuario.fixa ? 'conta fixa não entrou (rodar o seed e conferir a senha)' : usuario.reutilizada ? 'conta salva não entrou (recriar contas)' : 'não conseguiu entrar';
           estado.idxUsuario++; estado.subEtapa = 'sair'; salvar(estado);
           continue;
         }
@@ -259,7 +261,15 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
       if (estado.subEtapa === 'portoes') {
         ctx.cenario = 'Telas obrigatórias do primeiro acesso';
         const resultado = await tratarPortoes(ctx, usuario.senha);
-        if (resultado.senhaNova) { usuario.senha = resultado.senhaNova; usuario.reutilizada = true; salvarConta(usuario.perfil, { email: usuario.email, nome: usuario.nome, senha: usuario.senha }); }
+        if (resultado.senhaNova) {
+          usuario.senha = resultado.senhaNova; usuario.reutilizada = true;
+          if (usuario.fixa) {
+            // O sistema exigiu trocar a senha da conta fixa: ela mudou no banco e a proxima execucao nao entra ate rodar o seed de novo.
+            registrarAchado(ctx, 'Conta fixa pediu troca de senha', { gravidade: 'baixa', titulo: 'Inconclusivo: a conta fixa foi obrigada a trocar a senha', explicacao: `A conta ${usuario.email} caiu na troca obrigatória de senha e o robô trocou. Rode o seed (npm --prefix apps/api run seed:robo-qa) para restaurar a senha das contas fixas.` }, 'inconclusivo');
+          } else {
+            salvarConta(usuario.perfil, { email: usuario.email, nome: usuario.nome, senha: usuario.senha });
+          }
+        }
         estado.subEtapa = 'tour';
         estado.tourIdx = 0;
         salvar(estado);
@@ -291,7 +301,7 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
       u.senha = '';
       if (u.situacao === 'testando' || u.situacao === 'pendente') { u.situacao = 'erro'; u.motivo ??= 'não chegou a ser testado'; }
     }
-    salvarRelatorio({ quando: Date.now(), html: htmlRelatorio(estado), markdown: markdownRelatorio(estado), usuarios: estado.usuarios.filter((u) => u.criado).map((u) => u.email), resumo: veredito(estado).texto });
+    salvarRelatorio({ quando: Date.now(), html: htmlRelatorio(estado), markdown: markdownRelatorio(estado), usuarios: estado.usuarios.filter((u) => u.criado && !u.fixa).map((u) => u.email), resumo: veredito(estado).texto });
     salvar(estado);
     mostrarOverlay(false);
     avisar();

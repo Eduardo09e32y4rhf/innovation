@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { resolveUserRole } from '@/app/lib/user-role';
 import { request } from '@/app/lib/api';
-import { carregarContas, carregarRelatorio, contagem, criarMotor, limparContas, PERFIS_DE_TESTE, textoParaCopiar, type Modo, type Motor, type Ritmo } from './engine';
+import { carregarContas, carregarRelatorio, carregarSenhaFixa, contagem, criarMotor, emailFixo, limparContas, limparSenhaFixa, PERFIS_DE_TESTE, salvarSenhaFixa, textoParaCopiar, type Modo, type Motor, type Ritmo } from './engine';
 
 const ROTULO_PERFIL: Record<string, string> = { ADMIN: 'Administrador', RH: 'RH - Empresas', RH_RS: 'RH - R&S', GESTOR: 'Gestor', FUNCIONARIO: 'Funcionário', CONSULTA: 'Consulta', COMERCIAL: 'Comercial', CONTABIL: 'Contábil' };
 
@@ -30,6 +30,7 @@ export default function RoboQa() {
   const [perfis, setPerfis] = useState<string[]>([...PERFIS_DE_TESTE]);
   const [ritmo, setRitmo] = useState<Ritmo>('normal');
   const [copiado, setCopiado] = useState('');
+  const [senhaDigitada, setSenhaDigitada] = useState('');
 
   const usuarioRef = useRef(user); usuarioRef.current = user;
   const logoutRef = useRef(logout); logoutRef.current = logout;
@@ -62,6 +63,7 @@ export default function RoboQa() {
 
   const c = estado ? contagem(estado) : null;
   const contasSalvas = Object.keys(carregarContas()).length;
+  const fixasAtivas = Boolean(carregarSenhaFixa());
   const icone = (s: string) => (s === 'ok' ? '✅' : s === 'falha' ? '❌' : s === 'inconclusivo' ? '⚠️' : '⏭️');
   const iniciar = (modo: Modo) => motor.iniciar(perfis, modo === 'rapido' ? 'rapido' : ritmo, modo);
   const ultimosPassos = estado ? estado.passos.slice(-6).reverse() : [];
@@ -105,6 +107,19 @@ export default function RoboQa() {
                   <option value="devagar">Devagar (dá para acompanhar tudo)</option><option value="normal">Normal</option><option value="rapido">Rápido</option>
                 </select>
               </label>
+              <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 8, margin: '8px 0' }}>
+                <legend style={{ fontSize: 12, color: '#6b7280' }}>Contas fixas do robô (seed)</legend>
+                <p style={{ fontSize: 12, color: '#374151', margin: '0 0 6px' }}>
+                  {fixasAtivas
+                    ? <>Ativas: o robô entra direto em cada perfil (<code>{emailFixo('PERFIL')}</code>), sem criar usuários e sem depender de licenças.</>
+                    : <>Informe a senha do seed e o robô entra em cada perfil sem criar usuários. Login do robô: <code>{emailFixo('DEV')}</code>.</>}
+                </p>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input type="password" autoComplete="off" aria-label="Senha das contas fixas" placeholder={fixasAtivas ? 'Senha salva neste navegador' : 'Senha do seed'} value={senhaDigitada} onChange={(ev) => setSenhaDigitada(ev.target.value)} style={{ flex: 1, minHeight: 32, minWidth: 0 }} />
+                  <button type="button" disabled={senhaDigitada.length < 10} onClick={() => { salvarSenhaFixa(senhaDigitada); setSenhaDigitada(''); forcar((n) => n + 1); }} style={{ minHeight: 32, borderRadius: 8, border: '1px solid #7c3aed', background: '#f5f3ff', padding: '0 10px', cursor: 'pointer', opacity: senhaDigitada.length < 10 ? 0.5 : 1 }}>Salvar</button>
+                  {fixasAtivas && <button type="button" onClick={() => { limparSenhaFixa(); forcar((n) => n + 1); }} style={{ minHeight: 32, borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', cursor: 'pointer' }}>Remover</button>}
+                </div>
+              </fieldset>
               <p style={{ fontSize: 12, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 8 }}>Use uma empresa de homologação. O robô cria dados reais de teste, troca de perfil e solicita login DEV no final para limpar somente os IDs registrados. Empresas são arquivadas; dados antigos sem manifesto não são excluídos.</p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button type="button" disabled={perfis.length === 0 || !ehDev} onClick={() => iniciar('rapido')} title="Login, menus e telas principais de cada perfil" style={{ flex: 1, minHeight: 44, borderRadius: 10, border: '2px solid #7c3aed', background: '#f5f3ff', color: '#5b21b6', fontWeight: 700, cursor: 'pointer', opacity: perfis.length === 0 || !ehDev ? 0.5 : 1 }}>⚡ Teste rápido</button>
