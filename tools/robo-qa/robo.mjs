@@ -6,6 +6,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { rodarPerfil } from './cenarios/perfil.mjs';
+import { sair } from './cenarios/login.mjs';
 import { anexarColetor } from './lib/coletor.mjs';
 import { carregarPlaywright } from './lib/playwright.mjs';
 import { Relatorio } from './lib/relatorio.mjs';
@@ -28,6 +29,8 @@ const { values: args } = parseArgs({
     celular: { type: 'boolean', default: false },
     max: { type: 'string', default: '16' },
     demo: { type: 'boolean', default: false },
+    critico: { type: 'boolean', default: false },
+    'ambiente-teste': { type: 'boolean', default: false },
     ajuda: { type: 'boolean', default: false },
   },
 });
@@ -72,9 +75,14 @@ const pedidos = args.perfil ? args.perfil.split(',').map((p) => p.trim().toUpper
 const ritmo = args.rapido ? { antes: 60, depois: 120, digitacao: 5, slowMo: 0 } : args.devagar ? { antes: 900, depois: 900, digitacao: 90, slowMo: 400 } : { antes: 450, depois: 450, digitacao: 35, slowMo: 150 };
 const viewport = { width: 1366, height: 820 };
 const modo = args.modo === 'completo' ? 'completo' : 'leitura';
+const critico = Boolean(args.critico);
+if (critico && modo === 'completo' && !args['ambiente-teste'] && !args.demo) {
+  console.error('Para usar --critico --modo=completo, confirme explicitamente --ambiente-teste.');
+  process.exit(2);
+}
 
-const estado = { passos: [], achados: [], perfis: {}, agora: 'iniciando', perfilAtual: null };
-const meta = { urlBase: config.urlBase, modo, inicio: agora.toLocaleString('pt-BR') };
+const estado = { passos: [], achados: [], perfis: {}, agora: 'iniciando', perfilAtual: null, api: { total: 0, porStatus: {}, porRota: {}, lentas: [] } };
+const meta = { urlBase: config.urlBase, modo, critico, ambienteTeste: Boolean(args['ambiente-teste'] || args.demo), inicio: agora.toLocaleString('pt-BR') };
 const relatorio = new Relatorio({ pasta, estado, meta });
 const incertos = MENU.filter((item) => item.incerto);
 
@@ -99,17 +107,19 @@ for (const perfil of pedidos) {
   const page = await context.newPage();
   page.on('dialog', (dialogo) => (modo === 'completo' ? dialogo.accept() : dialogo.dismiss()).catch(() => {}));
   const ctx = {
-    page, context, perfil, baseUrl: config.urlBase, tenant: '', modo, ritmo, estado, relatorio, log: true, cenario: '', agora: '',
+    page, context, perfil, baseUrl: config.urlBase, tenant: '', modo, critico, ambienteTeste: Boolean(args['ambiente-teste'] || args.demo), ritmo, estado, relatorio, log: true, cenario: '', agora: '',
     coletor: anexarColetor(page), pastaFotos: path.join(pasta, 'fotos'), esperaNegado: false,
   };
   Object.defineProperty(ctx, 'agora', { get: () => estado.agora, set: (v) => { estado.agora = v; } });
   try {
-    await rodarPerfil(ctx, credencial, { max: Number(args.max), celular: args.celular, viewport, incertos });
+    await rodarPerfil(ctx, credencial, { max: critico ? Math.max(Number(args.max), 40) : Number(args.max), celular: args.celular, viewport, incertos, critico });
     estado.perfis[perfil] = { situacao: 'testado' };
   } catch (erro) {
     await registrarAchado(ctx, 'O robô travou', { gravidade: 'alta', titulo: 'O robô não conseguiu terminar este perfil', explicacao: `Aconteceu um problema inesperado durante o teste: ${String(erro?.message ?? erro).split('\n')[0]}. O que vinha depois não foi testado.` });
     estado.perfis[perfil] = { situacao: 'interrompido', motivo: String(erro?.message ?? erro).split('\n')[0].slice(0, 120) };
   }
+  const saiu = await sair(ctx).catch(() => false);
+  if (!saiu && !/\/login(?:\/|$)/i.test(page.url())) await registrarAchado(ctx, 'Logout explícito', { gravidade: 'média', titulo: 'Não foi possível confirmar o encerramento da sessão', explicacao: 'O robô terminou o perfil sem conseguir confirmar a volta para a tela de login. Isso pode permitir que a próxima conta herde uma sessão.' });
   await context.close().catch(() => {});
   relatorio.aoVivo();
 }
@@ -128,3 +138,4 @@ const avisos = estado.passos.filter((p) => p.status === 'aviso').length;
 console.log(`\n✅ Terminou em ${meta.duracao}. Passos: ${estado.passos.length} · avisos: ${avisos} · falhas: ${falhas}\n   Relatório: ${arquivo}\n   Texto:     ${path.join(pasta, 'relatorio.md')}\n`);
 if (args.demo) console.log('   Estado do sistema de mentira (deve ser "nada apagado"):', JSON.stringify(estado.demo));
 if (!args.semabrir && !args.semjanela) exec(`start "" "${arquivo}"`);
+

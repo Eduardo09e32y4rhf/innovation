@@ -11,6 +11,13 @@ const pausa = (ctx, ms) => ctx.page.waitForTimeout(ms).catch(() => {});
 export async function ir(ctx, caminho, descricao) {
   await falar(ctx, descricao ?? `Abrindo ${caminho}`);
   const alvo = caminho.startsWith('http') ? caminho : `${ctx.baseUrl}${caminho}`;
+  const atual = new URL(ctx.page.url());
+  const destino = new URL(alvo, ctx.baseUrl);
+  if (atual.origin === destino.origin && atual.pathname === destino.pathname && atual.search === destino.search) {
+    await ctx.page.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
+    await pausa(ctx, ctx.ritmo.depois);
+    return;
+  }
   await ctx.page.goto(alvo, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await ctx.page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
   await pausa(ctx, ctx.ritmo.depois);
@@ -95,6 +102,7 @@ export async function passo(ctx, nome, fn, opcoes = {}) {
     if (ctx.esperaNegado && evento.tipo === 'http' && [401, 403].includes(evento.status)) continue;
     registro.achados.push({ ...explicarEvento(evento, { perfil: ctx.perfil }), origem: evento.tipo, tecnico: evento.alvo ? `${evento.metodo ?? ''} ${evento.alvo} → ${evento.status ?? evento.texto}`.trim() : evento.texto });
   }
+  if (ctx.coletor.resumoApi) ctx.estado.api = ctx.coletor.resumoApi();
   if (opcoes.verificarTela !== false && !erro) registro.achados.push(...await verificarTela(ctx));
   if (registro.achados.length) {
     registro.status = registro.status === 'falha' ? 'falha' : 'aviso';
@@ -114,3 +122,4 @@ export async function registrarAchado(ctx, nome, achado) {
   ctx.estado.achados.push({ ...achado, origem: 'regra', perfil: ctx.perfil, cenario: ctx.cenario, passo: nome, url: registro.url, foto: registro.foto });
   ctx.relatorio?.aoVivo();
 }
+

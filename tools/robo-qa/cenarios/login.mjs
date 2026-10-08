@@ -23,3 +23,22 @@ export async function entrar(ctx, credencial) {
   const tenant = url.pathname.split('/').filter(Boolean)[0] ?? '';
   return { tenant, onboardingCEO: url.pathname.startsWith('/ceo-onboarding') };
 }
+
+/** Encerra a sessão de forma explícita para provar que a conta seguinte não herda cookies. */
+export async function sair(ctx) {
+  if (/\/login(?:\/|$)/i.test(ctx.page.url())) return true;
+  const candidatos = [
+    ctx.page.getByRole('button', { name: /sair|logout|encerrar sess[aã]o/i }).first(),
+    ctx.page.getByRole('menuitem', { name: /sair|logout|encerrar sess[aã]o/i }).first(),
+    ctx.page.locator('[data-testid="logout"], [data-testid="qa-logout"]').first(),
+  ];
+  for (const alvo of candidatos) {
+    if (await alvo.count().catch(() => 0)) {
+      await alvo.click({ timeout: 5000 }).catch(() => {});
+      await ctx.page.waitForURL(/\/login(?:\/|$)/i, { timeout: 5000 }).catch(() => {});
+      return /\/login(?:\/|$)/i.test(ctx.page.url());
+    }
+  }
+  return false;
+}
+
