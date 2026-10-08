@@ -41,7 +41,13 @@ export class JobsController {
   @Post()
   async create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreateJobDto) {
     const job = await this.service.create(companyId, dto);
-    await this.scope.assignCreator(companyId, actor, job.id);
+    try {
+      await this.scope.assignCreator(companyId, actor, job.id);
+    } catch (error) {
+      // Sem isso a vaga ficava criada (sem responsavel) e o erro 500 levava a nova tentativa, duplicando a vaga.
+      await this.service.delete(companyId, job.id).catch(() => undefined);
+      throw error;
+    }
     return job;
   }
 

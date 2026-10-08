@@ -97,7 +97,8 @@ const blocoPainel: Bloco = {
     ctx.cenario = 'Painel inicial do perfil';
     await passo(ctx, 'Abrir o painel inicial', () => ir(ctx, `/${ctx.anfitriao.tenant()}/dashboard`, 'Abrindo o painel inicial'));
     await passo(ctx, 'Painel: mostra uma saudação com o nome', () => {
-      if (ctx.perfil !== 'DEV' && ctx.perfil !== 'ADMIN' && !/(bom dia|boa tarde|boa noite|ol[aá])/i.test(textoPrincipal())) throw new Error('ESPERADO: o painel deveria cumprimentar o usuário ("Bom dia, Nome!"), mas nenhuma saudação apareceu.');
+      // Nem todo painel cumprimenta (ADMIN, CEO, RH, Gestor, Consulta e Contabil mostram so o titulo do perfil): so cobra a saudacao de quem tem uma por desenho.
+      if (['FUNCIONARIO', 'RH_RS', 'COMERCIAL'].includes(ctx.perfil) && !/(bom dia|boa tarde|boa noite|ol[aá])/i.test(textoPrincipal())) throw new Error('ESPERADO: o painel deveria cumprimentar o usuário ("Bom dia, Nome!"), mas nenhuma saudação apareceu.');
     });
     if (ctx.perfil === 'RH_RS') {
       await passo(ctx, 'RH — R&S: painel só de recrutamento (4 indicadores)', () => {

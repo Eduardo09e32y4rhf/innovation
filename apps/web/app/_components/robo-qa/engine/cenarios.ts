@@ -206,7 +206,7 @@ export const blocoPonto: BlocoCenario = {
     const secao = () => document.querySelector('section[aria-label="Bater ponto"]');
     if (!secao()) { naoTestado(ctx, 'Bater ponto', 'A área "Bater ponto" não apareceu para este perfil (sem vínculo de funcionário ou sem permissão de ponto).'); return; }
     let batidas = 0;
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 2; i++) { // 2 batidas bastam e cada intervalo minimo custa ~1 min
       const botao = secao() ? botaoTexto(/^registrar /i, secao() as Element) : null;
       if (!botao) break;
       const rotuloBotao = rotulo(botao);
@@ -214,14 +214,25 @@ export const blocoPonto: BlocoCenario = {
       await passo(ctx, `Bater ponto: ${rotuloBotao}${i === 0 ? ' (clique duplo de propósito)' : ''}`, async () => {
         // Na primeira marcação, clique duplo de proposito: o sistema nao pode registrar duas batidas por um clique repetido sem querer.
         if (i === 0) await cliqueDuplo(ctx, botao, rotuloBotao); else await clicar(ctx, botao, rotuloBotao);
-        const r = await esperarAte(() => {
+        const ler = () => {
           const area = secao() as Element | null;
           if (!area) return null;
           const ok = todos('[role="status"]', area).map(rotulo).find((t) => /registrada/i.test(t));
           if (ok) return { ok };
           const alerta = todos('[role="alert"]', area).map(rotulo).find(Boolean);
           return alerta ? { alerta } : null;
-        }, { timeout: 15000, descricao: 'o comprovante do ponto' });
+        };
+        let r = await esperarAte(ler, { timeout: 15000, descricao: 'o comprovante do ponto' });
+        // Regras normais do sistema, nao sao defeito: o 2o clique do clique duplo e barrado ("ja esta sendo processada") e ha 60 s minimos entre batidas.
+        if ('alerta' in r && /sendo processada/i.test(r.alerta)) {
+          r = await esperarAte(() => { const x = ler(); return x && 'ok' in x ? x : null; }, { timeout: 20000, descricao: 'o comprovante da primeira batida (o clique duplo deveria registrar uma só)' });
+        } else if ('alerta' in r && /aguarde\s+(\d+)\s*s/i.test(r.alerta)) {
+          const espera = Number(/aguarde\s+(\d+)\s*s/i.exec(r.alerta)?.[1] ?? 60);
+          falar(ctx, `O sistema exige ${espera}s entre batidas. Aguardando para bater de novo`);
+          await dormir((espera + 3) * 1000);
+          await clicar(ctx, (secao() ? botaoTexto(/^registrar /i, secao() as Element) : null) ?? botao, rotuloBotao);
+          r = await esperarAte(ler, { timeout: 15000, descricao: 'o comprovante do ponto' });
+        }
         if ('alerta' in r) {
           parar = true;
           if (/localiza|gps|permiss/i.test(r.alerta)) registrarAchado(ctx, `Ponto: ${rotuloBotao}`, { gravidade: 'baixa', titulo: 'Inconclusivo: o navegador não deu a localização para bater o ponto', explicacao: `O sistema exige localização e o navegador não liberou ("${r.alerta.slice(0, 160)}"). Libere a localização do site e rode de novo.` }, 'inconclusivo');

@@ -18,7 +18,7 @@ export function ProposalGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const p = user?.profile?.toLowerCase();
-    if (p === 'admin' || p === 'dev' || p === 'gestor') {
+    if (p === 'admin' || p === 'dev') { // o servidor so entrega propostas a ADMIN, CEO e DEV (GESTOR recebia 403)
       checkProposals();
     }
   }, [user]);

@@ -141,11 +141,13 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
     setLoading(true);
     setError('');
     try {
+      // O servidor so entrega empresas a DEV/CEO/COMERCIAL e o historico de auditoria a DEV/CEO: para os outros perfis (ex.: CONTABIL) nem pede, em vez de mostrar erro 403.
+      const papel = String(user?.role || user?.profile || '').toUpperCase();
       const [companiesResponse, plansData, summaryData, logsData] = await Promise.all([
-        api.platform.listCompanies({ limit: 1000 }),
+        ['DEV', 'CEO', 'COMERCIAL'].includes(papel) ? api.platform.listCompanies({ limit: 1000 }) : Promise.resolve(null),
         api.platform.listPlans(),
         api.platform.finance.summary(),
-        api.platform.finance.billingAuditLogs({ limit: 80 }),
+        ['DEV', 'CEO'].includes(papel) ? api.platform.finance.billingAuditLogs({ limit: 80 }) : Promise.resolve(null),
       ]);
       setCompanies(companiesResponse?.data || []);
       setPlans((plansData || []) as PublicPlatformPlan[]);
