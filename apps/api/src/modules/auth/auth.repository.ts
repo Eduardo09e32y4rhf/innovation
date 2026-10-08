@@ -182,7 +182,7 @@ export class AuthRepository {
 
   createCompanyWithAdmin(data: {
     companyName: string;
-    document: string;
+    document: string | null;
     name: string;
     email: string;
     phone?: string;

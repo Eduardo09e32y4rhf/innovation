@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
-import { IsEmail, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsEmail, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength, ValidateIf } from 'class-validator';
+import { isCompanyDocumentOptional } from '../../../common/company-document';
 
 export class RegisterCompanyDto {
   @IsString()
@@ -7,9 +8,11 @@ export class RegisterCompanyDto {
   @MaxLength(120)
   companyName!: string;
 
+  // Obrigatorio, exceto no ambiente de teste do robo (COMPANY_DOCUMENT_OPTIONAL=true).
+  @ValidateIf(() => !isCompanyDocumentOptional())
   @IsString()
   @Matches(/^(\d{11}|\d{14})$/, { message: 'Informe um CPF ou CNPJ valido.' })
-  document!: string;
+  document?: string;
 
   @IsString()
   @IsNotEmpty()

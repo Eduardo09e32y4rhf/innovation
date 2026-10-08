@@ -12,6 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { timingSafeEqual } from 'node:crypto';
 import { loginFailures } from '../../common/metrics/app-metrics';
+import { isCompanyDocumentOptional, normalizeCompanyDocument } from '../../common/company-document';
 import { createHmac } from 'node:crypto';
 import { AuthRepository } from './auth.repository';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -85,12 +86,14 @@ export class AuthService {
   }
   async registerCompany(dto: RegisterCompanyDto, requestMeta?: RequestMeta) {
     const email = dto.email.trim().toLowerCase();
-    const document = dto.document.replace(/\D/g, '');
-    this.assertValidDocument(document);
+    const document = normalizeCompanyDocument(dto.document);
+    // Padrao: CPF/CNPJ obrigatorio e valido. Ambiente de teste do robo (COMPANY_DOCUMENT_OPTIONAL=true): pode faltar e nao valida os digitos.
+    if (!isCompanyDocumentOptional()) this.assertValidDocument(document ?? '');
+    else if (process.env.NODE_ENV === 'production') this.logger.warn('COMPANY_DOCUMENT_OPTIONAL=true em producao: cadastro de empresa sem validar CPF/CNPJ.');
     this.assertStrongPassword(dto.password);
     const existing = await this.repository.findUserByEmail(email);
     if (existing) throw new ConflictException({ code: 'EMAIL_ALREADY_EXISTS', message: 'Este e-mail ja esta cadastrado. Entre na sua conta para continuar.' });
-    const existingCompany = await this.repository.findCompanyByDocument(document);
+    const existingCompany = document ? await this.repository.findCompanyByDocument(document) : null;
     if (existingCompany) {
       throw new ConflictException({ code: 'COMPANY_DOCUMENT_EXISTS', message: 'Este CPF/CNPJ ja possui uma empresa cadastrada. Entre com o administrador existente.' });
     }
@@ -104,6 +107,8 @@ export class AuthService {
     if (dto.couponCode) {
       const check = checkCouponEligibility(coupon, { planId: selectedPlan.id, seats: dto.seatQuantity });
       if (!check.ok) throw new BadRequestException({ code: check.code, message: check.message });
+      // A trava de uso unico do cupom e feita pelo hash do documento: sem documento nao ha como aplicar o cupom.
+      if (!document) throw new BadRequestException({ code: 'DOCUMENT_REQUIRED_FOR_COUPON', message: 'Informe o CPF/CNPJ para usar um cupom.' });
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -134,13 +139,13 @@ export class AuthService {
     let trialEndsAt: Date | null = null;
     try {
       if (coupon && coupon.type !== 'TRIAL_DAYS') {
-        const documentHash = this.documentHash(document);
+        const documentHash = this.documentHash(document as string); // com cupom, o documento ja foi exigido acima
         const redemption = await this.repository.redeemDiscountCoupon({ ...subscriptionData, couponId: coupon.id, documentHash, seatQuantity: dto.seatQuantity });
         if (!redemption.applied) {
           throw new ConflictException({ code: redemption.reason, message: redemption.reason === 'COUPON_ALREADY_USED' ? 'Este documento ja utilizou este cupom.' : 'Cupom indisponivel.' });
         }
       } else if (coupon) {
-        const documentHash = this.documentHash(document);
+        const documentHash = this.documentHash(document as string);
         const redemption = await this.repository.redeemTrialCoupon({
           ...subscriptionData,
           couponId: coupon.id,

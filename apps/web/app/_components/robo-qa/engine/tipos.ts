@@ -52,6 +52,8 @@ export interface UsuarioTeste {
   situacao: 'pendente' | 'testando' | 'testado' | 'erro';
   /** true quando a conta ja existia de uma execucao anterior (nao cria nem refaz o primeiro acesso). */
   reutilizada?: boolean;
+  /** Conta fixa do seed (apps/api/prisma/seed-robo-qa.cjs): nunca e criada nem apagada pelo robo. */
+  fixa?: boolean;
   criacaoIniciada?: boolean;
   motivo?: string;
 }

@@ -51,6 +51,8 @@ services:
       # Dono da plataforma: o ID do usuario DEV e a identidade protegida (e-mail so vale como legado, sem o ID).
       PLATFORM_OWNER_USER_ID: ${PLATFORM_OWNER_USER_ID:-}
       PLATFORM_OWNER_EMAIL: ${PLATFORM_OWNER_EMAIL:-}
+      # Cadastro de empresa sem CPF/CNPJ e sem validar digitos: SO para homologacao do robo de teste. Em producao fica false.
+      COMPANY_DOCUMENT_OPTIONAL: ${COMPANY_DOCUMENT_OPTIONAL:-false}
       # Senhas provisorias: validade em horas (1 a 168; padrao 24).
       TEMPORARY_PASSWORD_TTL_HOURS: ${TEMPORARY_PASSWORD_TTL_HOURS:-24}
       # CEO em onboarding: use 'off' somente como saida temporaria.
@@ -113,6 +115,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_ROBO_QA: ${NEXT_PUBLIC_ROBO_QA:-on}
+        NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL: ${NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL:-false}
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
     ports: ["127.0.0.1:3000:3000"]
