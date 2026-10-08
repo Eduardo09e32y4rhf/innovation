@@ -11,12 +11,38 @@ import { dateTime, errorText } from '../platform/_hub/format';
 export default function Integration({ companyId, canRetry }: { companyId?: string; canRetry: boolean }) {
   const events = useQuery(() => api.platform.finance.webhookEvents({ companyId, limit: 15 }), [companyId]);
   const fiscal = useQuery(() => api.faturas.fiscalStatus(), []);
+  const health = useQuery(() => api.faturas.providerHealth(), []);
   if (events.error) return <ErrorState message={events.error} onRetry={events.refetch} />;
   const rows = events.data ?? [];
   const nf = fiscal.data;
+  const names = { ASAAS: 'Asaas', MERCADOPAGO: 'Mercado Pago' } as const;
+  const modes: Record<string, string> = { sandbox: 'teste', production: 'produção', unconfigured: 'sem chave' };
+  async function choose(provider: 'ASAAS' | 'MERCADOPAGO') {
+    try { await api.faturas.setProvider(provider); toast.success(`${names[provider]} agora é o provedor de cobrança.`); health.refetch(); }
+    catch (cause) { toast.error(errorText(cause, 'Não foi possível trocar o provedor.')); }
+  }
   return (
     <details className="card-v2 p-4">
       <summary className="cursor-pointer text-sm font-semibold">Integração de pagamentos ({rows.filter((row) => row.status === 'FAILED').length} com falha)</summary>
+      {health.data && (
+        <div className="mt-3 rounded-xl border border-line p-3 text-sm">
+          <p className="font-semibold">Provedor de cobrança ativo: {names[health.data.active]}</p>
+          <p className="mt-1 text-xs text-fg-sub">Faturas novas usam o provedor ativo. Faturas já criadas no outro provedor continuam nele (cancele e gere de novo para mudar).</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {(['ASAAS', 'MERCADOPAGO'] as const).map((key) => {
+              const info = health.data!.providers[key];
+              const active = health.data!.active === key;
+              return (
+                <div key={key} className="min-w-0 flex-1 basis-[200px] rounded-lg border border-line p-2">
+                  <p className="font-medium">{names[key]} <span className="text-xs font-normal text-fg-sub">· {info.configured ? `chave ${modes[info.mode] ?? info.mode}` : 'sem chave'}{info.configured && !info.webhookSecret ? ' · falta token do webhook' : ''}</span></p>
+                  {!info.configured && <p className="break-words text-xs text-amber-700">Falta: {info.requiredEnv.join(', ')}</p>}
+                  {canRetry && <Button size="sm" variant={active ? 'outline' : 'primary'} disabled={active || !info.configured} onClick={() => void choose(key)}>{active ? 'Ativo' : `Usar ${names[key]}`}</Button>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {nf && (
         <div className={`mt-3 rounded-xl border p-3 text-sm ${nf.enabled && nf.account.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
           <p className="font-semibold">Nota fiscal automática (Asaas): {nf.enabled ? 'ligada' : 'desligada'}</p>
