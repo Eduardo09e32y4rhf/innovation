@@ -59,7 +59,8 @@ export default function RoboQa() {
   const relatorio = carregarRelatorio();
   const ativo = Boolean(estado?.ativo);
   const ehDev = resolveUserRole(user) === 'DEV';
-  if (!ativo && !ehDev && !relatorio) return null;
+  // Sem "return null" para quem nao e DEV: o robo so e montado quando um DEV ligou a chave neste navegador (RoboQaGate),
+  // e precisa ficar visivel no login e em cada perfil. Iniciar continua exclusivo do DEV (podeIniciar).
 
   const c = estado ? contagem(estado) : null;
   const contasSalvas = Object.keys(carregarContas()).length;
