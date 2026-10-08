@@ -1,3 +1,4 @@
+import { carregarSenhaFixa, carregarSenhaTrocada, limparSenhaTrocada, salvarSenhaTrocada } from './contasFixas';
 import { clicar, digitar, falar, naoTestado, passo, registrarAchado } from './acoes';
 import { drenarEventos, instalarColetor } from './coletor';
 import { acharPorTexto, dormir, esperarAte, rotulo, todos } from './dom';
@@ -239,8 +240,18 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
         ctx.cenario = 'Entrada no sistema';
         if (!anfitriao.caminhoAtual().startsWith('/login')) { anfitriao.navegar('/login'); await dormir(800); }
         registrarSegredo(usuario.senha);
-        const entrou = await passo(ctx, `Entrar no sistema como ${usuario.perfil} (${usuario.email})`, async () => {
-          try { await entrar(ctx, usuario.email, usuario.senha); }
+        // 401/403 logo apos o login sao normais: ate trocar a senha provisoria o servidor recusa as outras chamadas. Nao contam como defeito.
+        ctx.esperaNegado = true;
+        await passo(ctx, `Entrar no sistema como ${usuario.perfil} (${usuario.email})`, async () => {
+          try {
+            try { await entrar(ctx, usuario.email, usuario.senha); }
+            catch (primeira) {
+              // Conta fixa cuja senha o robo trocou numa rodada anterior, e depois o seed foi rodado de novo: volta para a senha do seed.
+              if (!usuario.fixa || !carregarSenhaTrocada(usuario.perfil) || [CANCELADO, TEMPO_BLOCO].includes((primeira as Error)?.message)) throw primeira;
+              limparSenhaTrocada(usuario.perfil); usuario.senha = carregarSenhaFixa();
+              await entrar(ctx, usuario.email, usuario.senha);
+            }
+          }
           catch (erro) {
             if (!usuario.reutilizada || (erro as Error)?.message === CANCELADO || (erro as Error)?.message === TEMPO_BLOCO) throw erro;
             // Conta salva de outra execucao: senha trocada/acesso cancelado nao e defeito do sistema.
@@ -249,7 +260,9 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
               : 'Não consegui entrar com a conta de teste salva (a senha pode ter sido alterada ou o acesso cancelado). Use "Recriar contas de teste" e rode de novo.');
           }
         }, { verificarTela: false });
-        if (!entrou || !identidadeConfere(anfitriao.usuario(), usuario)) {
+        ctx.esperaNegado = false;
+        // Entrou = a sessao e do usuario esperado. (Antes dependia de nenhum erro tecnico aparecer, e um 401 inofensivo derrubava o perfil inteiro.)
+        if (!identidadeConfere(anfitriao.usuario(), usuario)) {
           usuario.situacao = 'erro'; usuario.motivo = usuario.fixa ? 'conta fixa não entrou (rodar o seed e conferir a senha)' : usuario.reutilizada ? 'conta salva não entrou (recriar contas)' : 'não conseguiu entrar';
           estado.idxUsuario++; estado.subEtapa = 'sair'; salvar(estado);
           continue;
@@ -260,12 +273,14 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
 
       if (estado.subEtapa === 'portoes') {
         ctx.cenario = 'Telas obrigatórias do primeiro acesso';
-        const resultado = await tratarPortoes(ctx, usuario.senha);
+        ctx.esperaNegado = true; // com a troca de senha pendente o servidor responde 401/403 ao resto do sistema: esperado
+        const resultado = await tratarPortoes(ctx, usuario.senha).finally(() => { ctx.esperaNegado = false; });
         if (resultado.senhaNova) {
           usuario.senha = resultado.senhaNova; usuario.reutilizada = true;
           if (usuario.fixa) {
-            // O sistema exigiu trocar a senha da conta fixa: ela mudou no banco e a proxima execucao nao entra ate rodar o seed de novo.
-            registrarAchado(ctx, 'Conta fixa pediu troca de senha', { gravidade: 'baixa', titulo: 'Inconclusivo: a conta fixa foi obrigada a trocar a senha', explicacao: `A conta ${usuario.email} caiu na troca obrigatória de senha e o robô trocou. Rode o seed (npm --prefix apps/api run seed:robo-qa) para restaurar a senha das contas fixas.` }, 'inconclusivo');
+            // O sistema exigiu trocar a senha da conta fixa: o robo trocou e guarda a nova senha neste navegador, entao as proximas rodadas continuam entrando.
+            salvarSenhaTrocada(usuario.perfil, resultado.senhaNova);
+            registrarAchado(ctx, 'Conta fixa pediu troca de senha', { gravidade: 'baixa', titulo: 'Inconclusivo: a conta fixa foi obrigada a trocar a senha', explicacao: `A conta ${usuario.email} caiu na troca obrigatória de senha (senha com mais de 30 dias, por exemplo). O robô trocou e guardou a nova senha neste navegador. Se rodar o seed de novo, ele volta sozinho para a senha do seed.` }, 'inconclusivo');
           } else {
             salvarConta(usuario.perfil, { email: usuario.email, nome: usuario.nome, senha: usuario.senha });
           }

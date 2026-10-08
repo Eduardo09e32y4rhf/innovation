@@ -16,12 +16,25 @@ export const nomeFixo = (perfil: string) => `ROBO-QA ${ROTULO_PERFIL[perfil] ?? 
 
 const seguro = <T>(fn: () => T): T | null => { try { return fn(); } catch { return null; } };
 
-export function carregarSenhaFixa(): string {
-  return seguro(() => (JSON.parse(localStorage.getItem(CHAVE) ?? '{}') as { senha?: string }).senha ?? '') ?? '';
-}
+interface Guardado { senha?: string; trocadas?: Record<string, string> }
+const ler = (): Guardado => seguro(() => JSON.parse(localStorage.getItem(CHAVE) ?? '{}') as Guardado) ?? {};
+
+export function carregarSenhaFixa(): string { return ler().senha ?? ''; }
 export function salvarSenhaFixa(senha: string) { seguro(() => localStorage.setItem(CHAVE, JSON.stringify({ senha }))); }
 export function limparSenhaFixa() { seguro(() => localStorage.removeItem(CHAVE)); }
 
+/** Se o sistema obrigou a trocar a senha de uma conta fixa (ex.: senha com mais de 30 dias), o robo troca e guarda a nova aqui. */
+export const carregarSenhaTrocada = (perfil: string): string => ler().trocadas?.[perfil] ?? '';
+export function salvarSenhaTrocada(perfil: string, nova: string) {
+  const atual = ler();
+  seguro(() => localStorage.setItem(CHAVE, JSON.stringify({ ...atual, trocadas: { ...(atual.trocadas ?? {}), [perfil]: nova } })));
+}
+export function limparSenhaTrocada(perfil: string) {
+  const atual = ler();
+  const { [perfil]: _descartada, ...resto } = atual.trocadas ?? {};
+  seguro(() => localStorage.setItem(CHAVE, JSON.stringify({ ...atual, trocadas: resto })));
+}
+
 export function contaFixa(perfil: string, senha: string): UsuarioTeste {
-  return { perfil, nome: nomeFixo(perfil), email: emailFixo(perfil), senha, criado: true, reutilizada: true, fixa: true, situacao: 'pendente' };
+  return { perfil, nome: nomeFixo(perfil), email: emailFixo(perfil), senha: carregarSenhaTrocada(perfil) || senha, criado: true, reutilizada: true, fixa: true, situacao: 'pendente' };
 }

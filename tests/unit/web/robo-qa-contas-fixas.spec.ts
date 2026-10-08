@@ -106,3 +106,19 @@ describe('robô usa a empresa que já existe e testa o CEO', () => {
     expect(nomes).not.toContain('Criar planos (catálogo)');
   });
 });
+
+describe('contas fixas: troca obrigatória de senha', () => {
+  it('a senha trocada pelo robô vale só para aquele perfil e some ao salvar a senha do seed de novo', async () => {
+    const { carregarSenhaTrocada, limparSenhaTrocada, salvarSenhaTrocada } = await import('../../../apps/web/app/_components/robo-qa/engine/contasFixas');
+    salvarSenhaFixa('Senha#Forte123');
+    salvarSenhaTrocada('RH', 'Nova#Senha456a');
+    expect(contaFixa('RH', carregarSenhaFixa()).senha).toBe('Nova#Senha456a');
+    expect(contaFixa('GESTOR', carregarSenhaFixa()).senha).toBe('Senha#Forte123');
+    limparSenhaTrocada('RH');
+    expect(carregarSenhaTrocada('RH')).toBe('');
+    expect(contaFixa('RH', carregarSenhaFixa()).senha).toBe('Senha#Forte123');
+    salvarSenhaTrocada('RH', 'Outra#Senha789b');
+    salvarSenhaFixa('Senha#Forte123');
+    expect(carregarSenhaTrocada('RH')).toBe('');
+  });
+});
