@@ -318,7 +318,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as (typeof STATUS_FILTERS)[number]['value'])}
-                className="form-control h-10 w-auto min-w-[200px]"
+                className="form-control h-10 w-full md:w-auto md:min-w-[200px]"
               >
                 {STATUS_FILTERS.map((item) => (
                   <option key={item.value} value={item.value}>{item.label}</option>
@@ -344,7 +344,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[980px] text-left">
+              <table className="table-stack w-full text-left md:min-w-[980px]">
                 <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-400">
                   <tr>
                     <th className="px-5 py-3">Empresa</th>
@@ -366,8 +366,8 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
 
                     return (
                       <tr key={company.id} className="group hover:bg-slate-50/70">
-                        <td className="px-5 py-4 align-top">
-                          <div className="flex items-center gap-3">
+                        <td data-label="Empresa" className="px-5 py-4 align-top">
+                          <div className="flex items-center gap-3 text-left">
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-sm font-black text-slate-500">
                               {company.name.charAt(0).toUpperCase()}
                             </div>
@@ -377,7 +377,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4 align-top">
+                        <td data-label="Plano" className="px-4 py-4 align-top">
                           <p className="text-xs font-black text-slate-800">{plan?.name || company.plan || 'Sem plano vinculado'}</p>
                           <div className="mt-1 space-y-1 text-[10px] text-slate-500">
                             <p>Base: {pricing ? money(pricing.base) : '—'}</p>
@@ -385,7 +385,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
                             <p>{pricing ? `${pricing.currentSeats} usuario(s) considerados` : '—'}</p>
                           </div>
                         </td>
-                        <td className="px-4 py-4 align-top">
+                        <td data-label="Ciclo" className="px-4 py-4 align-top">
                           <div className="space-y-1">
                             <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black ${statusTone(billingStatus)}`}>
                               {billingStatus}
@@ -402,7 +402,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
                             ) : null}
                           </div>
                         </td>
-                        <td className="px-4 py-4 align-top">
+                        <td data-label="Financeiro" className="px-4 py-4 align-top">
                           <div className="space-y-1">
                             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mensalidade estimada</p>
                             <p className="text-sm font-black text-slate-950">{pricing ? money(pricing.total) : '—'}</p>
@@ -412,7 +412,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4 align-top">
+                        <td data-label="Acesso" className="px-4 py-4 align-top">
                           <div className="space-y-1">
                             <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black text-slate-600">
                               {company.asaasSubscriptionId ? 'Assinatura ativa' : 'Conta em configuracao'}
@@ -421,7 +421,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
                           </div>
                         </td>
                         <td className="px-5 py-4 align-top">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex flex-wrap justify-end gap-2">
                             <button
                               type="button"
                               onClick={() => setSelectedCompanyId(company.id)}
@@ -553,9 +553,9 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
       </section>
 
       {selectedCompany && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 p-4">
-          <div className="flex h-full w-full max-w-2xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl">
-            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 sm:p-4">
+          <div className="flex h-full w-full max-w-2xl flex-col overflow-hidden bg-white shadow-2xl sm:rounded-[24px]">
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-4 py-4 sm:px-6 sm:py-5">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-brand)]">Detalhe da assinatura</p>
                 <h3 className="mt-1 text-lg font-black text-slate-950">{selectedCompany.name}</h3>
@@ -569,7 +569,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
               </button>
             </header>
 
-            <div className="grid gap-4 overflow-y-auto p-6">
+            <div className="grid gap-4 overflow-y-auto p-4 sm:p-6">
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
                   ['Plano', planById.get(selectedCompany.platformPlanId || '')?.name || selectedCompany.plan || 'Sem plano'],

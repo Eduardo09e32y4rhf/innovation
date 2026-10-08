@@ -132,17 +132,17 @@ export function CuponsView() {
 
       <div className="card-v2 overflow-x-auto">
         {loadError && <p role="alert" className="m-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{loadError}</p>}
-        <table className="w-full min-w-[720px] text-left text-sm"><caption className="sr-only">Cupons</caption>
+        <table className="table-stack w-full text-left text-sm md:min-w-[720px]"><caption className="sr-only">Cupons</caption>
           <thead className="border-b border-border bg-bg-sub text-xs text-fg-sub"><tr>{['Código', 'Benefício', 'Usos', 'Validade', 'Situação', ''].map((h) => <th key={h} scope="col" className="px-4 py-3 font-medium">{h}</th>)}</tr></thead>
           <tbody>
             {items.map((item) => (
               <tr key={item.id} className="border-b border-border last:border-0">
-                <th scope="row" className="px-4 py-3 text-left font-semibold">{item.code}{item.description && <span className="block text-xs font-normal text-fg-sub">{item.description}</span>}</th>
-                <td className="px-4 py-3">{describe(item)}{item.minSeats ? <span className="block text-xs text-fg-sub">a partir de {item.minSeats} usuários</span> : null}</td>
-                <td className="px-4 py-3 tabular-nums">{item.redemptionCount}{item.maxRedemptions ? ` / ${item.maxRedemptions}` : ''}</td>
-                <td className="px-4 py-3 text-xs text-fg-sub">{date(item.startsAt)} → {date(item.expiresAt)}</td>
-                <td className="px-4 py-3"><span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${item.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-zinc-200 bg-zinc-50 text-zinc-600'}`}>{item.isActive ? 'Ativo' : 'Inativo'}</span></td>
-                <td className="px-4 py-3"><span className="flex gap-2"><Button variant="outline" size="sm" onClick={() => edit(item)}>Editar</Button><Button variant="outline" size="sm" onClick={() => toggle(item)}>{item.isActive ? 'Desativar' : 'Ativar'}</Button></span></td>
+                <th scope="row" data-label="Código" className="px-4 py-3 text-left font-semibold">{item.code}{item.description && <span className="block text-xs font-normal text-fg-sub">{item.description}</span>}</th>
+                <td data-label="Benefício" className="px-4 py-3">{describe(item)}{item.minSeats ? <span className="block text-xs text-fg-sub">a partir de {item.minSeats} usuários</span> : null}</td>
+                <td data-label="Usos" className="px-4 py-3 tabular-nums">{item.redemptionCount}{item.maxRedemptions ? ` / ${item.maxRedemptions}` : ''}</td>
+                <td data-label="Validade" className="px-4 py-3 text-xs text-fg-sub">{date(item.startsAt)} → {date(item.expiresAt)}</td>
+                <td data-label="Situação" className="px-4 py-3"><span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${item.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-zinc-200 bg-zinc-50 text-zinc-600'}`}>{item.isActive ? 'Ativo' : 'Inativo'}</span></td>
+                <td className="px-4 py-3"><span className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => edit(item)}>Editar</Button><Button variant="outline" size="sm" onClick={() => toggle(item)}>{item.isActive ? 'Desativar' : 'Ativar'}</Button></span></td>
               </tr>
             ))}
             {items.length === 0 && !loadError && <tr><td colSpan={6} className="p-8 text-center text-fg-sub">Nenhum cupom cadastrado.</td></tr>}

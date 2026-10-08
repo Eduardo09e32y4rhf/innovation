@@ -90,7 +90,7 @@ export default function PlatformInvoicesView() {
     );
   }
 
-  const field = 'h-10 rounded-xl border border-line bg-transparent px-3 text-sm text-fg';
+  const field = 'h-10 min-w-0 flex-1 rounded-xl border border-line bg-transparent px-3 text-sm text-fg sm:flex-none';
 
   return (
     <div className="space-y-4 p-3 sm:p-5 lg:p-6">
@@ -99,7 +99,7 @@ export default function PlatformInvoicesView() {
           <h1 className="text-xl font-semibold text-fg">Faturas · todas as empresas</h1>
           <p className="text-sm text-fg-mut">Situação financeira de empresas ativas, bloqueadas e canceladas.</p>
         </div>
-        <span className="flex gap-2">
+        <span className="flex flex-wrap gap-2">
           <button type="button" className="btn btn-outline inline-flex items-center gap-1.5 text-sm" onClick={async () => { try { await api.faturas.downloadStatementPdf({}); } catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível gerar o extrato.'); } }}>
             <FileDown size={14} aria-hidden="true" /> Extrato PDF
           </button>
@@ -120,10 +120,10 @@ export default function PlatformInvoicesView() {
       )}
 
       <section className="flex flex-wrap gap-2">
-        <label className="relative min-w-[220px] flex-1">
+        <label className="relative min-w-0 basis-full flex-1 sm:basis-[220px]">
           <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-mut" aria-hidden="true" />
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Buscar por nome, CNPJ ou identificador"
-            aria-label="Buscar empresa" className={`${field} w-full pl-9`} />
+            aria-label="Buscar empresa" className={`${field} w-full flex-none pl-9`} />
         </label>
         <select aria-label="Situação da empresa" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={field}>
           <option value="">Todas as situações</option>
@@ -138,7 +138,7 @@ export default function PlatformInvoicesView() {
       {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
 
       <section className="card-v2 overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left text-sm">
+        <table className="table-stack w-full text-left text-sm md:min-w-[760px]">
           <thead className="text-xs uppercase text-fg-mut">
             <tr>
               <th className="p-3">Empresa</th><th className="p-3">Situação</th><th className="p-3">Financeiro</th>
@@ -149,12 +149,12 @@ export default function PlatformInvoicesView() {
             {data?.items.map((c) => (
               <tr key={c.id} tabIndex={0} onClick={() => setSelected(c)} onKeyDown={(e) => { if (e.key === 'Enter') setSelected(c); }}
                 className="cursor-pointer border-t border-line hover:bg-black/5 focus:bg-black/5 focus:outline-none">
-                <td className="p-3"><p className="font-semibold text-fg">{c.name}</p><p className="text-xs text-fg-mut">{c.document ?? 'Sem CNPJ'}</p></td>
-                <td className="p-3 text-fg-sub">{COMPANY_STATUS[c.status] ?? c.status}</td>
-                <td className="p-3 text-fg-sub">{billingLabel(c)}{c.subscription?.billingPaused ? ' (pausada)' : ''}</td>
-                <td className="p-3 text-fg-sub">{day(c.subscription?.nextDueDate)}</td>
-                <td className="p-3 text-fg">{c.open.count ? `${brl(c.open.total)} (${c.open.count})` : '-'}</td>
-                <td className={`p-3 ${c.overdue.count ? 'font-semibold text-rose-600' : 'text-fg'}`}>{c.overdue.count ? `${brl(c.overdue.total)} (${c.overdue.count})` : '-'}</td>
+                <td data-label="Empresa" className="p-3"><p className="font-semibold text-fg">{c.name}</p><p className="text-xs text-fg-mut">{c.document ?? 'Sem CNPJ'}</p></td>
+                <td data-label="Situação" className="p-3 text-fg-sub">{COMPANY_STATUS[c.status] ?? c.status}</td>
+                <td data-label="Financeiro" className="p-3 text-fg-sub">{billingLabel(c)}{c.subscription?.billingPaused ? ' (pausada)' : ''}</td>
+                <td data-label="Próx. venc." className="p-3 text-fg-sub">{day(c.subscription?.nextDueDate)}</td>
+                <td data-label="Em aberto" className="p-3 text-fg">{c.open.count ? `${brl(c.open.total)} (${c.open.count})` : '-'}</td>
+                <td data-label="Vencido" className={`p-3 ${c.overdue.count ? 'font-semibold text-rose-600' : 'text-fg'}`}>{c.overdue.count ? `${brl(c.overdue.total)} (${c.overdue.count})` : '-'}</td>
               </tr>
             ))}
             {!loading && !data?.items.length && <tr><td colSpan={6} className="p-6 text-center text-fg-mut">Nenhuma empresa encontrada.</td></tr>}
@@ -165,7 +165,7 @@ export default function PlatformInvoicesView() {
       {hasPermission(user, 'faturas.cobrar') && <Integration canRetry={role === 'DEV'} />}
 
       {data && data.pagination.pages > 1 && (
-        <nav className="flex items-center justify-between text-sm text-fg-sub" aria-label="Paginação">
+        <nav className="flex flex-wrap items-center justify-between gap-2 text-sm text-fg-sub" aria-label="Paginação">
           <span>{data.pagination.total} empresas · página {data.pagination.page} de {data.pagination.pages}</span>
           <span className="flex gap-2">
             <button type="button" className="btn btn-outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</button>

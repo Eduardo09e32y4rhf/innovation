@@ -456,7 +456,7 @@ export interface PlatformInvoice {
   id: string; companyId: string; planId?: string | null; description?: string | null;
   amount: number | string; dueDate: string; status: PlatformInvoiceStatus; billingType: PlatformBillingType;
   asaasPaymentId?: string | null; invoiceUrl?: string | null; paidAt?: string | null; provider?: string | null; mpPaymentId?: string | null; receiptUrl?: string | null;
-  invoiceNumber?: string | null; invoiceSeries?: string | null; invoiceStatus?: string | null; nfeStatus?: string | null; fiscalPdfUrl?: string | null; fiscalXmlUrl?: string | null; invoiceAuthorizedAt?: string | null;
+  invoiceNumber?: string | null; invoiceSeries?: string | null; invoiceStatus?: string | null; nfeStatus?: string | null; fiscalPdfUrl?: string | null; fiscalXmlUrl?: string | null; invoiceAuthorizedAt?: string | null; asaasInvoiceId?: string | null;
   createdAt: string; updatedAt: string;
   company: { id: string; name: string; legalName?: string | null; document?: string | null; asaasCustomerId?: string | null };
   plan?: { id: string; name: string } | null;
@@ -997,6 +997,8 @@ export const api = {
     discountInvoice: (id: string, input: { kind: 'PERCENT' | 'FIXED'; value: number; reason: string }) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/discount`, { method: 'POST', body: input }),
     refundPartial: (id: string, input: { amount: number; reason: string; idempotencyKey?: string }) => request<PaymentRefund>(`/faturas/plataforma/invoices/${id}/refund-partial`, { method: 'POST', body: input }),
     refundFull: (id: string, reason: string, idempotencyKey?: string) => request<PaymentRefund>(`/faturas/plataforma/invoices/${id}/refund`, { method: 'POST', body: { reason, idempotencyKey } }),
+    emitFiscal: (id: string) => request<{ result: 'PULLED' | 'SCHEDULED'; message: string; invoice: PlatformInvoice }>(`/faturas/plataforma/invoices/${id}/nota-fiscal`, { method: 'POST', timeoutMs: 30000 }),
+    fiscalStatus: () => request<{ enabled: boolean; missing: string[]; service: string | null; webhookEvents: string[]; account: { ok: boolean; message: string } }>('/faturas/plataforma/nota-fiscal/status', { timeoutMs: 20000 }),
     attachFiscal: (id: string, input: { reason: string; invoiceNumber?: string; fiscalPdfUrl?: string; fiscalXmlUrl?: string; receiptUrl?: string }) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/fiscal`, { method: 'POST', body: input }),
     recurringDiscount: (companyId: string, input: { kind: 'PERCENT' | 'FIXED'; value: number; cycles: number; reason: string }) => request<{ total: number; discountPerCycle: number; cycles: number; providerSynced: boolean }>(`/faturas/plataforma/companies/${companyId}/recurring-discount`, { method: 'POST', body: input }),
     freeDays: (companyId: string, input: { days: number; reason: string }) => request<{ nextDueDate: string; movedInvoices: number; providerSynced: boolean }>(`/faturas/plataforma/companies/${companyId}/free-days`, { method: 'POST', body: input }),

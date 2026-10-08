@@ -175,11 +175,22 @@ export class AsaasService {
     return this.request<{ id: string; customer: string; nextDueDate: string; status: string; billingType: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`);
   }
 
-  updateSubscription(subscriptionId: string, data: { value?: number; nextDueDate?: string; cycle?: string }) {
+  /**
+   * Muda a assinatura. Com `value`, o Asaas por padrão NÃO mexe na cobrança já gerada do próximo vencimento:
+   * sem `updatePendingPayments`, desconto, cupom e troca de usuários só valeriam no ciclo seguinte.
+   */
+  updateSubscription(subscriptionId: string, data: { value?: number; nextDueDate?: string; cycle?: string; updatePendingPayments?: boolean }) {
+    const body = data.value !== undefined && data.updatePendingPayments === undefined ? { ...data, updatePendingPayments: true } : data;
     return this.request<{ id: string }>(`/subscriptions/${encodeURIComponent(subscriptionId)}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(body),
     });
+  }
+
+  /** Cobranças ainda não pagas geradas pela assinatura (o Asaas gera a do próximo vencimento com antecedência). */
+  async listPendingSubscriptionPayments(subscriptionId: string) {
+    const result = await this.request<AsaasListResponse<AsaasPayment>>(`/payments?subscription=${encodeURIComponent(subscriptionId)}&status=PENDING&limit=100`);
+    return result.data ?? [];
   }
 
   deleteSubscription(subscriptionId: string) {
@@ -198,6 +209,50 @@ export class AsaasService {
 
   /** Notas fiscais de serviço emitidas pelo Asaas para a cobrança. */
   listInvoicesByPayment(paymentId: string) {
-    return this.request<AsaasListResponse<{ id: string; status?: string; number?: string; pdfUrl?: string; xmlUrl?: string; invoiceUrl?: string }>>(`/invoices?payment=${encodeURIComponent(paymentId)}`);
+    return this.request<AsaasListResponse<AsaasFiscalInvoice>>(`/invoices?payment=${encodeURIComponent(paymentId)}`);
   }
+
+  getFiscalInvoice(invoiceId: string) {
+    return this.request<AsaasFiscalInvoice>(`/invoices/${encodeURIComponent(invoiceId)}`);
+  }
+
+  /** Agenda a NFS-e de uma cobrança. O Asaas emite na data informada (ou na confirmação do pagamento). */
+  scheduleFiscalInvoice(data: AsaasScheduleInvoiceInput) {
+    return this.request<AsaasFiscalInvoice>('/invoices', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  /** Dados fiscais da conta (prefeitura, RPS, certificado). Responde 404 quando a conta ainda não configurou a emissão. */
+  getFiscalInfo() {
+    return this.request<{ simplesNacional?: boolean; municipalInscription?: string; rpsSerie?: string; rpsNumber?: number; email?: string }>('/fiscalInfo');
+  }
+}
+
+export interface AsaasFiscalInvoice {
+  id: string;
+  payment?: string;
+  status?: string;
+  number?: string;
+  series?: string;
+  validationCode?: string;
+  value?: number;
+  effectiveDate?: string;
+  pdfUrl?: string;
+  xmlUrl?: string;
+  invoiceUrl?: string;
+  statusDescription?: string;
+}
+
+export interface AsaasScheduleInvoiceInput {
+  payment: string;
+  serviceDescription: string;
+  observations: string;
+  value: number;
+  deductions: number;
+  effectiveDate: string;
+  externalReference?: string;
+  municipalServiceId?: string;
+  municipalServiceCode?: string;
+  municipalServiceName?: string;
+  updatePayment?: boolean;
+  taxes: { retainIss: boolean; iss: number; cofins: number; csll: number; inss: number; ir: number; pis: number };
 }

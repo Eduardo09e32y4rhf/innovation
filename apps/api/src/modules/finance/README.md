@@ -50,6 +50,24 @@ Deploy migration `20260717120000_complete_platform_finance` before releasing the
 7. Refund, deletion or chargeback suspends access again.
 
 Configure the public webhook URL as `https://YOUR_DOMAIN/api/finance/webhook/asaas` and use the exact same token stored in `ASAAS_WEBHOOK_TOKEN` (or the legacy `ASAAS_WEBHOOK_SECRET`).
+## Nota fiscal (NFS-e) pelo Asaas
+
+`AsaasFiscalService` emite a nota de toda fatura paga do Asaas (assinatura ou avulsa):
+
+1. Pagamento confirmado (webhook) -> procura nota já existente no Asaas para a cobrança; se não houver, agenda `POST /invoices` com data de hoje.
+2. Eventos `INVOICE_*` do webhook gravam número, série, código de verificação, PDF e XML na fatura.
+3. A rotina `billing.reconcileFiscalInvoices` (a cada 3 h) agenda o que faltou e puxa o que não chegou pelo webhook (últimos 45 dias).
+4. Na ficha da empresa, "Emitir nota (Asaas)" refaz a nota com erro ou cancelada (`POST /faturas/plataforma/invoices/:id/nota-fiscal`).
+
+Ligar: `ASAAS_NFSE_ENABLED=true` + `ASAAS_NFSE_SERVICE_ID` (ou `ASAAS_NFSE_SERVICE_CODE` + `ASAAS_NFSE_SERVICE_NAME`) e as alíquotas `ASAAS_NFSE_*`.
+Na conta do Asaas: preencha os dados fiscais e marque os eventos de nota fiscal no webhook. `GET /faturas/plataforma/nota-fiscal/status` mostra o que falta.
+Não configure a emissão automática de notas no painel do Asaas: o sistema já agenda (se configurar, a nota existente é reaproveitada, sem duplicar).
+
+## Mudança de valor da assinatura
+
+Desconto recorrente, cupom, troca de usuários e de plano chamam `PUT /subscriptions/:id` com `updatePendingPayments: true`,
+para que a cobrança já gerada do próximo vencimento saia com o valor novo. Dias grátis empurram também o vencimento dessas cobranças pendentes.
+
 ## Provedores de pagamento (Asaas e Mercado Pago)
 
 O provedor ativo vem de `PlatformSetting` (`billing.provider`), depois de `PAYMENT_PROVIDER`, e por fim `ASAAS`.

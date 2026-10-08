@@ -145,10 +145,10 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
         </p>
       )}
 
-      <div role="tablist" className="flex flex-wrap gap-2">
+      <div role="tablist" className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
         {TABS.map((t) => (
           <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
-            className={`btn text-sm ${tab === t.id ? 'btn-primary' : 'btn-outline'}`}>
+            className={`btn shrink-0 whitespace-nowrap text-sm ${tab === t.id ? 'btn-primary' : 'btn-outline'}`}>
             {t.label} <span className="ml-1 opacity-70">{groups[t.id].length}</span>
           </button>
         ))}
@@ -157,7 +157,7 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
       {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
       {loading && !invoices.length ? <p role="status" className="text-sm text-fg-mut">Carregando faturas...</p> : (
         <section className="card-v2 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="table-stack w-full text-left text-sm md:min-w-[640px]">
             <thead className="text-xs uppercase text-fg-mut">
               <tr>
                 <th className="p-3">Descrição</th>
@@ -171,11 +171,11 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
             <tbody>
               {rows.map((invoice) => (
                 <tr key={invoice.id} className="border-t border-line">
-                  <td className="p-3 text-fg">{invoice.description || 'Mensalidade Innovation RH'}</td>
-                  <td className="p-3 text-fg-sub">{tab === 'abertas' || tab === 'canceladas' ? day(invoice.dueDate) : day(invoice.paidAt ?? invoice.dueDate)}</td>
-                  <td className="p-3 font-semibold text-fg">{brl(invoice.amount)}</td>
-                  <td className="p-3">{statusBadge(invoice)}{['PROCESSING', 'UNKNOWN'].includes(invoice.paymentProcessingStatus ?? '') && <p className="mt-1 text-xs text-amber-600">Cobrança aguardando conciliação</p>}{Number(invoice.refundedAmount ?? 0) > 0 && <p className="mt-1 text-xs text-fg-mut">Devolvido: {brl(invoice.refundedAmount!)}</p>}</td>
-                  <td className="p-3 text-right">
+                  <td data-label="Descrição" className="p-3 text-fg">{invoice.description || 'Mensalidade Innovation RH'}</td>
+                  <td data-label={tab === 'abertas' || tab === 'canceladas' ? 'Vencimento' : 'Pago em'} className="p-3 text-fg-sub">{tab === 'abertas' || tab === 'canceladas' ? day(invoice.dueDate) : day(invoice.paidAt ?? invoice.dueDate)}</td>
+                  <td data-label="Valor" className="p-3 font-semibold text-fg">{brl(invoice.amount)}</td>
+                  <td data-label="Status" className="p-3">{statusBadge(invoice)}{['PROCESSING', 'UNKNOWN'].includes(invoice.paymentProcessingStatus ?? '') && <p className="mt-1 text-xs text-amber-600">Cobrança aguardando conciliação</p>}{Number(invoice.refundedAmount ?? 0) > 0 && <p className="mt-1 text-xs text-fg-mut">Devolvido: {brl(invoice.refundedAmount!)}</p>}</td>
+                  <td data-full className="p-3 text-right">
                     {tab === 'abertas' && (canPay
                       ? <button type="button" onClick={() => void pay(invoice)} className="btn btn-primary inline-flex items-center gap-1.5 text-xs"><CreditCard size={13} aria-hidden="true" /> Pagar</button>
                       : <span className="text-xs text-fg-mut">Sem permissão para pagar</span>)}
@@ -190,7 +190,7 @@ export default function CompanyInvoicesView({ companyId, rowActions, reloadKey =
                       </span>
                     )}
                   </td>
-                  {rowActions && <td className="p-3 text-right">{rowActions(invoice)}</td>}
+                  {rowActions && <td data-full className="p-3 text-right">{rowActions(invoice)}</td>}
                 </tr>
               ))}
               {!rows.length && <tr><td colSpan={rowActions ? 6 : 5} className="p-6 text-center text-fg-mut">{EMPTY[tab]}{tab === 'abertas' && canPay && !companyId && <div className="mt-3"><button type="button" disabled={generating} onClick={() => void generate()} className="btn btn-primary text-sm">{generating ? 'Gerando...' : 'Gerar fatura do mês'}</button></div>}</td></tr>}

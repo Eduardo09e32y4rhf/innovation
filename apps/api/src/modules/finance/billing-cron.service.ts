@@ -7,6 +7,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma.service';
 import { FinanceNotificationService } from './finance-notification.service';
 import { AsaasService } from './asaas.service';
+import { AsaasFiscalService } from './asaas-fiscal.service';
 import { PricingService } from './pricing.service';
 import { PlatformFinanceService } from './platform-finance.service';
 import { FaturasAcoesService } from './faturas-acoes.service';
@@ -24,7 +25,16 @@ export class BillingCronService {
     private readonly platformFinance: PlatformFinanceService,
     private readonly faturasAcoes: FaturasAcoesService,
     private readonly redis: RedisService,
+    private readonly fiscal: AsaasFiscalService,
   ) {}
+
+  /** Notas fiscais: agenda as que faltam e puxa número/PDF/XML das que ainda não chegaram pelo webhook. */
+  @Cron('20 */3 * * *')
+  @CronLock('billing.reconcileFiscalInvoices', 1800)
+  async reconcileFiscalInvoices() {
+    const { checked } = await this.fiscal.reconcileRecent();
+    if (checked) this.logger.log(`Notas fiscais: ${checked} fatura(s) conferida(s) no Asaas.`);
+  }
 
   @Cron('*/30 * * * *')
   @CronLock('billing.repairAsaasAssociations', 1500)

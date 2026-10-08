@@ -135,15 +135,15 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
   }
 
   const discountFields = (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <Field label="Tipo"><select className={field} value={kind} onChange={(e) => setKind(e.target.value as 'PERCENT' | 'FIXED')}><option value="PERCENT">Percentual (%)</option><option value="FIXED">Valor (R$)</option></select></Field>
       <Field label={kind === 'PERCENT' ? 'Percentual' : 'Valor em R$'}><input className={field} inputMode="decimal" required value={text.value ?? ''} onChange={set('value')} /></Field>
     </div>
   );
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={TITLES[dialog.kind]} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <form onSubmit={submit} className="card-v2 max-h-[90vh] w-full max-w-md space-y-3 overflow-y-auto p-5">
+    <div role="dialog" aria-modal="true" aria-label={TITLES[dialog.kind]} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4">
+      <form onSubmit={submit} className="card-v2 max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5">
         <h2 className="text-lg font-semibold text-fg">{TITLES[dialog.kind]}</h2>
         <p className="text-xs text-fg-mut">{company.name}{'invoice' in dialog ? ` · fatura de ${brl(dialog.invoice.amount)}` : ''}</p>
 
@@ -152,7 +152,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
           <Field label="Forma de pagamento (Asaas)"><select className={field} value={billingType} onChange={(e) => setBillingType(e.target.value as typeof billingType)}><option value="UNDEFINED">Cliente escolhe</option><option value="BOLETO">Boleto</option><option value="PIX">Pix</option><option value="CREDIT_CARD">Cartão</option></select></Field>
           <label className="flex items-start gap-2 text-sm text-fg"><input type="checkbox" checked={sendToAsaas} onChange={(e) => setSendToAsaas(e.target.checked)} />Enviar automaticamente ao Asaas</label>
           {!sendToAsaas && <p className="text-xs text-fg-mut">Registro local: o pagamento deve ser recebido e conciliado por outro meio.</p>}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Valor em R$"><input className={field} inputMode="decimal" required value={text.amount ?? ''} onChange={set('amount')} /></Field>
             <Field label="Vencimento"><input type="date" className={field} required value={text.dueDate ?? ''} onChange={set('dueDate')} /></Field>
           </div>
@@ -258,6 +258,11 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
     catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível sincronizar.'); }
   }
 
+  async function emitFiscal(inv: PlatformInvoice) {
+    try { const r = await api.faturas.emitFiscal(inv.id); toast.success(r.message); refresh(); }
+    catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível emitir a nota no Asaas.'); }
+  }
+
   async function manualMp(inv: PlatformInvoice) {
     try {
       const updated = await api.faturas.manualMercadoPago(inv.id);
@@ -280,6 +285,7 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
           <button type="button" className={btn} onClick={() => setDialog({ kind: 'refundFull', invoice: inv })}>Reembolso total</button>
         </>}
         {inv.status !== 'CANCELED' && can('faturas.cobrar') && (inv.asaasPaymentId || inv.mpPaymentId) && <button type="button" className={btn} onClick={() => void syncInvoice(inv)}>Sincronizar</button>}
+        {inv.status === 'PAID' && inv.asaasPaymentId && inv.provider !== 'MERCADOPAGO' && can('faturas.nf_anexar') && inv.invoiceStatus !== 'AUTHORIZED' && <button type="button" className={btn} onClick={() => void emitFiscal(inv)} title="Agenda a NFS-e no Asaas ou puxa a que já existe">{inv.asaasInvoiceId ? 'Atualizar nota (Asaas)' : 'Emitir nota (Asaas)'}</button>}
         {inv.status !== 'CANCELED' && can('faturas.nf_anexar') && <button type="button" className={btn} onClick={() => setDialog({ kind: 'fiscal', invoice: inv })}>NF / comprovante</button>}
       </span>
     );

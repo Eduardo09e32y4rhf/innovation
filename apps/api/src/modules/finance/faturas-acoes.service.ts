@@ -5,6 +5,7 @@ import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
 import { checkCouponEligibility, couponDiscount } from '../coupons/coupon-rules';
 import { AsaasService } from './asaas.service';
+import { AsaasFiscalService } from './asaas-fiscal.service';
 import { MercadoPagoService } from './mercadopago.service';
 import { PlatformFinanceService } from './platform-finance.service';
 import { PricingService } from './pricing.service';
@@ -27,6 +28,7 @@ export class FaturasAcoesService {
     private readonly asaas: AsaasService,
     private readonly mercadoPago: MercadoPagoService,
     private readonly pricing: PricingService,
+    private readonly fiscal: AsaasFiscalService,
   ) {}
 
   // ---------- acesso ----------
@@ -90,6 +92,24 @@ export class FaturasAcoesService {
       data: { companyId: invoice.companyId, userId: actor.sub, action: 'FATURAS_INVOICE_CANCELED_REASON', entity: 'PlatformInvoice', entityId: invoiceId, metadata: { reason, actorEmail: actor.email } },
     });
     return result;
+  }
+
+  // ---------- nota fiscal (Asaas) ----------
+
+  /** Emite (agenda) ou puxa do Asaas a NFS-e de uma fatura paga. Refaz a nota que deu erro ou foi cancelada. */
+  async emitFiscal(invoiceId: string, actor: JwtUser) {
+    const invoice = await this.invoiceFor(actor, invoiceId);
+    const outcome = await this.fiscal.ensureForInvoice(invoiceId, { force: true });
+    await this.prisma.auditLog.create({
+      data: { companyId: invoice.companyId, userId: actor.sub, action: 'FATURAS_FISCAL_EMIT', entity: 'PlatformInvoice', entityId: invoiceId, metadata: { ...outcome, actorEmail: actor.email } },
+    });
+    if (outcome.result === 'SKIPPED' || outcome.result === 'FAILED') throw new BadRequestException(outcome.message);
+    const updated = await this.prisma.platformInvoice.findUnique({ where: { id: invoiceId } });
+    return { ...outcome, invoice: updated };
+  }
+
+  fiscalHealth() {
+    return this.fiscal.checkAccount().then((account) => ({ ...this.fiscal.health(), account }));
   }
 
   // ---------- desconto ----------
@@ -161,6 +181,12 @@ export class FaturasAcoesService {
     const asaasId = sub.asaasSubscriptionId || company?.asaasSubscriptionId;
     if (asaasId && this.asaas.isConfigured()) {
       await this.asaas.updateSubscription(asaasId, { nextDueDate: isoDay(nextDue) });
+      // A cobrança do próximo vencimento já existe no Asaas: sem empurrar, o cliente recebe o boleto na data antiga.
+      for (const payment of await this.asaas.listPendingSubscriptionPayments(asaasId)) {
+        const moved = isoDay(new Date(new Date(`${payment.dueDate}T12:00:00Z`).getTime() + shift));
+        await this.asaas.updateCharge(payment.id, { dueDate: moved });
+        await this.prisma.platformInvoice.updateMany({ where: { asaasPaymentId: payment.id, status: { in: ['OPEN', 'OVERDUE'] } }, data: { dueDate: new Date(moved), status: 'OPEN' } });
+      }
       providerSynced = true;
     }
 

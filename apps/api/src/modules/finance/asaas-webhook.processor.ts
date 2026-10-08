@@ -7,6 +7,7 @@ import { AsaasService } from './asaas.service';
 import { FinanceNotificationService, FinanceNotificationType } from './finance-notification.service';
 import { PricingService } from './pricing.service';
 import { PaymentRefundService } from './payment-refund.service';
+import { AsaasFiscalService } from './asaas-fiscal.service';
 
 type InvoiceStatus = 'OPEN' | 'PAID' | 'OVERDUE' | 'CANCELED';
 
@@ -69,6 +70,7 @@ export class AsaasWebhookProcessorService {
     private readonly asaas: AsaasService,
     private readonly pricing: PricingService,
     private readonly refunds?: PaymentRefundService,
+    private readonly fiscal?: AsaasFiscalService,
   ) {}
 
   async processStoredEvent(eventId: string) {
@@ -87,7 +89,7 @@ export class AsaasWebhookProcessorService {
       if (payload.payment?.id) await this.handlePaymentEvent(event, payload.payment);
       if (payload.invoice?.id) await this.handleInvoiceEvent(event, payload.invoice);
 
-      const recognized = Boolean(this.statusFromEvent(event) || ['PAYMENT_PARTIALLY_REFUNDED', 'INVOICE_AUTHORIZED', 'INVOICE_CANCELED', 'INVOICE_ERROR'].includes(event));
+      const recognized = Boolean(this.statusFromEvent(event) || event === 'PAYMENT_PARTIALLY_REFUNDED' || (event.startsWith('INVOICE_') && payload.invoice?.id));
       await this.prisma.asaasWebhookEvent.update({
         where: { id: eventId },
         data: {
@@ -125,7 +127,9 @@ export class AsaasWebhookProcessorService {
     await this.syncProposal(company.id, event, payment);
     const existing = await this.prisma.platformInvoice.findUnique({ where: { asaasPaymentId: payment.id } })
       ?? (payment.externalReference?.startsWith('inv:') ? await this.prisma.platformInvoice.findUnique({ where: { id: payment.externalReference.slice(4) } }).catch(() => null) : null);
-    if (existing && (existing.companyId !== company.id || Number(existing.amount) !== payment.value || (existing.asaasPaymentId && existing.asaasPaymentId !== payment.id))) throw new Error('Cobrança não corresponde à fatura reservada.');
+    // Cobrança da assinatura ainda não paga pode mudar de valor (desconto, cupom, usuários com updatePendingPayments): aceita o valor novo.
+    const subscriptionRepriced = Boolean(existing && payment.subscription && existing.asaasPaymentId === payment.id && existing.status !== 'PAID');
+    if (existing && (existing.companyId !== company.id || (Number(existing.amount) !== payment.value && !subscriptionRepriced) || (existing.asaasPaymentId && existing.asaasPaymentId !== payment.id))) throw new Error('Cobrança não corresponde à fatura reservada.');
     // Evento fora de ordem: uma fatura já paga nunca volta para aberta/vencida (só estorno/cancelamento a altera).
     if (existing?.status === 'PAID' && (status === 'OPEN' || status === 'OVERDUE')) {
       this.logger.warn(`Evento ${event} ignorado: fatura ${existing.id} já está paga (fora de ordem).`);
@@ -158,7 +162,11 @@ export class AsaasWebhookProcessorService {
       ...(Object.keys(companyData).length ? [this.prisma.company.update({ where: { id: company.id }, data: companyData })] : []),
     ]);
 
-    if (status === 'PAID' && existing?.status !== 'PAID') await this.advanceCouponCycle(company.id);
+    if (status === 'PAID' && existing?.status !== 'PAID') {
+      await this.advanceCouponCycle(company.id);
+      // Nota fiscal: agenda no Asaas (não lança; se falhar, a rotina diária tenta de novo).
+      if (this.fiscal) await this.fiscal.ensureForInvoice(invoice.id);
+    }
 
     const type = PAYMENT_EVENT_MAP[event];
     if (type) {
@@ -209,20 +217,24 @@ export class AsaasWebhookProcessorService {
       return;
     }
 
-    await this.prisma.platformInvoice.update({
-      where: { id: platformInvoice.id },
-      data: {
-        asaasInvoiceId: invoice.id,
-        invoiceNumber: invoice.number,
-        invoiceSeries: invoice.series,
-        invoiceValidationCode: invoice.validationCode,
-        fiscalPdfUrl: invoice.pdfUrl,
-        fiscalXmlUrl: invoice.xmlUrl,
-        invoiceStatus: invoice.status,
-        invoiceAuthorizedAt: event === 'INVOICE_AUTHORIZED' ? new Date() : undefined,
-        invoiceCanceledAt: event === 'INVOICE_CANCELED' ? new Date() : undefined,
-      },
-    });
+    if (this.fiscal) {
+      await this.fiscal.persist(platformInvoice.id, invoice, event);
+    } else {
+      await this.prisma.platformInvoice.update({
+        where: { id: platformInvoice.id },
+        data: {
+          asaasInvoiceId: invoice.id,
+          invoiceNumber: invoice.number,
+          invoiceSeries: invoice.series,
+          invoiceValidationCode: invoice.validationCode,
+          fiscalPdfUrl: invoice.pdfUrl,
+          fiscalXmlUrl: invoice.xmlUrl,
+          invoiceStatus: invoice.status,
+          invoiceAuthorizedAt: event === 'INVOICE_AUTHORIZED' ? new Date() : undefined,
+          invoiceCanceledAt: event === 'INVOICE_CANCELED' ? new Date() : undefined,
+        },
+      });
+    }
 
     const type = INVOICE_EVENT_MAP[event];
     if (type) {

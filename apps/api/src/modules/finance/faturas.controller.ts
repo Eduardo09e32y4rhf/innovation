@@ -189,6 +189,20 @@ export class FaturasController {
     return this.acoes.attachFiscal(id, dto, actor);
   }
 
+  /** Emite ou puxa do Asaas a nota fiscal (NFS-e) de uma fatura paga. */
+  @Post('plataforma/invoices/:id/nota-fiscal')
+  @RequireFaturasPermission('faturas.nf_anexar')
+  emitFiscal(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.acoes.emitFiscal(id, actor);
+  }
+
+  /** O que falta para a nota fiscal automática funcionar (variáveis e dados fiscais na conta do Asaas). */
+  @Get('plataforma/nota-fiscal/status')
+  @RequireFaturasPermission('faturas.nf_anexar')
+  fiscalHealth() {
+    return this.acoes.fiscalHealth();
+  }
+
   @Post('plataforma/companies/:companyId/recurring-discount')
   @RequireFaturasPermission('faturas.desconto')
   recurringDiscount(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Body() dto: RecurringDiscountDto) {

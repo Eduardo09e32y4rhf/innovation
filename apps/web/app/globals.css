@@ -345,6 +345,17 @@
 
 @layer components {
   .card-v2 { @apply rounded-v2-xl border border-border bg-bg-elev shadow-v2-sm; }
+  /* Tabela que vira lista de cartões no celular: cada <td data-label="..."> mostra o rótulo ao lado do valor. */
+  @media (max-width: 767px) {
+    .table-stack, .table-stack tbody, .table-stack tr, .table-stack td { display: block; width: 100%; min-width: 0 !important; }
+    .table-stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .table-stack tr { border-top: 1px solid rgb(var(--border-rgb)); padding: .5rem 0; }
+    .table-stack td, .table-stack th[scope="row"] { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; padding: .35rem .9rem !important; text-align: right !important; overflow-wrap: anywhere; }
+    .table-stack td[data-label]::before, .table-stack th[data-label]::before { content: attr(data-label); flex: none; max-width: 40%; font-size: .72rem; font-weight: 600; text-transform: uppercase; color: rgb(var(--fg-subtle)); text-align: left; }
+    .table-stack td[data-full] { display: block; text-align: left !important; }
+    .table-stack td[data-full]::before { display: block; margin-bottom: .25rem; max-width: none; }
+    .table-stack td:empty { display: none; }
+  }
   .glass { background: rgb(var(--bg-elevated) / .96); backdrop-filter: blur(12px); border: 1px solid rgb(var(--border-rgb) / .85); }
   .chip { @apply inline-flex items-center gap-1.5 rounded-full bg-bg-sub px-3 py-1 text-xs font-semibold text-fg-mut; }
   .chip-brand { background: rgb(var(--brand-500) / .12); color: rgb(var(--brand-700)); }
