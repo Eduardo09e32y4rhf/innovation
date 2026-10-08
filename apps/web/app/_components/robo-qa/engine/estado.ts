@@ -49,3 +49,8 @@ export function carregarRelatorio(): RelatorioSalvo | null { return seguro(() =>
 export function carregarContas(): Record<string, ContaSalva> { return seguro(() => JSON.parse(localStorage.getItem(CHAVE_CONTAS) ?? '{}')) ?? {}; }
 export function salvarConta(perfil: string, conta: ContaSalva) { seguro(() => localStorage.setItem(CHAVE_CONTAS, JSON.stringify({ ...carregarContas(), [perfil]: conta }))); }
 export function limparContas() { seguro(() => localStorage.removeItem(CHAVE_CONTAS)); }
+export function removerContasLimpas(nomes: string[]) {
+  const removidos = new Set(nomes.map((n) => n.toLowerCase()));
+  const contas = Object.fromEntries(Object.entries(carregarContas()).filter(([, c]) => !removidos.has(c.nome.toLowerCase())));
+  seguro(() => localStorage.setItem(CHAVE_CONTAS, JSON.stringify(contas)));
+}

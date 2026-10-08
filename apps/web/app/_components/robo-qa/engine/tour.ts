@@ -36,6 +36,7 @@ async function estaBloqueado(ctx: Contexto, caminho: string): Promise<boolean> {
 
 async function abrirTela(ctx: Contexto, item: ItemMenu) {
   const caminho = caminhoDe(ctx, item);
+  if (ctx.anfitriao.caminhoAtual() === caminho) return;
   const link = todos<HTMLAnchorElement>('a[href]').find((a) => (a.getAttribute('href') ?? '').split('?')[0].replace(/\/$/, '') === caminho && !a.closest('#robo-qa-raiz'));
   if (link) await clicar(ctx, link, `menu "${item.nome}"`);
   else await ir(ctx, caminho, `Abrindo ${item.nome}`);
@@ -206,15 +207,22 @@ const blocoVagas: Bloco = {
 /** A lista de blocos e sempre a mesma para o mesmo perfil: o indice salvo permite continuar de onde parou. */
 export function blocosDoTour(perfil: string, modo: Modo = 'completo'): Bloco[] {
   const { permitidos, negados, incertos } = esperadoPara(perfil);
-  if (modo === 'rapido') return [blocoMenu(perfil), ...permitidos.map((item) => blocoTela(item, true, 3)), blocoPainel];
-  return [
-    blocoMenu(perfil),
-    ...permitidos.map((item) => blocoTela(item, true, 14)),
-    ...incertos.map((item) => blocoTela(item, false, 14)),
-    blocoPainel, blocoPlataforma, blocoFaturas, blocoVagas,
-    ...cenariosDoPerfil(perfil),
-    ...negados.map(blocoBloqueio),
-  ];
+  const especificos: Record<string, Bloco> = { dashboard: blocoPainel, platform: blocoPlataforma, faturas: blocoFaturas, jobs: blocoVagas };
+  const dominio: Record<string, string> = { 'Cadastrar funcionário': 'employees', 'Criar vaga': 'jobs', 'Criar cliente (empresa)': 'platform', 'Criar planos (catálogo)': 'faturas', 'Bater ponto': 'escalas', 'Solicitar férias': 'vacations' };
+  const cenarios = modo === 'completo' ? cenariosDoPerfil(perfil) : [];
+  const blocos: Bloco[] = [blocoMenu(perfil)];
+  const vistos = new Set<string>();
+  for (const item of [...permitidos, ...(modo === 'completo' ? incertos : [])]) {
+    if (vistos.has(item.id)) continue;
+    vistos.add(item.id);
+    blocos.push(blocoTela(item, permitidos.includes(item), modo === 'completo' ? 14 : 3));
+    if (modo === 'completo' && especificos[item.id]) blocos.push(especificos[item.id]);
+    blocos.push(...cenarios.filter((c) => dominio[c.nome] === item.id));
+  }
+  // Recuperação fica no final: não tira o funcionário do dashboard antes de ponto/férias.
+  blocos.push(...cenarios.filter((c) => !dominio[c.nome]));
+  if (modo === 'completo') blocos.push(...negados.map(blocoBloqueio));
+  return blocos;
 }
 
 export { acharPorTexto };

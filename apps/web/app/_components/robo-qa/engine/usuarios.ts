@@ -1,6 +1,7 @@
 import { clicar, digitar, ir, passo } from './acoes';
 import { acharPorTexto, dormir, esperarAte, rotulo, setValor, todos } from './dom';
 import { registrarSegredo } from './seguranca';
+import { autorizarNome } from './recursos';
 import type { Contexto, UsuarioTeste } from './tipos';
 
 export const ROTULO_PERFIL: Record<string, string> = {
@@ -20,9 +21,10 @@ export function novoUsuarioDeTeste(perfil: string): UsuarioTeste {
 
 /** Cria o usuario pelo MESMO formulario que uma pessoa usaria (Usuarios > Novo acesso) e le a senha provisoria mostrada. */
 export async function criarUsuarioDeTeste(ctx: Contexto, usuario: UsuarioTeste): Promise<boolean> {
+  autorizarNome(usuario.nome);
   ctx.cenario = `Criar usuário de teste (${ROTULO_PERFIL[usuario.perfil] ?? usuario.perfil})`;
   let provisoria = '';
-  const ok = await passo(ctx, `Criar o acesso de teste "${usuario.nome}"`, async () => {
+  await passo(ctx, `Criar o acesso de teste "${usuario.nome}"`, async () => {
     await ir(ctx, `/${ctx.anfitriao.tenant()}/dashboard/users`, 'Abrindo a tela de Usuários');
     await clicar(ctx, await esperarAte(() => acharPorTexto('button', /novo acesso/i), { descricao: 'o botão "Novo acesso"' }), 'botão Novo acesso');
 
@@ -31,8 +33,9 @@ export async function criarUsuarioDeTeste(ctx: Contexto, usuario: UsuarioTeste):
     await clicar(ctx, livre, 'opção "Pessoa sem cadastro"');
 
     const empresa = todos<HTMLSelectElement>('select', dialogo).find((s) => /empresa/i.test(rotulo(s.closest('label') ?? s)));
-    if (empresa && !empresa.value) {
-      const opcao = [...empresa.options].find((o) => o.value);
+    if (empresa) {
+      const alvo = ctx.anfitriao.empresaId?.();
+      const opcao = [...empresa.options].find((o) => o.value === alvo && o.value);
       if (!opcao) throw new Error('ESPERADO: o DEV deveria poder escolher uma empresa na janela "Novo acesso", mas a lista veio vazia.');
       setValor(empresa, opcao.value);
       await dormir(200);
@@ -59,7 +62,7 @@ export async function criarUsuarioDeTeste(ctx: Contexto, usuario: UsuarioTeste):
     provisoria = resultado.codigo;
     await clicar(ctx, await esperarAte(() => acharPorTexto('button', /^concluir$/i), { descricao: 'o botão "Concluir"' }), 'botão Concluir');
   });
-  if (ok && provisoria) { registrarSegredo(provisoria); usuario.senha = provisoria; usuario.criado = true; return true; }
+  if (provisoria) { registrarSegredo(provisoria); usuario.senha = provisoria; usuario.criado = true; return true; }
   usuario.situacao = 'erro';
   usuario.motivo = ctx.estado.semLicencas ? 'a empresa não tem licenças livres' : 'não foi possível criar o acesso de teste';
   return false;

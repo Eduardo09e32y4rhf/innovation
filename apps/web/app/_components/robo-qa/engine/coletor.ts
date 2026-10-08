@@ -1,4 +1,5 @@
 import type { EventoTecnico } from './explicacoes';
+import { registrarCriacao } from './recursos';
 
 // Escuta tudo o que da errado por baixo da tela: erros de JavaScript e chamadas ao servidor que falham.
 
@@ -41,6 +42,14 @@ export function instalarColetor() {
     estado.pendentes++;
     try {
       const resposta = await fetchOriginal(entrada, init);
+      if (metodo === 'POST' && resposta.ok && typeof init?.body === 'string') {
+        try {
+          const rota = new URL(alvo, window.location.origin).pathname.replace(/^\/api/, '');
+          if (['/users', '/employees', '/jobs', '/platform/companies', '/platform/plans'].includes(rota)) {
+            registrarCriacao(rota, JSON.parse(init.body), await resposta.clone().json());
+          }
+        } catch { /* sem ID confirmado: não autoriza exclusão */ }
+      }
       if (resposta.status >= 400 && !IGNORAR_HTTP.some((regra) => regra.test(alvo))) estado.eventos.push({ tipo: 'http', status: resposta.status, metodo, alvo });
       return resposta;
     } catch (erro) {
