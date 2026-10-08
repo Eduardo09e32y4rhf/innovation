@@ -114,6 +114,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
+        NEXT_PUBLIC_ROBO_QA: ${NEXT_PUBLIC_ROBO_QA:-on}
         NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL: ${NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL:-false}
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}

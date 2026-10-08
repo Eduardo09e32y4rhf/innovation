@@ -1,17 +1,15 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useRoboLigado } from './ligado';
 
-// O pacote do robo so e baixado quando um DEV liga a chave (Dashboard DEV ou Plataforma > Configuracoes).
 const RoboQa = dynamic(() => import('./RoboQa'), { ssr: false });
 
 /**
- * Com a chave ligada o robo fica FLUTUANTE em todas as telas deste navegador, inclusive no login: ele precisa
- * continuar visivel quando troca de usuario (ADMIN, RH, FUNCIONARIO...). Quem decide o que mostrar e o proprio robo:
- * so um DEV consegue iniciar, e para os outros perfis ele so aparece enquanto o teste estiver em andamento.
+ * Robo flutuante SEMPRE presente (inclusive na tela de login), para acompanhar cada troca de perfil durante o teste.
+ * So um DEV consegue iniciar; para os demais ele e apenas o botao. Para tirar do site: NEXT_PUBLIC_ROBO_QA=off no
+ * .env e refazer o build (vps-update.sh).
  */
 export function RoboQaGate() {
-  const ligado = useRoboLigado();
-  return ligado ? <RoboQa /> : null;
+  if (process.env.NEXT_PUBLIC_ROBO_QA === 'off') return null;
+  return <RoboQa />;
 }

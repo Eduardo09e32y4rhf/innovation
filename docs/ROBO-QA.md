@@ -5,9 +5,9 @@ no fim, mostra um relatório em português: ✅ passou · ❌ falhou · ⚠️ i
 
 ## Como ligar
 
-Entre como **DEV**, abra **Plataforma › Configurações** e use a chave **Robô de teste** (Ligar / Desligar). O botão flutuante aparece só para você, e a chave vale para o navegador onde foi ligada. Não precisa de terminal, variável de ambiente nem novo deploy.
+O botão flutuante 🤖 já fica em todas as telas, inclusive no login, e acompanha cada troca de perfil. Entre como o DEV do robô (`robo-qa.dev@example.com`), abra o 🤖, informe a senha das contas fixas e toque em **⚡ Ligar o teste (rápido)**. O modo completo fica em "Opções". Só um DEV consegue iniciar.
 
-O robô cria usuários reais chamados ROBO-QA: desligue quando terminar e não rode com clientes usando.
+O robô cria e usa contas reais ROBO-QA. Para **tirar o botão do site**, coloque `NEXT_PUBLIC_ROBO_QA=off` no `.env` e rode `bash scripts/deploy/vps-update.sh` (é variável de build).
 
 ## Desenvolvimento local
 

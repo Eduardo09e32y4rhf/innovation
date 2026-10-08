@@ -101,8 +101,8 @@ export default function RoboQa() {
                   </div>
                 </div>
               )}
-              <button type="button" disabled={!podeIniciar} onClick={() => iniciar('completo')} style={{ width: '100%', minHeight: 56, borderRadius: 12, border: 0, background: '#16a34a', color: '#fff', fontWeight: 800, fontSize: 18, cursor: 'pointer', margin: '6px 0', opacity: !podeIniciar ? 0.5 : 1 }}>▶ LIGAR O TESTE</button>
-              <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 6px' }}>Testa como um analista de qualidade / cliente: todos os perfis, aba por aba. No fim de cada aba aparece um resumo que dá para copiar.</p>
+              <button type="button" disabled={!podeIniciar} onClick={() => iniciar('rapido')} style={{ width: '100%', minHeight: 56, borderRadius: 12, border: 0, background: '#16a34a', color: '#fff', fontWeight: 800, fontSize: 18, cursor: 'pointer', margin: '6px 0', opacity: !podeIniciar ? 0.5 : 1 }}>⚡ LIGAR O TESTE (RÁPIDO)</button>
+              <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 6px' }}>Modo rápido: sem pausas, passa por todos os perfis e telas principais e mostra o relatório no fim. Para o teste detalhado, abra “Opções” e use “Teste completo”.</p>
               <details>
               <summary style={{ fontSize: 12, color: '#6b7280', cursor: 'pointer' }}>Opções (perfis, velocidade, teste rápido)</summary>
               <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 8, margin: '8px 0' }}>
