@@ -292,7 +292,7 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
           <button type="button" className={btn} onClick={() => setDialog({ kind: 'refundPartial', invoice: inv })}>Reembolso parcial</button>
           <button type="button" className={btn} onClick={() => setDialog({ kind: 'refundFull', invoice: inv })}>Reembolso total</button>
         </>}
-        {inv.status !== 'CANCELED' && can('faturas.cobrar') && (inv.asaasPaymentId || inv.mpPaymentId) && <button type="button" className={btn} onClick={() => void syncInvoice(inv)}>Sincronizar</button>}
+        {inv.status !== 'CANCELED' && can('faturas.cobrar') && (inv.asaasPaymentId || inv.mpPaymentId || ['PROCESSING', 'UNKNOWN'].includes(inv.paymentProcessingStatus ?? '')) && <button type="button" className={btn} onClick={() => void syncInvoice(inv)}>Sincronizar</button>}
         {inv.status === 'PAID' && inv.asaasPaymentId && inv.provider !== 'MERCADOPAGO' && can('faturas.nf_anexar') && inv.invoiceStatus !== 'AUTHORIZED' && <button type="button" className={btn} onClick={() => void emitFiscal(inv)} title="Agenda a NFS-e no Asaas ou puxa a que já existe">{inv.asaasInvoiceId ? 'Atualizar nota (Asaas)' : 'Emitir nota (Asaas)'}</button>}
         {inv.status !== 'CANCELED' && can('faturas.nf_anexar') && <button type="button" className={btn} onClick={() => setDialog({ kind: 'fiscal', invoice: inv })}>NF / comprovante</button>}
       </span>

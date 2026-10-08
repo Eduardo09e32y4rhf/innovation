@@ -1350,7 +1350,8 @@ export class PlatformFinanceService {
       }, include });
     } catch (error) {
       await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { paymentProcessingStatus: 'UNKNOWN' } }).catch(() => undefined);
-      this.logger.warn(`Cobrança ${invoice.id} precisa de conciliação: ${error instanceof Error ? error.name : 'erro externo'}`);
+      // A mensagem do Asaas ("valor mínimo", "CPF/CNPJ inválido"...) é o que explica por que a cobrança não nasceu.
+      this.logger.warn(`Cobrança ${invoice.id} precisa de conciliação: ${error instanceof Error ? `${error.name}: ${error.message}` : 'erro externo'}`);
       return { ...invoice, paymentProcessingStatus: 'UNKNOWN' };
     }
   }

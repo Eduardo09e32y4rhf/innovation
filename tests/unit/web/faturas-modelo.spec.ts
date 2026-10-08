@@ -12,8 +12,12 @@ describe('situacaoDaFatura', () => {
     expect(situacaoDaFatura(com({ status: 'CANCELED' })).chave).toBe('CANCELED');
   });
   it('pagamento aceito mas ainda não confirmado aparece como "em confirmação", nunca como em aberto', () => {
-    expect(situacaoDaFatura(com({ paymentProcessingStatus: 'PROCESSING' })).chave).toBe('CONFIRMING');
-    expect(situacaoDaFatura(com({ status: 'OVERDUE', paymentProcessingStatus: 'UNKNOWN' })).chave).toBe('CONFIRMING');
+    expect(situacaoDaFatura(com({ paymentProcessingStatus: 'PROCESSING', asaasPaymentId: 'pay_1' })).chave).toBe('CONFIRMING');
+    expect(situacaoDaFatura(com({ status: 'OVERDUE', paymentProcessingStatus: 'UNKNOWN', mpPaymentId: 'mp_1' })).chave).toBe('CONFIRMING');
+  });
+  it('cobrança que não chegou a existir no provedor nunca diz que o pagamento foi recebido', () => {
+    expect(situacaoDaFatura(com({ paymentProcessingStatus: 'UNKNOWN' })).chave).toBe('LINK_PENDING');
+    expect(situacaoDaFatura(com({ paymentProcessingStatus: 'PROCESSING', asaasPaymentId: null })).chave).toBe('LINK_PENDING');
   });
   it('reembolso parcial, total e em andamento (valores como texto do Decimal)', () => {
     expect(situacaoDaFatura(com({ status: 'PAID', refundedAmount: '40.00' })).chave).toBe('PARTIAL_REFUND');

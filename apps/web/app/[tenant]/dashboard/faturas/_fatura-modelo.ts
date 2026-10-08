@@ -1,13 +1,14 @@
 import type { PlatformInvoice } from '@/app/lib/api';
 
 /** Regras de apresentação da fatura (sem React): situação "de banco", filtros e linha do tempo. */
-export type SituacaoChave = 'OPEN' | 'OVERDUE' | 'CONFIRMING' | 'PAID' | 'REFUND_PENDING' | 'PARTIAL_REFUND' | 'REFUNDED' | 'CANCELED';
+export type SituacaoChave = 'OPEN' | 'OVERDUE' | 'CONFIRMING' | 'LINK_PENDING' | 'PAID' | 'REFUND_PENDING' | 'PARTIAL_REFUND' | 'REFUNDED' | 'CANCELED';
 export interface Situacao { chave: SituacaoChave; label: string; cls: string }
 
 const SITUACOES: Record<SituacaoChave, Omit<Situacao, 'chave'>> = {
   OPEN: { label: 'Em aberto', cls: 'bg-amber-100 text-amber-800' },
   OVERDUE: { label: 'Vencida', cls: 'bg-rose-100 text-rose-800' },
   CONFIRMING: { label: 'Pagamento em confirmação', cls: 'bg-sky-100 text-sky-800' },
+  LINK_PENDING: { label: 'Gerando link de pagamento', cls: 'bg-amber-100 text-amber-800' },
   PAID: { label: 'Paga', cls: 'bg-emerald-100 text-emerald-800' },
   REFUND_PENDING: { label: 'Reembolso em andamento', cls: 'bg-sky-100 text-sky-800' },
   PARTIAL_REFUND: { label: 'Paga · reembolso parcial', cls: 'bg-violet-100 text-violet-800' },
@@ -18,7 +19,7 @@ const SITUACOES: Record<SituacaoChave, Omit<Situacao, 'chave'>> = {
 const numero = (v: unknown) => { const n = Number(String(v ?? 0).replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 const EM_ANDAMENTO = ['PROCESSING', 'PENDING', 'UNKNOWN'];
 
-type Base = Pick<PlatformInvoice, 'status' | 'amount' | 'refundedAmount' | 'refundStatus' | 'paymentProcessingStatus' | 'refunds'>;
+type Base = Pick<PlatformInvoice, 'status' | 'amount' | 'refundedAmount' | 'refundStatus' | 'paymentProcessingStatus' | 'refunds'> & Partial<Pick<PlatformInvoice, 'asaasPaymentId' | 'mpPaymentId'>>;
 
 /** Situação única que o cliente entende, juntando status, processamento do pagamento e reembolsos. */
 export function situacaoDaFatura(f: Base): Situacao {
@@ -31,8 +32,11 @@ export function situacaoDaFatura(f: Base): Situacao {
     if (reembolsado > 0) return pronta(reembolsado + 0.005 >= numero(f.amount) ? 'REFUNDED' : 'PARTIAL_REFUND');
     return pronta('PAID');
   }
-  // Ainda não paga: o provedor pode ter aceitado o pagamento e o webhook ainda não chegou.
-  if (['PROCESSING', 'UNKNOWN'].includes(String(f.paymentProcessingStatus ?? ''))) return pronta('CONFIRMING');
+  if (['PROCESSING', 'UNKNOWN'].includes(String(f.paymentProcessingStatus ?? ''))) {
+    // Só dá para falar em "confirmação" se a cobrança existe no provedor. Sem ela, o link ainda não foi gerado (ou falhou):
+    // dizer "recebemos o seu pagamento" aqui seria falso.
+    return pronta(f.asaasPaymentId || f.mpPaymentId ? 'CONFIRMING' : 'LINK_PENDING');
+  }
   return pronta(f.status === 'OVERDUE' ? 'OVERDUE' : 'OPEN');
 }
 
@@ -44,7 +48,7 @@ export const FILTROS: Array<{ id: FiltroFatura; label: string }> = [
 export function filtroAceita(filtro: FiltroFatura, f: Base): boolean {
   const { chave } = situacaoDaFatura(f);
   if (filtro === 'todas') return true;
-  if (filtro === 'abertas') return ['OPEN', 'OVERDUE', 'CONFIRMING'].includes(chave);
+  if (filtro === 'abertas') return ['OPEN', 'OVERDUE', 'CONFIRMING', 'LINK_PENDING'].includes(chave);
   if (filtro === 'pagas') return ['PAID', 'PARTIAL_REFUND', 'REFUND_PENDING'].includes(chave);
   return ['CANCELED', 'REFUNDED'].includes(chave);
 }
