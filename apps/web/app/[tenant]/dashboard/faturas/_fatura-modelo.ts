@@ -47,7 +47,8 @@ export const FILTROS: Array<{ id: FiltroFatura; label: string }> = [
 
 export function filtroAceita(filtro: FiltroFatura, f: Base): boolean {
   const { chave } = situacaoDaFatura(f);
-  if (filtro === 'todas') return true;
+  // "Todas" não lista cancelada: cobrança emitida por engano ou rateio desfeito só confunde o cliente. Fica em "Canceladas e reembolsadas".
+  if (filtro === 'todas') return chave !== 'CANCELED';
   if (filtro === 'abertas') return ['OPEN', 'OVERDUE', 'CONFIRMING', 'LINK_PENDING'].includes(chave);
   if (filtro === 'pagas') return ['PAID', 'PARTIAL_REFUND', 'REFUND_PENDING'].includes(chave);
   return ['CANCELED', 'REFUNDED'].includes(chave);

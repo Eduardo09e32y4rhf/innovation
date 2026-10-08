@@ -35,8 +35,13 @@ describe('filtros e busca', () => {
     for (const f of casos) {
       const n = (['abertas', 'pagas', 'encerradas'] as const).filter((x) => filtroAceita(x, f)).length;
       expect(n).toBe(1);
-      expect(filtroAceita('todas', f)).toBe(true);
+      expect(filtroAceita('todas', f)).toBe(f.status !== 'CANCELED');
     }
+  });
+  it('cancelada fica fora de "Todas" mas aparece em "Canceladas e reembolsadas"', () => {
+    const cancelada = com({ status: 'CANCELED' });
+    expect(filtroAceita('todas', cancelada)).toBe(false);
+    expect(filtroAceita('encerradas', cancelada)).toBe(true);
   });
   it('busca por descrição, número da nota, id curto e valor', () => {
     const f = { id: 'abcdef12-0000', amount: '1234.50', description: 'Mensalidade Outubro', invoiceNumber: 'NF-77' } as never;
