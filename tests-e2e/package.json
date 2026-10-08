@@ -4,6 +4,8 @@
   "description": "E2E automated tests for Innovation RH Connect",
   "scripts": {
     "test": "playwright test --config playwright.config.ts",
+    "test:responsivo": "playwright test tests/responsivo.spec.ts --project=chromium-desktop --config playwright.config.ts",
+    "test:autoteste": "playwright test --config playwright.autoteste.config.ts",
     "test:legacy": "playwright test --config playwright.config.js",
     "test:headed": "playwright test --headed --config playwright.config.ts"
   },
