@@ -126,7 +126,7 @@ export class UsersService {
     }
     const maxUsers = this.resolveMaxUsers(limits);
     if (count >= maxUsers) {
-      throw new ForbiddenException({
+      throw new ConflictException({
         code: 'SEAT_LIMIT_REACHED',
         message: 'A empresa utiliza todas as licencas contratadas.',
         used: count,
@@ -238,7 +238,7 @@ export class UsersService {
     if (state === 'UNBLOCK' && ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'].includes(String(user.role))) {
       const [used, limits] = await Promise.all([this.repository.countByCompany(user.companyId), this.repository.getCompanyLimits(user.companyId)]);
       const max = this.resolveMaxUsers(limits);
-      if (used >= max) throw new ForbiddenException({ code: 'SEAT_LIMIT_REACHED', message: 'A empresa utiliza todas as licencas contratadas.', used, limit: max });
+      if (used >= max) throw new ConflictException({ code: 'SEAT_LIMIT_REACHED', message: 'A empresa utiliza todas as licencas contratadas.', used, limit: max });
     }
     const result = await this.repository.setAccessState(user.companyId, id, state, reason?.trim() || undefined);
     if (!result.count || !result.user) throw new NotFoundException('Usuario nao encontrado');

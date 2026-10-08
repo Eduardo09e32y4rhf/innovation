@@ -342,7 +342,7 @@ export class PlatformService {
     const count = await this.repository.countUsers(companyId);
     const limit = company.subscription?.seatQuantity ?? 1;
     if (count >= limit) {
-      throw new ForbiddenException({ code: 'SEAT_LIMIT_REACHED', message: 'A empresa utiliza todas as licencas contratadas.', used: count, limit });
+      throw new ConflictException({ code: 'SEAT_LIMIT_REACHED', message: 'A empresa utiliza todas as licencas contratadas.', used: count, limit });
     }
 
     // Conta criada por terceiros: provisoria gerada pelo servidor (dto.password e ignorado) e devolvida uma unica vez.

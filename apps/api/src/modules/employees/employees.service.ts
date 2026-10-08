@@ -10,6 +10,8 @@ import { assertRoleChangeAllowed, canManageRole } from '../../common/constants/r
 import { isOwnerTargetedByOther } from '../../common/constants/platform-owner';
 
 const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
+/** Perfis que ocupam licença (igual ao countByCompany do repositório). */
+const SEAT_ROLES: UserRole[] = ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 
 @Injectable()
 export class EmployeesService {
@@ -83,7 +85,9 @@ export class EmployeesService {
       if (existing) throw new ConflictException('CPF already registered');
     }
     await this.ensureRegistrationAvailable(companyId, dto.registration);
-    
+    // Licença esgotada barra ANTES de gravar: não pode sobrar funcionário salvo sem o acesso que o formulário pediu.
+    await this.assertSeatForPanelAccess(companyId, dto);
+
     const employee = await this.repository.create(companyId, this.toData(dto));
     
     // Automação: Gera ASO Admissional pendente
@@ -180,14 +184,7 @@ export class EmployeesService {
         await this.repository.updateUserLink(companyId, employeeId, existingUser.id);
       }
     } else {
-      const [count, limits] = await Promise.all([
-        this.repository.countByCompany(companyId),
-        this.repository.getCompanyLimits(companyId),
-      ]);
-      const contractedSeats = limits?.subscription?.seatQuantity ?? 1;
-      if (count >= contractedSeats) {
-        throw new ConflictException('SEAT_LIMIT_REACHED: Limite de licenças atingido para a empresa');
-      }
+      await this.assertSeatAvailable(companyId);
 
       temporaryPassword = generateTemporaryPassword();
       const user = await this.repository.createUser({
@@ -395,6 +392,30 @@ export class EmployeesService {
     if (existing && existing.id !== currentEmployeeId) throw new ConflictException('Matricula already registered');
   }
 
+  /** Mesma contagem de licenças do cadastro de usuários (RH, Gestor, Funcionário e Consulta; Admin/CEO/DEV não ocupam licença). */
+  private async assertSeatAvailable(companyId: string) {
+    const [count, limits] = await Promise.all([
+      this.repository.countByCompany(companyId),
+      this.repository.getCompanyLimits(companyId),
+    ]);
+    const contractedSeats = limits?.subscription?.seatQuantity ?? 1;
+    if (count >= contractedSeats) {
+      throw new ConflictException('SEAT_LIMIT_REACHED: Limite de licenças atingido para a empresa');
+    }
+  }
+
+  /** "Permitir acesso ao painel = Sim" ocupa uma licença, salvo se a pessoa já tem um acesso ativo que conta. */
+  private async assertSeatForPanelAccess(companyId: string, dto: CreateEmployeeDto | UpdateEmployeeDto, employee?: { status?: string; email?: string | null }) {
+    if (dto.accessEnabled !== 'YES') return;
+    if ((dto.status ?? employee?.status ?? 'ACTIVE') === 'ONBOARDING') return;
+    if (!SEAT_ROLES.includes(this.resolveAccessRole(dto.accessProfile))) return;
+    const email = (dto.email ?? employee?.email)?.trim().toLowerCase();
+    if (!email) return;
+    const existing = await this.repository.findUserByEmail(email);
+    if (existing && existing.isActive && SEAT_ROLES.includes(existing.role as UserRole)) return;
+    await this.assertSeatAvailable(companyId);
+  }
+
   private async syncPanelAccess(companyId: string, employee: any, dto: CreateEmployeeDto | UpdateEmployeeDto) {
     if (dto.accessEnabled === undefined) return;
 
@@ -411,6 +432,7 @@ export class EmployeesService {
     const role = this.resolveAccessRole(dto.accessProfile);
     const email = (dto.email ?? employee.email)?.trim().toLowerCase();
     if (!email) throw new ConflictException('E-mail obrigatorio para acesso ao painel');
+    await this.assertSeatForPanelAccess(companyId, dto, employee);
 
     const existingUser = await this.repository.findUserByEmail(email);
     if (existingUser && existingUser.companyId !== companyId) throw new ConflictException('E-mail already registered in another company');
