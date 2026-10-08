@@ -8,6 +8,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { compararFolha, folhaOraculo, invariantes } from './oracle/folha-clt-2026.mjs';
 import { fileURLToPath } from 'node:url';
 
 const raiz = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -39,6 +40,7 @@ const ARQUIVO_PROVAVEL = [
   [/^\/users/, 'apps/api/src/modules/users/users.controller.ts + users.service.ts'],
   [/^\/employees/, 'apps/api/src/modules/employees/employees.controller.ts + employees.service.ts'],
   [/^\/auth/, 'apps/api/src/modules/auth/auth.controller.ts + auth.service.ts'],
+  [/^\/accounting/, 'apps/api/src/modules/accounting/accounting-rules.service.ts + time-track/payroll-calculation.service.ts'],
 ];
 const resultados = [];
 let area = '';
@@ -226,6 +228,64 @@ async function suiteOutraEmpresa(tk) {
   void me;
 }
 
+async function suiteCalculos(tk) {
+  area = 'Cálculos de folha (contra o oráculo CLT 2026)';
+  if (!tk.DEV) return registrar('Cálculos de folha', null, { obtido: 'DEV não entrou' });
+  const SEMANA = 2640, UTEIS = 22, DESCANSO = 4; // o simulador usa 44h/semana, 22 dias úteis e 4 de descanso
+  const base = { referenceDate: '2026-10-01' };
+
+  // Perfis sem acesso à contabilidade
+  for (const perfil of ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO']) {
+    esperar(`${perfil} NÃO usa o simulador de folha (403)`, await chamar(tk[perfil], 'POST', '/accounting/rules/simulate', { ...base, salary: 3000 }), 403);
+    esperar(`${perfil} NÃO vê as regras de INSS/IRRF (403)`, await chamar(tk[perfil], 'GET', '/accounting/rules'), 403);
+    esperar(`${perfil} NÃO grava regra de imposto (403)`, await chamar(tk[perfil], 'POST', '/accounting/rules', { taxType: 'FGTS', effectiveFrom: '2099-01-01', rate: 0.08 }), 403);
+  }
+
+  // Entradas inválidas nunca viram 500 nem cálculo
+  const invalidas = [['salário negativo', { salary: -1 }], ['salário absurdo', { salary: 1e12 }], ['dependentes demais', { salary: 3000, dependents: 99 }], ['minutos negativos', { salary: 3000, overtime50Minutes: -5 }], ['data inválida', { salary: 3000, referenceDate: 'ontem' }], ['salário como texto', { salary: 'abc' }]];
+  for (const [nome, corpo] of invalidas) esperar(`Simulador recusa: ${nome} (400)`, await chamar(tk.DEV, 'POST', '/accounting/rules/simulate', { ...base, ...corpo }), 400);
+
+  // Regras fiscais mal formadas devem ser recusadas (nada é gravado)
+  const efetivo = '2099-01-01';
+  const regras = [
+    ['INSS com faixas fora de ordem', { taxType: 'INSS', effectiveFrom: efetivo, brackets: [{ limit: 3000, rate: 0.09 }, { limit: 1000, rate: 0.075 }] }],
+    ['INSS com alíquota de 75% (digitou 0,75 em vez de 0,075)', { taxType: 'INSS', effectiveFrom: efetivo, brackets: [{ limit: 1621, rate: 0.75 }] }],
+    ['INSS sem teto', { taxType: 'INSS', effectiveFrom: efetivo, brackets: [{ limit: null, rate: 0.14 }] }],
+    ['FGTS sem alíquota', { taxType: 'FGTS', effectiveFrom: efetivo }],
+    ['FGTS de 90%', { taxType: 'FGTS', effectiveFrom: efetivo, rate: 0.9 }],
+    ['Hora extra 50% abaixo do mínimo da CLT (1,2)', { taxType: 'PAYROLL_PARAMS', effectiveFrom: efetivo, parameters: { overtime50MinFactor: 1.2, overtime100MinFactor: 2, nightMinPercent: 20, monthlyDivisorFactor: 5 } }],
+    ['Adicional noturno abaixo de 20%', { taxType: 'PAYROLL_PARAMS', effectiveFrom: efetivo, parameters: { overtime50MinFactor: 1.5, overtime100MinFactor: 2, nightMinPercent: 10, monthlyDivisorFactor: 5 } }],
+    ['Divisor mensal absurdo (9)', { taxType: 'PAYROLL_PARAMS', effectiveFrom: efetivo, parameters: { overtime50MinFactor: 1.5, overtime100MinFactor: 2, nightMinPercent: 20, monthlyDivisorFactor: 9 } }],
+  ];
+  for (const [nome, corpo] of regras) esperar(`Regra recusada: ${nome} (400)`, await chamar(tk.DEV, 'POST', '/accounting/rules', corpo), 400);
+
+  // Grade de casos: cada resultado do sistema é comparado com o oráculo independente
+  const casos = [];
+  for (const salary of [1621, 2500, 3000, 4999.99, 5000.01, 6500, 7350, 8475.55, 12000])
+    for (const [he50, he100, noturno, faltas] of [[0, 0, 0, 0], [90, 0, 0, 0], [600, 240, 300, 0], [0, 0, 0, 480], [120, 60, 120, 60]])
+      for (const dependents of [0, 2]) casos.push({ salary, he50, he100, noturno, faltas, dependents });
+
+  let divergentes = 0, avaliados = 0, versaoDiferente = null;
+  for (const c of casos) {
+    const r = await chamar(tk.DEV, 'POST', '/accounting/rules/simulate', { ...base, salary: c.salary, dependents: c.dependents, overtime50Minutes: c.he50, overtime100Minutes: c.he100, nightShiftMinutes: c.noturno, absenceMinutes: c.faltas });
+    if (![200, 201].includes(r.status)) { divergentes++; registrar(`Simulador respondeu ${r.status} para salário ${c.salary}`, false, { endpoint: 'POST /accounting/rules/simulate', status: r.status, obtido: (r.json?.error?.message || r.texto || '').slice(0, 160), requestId: r.requestId, arquivo: arquivoDe('/accounting') }); continue; }
+    const dados = r.json?.data ?? r.json;
+    const versoes = dados?.rulesUsed;
+    if (versoes && [versoes.inss, versoes.irrf, versoes.fgts, versoes.params].some((v) => v && v !== 'PADRAO_2026')) { versaoDiferente = versoes; continue; } // regras da empresa/contabilidade diferem do padrão: comparação não vale
+    avaliados++;
+    const oraculo = folhaOraculo({ salario: c.salary, minutosSemana: SEMANA, he50: c.he50, he100: c.he100, noturno: c.noturno, faltas: c.faltas, atrasos: 0, saidasAntecipadas: 0, diasUteis: UTEIS, diasDescanso: DESCANSO, dependentes: c.dependents, dsr: true });
+    const dif = compararFolha(dados?.result, oraculo);
+    const inv = dados?.result ? invariantes(dados.result) : ['sem resultado'];
+    if (dif.length || inv.length) {
+      divergentes++;
+      registrar(`Cálculo diverge do oráculo (salário ${c.salary}, HE50 ${c.he50}min, HE100 ${c.he100}min, noturno ${c.noturno}min, faltas ${c.faltas}min, dep. ${c.dependents})`, false, {
+        endpoint: 'POST /accounting/rules/simulate', esperado: 'igual ao oráculo (docs/CLT_PAYROLL_RULES_2026.md)', obtido: [...dif.map((d) => `${d.campo}: esperado ${d.esperado}, sistema ${d.obtido}`), ...inv].join(' | ').slice(0, 400), arquivo: 'apps/api/src/modules/time-track/payroll-calculation.service.ts',
+      });
+    }
+  }
+  if (versaoDiferente) registrar('Casos com regras fiscais personalizadas ignorados', null, { obtido: `O banco usa versões diferentes de PADRAO_2026 (${JSON.stringify(versaoDiferente)}). Esses casos não foram comparados com o oráculo.` });
+  registrar(`Folha: ${avaliados} casos comparados com o oráculo, ${divergentes} divergência(s)`, divergentes === 0 && avaliados > 0, { obtido: avaliados === 0 ? 'nenhum caso pôde ser comparado' : `${divergentes} divergência(s) (veja os itens acima)`, arquivo: 'apps/api/src/modules/time-track/payroll-calculation.service.ts' });
+}
 async function limpar(tk) {
   area = 'Limpeza';
   let sobras = 0;
@@ -266,6 +326,7 @@ try {
     await suiteUsuarios(tk);
     await suiteFuncionarios(tk);
     await suiteOutraEmpresa(tk);
+    await suiteCalculos(tk);
   } else registrar('Suítes de usuários/funcionários', null, { obtido: 'faltou entrar com ADMIN/RH/GESTOR/FUNCIONARIO (rode o seed de teste)' });
 } finally {
   if (tk.ADMIN && tk.RH) await limpar(tk);

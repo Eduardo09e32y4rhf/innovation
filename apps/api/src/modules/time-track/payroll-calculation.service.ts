@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { roundMoney } from '../../common/utils/money';
 
 export interface PayrollTaxBracket {
   limit: number | null;
@@ -335,7 +336,6 @@ export class PayrollCalculationService {
   }
 
   private precision(value: number, digits: number): number {
-    const factor = 10 ** digits;
-    return Math.round((value + Number.EPSILON) * factor) / factor;
+    return roundMoney(value, digits);
   }
 }

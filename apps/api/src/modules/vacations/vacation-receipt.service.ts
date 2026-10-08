@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { roundMoney } from '../../common/utils/money';
 import { createHash } from 'crypto';
 import PDFDocument from 'pdfkit';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -287,7 +288,7 @@ export class VacationReceiptService {
   }
 
   private roundCurrency(value: number) {
-    return Math.round((value + Number.EPSILON) * 100) / 100;
+    return roundMoney(value);
   }
 
   private slugify(value: string) {

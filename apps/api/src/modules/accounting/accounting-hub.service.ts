@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { roundMoney } from '../../common/utils/money';
 import type { JwtUser } from '../../common/types/auth.types';
 import { createPdfSink, safeFileName, sendPdf } from '../../common/pdf/pdf-response';
 import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
@@ -8,7 +9,7 @@ import { AdjustClosingDto, CorrectPayrollDto } from './accounting.dto';
 import { AccountingRulesService } from './accounting-rules.service';
 
 const num = (value: unknown) => Number(value ?? 0);
-const round = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+const round = (value: number) => roundMoney(value);
 
 export function resolveMonth(month?: string) {
   const match = /^(\d{4})-(\d{2})$/.exec(month ?? '');
