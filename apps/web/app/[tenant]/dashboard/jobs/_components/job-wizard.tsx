@@ -59,6 +59,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
   const [loading, setLoading] = useState(Boolean(jobId));
   const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false); // trava imediata: o state so atualiza no proximo render, e um clique duplo passa pelos dois
   const [leaveOpen, setLeaveOpen] = useState(false);
   const baseline = useRef(JSON.stringify(EMPTY));
   const dirty = JSON.stringify(draft) !== baseline.current;
@@ -97,8 +98,9 @@ export function JobWizard({ jobId }: { jobId?: string }) {
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((previous) => ({ ...previous, [key]: value }));
 
   async function save(status: JobStatus) {
-    if (saving) return;
+    if (saving || savingRef.current) return;
     if (issues.length) { setStep(issues[0].step); toast.error(issues[0].message); return; }
+    savingRef.current = true;
     setSaving(true);
     try {
       const payload = {
@@ -118,7 +120,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
       router.push(base);
     } catch (cause) {
       toast.error(cause instanceof ApiError ? cause.message : 'Não foi possível salvar a vaga.');
-    } finally { setSaving(false); }
+    } finally { savingRef.current = false; setSaving(false); }
   }
 
   if (loading) return <LoadingState label="Carregando vaga…" />;

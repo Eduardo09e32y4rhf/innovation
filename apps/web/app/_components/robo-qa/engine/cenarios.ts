@@ -54,10 +54,18 @@ async function preencherPorRotulo(ctx: Contexto, raiz: ParentNode, rotuloCampo: 
 const botaoTexto = (regra: RegExp, raiz: ParentNode = document) => acharPorTexto('button', regra, raiz);
 
 async function abrirAbaCadastro(ctx: Contexto, nome: string) {
-  const nav = await esperarAte(() => document.querySelector('nav[aria-label="Seções do cadastro"]'), { descricao: 'as seções do cadastro' });
-  const aba = todos('button', nav).find((b) => rotulo(b) === nome);
-  if (!aba) throw new Error(`Tempo esgotado: não achei a seção "${nome}" do cadastro`);
-  await clicar(ctx, aba, `seção "${nome}"`);
+  const achar = () => {
+    const nav = document.querySelector('nav[aria-label="Seções do cadastro"]');
+    const aba = nav ? todos('button', nav).find((b) => rotulo(b) === nome) : null;
+    if (aba) return { aba };
+    // Celular: as abas viram uma lista de seleção ("1. Dados pessoais", "2. Documentos"...).
+    const lista = todos<HTMLSelectElement>('select').find((s) => /seção do cadastro/i.test(rotulo(s.closest('label') ?? s)));
+    const opcao = lista ? [...lista.options].find((o) => o.text.replace(/^\d+\.\s*/, '').trim() === nome) : null;
+    return lista && opcao ? { lista, valor: opcao.value } : null;
+  };
+  const alvo = await esperarAte(achar, { timeout: 8000, descricao: `a seção "${nome}" do cadastro` });
+  if ('aba' in alvo) await clicar(ctx, alvo.aba, `seção "${nome}"`);
+  else { setValor(alvo.lista, alvo.valor); await dormir(300); }
 }
 
 /** Cadastra um funcionario pelo formulario completo. Com `acesso`, libera o painel e devolve a senha provisoria. */

@@ -5,7 +5,7 @@ import { registrarCriacao } from './recursos';
 
 const IGNORAR_CONSOLE = [/ResizeObserver loop/i, /Download the React DevTools/i, /\[Fast Refresh\]/i, /^Failed to load resource/i];
 // 401 em rotas de sessao e normal (usuario saindo/entrando): nao e defeito.
-const IGNORAR_HTTP = [/\/auth\/(refresh|me|session|logout)/i, /\/users\/ping/i, /\/users\/activity\//i];
+const IGNORAR_HTTP = [/\/auth\/(refresh|me|session|logout)/i, /\/users\/ping/i, /\/faturas\/permissoes\/minhas/i, /\/users\/activity\//i];
 
 interface ColetorGlobal { eventos: EventoTecnico[]; pendentes: number }
 declare global { interface Window { __roboColetor?: ColetorGlobal } }

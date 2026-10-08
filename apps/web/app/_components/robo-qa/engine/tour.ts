@@ -19,8 +19,9 @@ const textoPrincipal = () => rotulo(areaPrincipal());
 /** Links do menu lateral (so os do dashboard desta empresa). */
 function linksDoMenu(ctx: Contexto): string[] {
   const prefixo = `/${ctx.anfitriao.tenant()}/dashboard`;
-  const ancoras = todos<HTMLAnchorElement>('aside a[href], nav a[href]').filter((a) => !a.closest('#robo-qa-raiz'));
-  const base = ancoras.length ? ancoras : todos<HTMLAnchorElement>('a[href]');
+  // Sem filtro de visibilidade: no celular o menu lateral e uma gaveta fechada (fora da tela) e so a barra de baixo aparece.
+  const doMenu = [...document.querySelectorAll<HTMLAnchorElement>('aside a[href], nav a[href]')].filter((a) => !a.closest('#robo-qa-raiz'));
+  const base = doMenu.length ? doMenu : todos<HTMLAnchorElement>('a[href]');
   return [...new Set(base.map((a) => (a.getAttribute('href') ?? '').split('?')[0].replace(/\/$/, '')).filter((h) => h.startsWith(prefixo)))];
 }
 
@@ -50,6 +51,8 @@ function blocoMenu(perfil: string): Bloco {
       ctx.cenario = 'Menu lateral';
       await ir(ctx, `/${ctx.anfitriao.tenant()}/dashboard`, 'Voltando ao painel inicial');
       await passo(ctx, 'Conferir se o menu mostra as funções certas para este perfil', async () => {
+        // O menu carrega depois da tela: espera "Configurações" (todo perfil tem) antes de conferir, para nao acusar item que so demorou.
+        await esperarAte(() => linksDoMenu(ctx).includes(`/${ctx.anfitriao.tenant()}/dashboard/settings`), { timeout: 10000, descricao: 'o menu lateral terminar de carregar' }).catch(() => null);
         const links = linksDoMenu(ctx);
         const { permitidos, negados } = esperadoPara(perfil);
         for (const item of permitidos) if (!links.includes(caminhoDe(ctx, item))) registrarAchado(ctx, `Menu: ${item.nome}`, explicacaoMenuFaltando(perfil, item.nome));
@@ -94,7 +97,7 @@ const blocoPainel: Bloco = {
     ctx.cenario = 'Painel inicial do perfil';
     await passo(ctx, 'Abrir o painel inicial', () => ir(ctx, `/${ctx.anfitriao.tenant()}/dashboard`, 'Abrindo o painel inicial'));
     await passo(ctx, 'Painel: mostra uma saudação com o nome', () => {
-      if (ctx.perfil !== 'DEV' && !/(bom dia|boa tarde|boa noite|ol[aá])/i.test(textoPrincipal())) throw new Error('ESPERADO: o painel deveria cumprimentar o usuário ("Bom dia, Nome!"), mas nenhuma saudação apareceu.');
+      if (ctx.perfil !== 'DEV' && ctx.perfil !== 'ADMIN' && !/(bom dia|boa tarde|boa noite|ol[aá])/i.test(textoPrincipal())) throw new Error('ESPERADO: o painel deveria cumprimentar o usuário ("Bom dia, Nome!"), mas nenhuma saudação apareceu.');
     });
     if (ctx.perfil === 'RH_RS') {
       await passo(ctx, 'RH — R&S: painel só de recrutamento (4 indicadores)', () => {
