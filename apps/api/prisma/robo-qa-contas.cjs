@@ -7,6 +7,7 @@
 
 const PERFIS = [
   { perfil: 'DEV', rotulo: 'Desenvolvedor' }, // login do proprio robo: e quem liga o teste e faz a limpeza
+  { perfil: 'CEO', rotulo: 'CEO' },
   { perfil: 'ADMIN', rotulo: 'Administrador' },
   { perfil: 'RH', rotulo: 'RH - Empresas' },
   { perfil: 'RH_RS', rotulo: 'RH - R&S' },

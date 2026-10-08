@@ -7,7 +7,7 @@ import { ROTULO_PERFIL } from './usuarios';
  * nem do DEV pessoal de quem esta testando. A senha fica so neste navegador e nunca vai para o relatorio.
  * Os e-mails precisam ser iguais aos do seed (conferido em tests/unit/web/robo-qa-contas-fixas.spec.ts).
  */
-export const PERFIS_FIXOS = ['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA', 'COMERCIAL', 'CONTABIL'] as const;
+export const PERFIS_FIXOS = ['DEV', 'CEO', 'ADMIN', 'RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA', 'COMERCIAL', 'CONTABIL'] as const;
 
 const CHAVE = 'roboQa.fixas';
 

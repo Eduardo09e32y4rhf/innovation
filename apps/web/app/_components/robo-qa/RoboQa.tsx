@@ -89,7 +89,7 @@ export default function RoboQa() {
 
           {!ativo && (
             <>
-              <p style={{ fontSize: 13, color: '#374151' }}>Abre cada página como uma pessoa usaria, <b>cria usuários de teste</b> (nome “ROBO-QA …”), sai e entra como cada um, e no final mostra um relatório do que não funcionou.</p>
+              <p style={{ fontSize: 13, color: '#374151' }}>Abre cada página como uma pessoa usaria, <b>entra como cada perfil</b> (contas fixas do seed, sem criar empresa nem plano), sai e entra como cada um, e no final mostra um relatório do que não funcionou.</p>
               <button type="button" disabled={perfis.length === 0 || !ehDev} onClick={() => iniciar('completo')} style={{ width: '100%', minHeight: 56, borderRadius: 12, border: 0, background: '#16a34a', color: '#fff', fontWeight: 800, fontSize: 18, cursor: 'pointer', margin: '6px 0', opacity: perfis.length === 0 || !ehDev ? 0.5 : 1 }}>▶ LIGAR O TESTE</button>
               <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 6px' }}>Testa como um analista de qualidade / cliente: todos os perfis, aba por aba. No fim de cada aba aparece um resumo que dá para copiar.</p>
               <details>
@@ -129,6 +129,7 @@ export default function RoboQa() {
               </details>
               <p style={{ fontSize: 12, color: '#6b7280', margin: '4px 0 0' }}>Contas de teste salvas: {contasSalvas}. Elas são reaproveitadas (só criadas na primeira vez).{contasSalvas > 0 && <> <button type="button" onClick={() => { if (window.confirm('Esquecer as contas de teste salvas? Na próxima execução o robô cria contas novas.')) { limparContas(); forcar((n) => n + 1); } }} style={{ border: 0, background: 'transparent', color: '#7c3aed', textDecoration: 'underline', cursor: 'pointer', fontSize: 12 }}>Recriar contas de teste</button></>}</p>
               {!ehDev && <p style={{ fontSize: 12, color: '#b91c1c' }}>Só um usuário DEV pode iniciar.</p>}
+              {ehDev && fixasAtivas && (user?.email ?? '').toLowerCase() !== emailFixo('DEV') && <p style={{ fontSize: 12, color: '#b45309' }}>Você está como <b>{user?.email}</b>. Para testar só com contas do robô, saia e entre como <code>{emailFixo('DEV')}</code>.</p>}
             </>
           )}
 
