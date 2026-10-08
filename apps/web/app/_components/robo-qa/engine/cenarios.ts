@@ -311,12 +311,66 @@ export const blocoCriarCliente: BlocoCenario = {
   },
 };
 
+export const blocoCriarPlanos: BlocoCenario = {
+  nome: 'Criar planos (catálogo)',
+  rodar: async (ctx) => {
+    ctx.cenario = 'Criar planos (catálogo de Faturas)';
+    await passo(ctx, 'Abrir Faturas › Planos', async () => {
+      await ir(ctx, tenantUrl(ctx, '/dashboard/faturas'), 'Abrindo Faturas');
+      const nav = await esperarAte(() => document.querySelector('nav[aria-label="Seções de Faturas"]'), { descricao: 'as abas de Faturas' });
+      const aba = todos('button', nav).find((b) => rotulo(b) === 'Planos');
+      if (!aba) throw new Error('ESPERADO: a aba "Planos" de Faturas deveria existir para este perfil.');
+      await clicar(ctx, aba, 'aba "Planos"');
+    });
+    const id = aleatorio();
+    // 3 planos de teste, SEMPRE gratuitos e ocultos: nunca viram cobranca real nem aparecem para clientes de verdade.
+    for (const nome of ['Básico', 'Intermediário', 'Avançado']) {
+      await passo(ctx, `Criar plano de teste "ROBO-QA ${nome} ${id}" (gratuito, oculto)`, async () => {
+        await clicar(ctx, await esperarAte(() => acharPorTexto('button', /novo plano/i), { descricao: 'o botão "Novo Plano"' }), 'botão Novo Plano');
+        const modal = await esperarAte(() => todos('div.fixed.inset-0').find((d) => /novo plano/i.test(rotulo(d))), { descricao: 'a janela "Novo Plano"' });
+        const campoNome = await esperarAte(() => campoDe(modal, 'Nome do Plano'), { descricao: 'o campo "Nome do Plano"' });
+        await preencher(ctx, campoNome, `ROBO-QA ${nome} ${id}`, 'campo Nome do Plano');
+        const gratuito = todos('label', modal).find((l) => /plano gratuito/i.test(rotulo(l)))?.querySelector('input[type="checkbox"]') as HTMLInputElement | undefined;
+        if (gratuito && !gratuito.checked) await clicar(ctx, gratuito, 'opção "Plano Gratuito"');
+        const oculto = todos('label', modal).find((l) => /oculto/i.test(rotulo(l)))?.querySelector('input[type="checkbox"]') as HTMLInputElement | undefined;
+        if (oculto && !oculto.checked) await clicar(ctx, oculto, 'opção "Oculto (Interno)"');
+        await clicar(ctx, await esperarAte(() => { const b = acharPorTexto('button', /^salvar|^criar/i, modal) as HTMLButtonElement | null; return b && !b.disabled ? b : null; }, { descricao: 'o botão de salvar o plano, liberado' }), 'botão Salvar/Criar plano');
+        const r = await esperarAte(() => {
+          const erro = todos('p', modal).map(rotulo).find((t) => /erro|falha|n[aã]o foi poss/i.test(t));
+          if (erro) return { erro };
+          return todos('div.fixed.inset-0').some((d) => /novo plano/i.test(rotulo(d))) ? null : { ok: true };
+        }, { timeout: 15000, descricao: 'o plano ser salvo' });
+        if ('erro' in r) throw new Error(`ESPERADO: o plano deveria ser criado, mas a tela mostrou: "${r.erro.slice(0, 200)}".`);
+      });
+    }
+  },
+};
+
+export const blocoEsqueciSenha: BlocoCenario = {
+  nome: 'Esqueci minha senha',
+  rodar: async (ctx) => {
+    ctx.cenario = 'Recuperação de senha';
+    const emailAtual = ctx.anfitriao.usuario()?.email ?? '';
+    await passo(ctx, 'Pedir recuperação de senha pelo "Esqueci minha senha" (não troca a senha de verdade)', async () => {
+      await ir(ctx, '/esqueci-senha', 'Abrindo "Esqueci minha senha"');
+      const campo = await esperarAte(() => document.querySelector<HTMLInputElement>('#fp-email'), { descricao: 'o campo de e-mail' });
+      await digitar(ctx, campo, emailAtual, 'campo E-mail');
+      await clicar(ctx, await esperarAte(() => acharPorTexto('button', /solicitar c[oó]digo/i), { descricao: 'o botão "Solicitar código"' }), 'botão Solicitar código');
+      await esperarAte(() => /solicita[cç][aã]o registrada/i.test(document.body.innerText ?? '') || todos('[role="alert"]').map(rotulo).find(Boolean), { timeout: 15000, descricao: 'a confirmação do pedido' });
+      const alerta = todos('[role="alert"]').map(rotulo).find(Boolean);
+      if (alerta) throw new Error(`ESPERADO: pedir a recuperação de senha deveria funcionar, mas a tela mostrou: "${alerta.slice(0, 200)}".`);
+      if (!/solicita[cç][aã]o registrada/i.test(document.body.innerText ?? '')) throw new Error('ESPERADO: depois de pedir a recuperação, a tela deveria confirmar "Solicitação registrada".');
+    }, { verificarTela: false });
+  },
+};
+
 /** Cenarios de uso real por perfil (so no teste completo). */
 export function cenariosDoPerfil(perfil: string): BlocoCenario[] {
   const blocos: BlocoCenario[] = [];
   if (['DEV', 'ADMIN', 'RH'].includes(perfil)) blocos.push(blocoCadastrarFuncionario);
   if (['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR'].includes(perfil)) blocos.push(blocoCriarVaga);
-  if (perfil === 'DEV') blocos.push(blocoCriarCliente);
+  if (perfil === 'DEV') blocos.push(blocoCriarCliente, blocoCriarPlanos);
+  if (perfil === 'FUNCIONARIO') blocos.push(blocoEsqueciSenha); // uma vez basta: o fluxo e o mesmo pra qualquer perfil
   if (perfil === 'FUNCIONARIO') blocos.push(blocoPonto, blocoFerias);
   return blocos;
 }

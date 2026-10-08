@@ -31,7 +31,7 @@ async function rodar(modo) {
     await new Promise((r) => setTimeout(r, 1500));
     const bruto = await page.evaluate(() => localStorage.getItem('roboQa.relatorio')).catch(() => null);
     if (bruto) return { relatorio: bruto, segundos: Math.round((Date.now() - inicio) / 1000) };
-    if (Date.now() - inicio > 240000) return { relatorio: null, segundos: 240 };
+    if (Date.now() - inicio > 420000) return { relatorio: null, segundos: 420 };
   }
 }
 const um = await rodar('completo');
