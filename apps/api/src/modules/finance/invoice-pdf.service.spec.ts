@@ -7,6 +7,7 @@ import { INVOICE_LOGO_PNG_BASE64 } from './invoice-logo';
 
 const env: Record<string, string> = {
   INVOICE_ISSUER_NAME: 'Innovation RH', INVOICE_ISSUER_LEGAL_NAME: 'Innovation Tecnologia Ltda', INVOICE_ISSUER_DOCUMENT: '12345678000195',
+  INVOICE_BOLETO_BENEFICIARY: 'Beneficiario de Teste', INVOICE_BOLETO_BENEFICIARY_DOCUMENT: '12345678909', INVOICE_BOLETO_AGENCY: '0001 / 1234567-8',
   INVOICE_ISSUER_ADDRESS: 'Rua Exemplo, 100 · Centro · São Paulo - SP', INVOICE_ISSUER_EMAIL: 'financeiro@innovationia.com.br', APP_URL: 'https://innovationia.com.br',
 };
 const config = { get: (key: string) => env[key] };
@@ -55,10 +56,10 @@ describe('InvoicePdfService', () => {
     const out = process.env.INVOICE_PDF_OUT;
     const buffer = await make().render({
       invoice: { ...base, billingType: 'BOLETO' }, company,
-      payment: { pixPayload: PIX, pixQrImage: INVOICE_LOGO_PNG_BASE64, boletoLine: BOLETO_LINE, barCode: BAR_CODE, bankSlipUrl: 'https://www.asaas.com/b/pdf/abc123' },
+      payment: { pixPayload: PIX, pixQrImage: INVOICE_LOGO_PNG_BASE64, boletoLine: BOLETO_LINE, barCode: BAR_CODE, nossoNumero: '495859639', bankSlipUrl: 'https://www.asaas.com/b/pdf/abc123' },
     });
     expect(buffer.subarray(0, 4).toString('latin1')).toBe('%PDF');
-    expect((buffer.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length, 'deve caber em uma página').toBe(1);
+    expect((buffer.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length, 'página 1 da fatura + página 2 da ficha de compensação').toBe(2);
     if (out) writeFileSync(join(out, 'fatura-aberta-pagavel.pdf'), buffer);
     const onlyPix = await make().render({ invoice: base, company, payment: { pixPayload: PIX, pixQrImage: INVOICE_LOGO_PNG_BASE64 } });
     expect((onlyPix.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length).toBe(1);

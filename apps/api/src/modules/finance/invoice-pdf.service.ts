@@ -16,6 +16,8 @@ export interface InvoicePaymentData {
   /** Código de barras (44 dígitos). */
   barCode?: string | null;
   bankSlipUrl?: string | null;
+  /** Número do boleto no banco. */
+  nossoNumero?: string | null;
 }
 
 export interface InvoicePdfInput {
@@ -102,6 +104,7 @@ export class InvoicePdfService {
       boletoLine,
       barCode: boleto?.barCode?.replace(/\D/g, '') || (boletoLine ? barCodeFromDigitableLine(boletoLine) : null),
       bankSlipUrl: charge?.bankSlipUrl ?? null,
+      nossoNumero: boleto?.nossoNumero ?? null,
     };
   }
 
@@ -133,6 +136,98 @@ export class InvoicePdfService {
       phone: this.env('INVOICE_ISSUER_PHONE'),
       site: site.replace(/^https?:\/\//, '').replace(/\/$/, ''),
     };
+  }
+
+  /**
+   * Ficha de compensação (a parte destacável do boleto). A linha digitável, o código de barras e o nosso número vêm do banco (Asaas),
+   * então o pagamento continua válido com a logo da empresa. O que o Asaas não devolve (beneficiário, agência, código do beneficiário)
+   * vem do ambiente, copiado do boleto oficial: nunca é inventado.
+   */
+  private drawBoletoSlip(doc: any, data: { invoice: InvoicePdfInput['invoice']; payment: InvoicePaymentData; clientName: string; clientDocument: string; clientAddress: string }) {
+    const { invoice, payment, clientName, clientDocument, clientAddress } = data;
+    const cfg = {
+      beneficiary: this.env('INVOICE_BOLETO_BENEFICIARY'),
+      document: formatDocument(this.env('INVOICE_BOLETO_BENEFICIARY_DOCUMENT')),
+      agency: this.env('INVOICE_BOLETO_AGENCY'),
+      wallet: this.env('INVOICE_BOLETO_WALLET') || '1',
+      species: this.env('INVOICE_BOLETO_SPECIES') || 'DM',
+      accept: this.env('INVOICE_BOLETO_ACCEPT') || 'N',
+    };
+    const barCode = payment.barCode ?? '';
+    const bankCode = barCode.slice(0, 3);
+    const H = 26;
+    let y = 40;
+
+    doc.font('Helvetica-Bold').fontSize(13).fillColor(C.ink).text('Boleto bancário', L, y, { lineBreak: false });
+    doc.font('Helvetica').fontSize(8.5).fillColor(C.mut).text('Pague em qualquer banco, no aplicativo do seu banco ou em casa lotérica. Fatura nº ' + invoiceNumber(invoice.id) + '.', L, y + 18, { width: W, lineBreak: false });
+    y += 44;
+    doc.moveTo(L, y).lineTo(R, y).dash(3, { space: 3 }).lineWidth(0.7).strokeColor(C.mut).stroke().undash();
+    y += 12;
+
+    const cell = (x: number, yy: number, w: number, h: number, label: string, value?: string, options: { bold?: boolean; size?: number; align?: 'right' | 'left' } = {}) => {
+      doc.rect(x, yy, w, h).lineWidth(0.7).strokeColor('#334155').stroke();
+      doc.font('Helvetica').fontSize(5.8).fillColor('#475569').text(label, x + 3, yy + 2.5, { width: w - 6, lineBreak: false });
+      if (value) doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(options.size ?? 8.5).fillColor(C.ink).text(value, x + 4, yy + 12, { width: w - 8, lineBreak: false, align: options.align ?? 'left' });
+    };
+    const row = (yy: number, h: number, parts: Array<{ w: number; label: string; value?: string; bold?: boolean; align?: 'right' | 'left' }>) => {
+      let x = L;
+      parts.forEach((part) => { cell(x, yy, part.w, h, part.label, part.value, { bold: part.bold, align: part.align }); x += part.w; });
+    };
+
+    // cabeçalho: logo, código do banco e linha digitável
+    const headH = 34;
+    doc.rect(L, y, W, headH).lineWidth(0.7).strokeColor('#334155').stroke();
+    doc.image(Buffer.from(INVOICE_LOGO_PNG_BASE64, 'base64'), L + 6, y + 4, { width: 26 });
+    doc.moveTo(L + 40, y + 5).lineTo(L + 40, y + headH - 5).lineWidth(0.8).strokeColor('#334155').stroke();
+    doc.moveTo(L + 84, y + 5).lineTo(L + 84, y + headH - 5).stroke();
+    doc.font('Helvetica-Bold').fontSize(15).fillColor(C.ink).text(bankCode, L + 40, y + 9, { width: 44, align: 'center', lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(10.5).fillColor(C.ink).text(payment.boletoLine ?? '', L + 90, y + 12, { width: W - 96, align: 'right', lineBreak: false });
+    y += headH;
+
+    const due = dayUtc(invoice.dueDate);
+    const amount = money(invoice.amount);
+    row(y, H, [{ w: 395, label: 'Local de pagamento', value: 'Pagável em qualquer banco ou casa lotérica' }, { w: 120, label: 'Data de vencimento', value: due, bold: true, align: 'right' }]); y += H;
+    row(y, H, [{ w: 285, label: 'Beneficiário', value: cfg.beneficiary }, { w: 110, label: 'CPF/CNPJ do beneficiário', value: cfg.document }, { w: 120, label: 'Agência / Código beneficiário', value: cfg.agency }]); y += H;
+    row(y, H, [
+      { w: 80, label: 'Data do documento', value: dayBr(invoice.createdAt) }, { w: 95, label: 'Nº do documento', value: invoiceNumber(invoice.id) },
+      { w: 55, label: 'Espécie doc.', value: cfg.species }, { w: 40, label: 'Aceite', value: cfg.accept },
+      { w: 125, label: 'Data processamento', value: dayBr(invoice.createdAt) }, { w: 120, label: 'Nosso número', value: payment.nossoNumero ?? '' },
+    ]); y += H;
+    row(y, H, [
+      { w: 80, label: 'Uso do banco' }, { w: 55, label: 'Carteira', value: cfg.wallet }, { w: 70, label: 'Espécie', value: 'REAL' },
+      { w: 100, label: 'Quantidade' }, { w: 90, label: 'Valor' }, { w: 120, label: '(=) Valor do documento', value: amount, bold: true, align: 'right' },
+    ]); y += H;
+
+    // instruções (esquerda) e acréscimos (direita)
+    const instrH = 104;
+    cell(L, y, 395, instrH, 'Instruções (texto de responsabilidade do beneficiário)');
+    const instructions = [invoice.description ?? '', invoice.invoiceUrl ? `Fatura disponível em: ${invoice.invoiceUrl.replace(/^https?:\/\//, '')}` : ''].filter(Boolean);
+    doc.font('Helvetica').fontSize(8.5).fillColor(C.ink).text(instructions.join('\n'), L + 6, y + 14, { width: 383, height: instrH - 18 });
+    ['(-) Desconto / Abatimentos', '(-) Outras deduções', '(+) Mora / Multa', '(+) Outros acréscimos', '(=) Valor cobrado'].forEach((label, index) => cell(L + 395, y + index * (instrH / 5), 120, instrH / 5, label));
+    y += instrH;
+
+    // pagador
+    const payerH = 46;
+    cell(L, y, W, payerH, 'Pagador');
+    doc.font('Helvetica').fontSize(8.5).fillColor(C.ink).text(`${clientName}${clientDocument ? `, CNPJ/CPF: ${clientDocument}` : ''}`, L + 6, y + 13, { width: W - 12, lineBreak: false });
+    if (clientAddress) doc.font('Helvetica').fontSize(8).fillColor(C.gray).text(clientAddress, L + 6, y + 26, { width: W - 12, lineBreak: false });
+    y += payerH;
+
+    // código de barras
+    const barH = 58;
+    doc.rect(L, y, W, barH).lineWidth(0.7).strokeColor('#334155').stroke();
+    const { bars, total } = itfBars(barCode);
+    const unit = 292 / total; // 292 pt = 103 mm, a largura da norma do boleto
+    bars.forEach((bar) => doc.rect(L + 8 + bar.x * unit, y + 9, bar.width * unit, 40));
+    doc.fillColor('#000000').fill();
+    doc.font('Helvetica').fontSize(8).fillColor(C.ink).text('Autenticação mecânica', L + 320, y + 12, { width: 100, lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.ink).text('FICHA DE COMPENSAÇÃO', L + 320, y + 34, { width: W - 328, align: 'right', lineBreak: false });
+    y += barH + 10;
+
+    doc.font('Helvetica').fontSize(7.5).fillColor(C.mut).text(
+      bankCode === '461' ? 'Boleto registrado no Asaas Instituição de Pagamento S.A. (banco 461). O valor e o vencimento são os da fatura; confira o beneficiário no seu aplicativo antes de pagar.' : `Boleto registrado no banco ${bankCode}. Confira o beneficiário no seu aplicativo antes de pagar.`,
+      L, y, { width: W },
+    );
   }
 
   async render(input: InvoicePdfInput): Promise<Buffer> {
@@ -257,6 +352,7 @@ export class InvoicePdfService {
     y += totalH + 22;
 
     // ---------- situação / como pagar ----------
+    let slipPending = false;
     const notice = (title: string, lines: string[], fg: string, bg: string, link?: string) => {
       doc.font('Helvetica').fontSize(9);
       const textH = lines.reduce((sum, line) => sum + doc.heightOfString(line, { width: W - 28 }) + 3, 0);
@@ -285,60 +381,34 @@ export class InvoicePdfService {
         invoice.invoiceUrl ? 'Pix, boleto ou cartão: use o link abaixo. O pagamento é confirmado automaticamente.' : 'O link de pagamento será disponibilizado em instantes. Em caso de dúvida, fale com o suporte.',
       ], overdue ? C.bad : C.warn, overdue ? C.badBg : C.warnBg, invoice.invoiceUrl ?? undefined);
 
-      // Pagar direto pelo PDF: QR Code e copia e cola do Pix, linha digitável e código de barras do boleto.
+      // Pagar direto pelo PDF: Pix (QR Code e copia e cola) e, quando existe boleto, a linha digitável (a ficha completa vai na página 2).
       const hasPix = Boolean(payment?.pixPayload);
-      const hasBoleto = Boolean(payment?.boletoLine || payment?.barCode);
-      if (payment && (hasPix || hasBoleto)) {
-        const panelGap = 12;
-        const pixW = hasBoleto ? 190 : W;
-        const boletoW = hasPix ? W - pixW - panelGap : W;
-        const pixTextW = hasBoleto ? pixW - 24 : pixW - 132;
+      const hasBoletoLine = Boolean(payment?.boletoLine || payment?.barCode);
+      slipPending = Boolean(payment?.barCode && payment.barCode.length === 44);
 
+      if (payment && hasPix) {
+        const pixTextW = W - 132;
         doc.font('Courier').fontSize(6.3);
-        const payloadH = hasPix ? doc.heightOfString(payment.pixPayload!, { width: pixTextW }) : 0;
-        const pixNeed = hasBoleto ? 26 + 102 + 12 + payloadH + 14 : Math.max(26 + 96, 26 + 12 + payloadH) + 14;
-        const boletoNeed = 26 + 12 + 28 + 52 + (payment.bankSlipUrl ? 28 : 8) + 8;
-        const panelH = Math.max(hasPix ? pixNeed : 0, hasBoleto ? boletoNeed : 0);
-        const panel = (x: number, w: number, title: string) => {
-          doc.roundedRect(x, y, w, panelH, 8).lineWidth(0.8).fillAndStroke('#ffffff', C.line);
-          doc.font('Helvetica-Bold').fontSize(7.5).fillColor(C.brand).text(title, x + 12, y + 11, { lineBreak: false, characterSpacing: 0.8 });
-        };
-
-        if (hasPix) {
-          panel(L, pixW, 'PAGUE COM PIX');
-          const top = y + 26;
-          if (payment.pixQrImage) {
-            try { doc.image(Buffer.from(payment.pixQrImage, 'base64'), L + 12, top, { width: 96 }); } catch { /* QR ilegível: segue só com o copia e cola */ }
-          }
-          const textX = hasBoleto ? L + 12 : L + 120;
-          const textY = hasBoleto ? top + 102 : top;
-          doc.font('Helvetica-Bold').fontSize(8).fillColor(C.ink).text('Pix copia e cola', textX, textY, { width: pixTextW, lineBreak: false });
-          doc.font('Courier').fontSize(6.3).fillColor(C.gray).text(payment.pixPayload!, textX, textY + 12, { width: pixTextW });
+        const payloadH = doc.heightOfString(payment.pixPayload!, { width: pixTextW });
+        const panelH = Math.max(26 + 96, 26 + 12 + payloadH) + 14;
+        doc.roundedRect(L, y, W, panelH, 8).lineWidth(0.8).fillAndStroke('#ffffff', C.line);
+        doc.font('Helvetica-Bold').fontSize(7.5).fillColor(C.brand).text('PAGUE COM PIX', L + 12, y + 11, { lineBreak: false, characterSpacing: 0.8 });
+        const top = y + 26;
+        if (payment.pixQrImage) {
+          try { doc.image(Buffer.from(payment.pixQrImage, 'base64'), L + 12, top, { width: 96 }); } catch { /* QR ilegível: segue só com o copia e cola */ }
         }
+        doc.font('Helvetica-Bold').fontSize(8).fillColor(C.ink).text('Pix copia e cola', L + 120, top, { width: pixTextW, lineBreak: false });
+        doc.font('Courier').fontSize(6.3).fillColor(C.gray).text(payment.pixPayload!, L + 120, top + 12, { width: pixTextW });
+        y += panelH + 12;
+      }
 
-        if (hasBoleto) {
-          const bx = hasPix ? L + pixW + panelGap : L;
-          panel(bx, boletoW, 'BOLETO BANCÁRIO');
-          let by = y + 26;
-          if (payment.boletoLine) {
-            doc.font('Helvetica-Bold').fontSize(8).fillColor(C.ink).text('Linha digitável', bx + 12, by, { width: boletoW - 24, lineBreak: false });
-            doc.font('Helvetica-Bold').fontSize(9).fillColor(C.ink).text(payment.boletoLine, bx + 12, by + 12, { width: boletoW - 24, lineBreak: false });
-            by += 32;
-          }
-          if (payment.barCode && payment.barCode.length === 44) {
-            const { bars, total } = itfBars(payment.barCode);
-            const barsW = Math.min(boletoW - 24, 292); // 292 pt = 103 mm, a largura da norma do boleto
-            const unit = barsW / total;
-            bars.forEach((bar) => doc.rect(bx + 12 + bar.x * unit, by + 6, bar.width * unit, 40));
-            doc.fillColor('#000000').fill();
-            by += 54;
-          }
-          if (payment.bankSlipUrl) {
-            doc.font('Helvetica').fontSize(8).fillColor(C.mut).text('Boleto em PDF:', bx + 12, by, { lineBreak: false });
-            doc.font('Helvetica').fontSize(7.5).fillColor(C.brand).text(payment.bankSlipUrl, bx + 12, by + 11, { width: boletoW - 24, link: payment.bankSlipUrl, underline: true, lineBreak: false });
-          }
-        }
-        y += panelH + 14;
+      if (payment && hasBoletoLine) {
+        const stripH = 50;
+        doc.roundedRect(L, y, W, stripH, 8).lineWidth(0.8).fillAndStroke('#ffffff', C.line);
+        doc.font('Helvetica-Bold').fontSize(7.5).fillColor(C.brand).text('BOLETO BANCÁRIO', L + 12, y + 11, { lineBreak: false, characterSpacing: 0.8 });
+        if (payment.boletoLine) doc.font('Helvetica-Bold').fontSize(10).fillColor(C.ink).text(payment.boletoLine, L + 12, y + 24, { width: W - 24, lineBreak: false });
+        if (slipPending) doc.font('Helvetica').fontSize(7.8).fillColor(C.mut).text('Ficha de compensação com código de barras na página 2.', L + 12, y + 38, { width: W - 24, lineBreak: false });
+        y += stripH + 12;
       }
     }
 
@@ -346,6 +416,12 @@ export class InvoicePdfService {
       doc.font('Helvetica-Bold').fontSize(9).fillColor(C.ink).text(`Nota fiscal de serviço${invoice.invoiceNumber ? ` nº ${invoice.invoiceNumber}` : ''}${invoice.invoiceSeries ? ` (série ${invoice.invoiceSeries})` : ''}`, L, y, { width: W });
       y = doc.y + 2;
       if (invoice.fiscalPdfUrl) doc.font('Helvetica').fontSize(8.5).fillColor(C.brand).text(invoice.fiscalPdfUrl, L, y, { width: W, link: invoice.fiscalPdfUrl, underline: true, lineBreak: false });
+    }
+
+    // ---------- página 2: ficha de compensação do boleto ----------
+    if (slipPending && payment) {
+      doc.addPage();
+      this.drawBoletoSlip(doc, { invoice, payment, clientName, clientDocument: formatDocument(company.document), clientAddress });
     }
 
     // ---------- rodapé em todas as páginas ----------
