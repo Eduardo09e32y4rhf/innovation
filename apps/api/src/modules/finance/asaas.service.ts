@@ -1,4 +1,4 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface AsaasPayment {
@@ -18,6 +18,9 @@ export interface AsaasPayment {
   transactionReceiptUrl?: string;
   externalReference?: string;
 }
+
+/** O Asaas entendeu o pedido e RECUSOU (dado inválido, valor mínimo...). Diferente de falha de rede: nada foi criado lá. */
+export class AsaasRejectedException extends BadRequestException {}
 
 interface AsaasListResponse<T> {
   data: T[];
@@ -91,11 +94,13 @@ export class AsaasService {
           ? (data as any).errors.map((item: any) => item.description).filter(Boolean).join('; ')
           : response.statusText;
         this.logger.error(`Asaas ${response.status}: ${JSON.stringify(data)}`);
+        // 400/404/422 com lista de erros = recusa definitiva. 401/403 (chave errada), 429 e 5xx continuam como indisponibilidade.
+        if ([400, 404, 422].includes(response.status) && Array.isArray((data as any)?.errors) && message) throw new AsaasRejectedException(`Asaas recusou: ${message}`);
         throw new ServiceUnavailableException(`Asaas: ${message || 'falha na requisicao'}`);
       }
       return data as T;
     } catch (error) {
-      if (error instanceof ServiceUnavailableException) throw error;
+      if (error instanceof ServiceUnavailableException || error instanceof AsaasRejectedException) throw error;
       this.logger.error(`Falha ao se comunicar com o Asaas: ${String(error)}`);
       throw new ServiceUnavailableException('Não foi possível comunicar com o Asaas. Tente novamente.');
     }

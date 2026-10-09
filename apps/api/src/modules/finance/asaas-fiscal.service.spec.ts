@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { AsaasFiscalService } from './asaas-fiscal.service';
-import { AsaasService } from './asaas.service';
+import { AsaasRejectedException, AsaasService } from './asaas.service';
 
 const ON = { ASAAS_NFSE_ENABLED: 'true', ASAAS_NFSE_SERVICE_ID: 'svc-1', ASAAS_NFSE_ISS: '2' };
 
@@ -67,6 +67,29 @@ describe('AsaasFiscalService', () => {
     const out = await service.ensureForInvoice('inv-1');
     expect(out).toMatchObject({ result: 'FAILED', message: 'Asaas: servico municipal invalido' });
     expect(prisma.platformInvoice.update).toHaveBeenCalledWith(expect.objectContaining({ data: { invoiceStatus: 'ERROR', nfeStatus: 'ERROR' } }));
+  });
+});
+
+describe('AsaasService: recusa definitiva x indisponibilidade', () => {
+  const make = () => new AsaasService({ get: (k: string) => (k === 'ASAAS_API_KEY' ? '$aact_hmlg_x' : undefined) } as never);
+  const reply = (status: number, body: unknown) => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status, statusText: 'x', json: async () => body }));
+
+  it('400 com lista de erros vira AsaasRejectedException com o motivo', async () => {
+    reply(400, { errors: [{ code: 'invalid_object', description: 'O CPF/CNPJ informado é inválido.' }] });
+    const error = await make().createCustomer({ name: 'X', cpfCnpj: '1' }).catch((e) => e);
+    expect(error).toBeInstanceOf(AsaasRejectedException);
+    expect(error.message).toBe('Asaas recusou: O CPF/CNPJ informado é inválido.');
+    vi.unstubAllGlobals();
+  });
+
+  it('401 (chave errada) e 500 continuam como indisponibilidade, nunca como recusa', async () => {
+    for (const status of [401, 500]) {
+      reply(status, { errors: [{ description: 'falha' }] });
+      const error = await make().getCharge('pay_1').catch((e) => e);
+      expect(error).not.toBeInstanceOf(AsaasRejectedException);
+      expect(error.getStatus()).toBe(503);
+    }
+    vi.unstubAllGlobals();
   });
 });
 

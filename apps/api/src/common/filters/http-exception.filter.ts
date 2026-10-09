@@ -87,8 +87,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest();
     const mapped = mapException(exception);
 
+    // 503 escrito de propósito (ex.: "Concilie ou cancele a cobrança...") orienta quem opera: mostra a mensagem em vez da genérica.
+    const operational = mapped.status === 503 && exception instanceof HttpException && typeof mapped.body.message === 'string'
+      && mapped.body.message !== friendlyGeneric(503, 'service unavailable');
+
     let requestId: string | undefined;
-    if (mapped.status >= 500) {
+    if (operational) {
+      this.logger.warn(`${request?.method} ${request?.url} -> 503: ${String(mapped.body.message)}`);
+    } else if (mapped.status >= 500) {
       requestId = randomBytes(4).toString('hex');
       const detail = exception instanceof Error ? exception.stack ?? exception.message : String(exception);
       this.logger.error(`[${requestId}] ${request?.method} ${request?.url} -> ${mapped.status}\n${detail}`);

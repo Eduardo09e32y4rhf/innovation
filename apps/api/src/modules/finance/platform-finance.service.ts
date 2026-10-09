@@ -5,7 +5,7 @@ type InvoiceStatus = $Enums.InvoiceStatus;
 const InvoiceStatus = $Enums.InvoiceStatus;
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
-import { AsaasPayment, AsaasService } from './asaas.service';
+import { AsaasPayment, AsaasRejectedException, AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
 import { MercadoPagoService } from './mercadopago.service';
 import { couponDiscount } from '../coupons/coupon-rules';
@@ -1349,6 +1349,12 @@ export class PlatformFinanceService {
         paidAt: this.isPaid(payment.status) ? new Date() : null,
       }, include });
     } catch (error) {
+      if (error instanceof AsaasRejectedException) {
+        // Recusa definitiva: nada existe no Asaas. Desfaz a reserva (libera a chave) e mostra o motivo a quem criou a cobrança.
+        await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: 'CANCELED', paymentProcessingStatus: 'FAILED', chargeRequestKey: null, deletedAt: new Date() } }).catch(() => undefined);
+        this.logger.warn(`Cobrança ${invoice.id} recusada pelo Asaas: ${error.message}`);
+        throw error;
+      }
       await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { paymentProcessingStatus: 'UNKNOWN' } }).catch(() => undefined);
       // A mensagem do Asaas ("valor mínimo", "CPF/CNPJ inválido"...) é o que explica por que a cobrança não nasceu.
       this.logger.warn(`Cobrança ${invoice.id} precisa de conciliação: ${error instanceof Error ? `${error.name}: ${error.message}` : 'erro externo'}`);
@@ -1476,7 +1482,8 @@ export class PlatformFinanceService {
   async remove(id: string, actor?: JwtUser) {
     const invoice = await this.findActive(id);
     if (invoice.status !== 'OPEN' && invoice.status !== 'OVERDUE') throw new BadRequestException('Somente faturas não pagas podem ser canceladas.');
-    if (invoice.mpPaymentId || invoice.mpPreferenceId) throw new ServiceUnavailableException('Concilie ou cancele a cobrança no Mercado Pago antes de cancelar a fatura.');
+    // Com o Mercado Pago sem credencial não há como conciliar nem cancelar lá; só um pagamento já criado (mpPaymentId) ainda bloqueia.
+    if (invoice.mpPaymentId || (invoice.mpPreferenceId && this.mercadoPago.isConfigured())) throw new ServiceUnavailableException('Concilie ou cancele a cobrança no Mercado Pago antes de cancelar a fatura.');
     if (invoice.asaasPaymentId) {
       if (!this.asaas.isConfigured()) throw new ServiceUnavailableException('Não foi possível confirmar o cancelamento com o Asaas.');
       try { await this.asaas.deleteCharge(invoice.asaasPaymentId); }
