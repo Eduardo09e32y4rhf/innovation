@@ -93,6 +93,31 @@ describe('AsaasService: recusa definitiva x indisponibilidade', () => {
   });
 });
 
+describe('AsaasService.createCharge: conta sem site cadastrado', () => {
+  const domainError = { ok: false, status: 400, statusText: 'x', json: async () => ({ errors: [{ description: 'Não há nenhum domínio configurado em sua conta. Cadastre um site em Minha Conta na aba Informações.' }] }) };
+  const ok = { ok: true, status: 200, json: async () => ({ id: 'pay_1', customer: 'cus_1', value: 20, dueDate: '2026-10-09' }) };
+  const make = () => new AsaasService({ get: (k: string) => ({ ASAAS_API_KEY: '$aact_hmlg_x', APP_URL: 'https://innovationia.com.br' } as Record<string, string>)[k] } as never);
+  const charge = { value: 20, dueDate: '2026-10-09', description: 'x' };
+
+  it('repete sem redirecionamento quando o Asaas reclama do domínio, e a cobrança nasce', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(domainError).mockResolvedValueOnce(ok);
+    vi.stubGlobal('fetch', fetchMock);
+    const payment = await make().createCharge('cus_1', charge);
+    expect(payment.id).toBe('pay_1');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).callback).toBeDefined();
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).callback).toBeUndefined();
+    vi.unstubAllGlobals();
+  });
+
+  it('outras recusas (ex.: CPF/CNPJ) não são repetidas', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400, statusText: 'x', json: async () => ({ errors: [{ description: 'O CPF/CNPJ informado é inválido.' }] }) });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(make().createCharge('cus_1', charge)).rejects.toBeInstanceOf(AsaasRejectedException);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+});
+
 describe('AsaasService.updateSubscription', () => {
   it('mudanca de valor tambem atualiza a cobranca ja gerada (updatePendingPayments)', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'sub_1' }) });

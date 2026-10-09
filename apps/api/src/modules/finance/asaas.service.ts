@@ -128,11 +128,11 @@ export class AsaasService {
     });
   }
 
-  createCharge(customerId: string, data: { value: number; dueDate: string; description: string; billingType?: string; externalReference?: string; successPath?: string }) {
+  async createCharge(customerId: string, data: { value: number; dueDate: string; description: string; billingType?: string; externalReference?: string; successPath?: string }) {
     const callback = this.appUrl
       ? { successUrl: `${this.appUrl}${data.successPath || '/login?payment=success'}`, autoRedirect: true }
       : undefined;
-    return this.request<AsaasPayment>('/payments', {
+    const send = (withCallback: boolean) => this.request<AsaasPayment>('/payments', {
       method: 'POST',
       body: JSON.stringify({
         customer: customerId,
@@ -141,9 +141,20 @@ export class AsaasService {
         dueDate: data.dueDate,
         description: data.description,
         externalReference: data.externalReference,
-        ...(callback ? { callback } : {}),
+        ...(withCallback && callback ? { callback } : {}),
       }),
     });
+    try {
+      return await send(true);
+    } catch (error) {
+      // O redirecionamento pós-pagamento só funciona com o site cadastrado na conta do Asaas (Minha Conta > Informações).
+      // Sem ele, a cobrança sai igual, só que sem voltar sozinho ao sistema: não vale perder a cobrança por isso.
+      if (callback && error instanceof AsaasRejectedException && /dom[ií]nio|site/i.test(error.message)) {
+        this.logger.warn('Asaas sem site cadastrado: cobranca criada sem redirecionamento. Cadastre o site em Minha Conta > Informacoes.');
+        return send(false);
+      }
+      throw error;
+    }
   }
 
   findChargesByReference(invoiceId: string) {
