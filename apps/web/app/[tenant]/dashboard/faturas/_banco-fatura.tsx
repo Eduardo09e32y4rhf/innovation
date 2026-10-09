@@ -31,6 +31,7 @@ export default function FaturaDrawer({ invoice, canRefund, onClose, onChanged }:
   const [refunding, setRefunding] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     setData(null); setError(null); setRefunding(false); setReason('');
@@ -41,6 +42,14 @@ export default function FaturaDrawer({ invoice, canRefund, onClose, onChanged }:
       .catch((e) => { if (alive) setError(e instanceof ApiError ? e.message : 'Não foi possível carregar os detalhes da fatura.'); });
     return () => { alive = false; };
   }, [invoice]);
+
+  async function downloadPdf() {
+    if (!invoice) return;
+    setDownloading(true);
+    try { await api.faturas.empresaFaturaPdf(invoice.id); }
+    catch (err) { toast.error(err instanceof ApiError ? err.message : 'Não foi possível baixar a fatura. Tente novamente.'); }
+    finally { setDownloading(false); }
+  }
 
   async function requestRefund(e: React.FormEvent) {
     e.preventDefault();
@@ -70,6 +79,10 @@ export default function FaturaDrawer({ invoice, canRefund, onClose, onChanged }:
             <p className="mt-1 text-3xl font-black tabular-nums">{money(invoice.amount)}</p>
             {invoice.status === 'PAID' && <p className="mt-1 text-xs text-white/70">Paga em {shortDate(invoice.paidAt ?? invoice.dueDate)}</p>}
           </div>
+
+          <button type="button" disabled={downloading} onClick={() => void downloadPdf()} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-line px-4 text-sm font-semibold text-fg hover:bg-black/5 disabled:opacity-60">
+            {downloading ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Download size={16} aria-hidden="true" />} Baixar fatura (PDF)
+          </button>
 
           {!data && !error && <p className="flex items-center gap-2 text-sm text-fg-sub"><Loader2 size={16} className="animate-spin" aria-hidden="true" /> Buscando os dados de pagamento…</p>}
           {error && <p role="alert" className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm font-medium text-rose-800">{error}</p>}

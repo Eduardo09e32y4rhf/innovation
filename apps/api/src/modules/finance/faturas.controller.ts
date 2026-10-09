@@ -14,6 +14,8 @@ import { CreatePlatformInvoiceDto } from './dto/platform-finance.dto';
 import { FaturasAcoesService } from './faturas-acoes.service';
 import { FaturasEmpresaService } from './faturas-empresa.service';
 import { FaturasService } from './faturas.service';
+import { InvoicePdfService } from './invoice-pdf.service';
+import { sendPdf } from '../../common/pdf/pdf-response';
 import { PlatformFinanceService } from './platform-finance.service';
 
 /**
@@ -33,6 +35,7 @@ export class FaturasController {
     private readonly faturas: FaturasService,
     private readonly acoes: FaturasAcoesService,
     private readonly empresa: FaturasEmpresaService,
+    private readonly pdf: InvoicePdfService,
   ) {}
 
   // ---- Visão da empresa ----
@@ -71,6 +74,14 @@ export class FaturasController {
   @RequireFaturasPermission('faturas.ver')
   detalhes(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.empresa.detalhes(companyId, id);
+  }
+
+  /** PDF da fatura para o cliente baixar (só faturas da própria empresa). */
+  @Get('empresa/invoices/:id/pdf')
+  @RequireFaturasPermission('faturas.ver')
+  async empresaPdf(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string, @Res() res: import('express').Response) {
+    const { buffer, filename } = await this.pdf.forInvoice(id, companyId);
+    return sendPdf(res, buffer, filename);
   }
 
   // Pedir reembolso e decisao do administrador da empresa (faturas.plano): o RH paga, mas nao pede reembolso.
@@ -143,6 +154,14 @@ export class FaturasController {
   @RequireFaturasPermission('faturas.todas_empresas')
   companyInvoices(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string) {
     return this.service.listCompanyInvoices(companyId, actor.role === 'COMERCIAL' ? actor.sub : undefined);
+  }
+
+  @Get('plataforma/invoices/:id/pdf')
+  @RequireFaturasPermission('faturas.todas_empresas')
+  async plataformaPdf(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Res() res: import('express').Response) {
+    await this.acoes.assertInvoiceAccess(actor, id); // Comercial só vê a própria carteira
+    const { buffer, filename } = await this.pdf.forInvoice(id);
+    return sendPdf(res, buffer, filename);
   }
 
   @Get('plataforma/companies/:companyId/adjustments')

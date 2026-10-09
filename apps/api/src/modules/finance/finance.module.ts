@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { AsaasService } from './asaas.service';
 import { AsaasFiscalService } from './asaas-fiscal.service';
+import { InvoicePdfService } from './invoice-pdf.service';
 import { AsaasWebhookController } from './asaas-webhook.controller';
 import { AsaasWebhookProcessorService, AsaasWebhookWorker } from './asaas-webhook.processor';
 import { BillingCronService } from './billing-cron.service';
@@ -36,6 +37,7 @@ import { TimeTrackModule } from '../time-track/time-track.module';
   providers: [
     AsaasService,
     AsaasFiscalService,
+    InvoicePdfService,
     MercadoPagoService,
     PaymentProviderService,
     AsaasWebhookProcessorService,

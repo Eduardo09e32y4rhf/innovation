@@ -42,6 +42,11 @@ export class FaturasAcoesService {
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
   }
 
+  /** Garante que o usuário pode ver a fatura (Comercial só da própria carteira). */
+  async assertInvoiceAccess(actor: JwtUser, invoiceId: string) {
+    await this.invoiceFor(actor, invoiceId);
+  }
+
   private async invoiceFor(actor: JwtUser, invoiceId: string) {
     const invoice = await this.prisma.platformInvoice.findFirst({ where: { id: invoiceId, deletedAt: null } });
     if (!invoice) throw new NotFoundException('Fatura nao encontrada.');
