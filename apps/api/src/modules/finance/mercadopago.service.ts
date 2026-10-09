@@ -172,6 +172,19 @@ export class MercadoPagoService {
     return list.find((p) => p.status === 'approved') ?? list[0] ?? null;
   }
 
+  /** Cancela um pagamento ainda não concluído (pendente / em processamento). */
+  cancelPayment(paymentId: string | number) {
+    return this.request<MercadoPagoPayment>(`/v1/payments/${encodeURIComponent(String(paymentId))}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
+  }
+
+  /** Expira o link de pagamento para ninguém conseguir pagar uma fatura já cancelada. */
+  expirePreference(preferenceId: string) {
+    return this.request<MercadoPagoPreference>(`/checkout/preferences/${encodeURIComponent(preferenceId)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ expires: true, expiration_date_to: new Date().toISOString() }),
+    });
+  }
+
   getRefunds(paymentId: string | number) {
     return this.request<Array<{ id: number; status: string; amount: number; description?: string }>>(`/v1/payments/${encodeURIComponent(String(paymentId))}/refunds`);
   }

@@ -1479,11 +1479,35 @@ export class PlatformFinanceService {
     return updated;
   }
 
+  /**
+   * Antes de cancelar uma fatura do Mercado Pago, olha o estado REAL do pagamento lá: recusado/cancelado/expirado não bloqueia,
+   * pendente é cancelado no provedor, aprovado manda sincronizar. O link é expirado para ninguém pagar uma fatura cancelada.
+   * Ter um mpPaymentId gravado (por uma sincronização) não significa que existe dinheiro envolvido.
+   */
+  private async releaseMercadoPago(invoice: { id: string; mpPaymentId: string | null; mpPreferenceId: string | null }) {
+    if (!invoice.mpPaymentId && !invoice.mpPreferenceId) return;
+    if (!this.mercadoPago.isConfigured()) return;
+    let payment: Awaited<ReturnType<MercadoPagoService['findPaymentForInvoice']>> = null;
+    try {
+      payment = await this.mercadoPago.findPaymentForInvoice(invoice.id, invoice.mpPaymentId);
+    } catch (error) {
+      if (!(error instanceof NotFoundException)) throw new ServiceUnavailableException('Não foi possível consultar o Mercado Pago agora. Tente cancelar de novo em instantes.');
+    }
+    if (payment) {
+      const state = String(payment.status);
+      if (state === 'approved' || state === 'authorized') throw new BadRequestException('O Mercado Pago mostra este pagamento como aprovado. Clique em Sincronizar para marcar a fatura como paga em vez de cancelar.');
+      if (['pending', 'in_process', 'in_mediation'].includes(state)) {
+        try { await this.mercadoPago.cancelPayment(payment.id); }
+        catch { throw new ServiceUnavailableException(`Existe um pagamento "${state}" no Mercado Pago que não pôde ser cancelado agora. Aguarde ele terminar e tente de novo.`); }
+      }
+    }
+    if (invoice.mpPreferenceId) await this.mercadoPago.expirePreference(invoice.mpPreferenceId).catch((error) => this.logger.warn(`Link ${invoice.mpPreferenceId} não expirou: ${String(error)}`));
+  }
+
   async remove(id: string, actor?: JwtUser) {
     const invoice = await this.findActive(id);
     if (invoice.status !== 'OPEN' && invoice.status !== 'OVERDUE') throw new BadRequestException('Somente faturas não pagas podem ser canceladas.');
-    // Com o Mercado Pago sem credencial não há como conciliar nem cancelar lá; só um pagamento já criado (mpPaymentId) ainda bloqueia.
-    if (invoice.mpPaymentId || (invoice.mpPreferenceId && this.mercadoPago.isConfigured())) throw new ServiceUnavailableException('Concilie ou cancele a cobrança no Mercado Pago antes de cancelar a fatura.');
+    await this.releaseMercadoPago(invoice);
     if (invoice.asaasPaymentId) {
       if (!this.asaas.isConfigured()) throw new ServiceUnavailableException('Não foi possível confirmar o cancelamento com o Asaas.');
       try { await this.asaas.deleteCharge(invoice.asaasPaymentId); }
