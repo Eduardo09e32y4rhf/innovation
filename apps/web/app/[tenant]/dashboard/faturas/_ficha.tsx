@@ -88,7 +88,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
         }
         case 'seats': {
           const r = await api.faturas.changeSeats(company.id, { seatQuantity: Math.trunc(num('seats')), reason });
-          toast.success(r.prorationAmount > 0 ? `Upgrade aplicado. Rateio cobrado: ${brl(r.prorationAmount)}` : r.scheduled ? 'Redução agendada para o próximo ciclo.' : 'Alteração aplicada.'); break;
+          toast.success(r.prorationAmount > 0 ? (r.prorationMerged ? `Upgrade aplicado. Rateio de ${brl(r.prorationAmount)} somado à próxima fatura.` : `Upgrade aplicado. Rateio cobrado em fatura separada: ${brl(r.prorationAmount)}`) : r.scheduled ? 'Redução agendada para o próximo ciclo.' : 'Alteração aplicada.'); break;
         }
         case 'coupon': {
           const r = await api.faturas.applyCoupon(company.id, { code: text.code ?? '', reason });
@@ -108,7 +108,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
         }
         case 'plan': {
           const r = await api.faturas.changePlan(company.id, { planId, reason });
-          toast.success(r.scheduled ? 'Downgrade agendado para o próximo ciclo.' : r.prorationAmount > 0 ? `Plano alterado. Rateio cobrado: ${brl(r.prorationAmount)}` : 'Plano alterado.'); break;
+          toast.success(r.scheduled ? 'Downgrade agendado para o próximo ciclo.' : r.prorationAmount > 0 ? (r.prorationMerged ? `Plano alterado. Rateio de ${brl(r.prorationAmount)} somado à próxima fatura.` : `Plano alterado. Rateio cobrado em fatura separada: ${brl(r.prorationAmount)}`) : 'Plano alterado.'); break;
         }
         case 'discount':
           await api.faturas.discountInvoice(dialog.invoice.id, { kind, value: num('value'), reason }); toast.success('Desconto aplicado.'); break;
@@ -191,7 +191,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
           <button type="button" className="btn btn-outline text-sm" onClick={() => void calcQuote()} disabled={!text.seats}>Calcular rateio</button>
           {quote && (
             <p className="rounded-xl bg-black/5 p-3 text-sm text-fg">
-              {quote.kind === 'UPGRADE' && <>Upgrade vale agora. Rateio de {quote.remainingDays}/{quote.cycleDays} dias: <strong>{brl(quote.prorationAmount)}</strong>. Próximo ciclo: {brl(quote.nextTotal)}.</>}
+              {quote.kind === 'UPGRADE' && <>Upgrade vale agora. Rateio de {quote.remainingDays}/{quote.cycleDays} dias: <strong>{brl(quote.prorationAmount)}</strong>, somado à próxima fatura. Depois: {brl(quote.nextTotal)} por ciclo.</>}
               {quote.kind === 'DOWNGRADE' && <>Downgrade vale no próximo ciclo{quote.downgradeEffectiveAt ? ` (${new Date(quote.downgradeEffectiveAt).toLocaleDateString('pt-BR')})` : ''}, sem crédito. Passa a {brl(quote.nextTotal)}.</>}
               {quote.kind === 'SEM_MUDANCA' && <>Mesma quantidade de usuários.</>}
             </p>
@@ -201,7 +201,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
           <Field label="Novo plano"><select className={field} value={planId} onChange={(e) => void calcPlanQuote(e.target.value)} required><option value="">Selecione</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
           {planQuote && (
             <p className="rounded-xl bg-black/5 p-3 text-sm text-fg">
-              {planQuote.kind === 'UPGRADE' ? <>Upgrade vale agora. Rateio de {planQuote.remainingDays}/{planQuote.cycleDays} dias: <strong>{brl(planQuote.prorationAmount)}</strong>. Próximo ciclo: {brl(planQuote.nextTotal)}.</> : <>Downgrade vale no próximo ciclo{planQuote.effectiveAt ? ` (${new Date(planQuote.effectiveAt).toLocaleDateString('pt-BR')})` : ''}, sem crédito. Passa a {brl(planQuote.nextTotal)}.</>}
+              {planQuote.kind === 'UPGRADE' ? <>Upgrade vale agora. Rateio de {planQuote.remainingDays}/{planQuote.cycleDays} dias: <strong>{brl(planQuote.prorationAmount)}</strong>, somado à próxima fatura. Depois: {brl(planQuote.nextTotal)} por ciclo.</> : <>Downgrade vale no próximo ciclo{planQuote.effectiveAt ? ` (${new Date(planQuote.effectiveAt).toLocaleDateString('pt-BR')})` : ''}, sem crédito. Passa a {brl(planQuote.nextTotal)}.</>}
             </p>
           )}
         </>)}

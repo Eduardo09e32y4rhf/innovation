@@ -42,10 +42,10 @@ export default function CompanyPlanActions({ currentSeats, onDone }: { currentSe
     try {
       if (mode === 'seats') {
         const r = await api.faturas.empresaChangeSeats(Math.trunc(Number(seats)));
-        toast.success(r.prorationAmount > 0 ? `Usuários atualizados. Rateio gerado: ${brl(r.prorationAmount)} (veja em Em aberto).` : r.scheduled ? 'Redução agendada para o próximo ciclo.' : 'Alteração aplicada.');
+        toast.success(r.prorationAmount > 0 ? (r.prorationMerged ? `Usuários atualizados. Rateio de ${brl(r.prorationAmount)} somado à sua próxima fatura.` : `Usuários atualizados. Rateio gerado em fatura separada: ${brl(r.prorationAmount)} (veja em Em aberto).`) : r.scheduled ? 'Redução agendada para o próximo ciclo.' : 'Alteração aplicada.');
       } else {
         const r = await api.faturas.empresaChangePlan(planId);
-        toast.success(r.scheduled ? 'Downgrade agendado para o próximo ciclo.' : r.prorationAmount > 0 ? `Plano alterado. Rateio gerado: ${brl(r.prorationAmount)} (veja em Em aberto).` : 'Plano alterado.');
+        toast.success(r.scheduled ? 'Downgrade agendado para o próximo ciclo.' : r.prorationAmount > 0 ? (r.prorationMerged ? `Plano alterado. Rateio de ${brl(r.prorationAmount)} somado à sua próxima fatura.` : `Plano alterado. Rateio gerado em fatura separada: ${brl(r.prorationAmount)} (veja em Em aberto).`) : 'Plano alterado.');
       }
       onDone();
       close();
@@ -74,7 +74,7 @@ export default function CompanyPlanActions({ currentSeats, onDone }: { currentSe
               <button type="button" className="btn btn-outline text-sm" disabled={!seats} onClick={() => void quoteSeats()}>Calcular valor</button>
               {seatQuote && (
                 <p className="rounded-xl bg-black/5 p-3 text-sm text-fg">
-                  {seatQuote.kind === 'UPGRADE' && <>Vale agora. Rateio de {seatQuote.remainingDays}/{seatQuote.cycleDays} dias: <strong>{brl(seatQuote.prorationAmount)}</strong>. A partir do próximo ciclo: {brl(seatQuote.nextTotal)}.</>}
+                  {seatQuote.kind === 'UPGRADE' && <>Vale agora. Rateio de {seatQuote.remainingDays}/{seatQuote.cycleDays} dias: <strong>{brl(seatQuote.prorationAmount)}</strong>, somado à sua próxima fatura. Depois: {brl(seatQuote.nextTotal)} por ciclo.</>}
                   {seatQuote.kind === 'DOWNGRADE' && <>Vale no próximo ciclo{seatQuote.downgradeEffectiveAt ? ` (${new Date(seatQuote.downgradeEffectiveAt).toLocaleDateString('pt-BR')})` : ''}, sem crédito. Passa a {brl(seatQuote.nextTotal)}.</>}
                   {seatQuote.kind === 'SEM_MUDANCA' && <>Mesma quantidade de usuários.</>}
                 </p>
@@ -88,7 +88,7 @@ export default function CompanyPlanActions({ currentSeats, onDone }: { currentSe
               {planQuote && (
                 <p className="rounded-xl bg-black/5 p-3 text-sm text-fg">
                   {planQuote.kind === 'UPGRADE'
-                    ? <>Vale agora. Rateio de {planQuote.remainingDays}/{planQuote.cycleDays} dias: <strong>{brl(planQuote.prorationAmount)}</strong>. A partir do próximo ciclo: {brl(planQuote.nextTotal)}.</>
+                    ? <>Vale agora. Rateio de {planQuote.remainingDays}/{planQuote.cycleDays} dias: <strong>{brl(planQuote.prorationAmount)}</strong>, somado à sua próxima fatura. Depois: {brl(planQuote.nextTotal)} por ciclo.</>
                     : <>Vale no próximo ciclo{planQuote.effectiveAt ? ` (${new Date(planQuote.effectiveAt).toLocaleDateString('pt-BR')})` : ''}, sem crédito. Passa a {brl(planQuote.nextTotal)}.</>}
                 </p>
               )}

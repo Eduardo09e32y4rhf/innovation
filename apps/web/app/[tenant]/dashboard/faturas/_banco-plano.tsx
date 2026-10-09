@@ -24,7 +24,7 @@ function QuoteBox({ quote }: { quote: { kind: string; prorationAmount: number; r
     <div className="rounded-2xl border border-line bg-black/[0.03] p-4 text-sm text-fg">
       {quote.kind === 'UPGRADE' && <>
         <p className="font-semibold">Vale agora</p>
-        <p className="mt-1 text-fg-sub">Cobramos só a diferença dos {quote.remainingDays} dias que faltam do ciclo ({quote.remainingDays}/{quote.cycleDays}): <strong className="text-fg">{money(quote.prorationAmount)}</strong>. Uma fatura é gerada para pagar.</p>
+        <p className="mt-1 text-fg-sub">Cobramos só a diferença dos {quote.remainingDays} dias que faltam do ciclo ({quote.remainingDays}/{quote.cycleDays}): <strong className="text-fg">{money(quote.prorationAmount)}</strong>. Esse valor é somado à sua próxima fatura, sem boleto separado.</p>
         <p className="mt-2">A partir do próximo ciclo: <strong>{money(quote.nextTotal)}</strong> por mês.</p>
       </>}
       {quote.kind === 'DOWNGRADE' && <>
@@ -57,7 +57,7 @@ export function PlanModal({ onClose, onDone }: { onClose: () => void; onDone: ()
     setBusy(true);
     try {
       const r = await api.faturas.empresaChangePlan(selected);
-      toast.success(r.scheduled ? 'Troca agendada para o próximo ciclo.' : r.prorationAmount > 0 ? `Plano alterado. Fatura de ${money(r.prorationAmount)} gerada.` : 'Plano alterado.');
+      toast.success(r.scheduled ? 'Troca agendada para o próximo ciclo.' : r.prorationAmount > 0 ? (r.prorationMerged ? `Plano alterado. Rateio de ${money(r.prorationAmount)} somado à sua próxima fatura.` : `Plano alterado. Fatura de ${money(r.prorationAmount)} gerada.`) : 'Plano alterado.');
       onDone(); onClose();
     } catch (e) { fail(e, 'Não foi possível trocar de plano.'); } finally { setBusy(false); }
   }
@@ -115,7 +115,7 @@ export function SeatsModal({ current, used, onClose, onDone }: { current: number
     setBusy(true);
     try {
       const r = await api.faturas.empresaChangeSeats(seats);
-      toast.success(r.scheduled ? 'Redução agendada para o próximo ciclo.' : r.prorationAmount > 0 ? `Usuários atualizados. Fatura de ${money(r.prorationAmount)} gerada.` : 'Alteração aplicada.');
+      toast.success(r.scheduled ? 'Redução agendada para o próximo ciclo.' : r.prorationAmount > 0 ? (r.prorationMerged ? `Usuários atualizados. Rateio de ${money(r.prorationAmount)} somado à sua próxima fatura.` : `Usuários atualizados. Fatura de ${money(r.prorationAmount)} gerada.`) : 'Alteração aplicada.');
       onDone(); onClose();
     } catch (e) { fail(e, 'Não foi possível alterar os usuários.'); } finally { setBusy(false); }
   }

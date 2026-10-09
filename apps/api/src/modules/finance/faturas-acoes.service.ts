@@ -230,6 +230,41 @@ export class FaturasAcoesService {
     return this.finance.requestRefund(invoiceId, invoice.companyId, actor, reason, key);
   }
 
+  // ---------- rateio ----------
+
+  /**
+   * Cobra o rateio SOMANDO à próxima fatura da assinatura (um só boleto, sem fatura avulsa para o cliente se perder).
+   * Só soma em fatura aberta do Asaas gerada pela assinatura. Sem ela (ou no Mercado Pago, de valor fixo) cai numa cobrança separada.
+   * Deve rodar DEPOIS de atualizar o valor da assinatura: o Asaas já reprecificou a fatura pendente e o rateio entra por cima.
+   */
+  private async billProration(input: { companyId: string; planId?: string; amount: number; label: string }) {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const next = await this.prisma.platformInvoice.findFirst({
+      where: { companyId: input.companyId, deletedAt: null, status: 'OPEN', provider: 'ASAAS', asaasPaymentId: { not: null }, dueDate: { gte: today } },
+      orderBy: { dueDate: 'asc' },
+    });
+    if (next?.asaasPaymentId && this.asaas.isConfigured()) {
+      try {
+        // O valor vem do Asaas (já reprecificado pela mudança), não do banco local, que só atualiza quando o webhook chega.
+        const remote = await this.asaas.getCharge(next.asaasPaymentId);
+        if (remote.subscription && remote.status === 'PENDING') {
+          const amount = round2(Number(remote.value) + input.amount);
+          const description = `${(next.description ?? 'Mensalidade').split(' + rateio')[0]} + rateio ${input.label}`.slice(0, 480);
+          const invoice = await this.finance.update(next.id, { amount, description } as UpdatePlatformInvoiceDto);
+          return { invoice, merged: true as const };
+        }
+      } catch (error) {
+        this.logger.warn(`Rateio nao somado a fatura ${next.id}; sera cobrado a parte: ${String(error)}`);
+      }
+    }
+    const invoice = await this.finance.createCharge({
+      companyId: input.companyId, planId: input.planId, amount: input.amount, dueDate: new Date(Date.now() + 3 * DAY_MS).toISOString(), billingType: 'UNDEFINED', sendToAsaas: true,
+      description: `Rateio: ${input.label}`,
+    } as CreatePlatformInvoiceDto);
+    return { invoice, merged: false as const };
+  }
+
   // ---------- usuarios (upgrade/downgrade) com rateio ----------
 
   private async seatsContext(companyId: string, seatQuantity: number) {
@@ -267,18 +302,20 @@ export class FaturasAcoesService {
     const result = await this.finance.changeSeatQuantity(companyId, seatQuantity, actor);
 
     let invoice: { id: string; invoiceUrl?: string | null } | null = null;
+    let merged = false;
     if (result.changed && !result.scheduled && proration.amount > 0) {
-      const due = new Date(Date.now() + 3 * DAY_MS);
-      invoice = await this.finance.createCharge({
-        companyId, planId: sub.planId ?? undefined, amount: proration.amount, dueDate: due.toISOString(), billingType: 'UNDEFINED', sendToAsaas: true,
-        description: `Rateio de upgrade: ${previousSeats} para ${seatQuantity} usuarios (${proration.remainingDays} de ${proration.cycleDays} dias)`,
-      } as CreatePlatformInvoiceDto);
+      const billed = await this.billProration({
+        companyId, planId: sub.planId ?? undefined, amount: proration.amount,
+        label: `upgrade de ${previousSeats} para ${seatQuantity} usuarios (${proration.remainingDays} de ${proration.cycleDays} dias)`,
+      });
+      invoice = billed.invoice;
+      merged = billed.merged;
     }
     await this.record(actor, {
       companyId, invoiceId: invoice?.id, type: 'PRORATION', amount: invoice ? proration.amount : 0, reason,
-      metadata: { previousSeats, nextSeats: seatQuantity, scheduled: Boolean(result.scheduled), remainingDays: proration.remainingDays, cycleDays: proration.cycleDays },
+      metadata: { previousSeats, nextSeats: seatQuantity, scheduled: Boolean(result.scheduled), remainingDays: proration.remainingDays, cycleDays: proration.cycleDays, mergedIntoNextInvoice: merged },
     });
-    return { ...result, prorationAmount: invoice ? proration.amount : 0, prorationInvoice: invoice };
+    return { ...result, prorationAmount: invoice ? proration.amount : 0, prorationInvoice: invoice, prorationMerged: merged };
   }
 
   // ---------- troca de plano (mesmo ciclo) com rateio ----------
@@ -346,17 +383,20 @@ export class FaturasAcoesService {
     ]);
 
     let invoice: { id: string } | null = null;
+    let merged = false;
     if (proration.amount > 0) {
-      invoice = await this.finance.createCharge({
-        companyId, planId: next.id, amount: proration.amount, dueDate: new Date(Date.now() + 3 * DAY_MS).toISOString(), billingType: 'UNDEFINED', sendToAsaas: true,
-        description: `Rateio de upgrade para o plano ${next.name} (${proration.remainingDays} de ${proration.cycleDays} dias)`,
-      } as CreatePlatformInvoiceDto);
+      const billed = await this.billProration({
+        companyId, planId: next.id, amount: proration.amount,
+        label: `upgrade para o plano ${next.name} (${proration.remainingDays} de ${proration.cycleDays} dias)`,
+      });
+      invoice = billed.invoice;
+      merged = billed.merged;
     }
     await this.record(actor, {
       companyId, invoiceId: invoice?.id, type: 'PRORATION', amount: invoice ? proration.amount : 0, reason,
-      metadata: { kind: 'PLAN_UPGRADE', fromPlanId: sub.planId, toPlanId: next.id, remainingDays: proration.remainingDays, cycleDays: proration.cycleDays, providerSynced },
+      metadata: { kind: 'PLAN_UPGRADE', fromPlanId: sub.planId, toPlanId: next.id, remainingDays: proration.remainingDays, cycleDays: proration.cycleDays, providerSynced, mergedIntoNextInvoice: merged },
     });
-    return { scheduled: false, prorationAmount: invoice ? proration.amount : 0, providerSynced };
+    return { scheduled: false, prorationAmount: invoice ? proration.amount : 0, prorationMerged: merged, providerSynced };
   }
 
   // ---------- ativar assinatura (empresa sem assinatura / em teste) ----------
