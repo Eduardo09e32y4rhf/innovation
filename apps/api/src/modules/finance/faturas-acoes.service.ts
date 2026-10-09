@@ -99,6 +99,24 @@ export class FaturasAcoesService {
     return result;
   }
 
+  // ---------- boleto ----------
+
+  /**
+   * Converte uma cobrança "cliente escolhe" (ou só Pix) em BOLETO no Asaas. Só o tipo BOLETO tem linha digitável e código de barras:
+   * em "cliente escolhe" o boleto só nasce quando o cliente o escolhe na página do Asaas.
+   */
+  async convertToBoleto(invoiceId: string, actor: JwtUser) {
+    const invoice = await this.invoiceFor(actor, invoiceId);
+    if (invoice.status !== 'OPEN' && invoice.status !== 'OVERDUE') throw new BadRequestException('Só dá para gerar boleto de fatura em aberto ou vencida.');
+    if (invoice.provider === 'MERCADOPAGO' || !invoice.asaasPaymentId) throw new BadRequestException('Só cobranças do Asaas geram boleto. Esta fatura não tem cobrança no Asaas.');
+    if (invoice.billingType === 'BOLETO') return invoice;
+    const updated = await this.finance.update(invoiceId, { billingType: 'BOLETO' } as UpdatePlatformInvoiceDto);
+    await this.prisma.auditLog.create({
+      data: { companyId: invoice.companyId, userId: actor.sub, action: 'FATURAS_BILLING_TYPE_BOLETO', entity: 'PlatformInvoice', entityId: invoiceId, metadata: { previousType: invoice.billingType, actorEmail: actor.email } },
+    });
+    return updated;
+  }
+
   // ---------- nota fiscal (Asaas) ----------
 
   /** Emite (agenda) ou puxa do Asaas a NFS-e de uma fatura paga. Refaz a nota que deu erro ou foi cancelada. */

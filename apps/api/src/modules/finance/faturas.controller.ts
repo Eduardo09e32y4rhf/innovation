@@ -208,6 +208,13 @@ export class FaturasController {
     return this.acoes.attachFiscal(id, dto, actor);
   }
 
+  /** Troca a cobrança para BOLETO no Asaas (gera linha digitável e código de barras). */
+  @Post('plataforma/invoices/:id/gerar-boleto')
+  @RequireFaturasPermission('faturas.cobrar')
+  gerarBoleto(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.acoes.convertToBoleto(id, actor);
+  }
+
   /** Emite ou puxa do Asaas a nota fiscal (NFS-e) de uma fatura paga. */
   @Post('plataforma/invoices/:id/nota-fiscal')
   @RequireFaturasPermission('faturas.nf_anexar')

@@ -72,27 +72,28 @@ describe('InvoicePdfService', () => {
       return new InvoicePdfService(config as never, prisma as never, { isConfigured: () => true, ...asaas } as never);
     };
 
-    it('cobrança BOLETO: busca a linha digitável, não o Pix', async () => {
+    it('cobrança BOLETO: busca a linha digitável e também o Pix do boleto', async () => {
       const asaas = {
         getCharge: vi.fn().mockResolvedValue({ billingType: 'BOLETO', bankSlipUrl: 'https://x/b.pdf' }),
         getIdentificationField: vi.fn().mockResolvedValue({ identificationField: BOLETO_LINE, barCode: BAR_CODE }),
-        getPixQrCode: vi.fn(),
+        getPixQrCode: vi.fn().mockResolvedValue({ payload: PIX, encodedImage: INVOICE_LOGO_PNG_BASE64 }),
       };
       const result = await build({ ...open, billingType: 'BOLETO' }, asaas).forInvoice(base.id);
       expect(result.buffer.subarray(0, 4).toString('latin1')).toBe('%PDF');
       expect(asaas.getIdentificationField).toHaveBeenCalled();
-      expect(asaas.getPixQrCode).not.toHaveBeenCalled();
+      expect(asaas.getPixQrCode).toHaveBeenCalled();
     });
 
-    it('"cliente escolhe": só o Pix (boleto ainda não existe)', async () => {
+    it('"cliente escolhe": tenta o boleto e o Pix; se o boleto ainda não existe, sai só com o Pix', async () => {
       const asaas = {
         getCharge: vi.fn().mockResolvedValue({ billingType: 'UNDEFINED' }),
-        getIdentificationField: vi.fn(),
+        getIdentificationField: vi.fn().mockRejectedValue(new Error('boleto ainda nao gerado')),
         getPixQrCode: vi.fn().mockResolvedValue({ payload: PIX, encodedImage: INVOICE_LOGO_PNG_BASE64 }),
       };
-      await build({ ...open, billingType: 'UNDEFINED' }, asaas).forInvoice(base.id);
+      const result = await build({ ...open, billingType: 'UNDEFINED' }, asaas).forInvoice(base.id);
+      expect(result.buffer.subarray(0, 4).toString('latin1')).toBe('%PDF');
       expect(asaas.getPixQrCode).toHaveBeenCalled();
-      expect(asaas.getIdentificationField).not.toHaveBeenCalled();
+      expect(asaas.getIdentificationField).toHaveBeenCalled();
     });
 
     it('se o cliente escolheu boleto no Asaas, vale o tipo de lá, não o gravado aqui', async () => {

@@ -997,6 +997,7 @@ export const api = {
     discountInvoice: (id: string, input: { kind: 'PERCENT' | 'FIXED'; value: number; reason: string }) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/discount`, { method: 'POST', body: input }),
     refundPartial: (id: string, input: { amount: number; reason: string; idempotencyKey?: string }) => request<PaymentRefund>(`/faturas/plataforma/invoices/${id}/refund-partial`, { method: 'POST', body: input }),
     refundFull: (id: string, reason: string, idempotencyKey?: string) => request<PaymentRefund>(`/faturas/plataforma/invoices/${id}/refund`, { method: 'POST', body: { reason, idempotencyKey } }),
+    gerarBoleto: (id: string) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/gerar-boleto`, { method: 'POST', timeoutMs: 30000 }),
     empresaFaturaPdf: (id: string) => downloadRequest(`/faturas/empresa/invoices/${id}/pdf`),
     faturaPdf: (id: string) => downloadRequest(`/faturas/plataforma/invoices/${id}/pdf`),
     providerHealth: () => request<{ active: 'ASAAS' | 'MERCADOPAGO'; providers: Record<'ASAAS' | 'MERCADOPAGO', { configured: boolean; mode: string; webhookSecret: boolean; requiredEnv: string[] }> }>('/finance/integrations/health', { timeoutMs: 20000 }),

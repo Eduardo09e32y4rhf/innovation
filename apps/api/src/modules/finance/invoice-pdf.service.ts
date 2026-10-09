@@ -90,9 +90,10 @@ export class InvoicePdfService {
     const charge = await attempt(this.asaas.getCharge(id));
     // O tipo muda quando o cliente escolhe a forma de pagamento na página do Asaas: vale o que está lá, não o que gravamos.
     const type = charge?.billingType ?? invoice.billingType;
+    // Boleto e "cliente escolhe" tentam os dois: o boleto do Asaas costuma trazer o Pix junto, e a linha digitável só existe se o boleto já foi gerado.
     const [boleto, pix] = await Promise.all([
-      type === 'BOLETO' ? attempt(this.asaas.getIdentificationField(id)) : null,
-      ['PIX', 'UNDEFINED'].includes(type) ? attempt(this.asaas.getPixQrCode(id)) : null,
+      ['BOLETO', 'UNDEFINED'].includes(type) ? attempt(this.asaas.getIdentificationField(id)) : null,
+      ['PIX', 'UNDEFINED', 'BOLETO'].includes(type) ? attempt(this.asaas.getPixQrCode(id)) : null,
     ]);
     const boletoLine = boleto?.identificationField ?? null;
     return {

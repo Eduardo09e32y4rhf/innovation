@@ -44,7 +44,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [chargeNow, setChargeNow] = useState(true);
   const [releaseMethod, setReleaseMethod] = useState<'TRUST' | 'RECEIVED'>('RECEIVED');
-  const [billingType, setBillingType] = useState<'UNDEFINED' | 'BOLETO' | 'PIX' | 'CREDIT_CARD'>('UNDEFINED');
+  const [billingType, setBillingType] = useState<'UNDEFINED' | 'BOLETO' | 'PIX' | 'CREDIT_CARD'>('BOLETO');
   const [sendToAsaas, setSendToAsaas] = useState(true);
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) => setText((t) => ({ ...t, [key]: e.target.value }));
   const num = (key: string) => Number(String(text[key] ?? '').replace(',', '.'));
@@ -150,7 +150,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
 
         {dialog.kind === 'charge' && (<>
           <Field label="Descrição"><input className={field} required minLength={3} value={text.description ?? ''} onChange={set('description')} /></Field>
-          <Field label="Forma de pagamento (Asaas)"><select className={field} value={billingType} onChange={(e) => setBillingType(e.target.value as typeof billingType)}><option value="UNDEFINED">Cliente escolhe</option><option value="BOLETO">Boleto</option><option value="PIX">Pix</option><option value="CREDIT_CARD">Cartão</option></select></Field>
+          <Field label="Forma de pagamento (Asaas)"><select className={field} value={billingType} onChange={(e) => setBillingType(e.target.value as typeof billingType)}><option value="BOLETO">Boleto (com código de barras)</option><option value="PIX">Pix</option><option value="CREDIT_CARD">Cartão</option><option value="UNDEFINED">Cliente escolhe (sem código de barras no PDF)</option></select></Field>
           <label className="flex items-start gap-2 text-sm text-fg"><input type="checkbox" checked={sendToAsaas} onChange={(e) => setSendToAsaas(e.target.checked)} />Enviar automaticamente ao Asaas</label>
           {!sendToAsaas && <p className="text-xs text-fg-mut">Registro local: o pagamento deve ser recebido e conciliado por outro meio.</p>}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -260,6 +260,11 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
     catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível sincronizar.'); }
   }
 
+  async function gerarBoleto(inv: PlatformInvoice) {
+    try { await api.faturas.gerarBoleto(inv.id); toast.success('Cobrança convertida em boleto. Baixe a Fatura PDF para ver o código de barras.'); refresh(); }
+    catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível gerar o boleto.'); }
+  }
+
   async function downloadPdf(inv: PlatformInvoice) {
     try { await api.faturas.faturaPdf(inv.id); }
     catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível baixar a fatura.'); }
@@ -289,6 +294,7 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
     const btn = 'btn btn-outline text-xs';
     return (
       <span className="inline-flex flex-wrap justify-end gap-1.5">
+        {open && inv.asaasPaymentId && inv.provider !== 'MERCADOPAGO' && inv.billingType !== 'BOLETO' && can('faturas.cobrar') && <button type="button" className={btn} title="Troca esta cobrança para boleto no Asaas: o PDF passa a ter linha digitável e código de barras" onClick={() => void gerarBoleto(inv)}>Gerar boleto</button>}
         <button type="button" className={btn} title="Baixa a fatura em PDF com a sua logo" onClick={() => void downloadPdf(inv)}>Fatura PDF</button>
         {open && inv.invoiceUrl && can('faturas.ver') && <button type="button" className={btn} title="Copia o link de pagamento (Pix, boleto ou cartão) para enviar ao cliente" onClick={() => void copyLink(inv)}>Copiar link</button>}
         {open && can('faturas.desconto') && <button type="button" className={btn} onClick={() => setDialog({ kind: 'discount', invoice: inv })}>Desconto</button>}
