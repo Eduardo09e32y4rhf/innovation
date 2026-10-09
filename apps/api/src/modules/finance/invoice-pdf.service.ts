@@ -2,9 +2,24 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
 import { createPdfSink, safeFileName } from '../../common/pdf/pdf-response';
+import { AsaasService } from './asaas.service';
 import { INVOICE_LOGO_PNG_BASE64 } from './invoice-logo';
+import { barCodeFromDigitableLine, itfBars } from './itf-barcode';
+
+/** O que o cliente precisa para pagar direto pelo PDF. Tudo opcional: o Asaas só devolve o que a cobrança já tem. */
+export interface InvoicePaymentData {
+  pixPayload?: string | null;
+  /** PNG em base64 do QR Code Pix. */
+  pixQrImage?: string | null;
+  /** Linha digitável do boleto (47 dígitos). */
+  boletoLine?: string | null;
+  /** Código de barras (44 dígitos). */
+  barCode?: string | null;
+  bankSlipUrl?: string | null;
+}
 
 export interface InvoicePdfInput {
+  payment?: InvoicePaymentData | null;
   invoice: {
     id: string; description: string | null; amount: unknown; dueDate: Date; createdAt: Date; paidAt: Date | null; status: string;
     billingType: string; invoiceUrl: string | null; refundedAmount?: unknown; invoiceNumber?: string | null; invoiceSeries?: string | null; fiscalPdfUrl?: string | null;
@@ -60,7 +75,34 @@ export class InvoicePdfService {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly asaas: AsaasService,
   ) {}
+
+  /**
+   * Pix, linha digitável e código de barras direto do Asaas. Nunca lança nem trava: o Asaas fora do ar (ou sem boleto ainda,
+   * quando a cobrança é "cliente escolhe") só significa um PDF sem essa parte, que continua trazendo o link de pagamento.
+   */
+  private async loadPayment(invoice: { id: string; status: string; provider?: string | null; asaasPaymentId?: string | null; billingType: string }): Promise<InvoicePaymentData | null> {
+    if (!['OPEN', 'OVERDUE'].includes(invoice.status) || invoice.provider === 'MERCADOPAGO' || !invoice.asaasPaymentId || !this.asaas.isConfigured()) return null;
+    const id = invoice.asaasPaymentId;
+    const attempt = <T>(work: Promise<T>): Promise<T | null> => Promise.race([work, new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000))]).catch(() => null);
+
+    const charge = await attempt(this.asaas.getCharge(id));
+    // O tipo muda quando o cliente escolhe a forma de pagamento na página do Asaas: vale o que está lá, não o que gravamos.
+    const type = charge?.billingType ?? invoice.billingType;
+    const [boleto, pix] = await Promise.all([
+      type === 'BOLETO' ? attempt(this.asaas.getIdentificationField(id)) : null,
+      ['PIX', 'UNDEFINED'].includes(type) ? attempt(this.asaas.getPixQrCode(id)) : null,
+    ]);
+    const boletoLine = boleto?.identificationField ?? null;
+    return {
+      pixPayload: pix?.payload ?? null,
+      pixQrImage: pix?.encodedImage ?? null,
+      boletoLine,
+      barCode: boleto?.barCode?.replace(/\D/g, '') || (boletoLine ? barCodeFromDigitableLine(boletoLine) : null),
+      bankSlipUrl: charge?.bankSlipUrl ?? null,
+    };
+  }
 
   /** Gera o PDF de uma fatura. Com `companyId`, só enxerga faturas dessa empresa (visão do cliente). */
   async forInvoice(id: string, companyId?: string) {
@@ -69,7 +111,8 @@ export class InvoicePdfService {
       include: { company: true },
     });
     if (!invoice) throw new NotFoundException('Fatura nao encontrada.');
-    const buffer = await this.render({ invoice, company: invoice.company });
+    const payment = await this.loadPayment(invoice);
+    const buffer = await this.render({ invoice, company: invoice.company, payment });
     return { buffer, filename: `fatura-${invoiceNumber(invoice.id)}-${safeFileName(invoice.company.name, 'empresa')}.pdf` };
   }
 
@@ -92,7 +135,7 @@ export class InvoicePdfService {
   }
 
   async render(input: InvoicePdfInput): Promise<Buffer> {
-    const { invoice, company } = input;
+    const { invoice, company, payment } = input;
     const issuer = this.issuer();
     const number = invoiceNumber(invoice.id);
     const situation = invoiceSituation(invoice);
@@ -240,6 +283,62 @@ export class InvoicePdfService {
         overdue ? 'Regularize o quanto antes para evitar o bloqueio do acesso da sua equipe.' : `Pague até ${dayUtc(invoice.dueDate)} para manter o acesso ativo.`,
         invoice.invoiceUrl ? 'Pix, boleto ou cartão: use o link abaixo. O pagamento é confirmado automaticamente.' : 'O link de pagamento será disponibilizado em instantes. Em caso de dúvida, fale com o suporte.',
       ], overdue ? C.bad : C.warn, overdue ? C.badBg : C.warnBg, invoice.invoiceUrl ?? undefined);
+
+      // Pagar direto pelo PDF: QR Code e copia e cola do Pix, linha digitável e código de barras do boleto.
+      const hasPix = Boolean(payment?.pixPayload);
+      const hasBoleto = Boolean(payment?.boletoLine || payment?.barCode);
+      if (payment && (hasPix || hasBoleto)) {
+        const panelGap = 12;
+        const pixW = hasBoleto ? 190 : W;
+        const boletoW = hasPix ? W - pixW - panelGap : W;
+        const pixTextW = hasBoleto ? pixW - 24 : pixW - 132;
+
+        doc.font('Courier').fontSize(6.3);
+        const payloadH = hasPix ? doc.heightOfString(payment.pixPayload!, { width: pixTextW }) : 0;
+        const pixNeed = hasBoleto ? 26 + 102 + 12 + payloadH + 14 : Math.max(26 + 96, 26 + 12 + payloadH) + 14;
+        const boletoNeed = 26 + 12 + 28 + 52 + (payment.bankSlipUrl ? 28 : 8) + 8;
+        const panelH = Math.max(hasPix ? pixNeed : 0, hasBoleto ? boletoNeed : 0);
+        const panel = (x: number, w: number, title: string) => {
+          doc.roundedRect(x, y, w, panelH, 8).lineWidth(0.8).fillAndStroke('#ffffff', C.line);
+          doc.font('Helvetica-Bold').fontSize(7.5).fillColor(C.brand).text(title, x + 12, y + 11, { lineBreak: false, characterSpacing: 0.8 });
+        };
+
+        if (hasPix) {
+          panel(L, pixW, 'PAGUE COM PIX');
+          const top = y + 26;
+          if (payment.pixQrImage) {
+            try { doc.image(Buffer.from(payment.pixQrImage, 'base64'), L + 12, top, { width: 96 }); } catch { /* QR ilegível: segue só com o copia e cola */ }
+          }
+          const textX = hasBoleto ? L + 12 : L + 120;
+          const textY = hasBoleto ? top + 102 : top;
+          doc.font('Helvetica-Bold').fontSize(8).fillColor(C.ink).text('Pix copia e cola', textX, textY, { width: pixTextW, lineBreak: false });
+          doc.font('Courier').fontSize(6.3).fillColor(C.gray).text(payment.pixPayload!, textX, textY + 12, { width: pixTextW });
+        }
+
+        if (hasBoleto) {
+          const bx = hasPix ? L + pixW + panelGap : L;
+          panel(bx, boletoW, 'BOLETO BANCÁRIO');
+          let by = y + 26;
+          if (payment.boletoLine) {
+            doc.font('Helvetica-Bold').fontSize(8).fillColor(C.ink).text('Linha digitável', bx + 12, by, { width: boletoW - 24, lineBreak: false });
+            doc.font('Helvetica-Bold').fontSize(9).fillColor(C.ink).text(payment.boletoLine, bx + 12, by + 12, { width: boletoW - 24, lineBreak: false });
+            by += 32;
+          }
+          if (payment.barCode && payment.barCode.length === 44) {
+            const { bars, total } = itfBars(payment.barCode);
+            const barsW = Math.min(boletoW - 24, 292); // 292 pt = 103 mm, a largura da norma do boleto
+            const unit = barsW / total;
+            bars.forEach((bar) => doc.rect(bx + 12 + bar.x * unit, by + 6, bar.width * unit, 40));
+            doc.fillColor('#000000').fill();
+            by += 54;
+          }
+          if (payment.bankSlipUrl) {
+            doc.font('Helvetica').fontSize(8).fillColor(C.mut).text('Boleto em PDF:', bx + 12, by, { lineBreak: false });
+            doc.font('Helvetica').fontSize(7.5).fillColor(C.brand).text(payment.bankSlipUrl, bx + 12, by + 11, { width: boletoW - 24, link: payment.bankSlipUrl, underline: true, lineBreak: false });
+          }
+        }
+        y += panelH + 14;
+      }
     }
 
     if (invoice.invoiceNumber || invoice.fiscalPdfUrl) {
