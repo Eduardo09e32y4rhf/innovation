@@ -34,6 +34,7 @@
     "test:contract": "vitest run --config vitest.config.ts tests/contract",
     "test:security": "vitest run --config vitest.config.ts tests/security",
     "test:robo-api": "node tools/robo-api/robo-api.mjs",
+    "test:robo-ciclo": "node tools/robo-ciclo/robo-ciclo.mjs",
     "test:qa:escala": "vitest run --config vitest.qa.config.ts tests/qa/schedule/escala.spec.ts",
     "test:qa:ferias": "vitest run --config vitest.qa.config.ts tests/qa/vacations/ferias.spec.ts",
     "test:coverage": "vitest run --coverage --config vitest.config.ts",
