@@ -3,6 +3,7 @@ import { $Enums } from '@prisma/client';
 type UserRole = $Enums.UserRole;
 const UserRole = $Enums.UserRole;
 import { PrismaService } from '../../database/prisma.service';
+import { parsePromotion, safePriority, safeTargetUrl } from './notice-rules';
 import type { JwtUser } from '../../common/types/auth.types';
 
 /**
@@ -155,6 +156,12 @@ export class NotificationsService {
       if (body?.[key] !== undefined && body[key] !== '') extra[key] = body[key];
     }
 
+    if (type === 'PROMOTION_NOTICE') {
+      const promotion = parsePromotion(extra);
+      if (!promotion.ok) throw new BadRequestException(promotion.message);
+      for (const key of ['newPosition', 'newSalary', 'effectiveDate']) delete extra[key];
+      Object.assign(extra, promotion.data);
+    }
     if (isPenalty) {
       if (!String(extra.legalReason ?? '').trim()) throw new BadRequestException('Informe o motivo da ocorrência (ex.: atrasos repetidos, falta sem justificativa).');
       if (!this.isoDay(extra.occurrenceDate)) throw new BadRequestException('Informe a data em que a ocorrência aconteceu.');
@@ -226,10 +233,10 @@ export class NotificationsService {
           targetType: isPenalty || targetType === 'SPECIFIC' ? 'EMPLOYEE' : targetType === 'ROLE' ? 'ROLE' : 'ALL',
           title,
           message,
-          priority: (body?.priority as any) || (isPenalty ? 'HIGH' : 'NORMAL'),
+          priority: safePriority(body?.priority, isPenalty ? 'HIGH' : 'NORMAL'),
           source: 'MANUAL',
           createdBy,
-          targetUrl: body?.targetUrl,
+          targetUrl: safeTargetUrl(body?.targetUrl),
           expiresAt: body?.expiresAt ? new Date(body.expiresAt) : undefined,
           requiresReadConfirmation: mustConfirm,
           requiresAcceptance,
