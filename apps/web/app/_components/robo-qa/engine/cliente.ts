@@ -31,9 +31,11 @@ export async function faseCliente(ctx: Contexto): Promise<void> {
   // 1) O DEV cria o plano grátis que o cliente vai escolher (a única coisa feita como DEV).
   if (c.etapa === 'plano') {
     if (anf.usuario()?.perfil !== 'DEV' || !anf.chamarApi) {
-      registrarAchado(ctx, 'Criar o plano grátis', { gravidade: 'alta', titulo: 'Para criar o plano grátis é preciso estar logado como DEV', explicacao: 'O teste do cliente novo foi interrompido.' });
-      estado.fase = 'fim'; return;
+      // Sem DEV logado: age como cliente de verdade e usa um plano que já esteja à venda.
+      c.etapa = 'sair'; ctx.salvar();
     }
+  }
+  if (c.etapa === 'plano') {
     const sufixo = Math.random().toString(36).slice(2, 6).toUpperCase();
     c.plano = `ROBO-QA Grátis ${sufixo}`;
     autorizarNome(c.plano);
@@ -91,8 +93,9 @@ export async function faseCliente(ctx: Contexto): Promise<void> {
       await esperarAte(() => document.querySelector('#c-seats'), { descricao: 'a etapa 2 (plano) abrir' });
     });
     await passo(ctx, `Cadastro, etapa 2: escolher o plano "${c.plano}", aceitar os termos e criar a empresa`, async () => {
-      const opcao = await esperarAte(() => todos('fieldset label').find((l) => rotulo(l).includes(c.plano!)), { timeout: 15000, descricao: `o plano "${c.plano}" na lista (o plano grátis recém-criado precisa aparecer para o cliente)` });
-      await clicar(ctx, opcao, `plano ${c.plano}`);
+      const lista = () => todos('fieldset label').filter((l) => l.querySelector('input[type="radio"]'));
+      const opcao = await esperarAte(() => (c.plano ? lista().find((l) => rotulo(l).includes(c.plano!)) : lista().find((l) => /gr[aá]tis/i.test(rotulo(l))) ?? lista()[0]), { timeout: 15000, descricao: c.plano ? `o plano "${c.plano}" na lista (o plano grátis recém-criado precisa aparecer para o cliente)` : 'algum plano na lista (BLOQUEIO DE VENDA: nenhum plano público existe, o cliente não consegue criar empresa)' });
+      await clicar(ctx, opcao, `plano ${rotulo(opcao).slice(0, 40)}`);
       const aceite = await esperarAte(() => todos<HTMLInputElement>('input[type="checkbox"]').find(Boolean), { descricao: 'a caixa de aceite dos termos' });
       await clicar(ctx, aceite, 'caixa "Li e aceito os Termos"');
       await clicar(ctx, await esperarAte(() => acharPorTexto('button', /criar minha empresa/i), { descricao: 'o botão "Criar minha empresa"' }), 'botão Criar minha empresa');
