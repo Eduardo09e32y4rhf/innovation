@@ -19,6 +19,10 @@ export function recursoDaResposta(rota: string, corpo: Record<string, unknown>, 
   if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(id)) return null;
   return { id, nome, rota, status: 'pendente' };
 }
+export function registrarRecurso(r: { id: string; nome: string; rota: string }) {
+  const m = manifesto();
+  if (!m.recursos.some((x) => x.id === r.id && x.rota === r.rota)) { m.recursos.push({ ...r, status: 'pendente' }); guardar(m); }
+}
 export function registrarCriacao(rota: string, corpo: Record<string, unknown>, resposta: Record<string, unknown>) {
   const m = manifesto(); const r = recursoDaResposta(rota, corpo, resposta, m.nomes);
   if (r && !m.recursos.some((x) => x.id === r.id && x.rota === r.rota)) { m.recursos.push(r); guardar(m); }

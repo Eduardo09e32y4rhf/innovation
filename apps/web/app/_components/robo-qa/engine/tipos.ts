@@ -58,7 +58,7 @@ export interface UsuarioTeste {
   motivo?: string;
 }
 
-export type Fase = 'ocioso' | 'dev' | 'criando' | 'usuarios' | 'limpeza' | 'fim';
+export type Fase = 'ocioso' | 'dev' | 'cliente' | 'criando' | 'usuarios' | 'limpeza' | 'fim';
 export type SubEtapa = 'sair' | 'login' | 'portoes' | 'tour' | 'concluido';
 export type Ritmo = 'devagar' | 'normal' | 'rapido';
 
@@ -86,6 +86,8 @@ export interface Estado {
   /** A empresa de teste nao tem licencas livres: criar acessos nao e possivel (nao e defeito do sistema). */
   semLicencas?: boolean;
   blocoEmAndamento?: string;
+  /** Modo "cliente novo": cria plano grátis e uma empresa pela tela de login. */
+  cliente?: { etapa: string; plano?: string; planoId?: string; empresa?: string; email?: string; senha?: string; fila?: string[] };
 }
 
 /** O que o motor precisa do app hospedeiro (Next.js) e que nao da para fazer so com o DOM. */
@@ -93,6 +95,7 @@ export interface Anfitriao {
   navegar(caminho: string): void;
   sair(): void | Promise<void>;
   limparRecurso?(caminho: string): Promise<void>;
+  chamarApi?<T = unknown>(metodo: 'POST' | 'GET', caminho: string, corpo?: unknown): Promise<T>;
   caminhoAtual(): string;
   usuario(): { nome: string; email: string; perfil: string } | null;
   tenant(): string;

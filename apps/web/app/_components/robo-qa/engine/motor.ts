@@ -16,9 +16,10 @@ import { limparRecursos, manifesto } from './recursos';
 import { removerContasLimpas } from './estado';
 import { criarFuncionarioComAcesso } from './cenarios';
 import { QUEDA, telaCaiu } from './queda';
+import { faseCliente } from './cliente';
 
 export interface Motor {
-  iniciar(perfis: string[], ritmo: Ritmo, modo: Modo): void;
+  iniciar(perfis: string[], ritmo: Ritmo, modo: Modo, cliente?: boolean): void;
   pausar(): void;
   retomar(): void;
   cancelar(): void;
@@ -350,6 +351,7 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
     mostrarOverlay(true);
     avisar();
     try {
+      if (e.fase === 'cliente') await faseCliente(contexto('DEV'));
       if (e.fase === 'dev') await faseDev();
       if (e.fase === 'criando') await faseCriando();
       if (e.fase === 'usuarios') await faseUsuarios();
@@ -367,11 +369,12 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
   }
 
   return {
-    iniciar(perfis, ritmo, modo) {
+    iniciar(perfis, ritmo, modo, cliente = false) {
       if (emExecucao || e?.ativo) return;
       limpar();
       e = novoEstado(perfis, ritmo, anfitriao.tenant(), modo);
-      if (manifesto().recursos.some((r) => r.status === 'pendente')) e.fase = 'limpeza';
+      if (cliente) e.fase = 'cliente';
+      else if (manifesto().recursos.some((r) => r.status === 'pendente')) e.fase = 'limpeza';
       salvar(e);
       avisar();
       void executar();

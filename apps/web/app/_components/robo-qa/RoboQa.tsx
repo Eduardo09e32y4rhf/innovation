@@ -43,6 +43,7 @@ export default function RoboQa() {
       routerRef.current.replace('/login');
     },
     limparRecurso: async (caminho) => { await request(caminho, { method: 'DELETE', timeoutMs: 15000 }); },
+    chamarApi: (metodo, caminho, corpo) => request(caminho, { method: metodo, body: corpo === undefined ? undefined : JSON.stringify(corpo), timeoutMs: 20000 }),
     caminhoAtual: () => window.location.pathname + window.location.search,
     usuario: () => (usuarioRef.current ? { nome: usuarioRef.current.name ?? '', email: usuarioRef.current.email ?? '', perfil: resolveUserRole(usuarioRef.current) } : null),
     tenant: () => window.location.pathname.match(/^\/([^/]+)\/(dashboard|portal)/)?.[1] ?? '',
@@ -102,7 +103,8 @@ export default function RoboQa() {
                 </div>
               )}
               <button type="button" disabled={!podeIniciar} onClick={() => iniciar('rapido')} style={{ width: '100%', minHeight: 56, borderRadius: 12, border: 0, background: '#16a34a', color: '#fff', fontWeight: 800, fontSize: 18, cursor: 'pointer', margin: '6px 0', opacity: !podeIniciar ? 0.5 : 1 }}>⚡ LIGAR O TESTE (RÁPIDO)</button>
-              <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 6px' }}>Modo rápido: sem pausas, passa por todos os perfis e telas principais e mostra o relatório no fim. Para o teste detalhado, abra “Opções” e use “Teste completo”.</p>
+              <button type="button" disabled={!ehDev} onClick={() => motor.iniciar(['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'], 'rapido', 'rapido', true)} style={{ width: '100%', minHeight: 56, borderRadius: 12, border: 0, background: '#7c3aed', color: '#fff', fontWeight: 800, fontSize: 16, cursor: 'pointer', margin: '6px 0', opacity: !ehDev ? 0.5 : 1 }}>🛒 CLIENTE NOVO: criar empresa pelo login</button>
+              <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 6px' }}>Cliente novo: cria um plano grátis, sai do DEV, abre Criar conta na tela de login, cria a empresa, cadastra a equipe e testa cada perfil. Modo rápido: sem pausas, passa por todos os perfis e telas principais e mostra o relatório no fim. Para o teste detalhado, abra “Opções” e use “Teste completo”.</p>
               <details>
               <summary style={{ fontSize: 12, color: '#6b7280', cursor: 'pointer' }}>Opções (perfis, velocidade, teste rápido)</summary>
               <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 8, margin: '8px 0' }}>
