@@ -251,10 +251,11 @@ async function cadastro() {
     await conferirTela(page, 'Cadastro etapa 1', { esperaTexto: 'Crie sua empresa' });
   }, page);
   await passo('Cadastro: erros aparecem e são compreensíveis', async () => {
-    await page.locator('#c-company').fill('X'); await page.getByRole('button', { name: 'Continuar' }).click();
+    await page.locator('#c-company').fill('X'); await page.locator('#c-doc').fill('11111111111');
+    await page.locator('#c-name').fill('Robo Dono'); await page.locator('#c-email').fill(email('admin')); await page.getByLabel('Senha', { exact: true }).fill(SENHA);
+    await page.getByRole('button', { name: 'Continuar' }).click();
     registrar('Nome de empresa curto mostra aviso', await visivel(page.getByText('Informe o nome da empresa'), 2500), { foto: await tirar(page, 'erro-nome') });
-    await page.locator('#c-company').fill(NOME_EMPRESA); await page.locator('#c-doc').fill('11111111111');
-    await page.locator('#c-name').fill('Robo Dono'); await page.locator('#c-email').fill(email('admin')); await page.getByLabel('Senha', { exact: true }).fill('fraca');
+    await page.locator('#c-company').fill(NOME_EMPRESA); await page.getByLabel('Senha', { exact: true }).fill('fraca');
     await page.getByRole('button', { name: 'Continuar' }).click();
     registrar('CNPJ/CPF inválido mostra aviso', await visivel(page.getByText(/CPF ou CNPJ válido/), 2500), { foto: await tirar(page, 'erro-cnpj') });
     await page.locator('#c-doc').fill(maskCnpj(cnpjValido(Date.now() % 1e8)));
@@ -266,7 +267,10 @@ async function cadastro() {
   }, page);
   let criou = false;
   await passo('Cadastro: escolher o plano grátis e criar a empresa', async () => {
-    await page.waitForSelector('input[name="plan"]', { timeout: 10000 });
+    if (!(await visivel(page.locator('input[name="plan"]'), 10000))) {
+      await tirar(page, 'etapa2-sem-planos');
+      throw new Error(S.devToken ? 'A etapa 2 do cadastro não mostrou nenhum plano, mesmo com o plano grátis criado.' : 'A etapa 2 do cadastro NÃO TEM NENHUM PLANO para escolher, então o cliente não consegue criar a empresa. Crie os planos no servidor (scripts/deploy/seed-plans.sql) ou rode o robô com ROBO_DEV_EMAIL/ROBO_DEV_SENHA para ele criar um plano grátis.');
+    }
     const nomes = await page.$$eval('label:has(input[name="plan"])', (ls) => ls.map((l) => l.innerText.replace(/\s+/g, ' ')));
     registrar('Etapa 2 lista os planos para escolher', nomes.length > 0, { obtido: 'nenhum plano na tela', foto: await tirar(page, 'planos-etapa2') });
     const alvo = page.locator('label:has(input[name="plan"])', { hasText: S.planoId ? 'ROBO-QA Grátis' : 'Grátis' }).first();
