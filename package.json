@@ -49,17 +49,17 @@
   "author": "Innovation RH Connect Team",
   "license": "UNLICENSED",
   "devDependencies": {
-    "@nestjs/testing": "11.1.28",
-    "@swc/core": "1.15.46",
+    "@nestjs/testing": "12.1.2",
+    "@swc/core": "1.16.13",
     "@types/express": "5.0.6",
     "@types/supertest": "7.2.1",
-    "@vitest/coverage-v8": "4.1.10",
-    "dotenv": "17.4.2",
-    "eslint": "8.57.1",
-    "supertest": "7.2.2",
-    "typescript": "^5.8.3",
-    "unplugin-swc": "1.5.9",
-    "vitest": "4.1.10"
+    "@vitest/coverage-v8": "5.0.3",
+    "dotenv": "18.0.6",
+    "eslint": "10.12.0",
+    "supertest": "7.3.1",
+    "typescript": "^7.0.2",
+    "unplugin-swc": "2.0.0",
+    "vitest": "5.0.3"
   },
   "workspaces": [
     "apps/web",
