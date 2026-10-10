@@ -55,6 +55,38 @@ export class NotificationsService {
     }
   }
 
+  /**
+   * Aviso interno do sistema (tipo SYSTEM_NOTICE) para usuarios ativos de certos perfis da empresa.
+   * Nao passa pela validacao do formulario do admin (que so aceita os 4 tipos manuais).
+   */
+  async createSystemNotice(companyId: string, input: {
+    title: string; message: string; priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+    targetRoles: UserRole[]; excludeUserId?: string; extraJson?: Record<string, unknown>; expiresAt?: Date;
+  }) {
+    const users = await this.prisma.user.findMany({
+      where: { companyId, isActive: true, role: { in: input.targetRoles }, ...(input.excludeUserId ? { id: { not: input.excludeUserId } } : {}) },
+      select: { id: true, employee: { select: { id: true } } },
+    });
+    if (!users.length) return { count: 0 };
+    const notification = await this.prisma.notification.create({
+      data: {
+        companyId,
+        type: 'SYSTEM_NOTICE',
+        targetType: 'ROLE',
+        title: input.title,
+        message: input.message,
+        priority: input.priority ?? 'NORMAL',
+        source: 'SYSTEM',
+        status: 'SENT',
+        sentAt: new Date(),
+        expiresAt: input.expiresAt,
+        extraJson: (input.extraJson ?? undefined) as any,
+        recipients: { create: users.map((u) => ({ userId: u.id, employeeId: u.employee?.id ?? undefined, status: 'UNREAD' as const })) },
+      },
+    });
+    return { count: users.length, id: notification.id };
+  }
+
   async unreadCount(companyId: string, actor: JwtUser) {
     try {
       const count = await this.prisma.notification.count({

@@ -30,6 +30,7 @@ import { isPlatformOwner } from '../../common/constants/platform-owner';
 import { isTemporaryCredentialUsable } from './temporary-credential';
 
 import { NotificationsService } from '../notifications/notifications.service';
+import { resetNoticeRoles } from '../notifications/notice-rules';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
 import { PricingService } from '../finance/pricing.service';
 import { checkCouponEligibility, couponDiscount } from '../coupons/coupon-rules';
@@ -430,25 +431,21 @@ export class AuthService {
     }
 
     try {
-      // Notifica todos os perfis privilegiados da empresa que podem liberar o código:
-      // GESTOR (direto do colaborador), RH e ADMIN (responsáveis pela empresa)
-      const rolesParaNotificar = ['GESTOR', 'RH', 'ADMIN'] as const;
-      await Promise.allSettled(
-        rolesParaNotificar.map((role) =>
-          this.notificationsService.createAdminNotice(user.companyId, user.id, {
-            type: 'SYSTEM_NOTICE',
-            title: 'Código de Recuperação de Senha',
-            message: `O colaborador ${user.employee?.name || user.name} (Email: ${user.email}) solicitou recuperação de senha. Informe o código apenas ao colaborador presencialmente.`,
-            priority: 'HIGH',
-            targetType: 'ROLE',
-            targetRole: role,
-            source: 'Security',
-            extraJson: { resetCode: code },
-          }),
-        ),
-      );
+      // O codigo vai so para perfis ACIMA de quem pediu (nunca gestores; ADMIN recupera por e-mail ou pelo DEV).
+      const targetRoles = resetNoticeRoles(role);
+      if (targetRoles.length) {
+        await this.notificationsService.createSystemNotice(user.companyId, {
+          title: 'Código de Recuperação de Senha',
+          message: `O colaborador ${user.employee?.name || user.name} (Email: ${user.email}) solicitou recuperação de senha. Informe o código apenas ao colaborador presencialmente.`,
+          priority: 'HIGH',
+          targetRoles,
+          excludeUserId: user.id,
+          extraJson: { resetCode: code },
+          expiresAt: expires,
+        });
+      }
     } catch (err) {
-      console.error('Failed to notify privileged roles about reset code:', err);
+      this.logger.error(`Falha ao avisar o RH/ADMIN sobre o codigo de recuperacao: ${String(err)}`);
     }
 
     return { requested: true };

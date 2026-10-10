@@ -3,6 +3,25 @@
 const PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'URGENT'] as const;
 export type NoticePriority = (typeof PRIORITIES)[number];
 
+/**
+ * Quem recebe o codigo de recuperacao de senha de alguem: so perfis ACIMA de quem pediu, e nunca gestores
+ * (um gestor veria o codigo de qualquer colega, inclusive do ADMIN, e tomaria a conta).
+ * O ADMIN e os perfis da plataforma nao usam este caminho: recuperam por e-mail ou pelo DEV.
+ */
+export function resetNoticeRoles(requesterRole: string): Array<'RH' | 'ADMIN'> {
+  switch (requesterRole) {
+    case 'FUNCIONARIO':
+    case 'CONSULTA':
+    case 'GESTOR':
+    case 'RH_RS':
+      return ['RH', 'ADMIN'];
+    case 'RH':
+      return ['ADMIN'];
+    default:
+      return [];
+  }
+}
+
 /** Link do aviso: so caminho interno do sistema ("/dashboard/..."). Endereco externo vira nada (evita phishing por aviso). */
 export function safeTargetUrl(value: unknown): string | undefined {
   const text = String(value ?? '').trim();
