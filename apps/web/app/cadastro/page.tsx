@@ -126,7 +126,7 @@ function CadastroForm() {
     <AuthShell wide title="Crie sua empresa" subtitle={step === 1 ? 'Etapa 1 de 2 · Dados da empresa e do administrador' : 'Etapa 2 de 2 · Plano e confirmação'}
       footer={<>Já tem conta? <Link href="/login" className="font-semibold text-white underline">Entrar</Link></>}>
       <div className="mb-5 flex gap-2" aria-hidden="true">
-        {[1, 2].map((n) => <span key={n} className={`h-1.5 flex-1 rounded-full ${n <= step ? 'bg-[var(--color-brand)]' : 'bg-zinc-200'}`} />)}
+        {[1, 2].map((n) => <span key={n} className={`h-1.5 flex-1 rounded-full ${n <= step ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600' : 'bg-zinc-200'}`} />)}
       </div>
 
       {step === 1 ? (

@@ -57,6 +57,11 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
     const source = company.data as unknown as Record<string, string | null | undefined>;
     setForm(Object.fromEntries(KEYS.map((key) => [key, source[key] ?? source[key === 'zipCode' ? 'cep' : key === 'document' ? 'cnpj' : key] ?? ''])));
     setLogo(source.logoUrl ?? '');
+    // Empresa com CNPJ mas sem razão social: busca na Receita sozinho, sem esperar digitar.
+    const digits = String(source.document ?? source.cnpj ?? '').replace(/\D/g, '');
+    if (canEdit && digits.length === 14 && !source.legalName) void lookupCnpj(digits);
+    // lookupCnpj só usa refs e setters estáveis.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company.data]);
 
   const source = (company.data ?? {}) as unknown as Record<string, string | null | undefined>;
@@ -81,12 +86,13 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
     try {
       const data = await api.lookup.cnpj(digits);
       if (id !== lookupId.current.cnpj) return;
+      // O CNPJ digitado manda: os dados da Receita substituem os atuais (o que a Receita não informa fica como está).
       setForm((prev) => ({
         ...prev,
-        legalName: data.legalName || prev.legalName, name: prev.name || data.tradeName || data.legalName || '',
+        legalName: data.legalName || prev.legalName, name: data.tradeName || data.legalName || prev.name,
         zipCode: data.cep ? applyMask('cep', data.cep) : prev.zipCode, street: data.street || prev.street, streetNumber: data.streetNumber || prev.streetNumber,
         addressComplement: data.addressComplement || prev.addressComplement, neighborhood: data.neighborhood || prev.neighborhood, city: data.city || prev.city, state: data.state || prev.state,
-        phone: prev.phone || (data.phone ? applyMask('phone', data.phone) : ''), email: prev.email || data.email || '',
+        phone: data.phone ? applyMask('phone', data.phone) : prev.phone, email: data.email || prev.email,
       }));
       setHint((h) => ({ ...h, document: 'Dados da Receita preenchidos. Confira antes de salvar.' }));
     } catch (cause) { if (id === lookupId.current.cnpj) setHint((h) => ({ ...h, document: errorText(cause, 'Não foi possível consultar o CNPJ. Preencha à mão.') })); }
@@ -122,6 +128,7 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
       await api.companies.update(payload as never);
       toast.success('Dados da empresa salvos.');
       await company.refetch();
+      window.dispatchEvent(new Event('company-updated'));
     } catch (cause) { setError(errorText(cause, 'Não foi possível salvar os dados da empresa.')); }
     finally { setSaving(false); }
   }

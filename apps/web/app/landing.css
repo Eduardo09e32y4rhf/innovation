@@ -31,11 +31,14 @@
   mask-image: radial-gradient(ellipse at 50% 30%, #000 30%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse at 50% 30%, #000 30%, transparent 75%);
 }
+.lp-text-warm { background: linear-gradient(90deg, #fde68a, #f9a8d4 50%, #c4b5fd); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@keyframes lp-wiggle { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+.lp-wiggle { animation: lp-wiggle 3s ease-in-out infinite; }
 .lp-card { transition: transform .3s ease, border-color .3s ease, background-color .3s ease, box-shadow .3s ease; }
 .lp-card:hover { transform: translateY(-4px); border-color: rgba(192,132,252,.55); background-color: rgba(255,255,255,.09); box-shadow: 0 18px 50px -18px rgba(139,0,197,.55); }
 .lp-text-gradient { background: linear-gradient(90deg, #e9d5ff, #c084fc 45%, #7dd3fc); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
   .lp-reveal { opacity: 1; transform: none; transition: none; }
-  .lp-float, .lp-float-slow, .lp-orbit, .lp-orbit-rev, .lp-marquee, .lp-ring, .lp-glow, .lp-gradient-bg, .lp-bar, .lp-pop { animation: none; }
+  .lp-float, .lp-float-slow, .lp-orbit, .lp-orbit-rev, .lp-marquee, .lp-ring, .lp-glow, .lp-gradient-bg, .lp-bar, .lp-pop, .lp-wiggle { animation: none; }
 }

@@ -554,7 +554,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
                 href={`/${tenant}/dashboard/notifications`}
                 className="text-[11px] font-black text-brand-600 hover:underline"
               >
-                Ver todas â†’
+                Ver todas →
               </Link>
             </div>
             <div className="flex-1 p-3">
@@ -635,7 +635,7 @@ function DashboardContent({ tenant }: { tenant: string }) {
                   href={`/${tenant}/dashboard/escalas?view=ponto&employeeId=${row.employeeId}`}
                   className="text-[11px] font-black text-brand-600 hover:underline"
                 >
-                  Ver â†’
+                  Ver →
                 </Link>
               </td>
             </tr>
@@ -933,7 +933,7 @@ function DataTableCard({
             href={footerHref}
             className="text-xs font-black text-brand-600 transition-colors hover:text-brand-700 hover:underline"
           >
-            {footerLabel} â†’
+            {footerLabel} →
           </Link>
         </div>
       )}

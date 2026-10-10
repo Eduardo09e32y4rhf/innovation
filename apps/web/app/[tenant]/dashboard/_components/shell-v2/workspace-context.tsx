@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
@@ -13,6 +13,13 @@ const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const query = useQuery(() => api.companies.me(), [user?.companyId], { enabled: Boolean(user?.companyId) });
+  const { refetch } = query;
+  // A tela de Configurações avisa quando salva a empresa, para o menu mostrar nome e logo novos na hora.
+  useEffect(() => {
+    const onUpdated = () => { void refetch(); };
+    window.addEventListener('company-updated', onUpdated);
+    return () => window.removeEventListener('company-updated', onUpdated);
+  }, [refetch]);
   const value = useMemo<WorkspaceContextValue>(() => ({
     company: query.data ?? null,
     items: getVisibleNavItems(user, query.data?.activeModules ?? []),

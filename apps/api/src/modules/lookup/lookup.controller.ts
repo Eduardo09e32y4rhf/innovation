@@ -17,6 +17,30 @@ async function getJson(url: string, timeoutMs = 6000): Promise<any | null> {
   }
 }
 
+// A Receita devolve nomes em MAIÚSCULAS e sem acento. Reescreve em caixa de título e recoloca o acento nas palavras mais comuns.
+const ACCENTED: Record<string, string> = {
+  solucoes: 'Soluções', servicos: 'Serviços', comercio: 'Comércio', industria: 'Indústria', administracao: 'Administração', gestao: 'Gestão',
+  negocios: 'Negócios', participacoes: 'Participações', construcao: 'Construção', educacao: 'Educação', logistica: 'Logística', informatica: 'Informática',
+  tecnologia: 'Tecnologia', alimenticios: 'Alimentícios', farmacia: 'Farmácia', mecanica: 'Mecânica', eletronica: 'Eletrônica', consultoria: 'Consultoria',
+  seguranca: 'Segurança', saude: 'Saúde', transportes: 'Transportes', publicidade: 'Publicidade', representacoes: 'Representações', producoes: 'Produções',
+  comunicacao: 'Comunicação', instalacoes: 'Instalações', manutencao: 'Manutenção', distribuicao: 'Distribuição', importacao: 'Importação', exportacao: 'Exportação',
+  agricola: 'Agrícola', pecuaria: 'Pecuária', veiculos: 'Veículos', pecas: 'Peças', acessorios: 'Acessórios', brasil: 'Brasil', assessoria: 'Assessoria',
+  clinica: 'Clínica', medica: 'Médica', odontologica: 'Odontológica', juridica: 'Jurídica', contabil: 'Contábil', contabilidade: 'Contabilidade', ambiental: 'Ambiental',
+};
+const SMALL_WORDS = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+const LEGAL_SUFFIX = /\s+(ltda|me|epp|eireli|mei|s\.?\/?a\.?|sa|ss|slu)\.?$/i;
+
+function prettyName(raw: unknown): string {
+  const text = String(raw ?? '').trim().replace(/\s+/g, ' ');
+  if (!text) return '';
+  return text.toLocaleLowerCase('pt-BR').split(' ').map((word, i) => {
+    if (i > 0 && SMALL_WORDS.has(word)) return word;
+    if (ACCENTED[word]) return ACCENTED[word];
+    if (/^(ltda|epp|eireli|mei|slu|me|sa|ss|s\/a|s\.a\.)$/.test(word)) return word.toUpperCase();
+    return word.charAt(0).toLocaleUpperCase('pt-BR') + word.slice(1);
+  }).join(' ');
+}
+
 /** Consulta CEP e CNPJ pelo servidor: o navegador não depende de serviços externos (CORS/bloqueios). */
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR')
@@ -50,13 +74,14 @@ export class LookupController {
     const est = data.estabelecimento;
     return {
       cnpj,
-      legalName: data.razao_social ?? '',
-      tradeName: data.nome_fantasia ?? est?.nome_fantasia ?? '',
-      street: data.logradouro ?? est?.logradouro ?? '',
+      legalName: prettyName(data.razao_social),
+      // Sem nome fantasia na Receita, usa a razão social sem o sufixo societário (LTDA, ME...).
+      tradeName: prettyName(data.nome_fantasia ?? est?.nome_fantasia) || prettyName(String(data.razao_social ?? '').replace(LEGAL_SUFFIX, '')),
+      street: prettyName(data.logradouro ?? est?.logradouro),
       streetNumber: data.numero ?? est?.numero ?? '',
       addressComplement: data.complemento ?? est?.complemento ?? '',
-      neighborhood: data.bairro ?? est?.bairro ?? '',
-      city: data.municipio ?? est?.cidade?.nome ?? '',
+      neighborhood: prettyName(data.bairro ?? est?.bairro),
+      city: prettyName(data.municipio ?? est?.cidade?.nome),
       state: data.uf ?? est?.estado?.sigla ?? '',
       cep: String(data.cep ?? est?.cep ?? '').replace(/\D/g, ''),
       phone: data.ddd_telefone_1 ?? '',

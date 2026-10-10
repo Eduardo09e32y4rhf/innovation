@@ -9,6 +9,14 @@ import { useOverlay } from '@/app/components/ui/use-overlay';
 import { useWorkspace } from './workspace-context';
 import { isNavActive, tenantRoute, type NavGroup } from './nav-config';
 
+/** Primeira letra da primeira e da última palavra do nome (uma palavra só: as duas primeiras letras). */
+function companyInitials(name?: string | null) {
+  const words = (name ?? '').trim().split(/\s+/).filter((w) => w && !/^(d[aeo]s?|e)$/i.test(w));
+  if (!words.length) return '··';
+  const text = words.length === 1 ? words[0].slice(0, 2) : words[0][0] + words[words.length - 1][0];
+  return text.toLocaleUpperCase('pt-BR');
+}
+
 export type SidebarMode = 'auto' | 'compact' | 'expanded';
 export function SidebarV2({ open, onClose, mode = 'auto' }: { open: boolean; onClose: () => void; mode?: SidebarMode }) {
   const pathname = usePathname();
@@ -18,6 +26,7 @@ export function SidebarV2({ open, onClose, mode = 'auto' }: { open: boolean; onC
   const [mobile, setMobile] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
   useEffect(() => { setLogoFailed(false); }, [company?.logoUrl]);
+  const hasLogo = Boolean(company?.logoUrl) && !logoFailed;
   useEffect(() => {
     const media = window.matchMedia('(max-width: 1023px)');
     const update = () => setMobile(media.matches);
@@ -33,10 +42,10 @@ export function SidebarV2({ open, onClose, mode = 'auto' }: { open: boolean; onC
       className={'workspace-sidebar flex flex-col workspace-sidebar-' + mode + (open ? ' workspace-sidebar-open' : '')}>
       <div className="flex min-h-20 items-center gap-1 px-4">
         <Link href={tenantRoute(tenant, '/dashboard')} onClick={onClose} className="workspace-brand flex min-h-11 min-w-0 flex-1 items-center gap-3" aria-label="Innovation RH — Dashboard">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-brand text-sm font-semibold text-white">
-            {company?.logoUrl && !logoFailed ? <img src={company.logoUrl} width={40} height={40} alt="" className="h-full w-full bg-white object-contain" onError={() => setLogoFailed(true)} /> : 'IR'}
+          <span className={'flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg text-sm font-semibold ' + (hasLogo ? 'border border-border bg-white' : 'bg-brand text-white')}>
+            {hasLogo ? <img src={company!.logoUrl!} width={40} height={40} alt="" className="h-full w-full object-contain p-1" onError={() => setLogoFailed(true)} /> : companyInitials(company?.name)}
           </span>
-          <span className="workspace-brand-copy min-w-0"><span className="block text-sm font-semibold text-fg">Innovation RH</span><span className="block truncate text-xs text-fg-mut" title={company?.name}>{company?.name || 'Área de trabalho'}</span></span>
+          <span className="workspace-brand-copy min-w-0"><span className="block line-clamp-2 text-sm font-semibold leading-tight text-fg" title={company?.name}>{company?.name || 'Área de trabalho'}</span></span>
         </Link>
         <button type="button" aria-label="Fechar menu principal" className="btn-icon shrink-0 lg:hidden" onClick={onClose}><X size={18} aria-hidden="true" /></button>
       </div>
