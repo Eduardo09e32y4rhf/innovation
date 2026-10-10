@@ -69,9 +69,9 @@ export class PunchService {
     const employee = await this.employeeFor(actor);
     const event = await this.prisma.punchEvent.findFirst({ where: { receipt, companyId: actor.companyId, employeeId: employee.id } });
     if (!event) throw new NotFoundException('Comprovante nao encontrado.');
-    const company = await this.prisma.company.findUnique({ where: { id: actor.companyId }, select: { name: true, document: true } });
+    const company = await this.prisma.company.findUnique({ where: { id: actor.companyId }, select: { name: true, document: true, logoUrl: true } });
     const buffer = await buildPunchReceiptPdf({
-      company: { name: company?.name ?? 'Empresa', document: company?.document },
+      company: { name: company?.name ?? 'Empresa', document: company?.document, logoUrl: company?.logoUrl },
       employee: { name: employee.name, registration: employee.registration, cpf: employee.cpf, position: employee.position },
       event: {
         receipt: event.receipt,

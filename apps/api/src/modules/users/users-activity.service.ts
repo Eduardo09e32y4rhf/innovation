@@ -1,3 +1,4 @@
+import { PdfReport } from '../../common/pdf/pdf-report';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { createPdfSink, safeFileName, sendPdf } from '../../common/pdf/pdf-response';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -57,62 +58,28 @@ export class UsersActivityService {
 
   async pdf(companyId: string, actor: JwtUser, userId: string, days: number, res: unknown) {
     const { subject, items, days: period, truncated } = await this.load(companyId, actor, userId, { days, limit: MAX_ROWS });
-    const company = await this.prisma.company.findUnique({ where: { id: subject.companyId }, select: { name: true } });
-    const pdfkit = await import('pdfkit');
-    const doc = new pdfkit.default({ margin: 30, size: 'A4', layout: 'landscape', bufferPages: true });
-    const sink = createPdfSink();
-    doc.pipe(sink.stream);
-
-    const W = doc.page.width - 60;
-    const cols = [{ label: 'Data e hora', w: 92 }, { label: 'IP', w: 84 }, { label: 'Tipo', w: 58 }, { label: 'O que aconteceu', w: 190 }, { label: 'Detalhes (tinha → ficou)', w: W - 424 }];
-    const fmt = (iso: string) => new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    const brand = '#8b00c5';
-
-    const header = () => {
-      doc.rect(30, 24, W, 58).fill('#f5ecfb');
-      doc.fillColor(brand).font('Helvetica-Bold').fontSize(14).text('Histórico de atividade do usuário', 40, 32);
-      doc.fillColor('#333').font('Helvetica').fontSize(9)
-        .text(`Usuário: ${subject.name}   |   E-mail: ${subject.email}   |   Matrícula: ${subject.employee?.registration ?? 'não vinculada'}`, 40, 52)
-        .text(`Empresa: ${company?.name ?? '-'}   |   Período: últimos ${period} dias   |   Gerado em ${fmt(new Date().toISOString())}   |   ${items.length} registro(s)`, 40, 66);
-      let x = 30;
-      const y = 92;
-      doc.rect(30, y, W, 18).fill(brand);
-      doc.fillColor('#fff').font('Helvetica-Bold').fontSize(8);
-      for (const col of cols) { doc.text(col.label, x + 4, y + 5, { width: col.w - 8 }); x += col.w; }
-      doc.y = y + 22;
-    };
-    header();
-    doc.on('pageAdded', header);
-
-    doc.font('Helvetica').fontSize(7.5).fillColor('#111');
-    if (!items.length) doc.text('Nenhum registro no período.', 34, doc.y + 6);
-    let zebra = false;
-    for (const item of items) {
-      const detail = [
-        item.target ? `Página/recurso: ${item.target}` : '',
-        ...item.changes.map((c) => `${c.field}: ${c.from ?? '(vazio)'} → ${c.to ?? '(vazio)'}`),
-        item.by ? `Por: ${item.by}` : '',
-      ].filter(Boolean).join('\n') || '—';
-      const cells = [fmt(item.at), item.ip ?? '—', ACTIVITY_TYPE_LABEL[item.type], item.title, detail];
-      const heights = cells.map((text, i) => doc.heightOfString(text, { width: cols[i].w - 8 }));
-      const rowH = Math.max(...heights) + 8;
-      if (doc.y + rowH > doc.page.height - 40) doc.addPage();
-      const y = doc.y;
-      if (zebra) doc.rect(30, y - 2, W, rowH).fill('#faf7fd');
-      zebra = !zebra;
-      doc.fillColor('#111');
-      let x = 30;
-      cells.forEach((text, i) => { doc.text(text, x + 4, y + 2, { width: cols[i].w - 8 }); x += cols[i].w; });
-      doc.y = y + rowH;
-    }
-    if (truncated) doc.moveDown().fillColor('#a00').text(`Exibindo os ${MAX_ROWS} registros mais recentes.`, 34);
-
-    const range = doc.bufferedPageRange();
-    for (let i = 0; i < range.count; i += 1) {
-      doc.switchToPage(range.start + i);
-      doc.fillColor('#777').fontSize(7).text(`Documento confidencial — contém dados pessoais (LGPD) • Página ${i + 1} de ${range.count}`, 30, doc.page.height - 26, { width: W, align: 'center' });
-    }
-    doc.end();
-    sendPdf(res, await sink.done, `historico-${safeFileName(subject.name, 'usuario')}-${period}d.pdf`);
+    const company = await this.prisma.company.findUnique({ where: { id: subject.companyId }, select: { name: true, document: true, logoUrl: true } });
+    const report = await PdfReport.create({
+      title: 'Histórico de atividade', subtitle: `Últimos ${period} dias`, brand: { name: company?.name ?? 'Empresa', document: company?.document, logoUrl: company?.logoUrl },
+      footerNote: 'Documento confidencial: contém dados pessoais (LGPD).', footerId: `Usuário ${subject.email}`,
+    });
+    const when = (iso: string) => new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    report.fields([
+      ['Usuário', subject.name], ['E-mail', subject.email], ['Matrícula', subject.employee?.registration ?? 'não vinculada'], ['Registros', String(items.length)],
+    ]);
+    report.section('Atividade', truncated ? `Exibindo os ${MAX_ROWS} registros mais recentes` : undefined);
+    report.table(
+      [{ label: 'Data e hora', width: 82 }, { label: 'IP', width: 72 }, { label: 'Tipo', width: 55 }, { label: 'O que aconteceu', width: 130 }, { label: 'Detalhes (tinha → ficou)', width: 176 }],
+      items.map((item) => [
+        when(item.at), item.ip ?? '—', ACTIVITY_TYPE_LABEL[item.type], item.title,
+        [
+          item.target ? `Página/recurso: ${item.target}` : '',
+          ...item.changes.map((c) => `${c.field}: ${c.from ?? '(vazio)'} → ${c.to ?? '(vazio)'}`),
+          item.by ? `Por: ${item.by}` : '',
+        ].filter(Boolean).join('\n') || '—',
+      ]),
+      { fontSize: 7.5, emptyText: 'Nenhum registro no período.' },
+    );
+    sendPdf(res, await report.finish(), `historico-${safeFileName(subject.name, 'usuario')}-${period}d.pdf`);
   }
 }

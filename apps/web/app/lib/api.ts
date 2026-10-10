@@ -794,6 +794,8 @@ export const api = {
   timeClosing: {
     list: () => request<any[]>('/time-closing'),
     getById: (id: string) => request<any>(`/time-closing/${id}`),
+    myPayslips: () => request<Array<{ id: string; periodStart: string; periodEnd: string; status: string; grossPay: number; netPay: number }>>('/time-closing/me/payslips'),
+    downloadMyPayslip: (id: string) => downloadRequest(`/time-closing/me/payslips/${id}/pdf`),
     generate: (input: { month?: number; year?: number; periodStart?: string; periodEnd?: string; employeeIds?: string[]; overtimeHandling?: 'PAYMENT' | 'BANK' }) => request<any[]>('/time-closing/generate', { method: 'POST', body: input }),
     downloadCollectivePdf: (month: string, employeeIds: string[] = []) =>
       downloadRequest(`/time-closing/collective/pdf${makeQuery({
@@ -959,7 +961,8 @@ export const api = {
       retryWebhookEvent: (id: string) => request<{ queued: boolean; id: string }>(`/finance/platform/webhook-events/${id}/retry`, { method: 'POST' }),
       billingAuditLogs: (query: { companyId?: string; limit?: number } = {}) => request<PlatformBillingAuditLog[]>(`/finance/platform/audit-logs${makeQuery(query)}`),
       delete: (id: string) => request<{ id: string }>(`/finance/platform/invoices/${id}`, { method: 'DELETE' }),
-      downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to' | 'companyId'> = {}) =>
+      downloadCostCentersPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'from' | 'to'> = {}) => downloadRequest(`/faturas/plataforma/cost-centers/pdf${makeQuery(query)}`),
+    downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to' | 'companyId'> = {}) =>
         downloadRequest(`/finance/platform/statements/pdf${makeQuery(query)}`),
     },
   },
@@ -1013,6 +1016,7 @@ export const api = {
     quotePlan: (companyId: string, planId: string) => request<PlanQuote>(`/faturas/plataforma/companies/${companyId}/plan/quote?planId=${planId}`),
     changePlan: (companyId: string, input: { planId: string; reason: string }) => request<{ scheduled: boolean; prorationAmount: number; prorationMerged?: boolean }>(`/faturas/plataforma/companies/${companyId}/plan`, { method: 'POST', body: input }),
     syncInvoice: (id: string) => request<PlatformInvoice>(`/faturas/plataforma/invoices/${id}/sync`, { method: 'POST' }),
+    downloadCostCentersPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'from' | 'to'> = {}) => downloadRequest(`/faturas/plataforma/cost-centers/pdf${makeQuery(query)}`),
     downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to' | 'companyId'> = {}) => downloadRequest(`/faturas/plataforma/statements/pdf${makeQuery(query)}`),
     plans: () => request<Array<{ id: string; name: string; isActive?: boolean; commitmentMonths?: number }>>('/platform/plans'),
     releaseAccess: (companyId: string, input: { method: 'TRUST' | 'RECEIVED'; reason: string }) => request<{ released: boolean; method: string; invoicesSettled: number }>(`/faturas/plataforma/companies/${companyId}/liberar-acesso`, { method: 'POST', body: input }),

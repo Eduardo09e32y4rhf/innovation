@@ -1,4 +1,4 @@
-import PDFDocument from 'pdfkit';
+import { fmt, PDF, PdfReport, type PdfBrand, type PdfTone } from '../../common/pdf/pdf-report';
 
 export interface TimeSheetTrack {
   date: Date;
@@ -18,7 +18,7 @@ export interface TimeSheetData {
   status: string;
   periodStart: Date;
   periodEnd: Date;
-  company: { name?: string | null; document?: string | null } | null;
+  company: { name?: string | null; document?: string | null; logoUrl?: string | null } | null;
   employee: { name: string; cpf?: string | null; registration?: string | null; position?: string | null; department?: string | null };
   tracks: TimeSheetTrack[];
   normalHours?: number | null;
@@ -45,11 +45,6 @@ export interface TimeSheetData {
 }
 
 const TZ = 'America/Sao_Paulo';
-const INK = '#0f172a';
-const MUTED = '#64748b';
-const LINE = '#e2e8f0';
-const BRAND = '#0f766e';
-const BAND = '#f1f5f9';
 
 const num = (value: unknown) => { const n = Number(value ?? 0); return Number.isFinite(n) ? n : 0; };
 const decimal = (value: unknown) => num(value).toFixed(2).replace('.', ',');
@@ -100,152 +95,104 @@ export function payslipLines(data: TimeSheetData): Line[] {
   return lines.filter((line, index) => index === 0 || (line.earning ?? 0) > 0 || (line.deduction ?? 0) > 0);
 }
 
-export function buildTimeSheetPdf(data: TimeSheetData, generatedAt = new Date()): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true, info: { Title: `Folha de ponto - ${data.employee.name}`, Author: data.company?.name ?? 'Innovation RH' } });
-    const chunks: Buffer[] = [];
-    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
 
-    const L = 40;
-    const W = 515;
-    const R = L + W;
+const TONE_OF_STATUS: Record<string, PdfTone> = { DRAFT: 'neutral', IN_REVIEW: 'warn', APPROVED: 'info', CLOSED: 'ok' };
 
-    // ── Faixa de titulo ─────────────────────────────────────────────────────
-    doc.rect(0, 0, 595, 78).fill(INK);
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(16).text('DEMONSTRATIVO DE PAGAMENTO', L, 22, { width: W });
-    doc.font('Helvetica').fontSize(9).fillColor('#cbd5e1').text(`Folha de ponto · competência ${fullDate(data.periodStart)} a ${fullDate(data.periodEnd)}`, L, 46, { width: W });
-    doc.fontSize(8).text(`Status: ${STATUS_LABEL[data.status] ?? data.status}`, L, 46, { width: W, align: 'right' });
+const periodOf = (data: TimeSheetData) => `${fullDate(data.periodStart)} a ${fullDate(data.periodEnd)}`;
 
-    // ── Empregador e colaborador ───────────────────────────────────────────
-    let y = 94;
-    const box = (x: number, width: number, title: string, rows: string[]) => {
-      doc.roundedRect(x, y, width, 64, 5).strokeColor(LINE).stroke();
-      doc.fillColor(MUTED).font('Helvetica-Bold').fontSize(7.5).text(title, x + 10, y + 8);
-      doc.fillColor(INK).font('Helvetica-Bold').fontSize(10).text(rows[0], x + 10, y + 21, { width: width - 20, ellipsis: true, lineBreak: false });
-      doc.font('Helvetica').fontSize(8.5).fillColor('#334155');
-      rows.slice(1).forEach((row, index) => doc.text(row, x + 10, y + 36 + index * 11, { width: width - 20, ellipsis: true, lineBreak: false }));
-    };
-    box(L, 250, 'EMPREGADOR', [data.company?.name || 'Empresa', `CNPJ: ${data.company?.document || 'Não informado'}`]);
-    box(L + 265, 250, 'COLABORADOR', [data.employee.name, `CPF: ${formatCpf(data.employee.cpf)}  ·  Matrícula: ${data.employee.registration || 'N/A'}`, `${data.employee.position || 'Cargo N/A'}  ·  ${data.employee.department || 'Depto N/A'}`]);
-    y += 80;
+/** Escreve o holerite e o espelho de ponto de um colaborador no relatório (a partir da página atual). */
+export function appendTimeSheet(report: PdfReport, data: TimeSheetData) {
+  appendPayslip(report, data);
+  report.newPage();
+  appendMirror(report, data, { identity: false });
+}
 
-    // ── Demonstrativo (proventos e descontos) ──────────────────────────────
-    const cols = { code: L + 8, desc: L + 52, ref: L + 270, earn: L + 340, ded: L + 430 };
-    doc.rect(L, y, W, 20).fill(BRAND);
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8);
-    doc.text('CÓD.', cols.code, y + 6); doc.text('DESCRIÇÃO', cols.desc, y + 6); doc.text('REFERÊNCIA', cols.ref, y + 6);
-    doc.text('PROVENTOS', cols.earn, y + 6, { width: 75, align: 'right' }); doc.text('DESCONTOS', cols.ded, y + 6, { width: 77, align: 'right' });
-    y += 20;
-    const lines = payslipLines(data);
-    lines.forEach((line, index) => {
-      if (index % 2 === 0) doc.rect(L, y, W, 18).fill('#f8fafc');
-      doc.fillColor(MUTED).font('Helvetica').fontSize(8.5).text(line.code, cols.code, y + 5);
-      doc.fillColor(INK).text(line.description, cols.desc, y + 5, { width: 210 });
-      doc.fillColor(MUTED).text(line.reference, cols.ref, y + 5, { width: 65 });
-      if (line.earning) doc.fillColor('#166534').text(brl(line.earning), cols.earn, y + 5, { width: 75, align: 'right' });
-      if (line.deduction) doc.fillColor('#b91c1c').text(brl(line.deduction), cols.ded, y + 5, { width: 77, align: 'right' });
-      y += 18;
-    });
-    const totalEarnings = lines.reduce((sum, line) => sum + (line.earning ?? 0), 0);
-    const totalDeductions = lines.reduce((sum, line) => sum + (line.deduction ?? 0), 0);
-    doc.moveTo(L, y).lineTo(R, y).strokeColor(LINE).stroke();
-    y += 6;
-    doc.fillColor(MUTED).font('Helvetica-Bold').fontSize(8).text('TOTAIS', cols.desc, y + 3);
-    doc.fillColor('#166534').text(brl(totalEarnings), cols.earn, y + 3, { width: 75, align: 'right' });
-    doc.fillColor('#b91c1c').text(brl(totalDeductions), cols.ded, y + 3, { width: 77, align: 'right' });
-    y += 22;
+/** Demonstrativo de pagamento (proventos, descontos e líquido). */
+export function appendPayslip(report: PdfReport, data: TimeSheetData) {
+  const period = periodOf(data);
+  report.parties(
+    { title: 'EMPREGADOR', name: data.company?.name || 'Empresa', lines: [`CNPJ: ${fmt.document(data.company?.document) || 'Não informado'}`] },
+    { title: 'COLABORADOR', name: data.employee.name, lines: [`CPF: ${formatCpf(data.employee.cpf)} · Matrícula: ${data.employee.registration || 'N/A'}`, `${data.employee.position || 'Cargo N/A'} · ${data.employee.department || 'Depto N/A'}`] },
+  );
+  report.section('Demonstrativo de pagamento', `Competência ${period}`);
+  const lines = payslipLines(data);
+  const totalEarnings = lines.reduce((sum, line) => sum + (line.earning ?? 0), 0);
+  const totalDeductions = lines.reduce((sum, line) => sum + (line.deduction ?? 0), 0);
+  report.table(
+    [{ label: 'Cód.', width: 45 }, { label: 'Descrição', width: 200 }, { label: 'Referência', width: 90 }, { label: 'Proventos', width: 90, align: 'right' }, { label: 'Descontos', width: 90, align: 'right' }],
+    lines.map((line) => [
+      { text: line.code, color: PDF.color.mut }, line.description, { text: line.reference, color: PDF.color.mut },
+      { text: line.earning ? brl(line.earning) : '', color: PDF.color.ok }, { text: line.deduction ? brl(line.deduction) : '', color: PDF.color.bad },
+    ]),
+    { totals: ['', 'Totais', '', { text: brl(totalEarnings), color: PDF.color.ok }, { text: brl(totalDeductions), color: PDF.color.bad }] },
+  );
+  report.total('Líquido a receber (estimado)', brl(data.netPay));
+  report.stats([
+    ['Base de cálculo', brl(data.grossPay)], ['Valor da hora', `${brl(data.hourlyRate)} (÷${data.monthlyDivisor ?? 220})`],
+    ['FGTS do mês (patronal)', brl(data.fgtsAmount)], ['Horas normais', `${decimal(data.normalHours)} h`],
+  ]);
+  report.paragraph('Valores calculados a partir do espelho de ponto, conforme as regras de cálculo vigentes. Sujeito à conferência da contabilidade; a folha oficial segue o eSocial.', { size: 8, color: PDF.color.mut });
 
-    // ── Liquido ─────────────────────────────────────────────────────────────
-    doc.roundedRect(L, y, W, 38, 6).fill(INK);
-    doc.fillColor('#94a3b8').font('Helvetica-Bold').fontSize(8).text('LÍQUIDO A RECEBER (ESTIMADO)', L + 16, y + 8);
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(18).text(brl(data.netPay), L + 16, y + 17, { width: W - 32, align: 'right' });
-    y += 54;
+}
 
-    // ── Bases e informativos ───────────────────────────────────────────────
-    const stats: [string, string][] = [
-      ['Base de cálculo', brl(data.grossPay)],
-      ['Valor da hora', `${brl(data.hourlyRate)} (÷${data.monthlyDivisor ?? 220})`],
-      ['FGTS do mês (patronal)', brl(data.fgtsAmount)],
-      ['Horas normais', `${decimal(data.normalHours)} h`],
-    ];
-    const cell = W / stats.length;
-    stats.forEach(([label, value], index) => {
-      const x = L + index * cell;
-      doc.roundedRect(x + 2, y, cell - 4, 40, 5).fillAndStroke(BAND, LINE);
-      doc.fillColor(MUTED).font('Helvetica').fontSize(7.5).text(label, x + 10, y + 8, { width: cell - 20 });
-      doc.fillColor(INK).font('Helvetica-Bold').fontSize(9.5).text(value, x + 10, y + 21, { width: cell - 20 });
-    });
-    y += 56;
-
-    doc.fillColor(MUTED).font('Helvetica').fontSize(7.5).text('Valores calculados a partir do espelho de ponto abaixo, conforme as regras de cálculo vigentes. Sujeito à conferência da contabilidade; a folha oficial segue o eSocial.', L, y, { width: W });
-
-    // ── Espelho de ponto ────────────────────────────────────────────────────
-    doc.addPage();
-    y = 40;
-    doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(11).text('ESPELHO DE PONTO', L, y);
-    doc.fillColor(MUTED).font('Helvetica').fontSize(8).text(`${data.employee.name} · ${fullDate(data.periodStart)} a ${fullDate(data.periodEnd)}`, L, y + 3, { width: W, align: 'right' });
-    y += 22;
-    const c = { date: L + 6, wd: L + 46, in: L + 80, ls: L + 128, lr: L + 176, out: L + 224, work: L + 272, bal: L + 320, occ: L + 372 };
-    const rowH = 15;
-    const header = () => {
-      doc.rect(L, y, W, rowH + 2).fill(BAND);
-      doc.fillColor('#475569').font('Helvetica-Bold').fontSize(7.5);
-      doc.text('Data', c.date, y + 5); doc.text('Dia', c.wd, y + 5); doc.text('Entrada', c.in, y + 5); doc.text('Saída int.', c.ls, y + 5);
-      doc.text('Volta int.', c.lr, y + 5); doc.text('Saída', c.out, y + 5); doc.text('Trabalh.', c.work, y + 5); doc.text('Saldo', c.bal, y + 5); doc.text('Ocorrência', c.occ, y + 5);
-      y += rowH + 2;
-    };
-    header();
-    data.tracks.forEach((track, index) => {
-      if (y > 760) { doc.addPage(); y = 40; header(); }
-      if (index % 2 === 1) doc.rect(L, y, W, rowH).fill('#f8fafc');
+/** Espelho de ponto do colaborador, sem valores de salário: serve também para a folha da equipe. */
+export function appendMirror(report: PdfReport, data: TimeSheetData, options: { identity?: boolean; compact?: boolean } = {}) {
+  const period = periodOf(data);
+  report.section('Espelho de ponto', `Competência ${period}`);
+  if (options.identity !== false) report.fields([
+    ['Colaborador', data.employee.name], ['Matrícula', data.employee.registration || 'N/A'],
+    ['CPF', formatCpf(data.employee.cpf)], ['Cargo / departamento', [data.employee.position, data.employee.department].filter(Boolean).join(' · ') || 'N/A'],
+  ]);
+  report.table(
+    [
+      { label: 'Data', width: 48 }, { label: 'Dia', width: 40 }, { label: 'Entrada', width: 55 }, { label: 'Saída int.', width: 58 }, { label: 'Volta int.', width: 58 },
+      { label: 'Saída', width: 55 }, { label: 'Trabalh.', width: 56 }, { label: 'Saldo', width: 55 }, { label: 'Ocorrência', width: 90 },
+    ],
+    data.tracks.map((track) => {
       const balance = track.dailyBalance ?? 0;
-      doc.font('Helvetica').fontSize(8).fillColor(INK);
-      doc.text(dayMonth(track.date), c.date, y + 4); doc.fillColor(MUTED).text(weekday(track.date), c.wd, y + 4);
-      doc.fillColor(INK).text(clock(track.entry), c.in, y + 4); doc.text(clock(track.lunchStart), c.ls, y + 4);
-      doc.text(clock(track.lunchReturn), c.lr, y + 4); doc.text(clock(track.exit), c.out, y + 4);
-      doc.text(formatMinutes(track.totalWorked), c.work, y + 4);
-      doc.fillColor(balance < 0 ? '#b91c1c' : balance > 0 ? '#166534' : MUTED).text(formatMinutes(balance), c.bal, y + 4);
-      doc.fillColor(MUTED).text(incidentLabel(track.incidentType), c.occ, y + 4, { width: 140, ellipsis: true, lineBreak: false });
-      y += rowH;
-    });
-    doc.moveTo(L, y + 2).lineTo(R, y + 2).strokeColor(LINE).stroke();
-    y += 12;
+      return [
+        dayMonth(track.date), { text: weekday(track.date), color: PDF.color.mut }, clock(track.entry), clock(track.lunchStart), clock(track.lunchReturn), clock(track.exit),
+        formatMinutes(track.totalWorked), { text: formatMinutes(balance), bold: balance !== 0, color: balance < 0 ? PDF.color.bad : balance > 0 ? PDF.color.ok : PDF.color.mut },
+        { text: incidentLabel(track.incidentType), color: PDF.color.mut },
+      ];
+    }),
+    { fontSize: 8, emptyText: 'Nenhum registro de ponto no período.' },
+  );
+  const totals: Array<[string, string]> = [
+    ['Horas extras 50%', `${decimal(data.overtime50)} h`], ['Horas extras 100%', `${decimal(data.overtime100)} h`], ['Adicional noturno', `${decimal(data.nightShift)} h`], ['Dias previstos', String(data.payableWorkdays ?? 0)],
+    ['Faltas', `${num(data.absenceMinutes)} min`], ['Atrasos', `${num(data.lateMinutes)} min`], ['Saídas antecipadas', `${num(data.earlyLeaveMinutes)} min`],
+  ];
+  if (options.compact) {
+    // Uma linha só, para o espelho de cada colaborador caber em uma página na folha da equipe.
+    report.paragraph(`Totais do período · ${totals.map(([label, value]) => `${label}: ${value}`).join(' · ')}`, { size: 8, color: PDF.color.ink, gap: 4 });
+  } else {
+    report.section('Totais do período');
+    report.fields(totals);
+  }
+  report.signatures([{ label: 'Assinatura do colaborador', sub: data.employee.name }, { label: 'Responsável RH / gestor', sub: 'Data: ____/____/________' }]);
+}
 
-    if (y > 640) { doc.addPage(); y = 40; }
-    const totals: [string, string][] = [
-      ['Horas extras 50%', `${decimal(data.overtime50)} h`], ['Faltas', `${num(data.absenceMinutes)} min`],
-      ['Horas extras 100%', `${decimal(data.overtime100)} h`], ['Atrasos', `${num(data.lateMinutes)} min`],
-      ['Adicional noturno', `${decimal(data.nightShift)} h`], ['Saídas antecipadas', `${num(data.earlyLeaveMinutes)} min`],
-    ];
-    totals.forEach(([label, value], index) => {
-      const x = L + (index % 2) * 262;
-      const rowY = y + Math.floor(index / 2) * 16;
-      doc.fillColor(MUTED).font('Helvetica').fontSize(8.5).text(label, x, rowY, { width: 130 });
-      doc.fillColor(INK).font('Helvetica-Bold').text(value, x + 130, rowY, { width: 110 });
-    });
-    y += 66;
+export function timeSheetBrand(company: TimeSheetData['company']): PdfBrand {
+  return { name: company?.name || 'Empresa', document: company?.document, logoUrl: company?.logoUrl };
+}
 
-    // ── Assinaturas ─────────────────────────────────────────────────────────
-    if (y > 700) { doc.addPage(); y = 60; }
-    y += 24;
-    [[60, 'Assinatura do colaborador', data.employee.name], [330, 'Responsável RH / gestor', 'Data: ____/____/________']].forEach(([x, label, sub]) => {
-      doc.moveTo(x as number, y).lineTo((x as number) + 180, y).strokeColor('#334155').stroke();
-      doc.fillColor('#475569').font('Helvetica').fontSize(8).text(label as string, x as number, y + 4, { width: 180, align: 'center' }).text(sub as string, x as number, y + 15, { width: 180, align: 'center' });
-    });
-
-    // ── Rodape com numeracao ────────────────────────────────────────────────
-    const pages = doc.bufferedPageRange();
-    for (let i = 0; i < pages.count; i++) {
-      doc.switchToPage(i);
-      doc.page.margins.bottom = 0; // rodape abaixo da margem: sem isso o pdfkit abre uma pagina em branco por rodape
-      doc.moveTo(L, 804).lineTo(R, 804).strokeColor(LINE).stroke();
-      doc.fillColor('#94a3b8').font('Helvetica').fontSize(7).text(
-        `Gerado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: TZ }).format(generatedAt)} · ID ${data.id} · Página ${i + 1} de ${pages.count}`,
-        L, 809, { width: W, align: 'center', lineBreak: false },
-      );
-    }
-    doc.end();
+/** Contracheque do colaborador: só o demonstrativo de pagamento, sem o espelho de ponto. */
+export async function buildPayslipPdf(data: TimeSheetData, generatedAt = new Date()): Promise<Buffer> {
+  const report = await PdfReport.create({
+    title: 'Contracheque', subtitle: `Competência ${fullDate(data.periodStart)} a ${fullDate(data.periodEnd)}`, brand: timeSheetBrand(data.company),
+    footerId: `Fechamento ${data.id}`, generatedAt, author: data.company?.name ?? undefined,
   });
+  appendPayslip(report, data);
+  report.signatures([{ label: 'Assinatura do colaborador', sub: data.employee.name }, { label: 'Empregador / RH' }]);
+  return report.finish();
+}
+
+export async function buildTimeSheetPdf(data: TimeSheetData, generatedAt = new Date()): Promise<Buffer> {
+  const report = await PdfReport.create({
+    title: 'Folha de ponto', subtitle: `Competência ${fullDate(data.periodStart)} a ${fullDate(data.periodEnd)}`, brand: timeSheetBrand(data.company),
+    chip: { label: STATUS_LABEL[data.status] ?? data.status, tone: TONE_OF_STATUS[data.status] ?? 'neutral' },
+    footerId: `Fechamento ${data.id}`, generatedAt, author: data.company?.name ?? undefined,
+  });
+  appendTimeSheet(report, data);
+  return report.finish();
 }

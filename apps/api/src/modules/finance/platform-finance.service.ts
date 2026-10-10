@@ -1,3 +1,4 @@
+import { PdfReport, fmt } from '../../common/pdf/pdf-report';
 import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
 import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { Prisma, $Enums } from '@prisma/client';
@@ -12,6 +13,10 @@ import { couponDiscount } from '../coupons/coupon-rules';
 import { PaymentProviderService } from './payment-provider.service';
 import { PaymentRefundService } from './payment-refund.service';
 import { CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
+
+const STATEMENT_STATUS: Record<string, { label: string; color: string }> = {
+  PAID: { label: 'Paga', color: '#047857' }, OVERDUE: { label: 'Vencida', color: '#be123c' }, CANCELED: { label: 'Cancelada', color: '#475569' }, OPEN: { label: 'Em aberto', color: '#b45309' }, PENDING: { label: 'Em aberto', color: '#b45309' },
+};
 
 @Injectable()
 export class PlatformFinanceService {
@@ -1180,97 +1185,87 @@ export class PlatformFinanceService {
     ]);
 
     const fileName = `extrato-financeiro-${new Date().toISOString().slice(0, 10)}.pdf`;
-    const sink = createPdfSink();
-    const pdfkit = await import('pdfkit');
-    const doc = new pdfkit.default({ margin: 38, size: 'A4', bufferPages: true });
-    doc.pipe(sink.stream);
-
-    const title = 'Extrato Financeiro da Plataforma';
     const subtitleParts = [
-      query.from ? `De ${new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(query.from))}` : null,
-      query.to ? `Até ${new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(query.to))}` : null,
-      query.status ? `Status ${query.status}` : null,
-      actor?.name ? `Solicitado por ${actor.name}` : null,
+      query.from ? `De ${fmt.day(query.from)}` : null,
+      query.to ? `Até ${fmt.day(query.to)}` : null,
+      query.status ? `Status ${STATEMENT_STATUS[String(query.status).toUpperCase()]?.label ?? query.status}` : null,
     ].filter(Boolean);
 
-    const money = (value: number | string | null | undefined) => Number(value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const date = (value?: Date | string | null) => value ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(value)) : '-';
-
-    doc.font('Helvetica-Bold').fontSize(15).fillColor('#0f172a').text(title, { align: 'center' });
-    doc.moveDown(0.25);
-    doc.font('Helvetica').fontSize(9).fillColor('#64748b').text(subtitleParts.join(' • ') || 'Todos os registros selecionados', { align: 'center' });
-    doc.moveDown(0.8);
-
-    doc.roundedRect(38, doc.y, 519, 78, 12).fillAndStroke('#f8fafc', '#e2e8f0');
-    doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(10).text('Resumo', 54, doc.y + 12);
-    const top = doc.y + 18;
-    const boxes = [
-      { label: 'Faturado', value: money(summary.totals.billed) },
-      { label: 'Recebido', value: money(summary.totals.received) },
-      { label: 'Em aberto', value: money(summary.totals.open) },
-      { label: 'Em atraso', value: money(summary.totals.overdue) },
-    ];
-    boxes.forEach((box, index) => {
-      const x = 54 + (index * 125);
-      doc.font('Helvetica').fontSize(8).fillColor('#64748b').text(box.label, x, top + 8);
-      doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text(box.value, x, top + 23);
+    const report = await PdfReport.create({
+      title: 'Extrato financeiro', subtitle: subtitleParts.join(' · ') || 'Todos os registros selecionados', brand: { platform: true, name: 'Innovation RH' },
+      footerNote: actor?.name ? `Solicitado por ${actor.name}` : undefined, footerId: 'Extrato financeiro da plataforma',
     });
 
-    doc.y = 152;
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a').text('Faturas', 38, doc.y);
-    doc.moveDown(0.5);
+    report.section('Resumo');
+    report.stats([
+      ['Faturado', fmt.money(summary.totals.billed)], ['Recebido', fmt.money(summary.totals.received)],
+      ['Em aberto', fmt.money(summary.totals.open)], ['Em atraso', fmt.money(summary.totals.overdue)],
+    ]);
 
-    const headerY = doc.y;
-    const columns = [
-      { key: 'empresa', label: 'Empresa', width: 126 },
-      { key: 'cobranca', label: 'Cobrança', width: 114 },
-      { key: 'vencimento', label: 'Vencimento', width: 74 },
-      { key: 'valor', label: 'Valor', width: 74 },
-      { key: 'status', label: 'Status', width: 64 },
-      { key: 'integracao', label: 'Integração', width: 63 },
-    ];
-    let x = 38;
-    doc.roundedRect(38, headerY - 4, 519, 18, 5).fill('#f1f5f9');
-    doc.fillColor('#475569').font('Helvetica-Bold').fontSize(8);
-    columns.forEach((column) => {
-      doc.text(column.label, x + 3, headerY, { width: column.width - 6 });
-      x += column.width;
-    });
-    doc.moveDown(1);
+    report.section('Faturas', `${page.items.length} registro${page.items.length === 1 ? '' : 's'}`);
+    report.table(
+      [
+        { label: 'Empresa', width: 120 }, { label: 'Cobrança', width: 148 }, { label: 'Vencimento', width: 66 },
+        { label: 'Valor', width: 76, align: 'right' }, { label: 'Status', width: 59 }, { label: 'Origem', width: 46 },
+      ],
+      page.items.map((invoice: any) => {
+        const status = STATEMENT_STATUS[String(invoice.status || '').toUpperCase()] ?? { label: String(invoice.status || 'Em aberto'), color: '#475569' };
+        return [
+          invoice.company?.name || 'Empresa', invoice.description || 'Mensalidade', fmt.day(invoice.dueDate),
+          { text: fmt.money(invoice.amount), bold: true }, { text: status.label, color: status.color, bold: true }, invoice.asaasPaymentId ? 'Asaas' : 'Local',
+        ];
+      }),
+      { fontSize: 8, emptyText: 'Nenhuma fatura encontrada para este filtro.' },
+    );
 
-    const invoices = page.items.slice(0, 80);
-    if (!invoices.length) {
-      doc.font('Helvetica').fontSize(9).fillColor('#64748b').text('Nenhuma fatura encontrada para este filtro.', 38, doc.y + 10);
-    } else {
-      invoices.forEach((invoice) => {
-        const rowY = doc.y + 3;
-        const status = String(invoice.status || '').toUpperCase();
-        const statusColor = status === 'PAID' ? '#047857' : status === 'OVERDUE' ? '#be123c' : status === 'CANCELED' ? '#475569' : '#0369a1';
-        const bg = rowY + 16;
-        doc.roundedRect(38, rowY - 2, 519, 18, 4).strokeColor('#e2e8f0').stroke();
-        doc.fillColor('#0f172a').font('Helvetica').fontSize(7.5);
-        doc.text(invoice.company?.name || 'Empresa', 41, rowY, { width: 120 });
-        doc.text(invoice.description || 'Mensalidade', 167, rowY, { width: 108 });
-        doc.text(date(invoice.dueDate), 281, rowY, { width: 68 });
-        doc.text(money(invoice.amount), 355, rowY, { width: 68 });
-        doc.fillColor(statusColor).font('Helvetica-Bold').text(status || 'OPEN', 429, rowY, { width: 56 });
-        doc.fillColor('#0f766e').font('Helvetica-Bold').text(invoice.asaasPaymentId ? 'Asaas' : 'Local', 493, rowY, { width: 56 });
-        doc.y = bg;
-        if (doc.y > 720) {
-          doc.addPage();
-          doc.y = 48;
-        }
-      });
-    }
-
-    doc.moveDown(1);
-    doc.font('Helvetica').fontSize(8).fillColor('#64748b')
-      .text(`Gerado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`, { align: 'right' });
-
-    doc.end();
-    sendPdf(res, await sink.done, fileName);
+    sendPdf(res, await report.finish(), fileName);
   }
 
+
+  /** Centro de custo da plataforma: uma linha por empresa contratante, com o que foi faturado, recebido, em aberto e em atraso. Uso interno (DEV/financeiro). */
+  async costCentersPdf(query: ListPlatformInvoicesDto, commercialOwnerId: string | undefined, actor: any, res: any) {
+    const invoices = await this.prisma.platformInvoice.findMany({
+      where: this.buildWhere(query, commercialOwnerId),
+      select: { companyId: true, amount: true, status: true },
+    });
+    const totals = new Map<string, { billed: number; received: number; open: number; overdue: number }>();
+    for (const invoice of invoices) {
+      const status = String(invoice.status).toUpperCase();
+      if (status === 'CANCELED') continue;
+      const row = totals.get(invoice.companyId) ?? { billed: 0, received: 0, open: 0, overdue: 0 };
+      const amount = Number(invoice.amount ?? 0);
+      row.billed += amount;
+      if (status === 'PAID') row.received += amount; else if (status === 'OVERDUE') row.overdue += amount; else row.open += amount;
+      totals.set(invoice.companyId, row);
+    }
+    const ids = [...totals.keys()];
+    const [companies, employees, users] = await Promise.all([
+      this.prisma.company.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, plan: true, status: true } }),
+      this.prisma.employee.groupBy({ by: ['companyId'], where: { companyId: { in: ids } }, _count: { _all: true } }),
+      this.prisma.user.groupBy({ by: ['companyId'], where: { companyId: { in: ids }, isActive: true }, _count: { _all: true } }),
+    ]);
+    const employeeCount = new Map(employees.map((row) => [row.companyId, row._count._all]));
+    const userCount = new Map(users.map((row) => [row.companyId, row._count._all]));
+    const rows = companies
+      .map((company) => ({ company, ...totals.get(company.id)!, employees: employeeCount.get(company.id) ?? 0, users: userCount.get(company.id) ?? 0 }))
+      .sort((a, b) => b.billed - a.billed);
+    const sum = (key: 'billed' | 'received' | 'open' | 'overdue') => rows.reduce((acc, row) => acc + row[key], 0);
+
+    const report = await PdfReport.create({
+      title: 'Centro de custo', subtitle: [query.from ? `De ${fmt.day(query.from)}` : null, query.to ? `Até ${fmt.day(query.to)}` : null].filter(Boolean).join(' · ') || 'Por empresa contratante',
+      brand: { platform: true, name: 'Innovation RH' }, footerNote: actor?.name ? `Solicitado por ${actor.name}` : undefined, footerId: 'Centro de custo por empresa',
+    });
+    report.section('Resumo');
+    report.stats([['Faturado', fmt.money(sum('billed'))], ['Recebido', fmt.money(sum('received'))], ['Em aberto', fmt.money(sum('open'))], ['Em atraso', fmt.money(sum('overdue'))]]);
+    report.section('Empresas', `${rows.length} empresa${rows.length === 1 ? '' : 's'}`);
+    const right = 'right' as const;
+    report.table(
+      [{ label: 'Empresa', width: 135 }, { label: 'Plano', width: 50 }, { label: 'Usuários', width: 48, align: right }, { label: 'Colab.', width: 42, align: right }, { label: 'Faturado', width: 66, align: right }, { label: 'Recebido', width: 66, align: right }, { label: 'Em aberto', width: 58, align: right }, { label: 'Em atraso', width: 50, align: right }],
+      rows.map((row) => [row.company.name, String(row.company.plan), String(row.users), String(row.employees), { text: fmt.money(row.billed), bold: true }, { text: fmt.money(row.received), color: '#047857' }, fmt.money(row.open), { text: fmt.money(row.overdue), color: row.overdue > 0 ? '#be123c' : undefined }]),
+      { fontSize: 8, emptyText: 'Nenhuma fatura encontrada para este filtro.', totals: ['Total', '', '', '', fmt.money(sum('billed')), fmt.money(sum('received')), fmt.money(sum('open')), fmt.money(sum('overdue'))] },
+    );
+    sendPdf(res, await report.finish(), `centro-de-custo-${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
 
   async list(query: ListPlatformInvoicesDto, commercialOwnerId?: string) {
     const where = this.buildWhere(query, commercialOwnerId);

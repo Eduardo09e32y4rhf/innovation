@@ -30,6 +30,15 @@ export class TimeClosingController {
   @Roles('ADMIN', 'RH', 'CEO', 'CONTABIL')
   list(@Req() req: any, @Query('status') status?: TimeClosingStatus) { return this.service.list(req.user.companyId, status); }
 
+  // Contracheque do próprio colaborador (declarado antes de ':id').
+  @Get('me/payslips')
+  @Roles('FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CEO', 'CONTABIL')
+  myPayslips(@Req() req: any) { return this.service.listMyPayslips(req.user.companyId, req.user); }
+
+  @Get('me/payslips/:id/pdf')
+  @Roles('FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CEO', 'CONTABIL')
+  myPayslipPdf(@Req() req: any, @Res() res: any, @Param('id') id: string) { return this.service.streamMyPayslip(req.user.companyId, req.user, id, res); }
+
   @Get('collective/pdf')
   @Roles(...rolesWith('closing.read'))
   collectivePdf(

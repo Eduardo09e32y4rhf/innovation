@@ -1,3 +1,4 @@
+import { PdfReport } from '../../common/pdf/pdf-report';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
@@ -47,6 +48,9 @@ export class PrivacyService {
   }
 
   /** Termo completo já preenchido com os dados reais de quem vai assinar. */
+  /** Logo da empresa de cada termo montado: fica fora do documento para não entrar no hash nem na resposta da API. */
+  private readonly logoByDocument = new WeakMap<TermsDocument, string | null>();
+
   async document(user: JwtUser): Promise<TermsDocument> {
     const [userData, employee] = await Promise.all([
       this.repository.getUserData(user.sub),
@@ -56,7 +60,7 @@ export class PrivacyService {
     const address = [company?.street, company?.streetNumber, company?.neighborhood, company?.city && company?.state ? `${company.city}/${company.state}` : company?.city, company?.cep]
       .filter(Boolean)
       .join(', ') || company?.address || null;
-    return buildTermsDocument({
+    const built = buildTermsDocument({
       signer: {
         name: employee?.name || userData?.name || user.name || 'Usuário',
         email: userData?.email || user.email,
@@ -74,6 +78,8 @@ export class PrivacyService {
         address,
       },
     });
+    this.logoByDocument.set(built, company?.logoUrl ?? null);
+    return built;
   }
 
   async accept(user: JwtUser, requestMeta: { ipAddress?: string; userAgent?: string }, body?: any) {
@@ -212,69 +218,31 @@ export class PrivacyService {
   }
 
   public async generatePDFBase64(termDoc: TermsDocument, evidence: SignatureEvidence, payloadHash: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      try {
-        const doc = new PDFDocument({ margins: { top: 60, bottom: 60, left: 55, right: 55 }, size: 'A4', bufferPages: true });
-        const buffers: Buffer[] = [];
-        doc.on('data', buffers.push.bind(buffers));
-        doc.on('error', reject);
-        doc.on('end', () => resolve(Buffer.concat(buffers).toString('base64')));
-
-        const width = doc.page.width - 110;
-        const ink = '#0f172a';
-        const muted = '#64748b';
-
-        doc.font('Helvetica-Bold').fontSize(15).fillColor(ink).text(termDoc.title, { align: 'center' });
-        doc.moveDown(0.3).font('Helvetica').fontSize(9).fillColor(muted)
-          .text(`Versão ${termDoc.version} · Código de integridade do texto: ${termDoc.contentHash.slice(0, 32)}`, { align: 'center' });
-        doc.moveDown(1.2);
-
-        doc.font('Helvetica').fontSize(10).fillColor(ink).text(termDoc.preamble, { align: 'justify', lineGap: 2 });
-        doc.moveDown(0.8);
-
-        for (const section of termDoc.sections) {
-          if (doc.y > doc.page.height - 130) doc.addPage();
-          doc.font('Helvetica-Bold').fontSize(10.5).fillColor(ink).text(section.title);
-          doc.moveDown(0.25);
-          doc.font('Helvetica').fontSize(9.5).fillColor('#1e293b');
-          for (const clause of section.clauses) {
-            doc.text(clause, { align: 'justify', lineGap: 1.5 });
-            doc.moveDown(0.3);
-          }
-          doc.moveDown(0.4);
-        }
-
-        doc.font('Helvetica').fontSize(10).fillColor(ink).text(termDoc.closing, { align: 'justify', lineGap: 2 });
-        doc.moveDown(1);
-
-        if (doc.y > doc.page.height - 260) doc.addPage();
-        const boxTop = doc.y;
-        doc.font('Helvetica-Bold').fontSize(10).fillColor(ink).text('REGISTRO DA ASSINATURA ELETRÔNICA', 55, boxTop + 10, { width: width - 20, indent: 10 });
-        const line = (label: string, value: string) => {
-          doc.font('Helvetica-Bold').fontSize(8.5).fillColor(muted).text(label.toUpperCase(), 65, doc.y + 4, { width: width - 20 });
-          doc.font('Helvetica').fontSize(9.5).fillColor(ink).text(value || '—', 65, doc.y, { width: width - 20 });
-        };
-        line('Assinante', `${termDoc.signer.name} · CPF ${formatCpf(termDoc.signer.cpf)} · ${termDoc.signer.email}`);
-        line('Empresa', `${termDoc.company.legalName || termDoc.company.name} · ${formatCnpj(termDoc.company.document)}`);
-        line('Data e hora do aceite (Brasília)', evidence.signedAt);
-        line('Endereço IP', evidence.ipAddress || 'não identificado');
-        line('Dispositivo', evidence.userAgent ? String(evidence.userAgent).slice(0, 140) : 'não identificado');
-        if (evidence.latitude && evidence.longitude) line('Localização aproximada', `${evidence.latitude}, ${evidence.longitude}${evidence.address ? ` · ${evidence.address}` : ''}`);
-        line('Código de integridade da assinatura (SHA-256)', payloadHash);
-        if (evidence.signature) line('Assinatura digital da plataforma (RSA-SHA256)', evidence.signature.slice(0, 160) + '…');
-        const boxHeight = doc.y - boxTop + 10;
-        doc.rect(50, boxTop, width + 10, boxHeight).strokeColor('#cbd5e1').lineWidth(1).stroke();
-
-        const pages = doc.bufferedPageRange();
-        for (let i = 0; i < pages.count; i++) {
-          doc.switchToPage(i);
-          doc.font('Helvetica').fontSize(8).fillColor(muted)
-            .text(`Innovation RH · ${termDoc.signer.name} · Página ${i + 1} de ${pages.count}`, 55, doc.page.height - 40, { width, align: 'center', lineBreak: false });
-        }
-        doc.end();
-      } catch (e) {
-        reject(e);
-      }
+    const report = await PdfReport.create({
+      title: 'Termo de aceite', subtitle: `Versão ${termDoc.version}`,
+      brand: { name: termDoc.company.legalName || termDoc.company.name, document: termDoc.company.document, logoUrl: this.logoByDocument.get(termDoc) },
+      footerNote: `Código de integridade do texto: ${termDoc.contentHash.slice(0, 32)}`, footerId: termDoc.signer.name,
     });
+    report.paragraph(termDoc.title, { size: 13, bold: true, color: '#0f172a' });
+    report.paragraph(termDoc.preamble, { size: 10 });
+    for (const section of termDoc.sections) {
+      report.section(section.title);
+      for (const clause of section.clauses) report.paragraph(clause, { size: 9.5, gap: 6 });
+    }
+    report.paragraph(termDoc.closing, { size: 10 });
+
+    report.section('Registro da assinatura eletrônica');
+    const fields: Array<[string, string]> = [
+      ['Assinante', `${termDoc.signer.name} · CPF ${formatCpf(termDoc.signer.cpf)} · ${termDoc.signer.email}`],
+      ['Empresa', `${termDoc.company.legalName || termDoc.company.name} · ${formatCnpj(termDoc.company.document)}`],
+      ['Data e hora do aceite (Brasília)', evidence.signedAt],
+      ['Endereço IP', evidence.ipAddress || 'não identificado'],
+      ['Dispositivo', evidence.userAgent ? String(evidence.userAgent).slice(0, 140) : 'não identificado'],
+    ];
+    if (evidence.latitude && evidence.longitude) fields.push(['Localização aproximada', `${evidence.latitude}, ${evidence.longitude}${evidence.address ? ` · ${evidence.address}` : ''}`]);
+    fields.push(['Código de integridade da assinatura (SHA-256)', payloadHash]);
+    if (evidence.signature) fields.push(['Assinatura digital da plataforma (RSA-SHA256)', evidence.signature.slice(0, 160) + '…']);
+    report.fields(fields, 1);
+    return (await report.finish()).toString('base64');
   }
 }

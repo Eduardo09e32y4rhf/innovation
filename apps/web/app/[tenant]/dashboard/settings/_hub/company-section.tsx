@@ -111,7 +111,22 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
     if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return void toast.error('Formato inválido. Use PNG, JPG ou WebP.');
     if (file.size > MAX_LOGO_BYTES) return void toast.error('A imagem deve ter até 1 MB.');
     const reader = new FileReader();
-    reader.onload = () => setLogo(String(reader.result ?? ''));
+    reader.onload = () => {
+      const result = String(reader.result ?? '');
+      // Os PDFs só embutem PNG e JPEG: WebP vira PNG aqui, para a logo aparecer em faturas, holerites e demais documentos.
+      if (file.type !== 'image/webp') return setLogo(result);
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+        canvas.getContext('2d')?.drawImage(image, 0, 0);
+        const png = canvas.toDataURL('image/png');
+        if (png.length > MAX_LOGO_BYTES * 1.4) return void toast.error('A imagem convertida ficou grande demais. Use PNG ou JPG de até 1 MB.');
+        setLogo(png);
+      };
+      image.onerror = () => toast.error('Não foi possível ler a imagem WebP. Use PNG ou JPG.');
+      image.src = result;
+    };
     reader.readAsDataURL(file);
   }
 

@@ -1,4 +1,3 @@
-import PDFDocument from 'pdfkit';
 import { describe, expect, it, vi } from 'vitest';
 import { ManagementDocumentsService } from './management-documents.service';
 
@@ -38,18 +37,7 @@ function setup() {
     generatedDocument: { update: vi.fn().mockResolvedValue({}) },
   };
   const documents = {
-    generateDocument: vi.fn(async (_companyId, _type, _title, builder) => {
-      const doc = new PDFDocument({ margin: 50, size: 'A4' });
-      const chunks: Buffer[] = [];
-      doc.on('data', chunk => chunks.push(Buffer.from(chunk)));
-      const finished = new Promise<void>((resolve, reject) => {
-        doc.once('end', resolve);
-        doc.once('error', reject);
-      });
-      builder(doc);
-      doc.end();
-      await finished;
-      const buffer = Buffer.concat(chunks);
+    storePdf: vi.fn(async (_companyId, _type, _title, buffer: Buffer) => {
       pdfBuffers.push(buffer);
       sequence += 1;
       return {
@@ -84,11 +72,11 @@ describe('ManagementDocumentsService', () => {
     });
 
     expect(result.filename).toBe('encaminhamento-aso-maria-da-silva.pdf');
-    expect(documents.generateDocument).toHaveBeenCalledWith(
+    expect(documents.storePdf).toHaveBeenCalledWith(
       'company-1',
       'OTHER',
       expect.stringContaining('Maria da Silva'),
-      expect.any(Function),
+      expect.any(Buffer),
       'actor-1',
     );
     expect(prisma.generatedDocument.update).toHaveBeenCalledWith({
@@ -201,11 +189,11 @@ describe('ManagementDocumentsService', () => {
     const result = await service.createClosingReport('company-1', 'actor-1', 'closing-1');
 
     expect(result.filename).toBe('fechamento-maria-da-silva-2026-07.pdf');
-    expect(documents.generateDocument).toHaveBeenCalledWith(
+    expect(documents.storePdf).toHaveBeenCalledWith(
       'company-1',
       'PAYSLIP',
       expect.any(String),
-      expect.any(Function),
+      expect.any(Buffer),
       'actor-1',
     );
     expect(prisma.generatedDocument.update).toHaveBeenCalledWith({
@@ -228,6 +216,6 @@ describe('ManagementDocumentsService', () => {
     await expect(
       service.createAsoReferralFromRecord('company-1', 'actor-1', 'aso-outro-tenant'),
     ).rejects.toThrow('ASO não encontrado.');
-    expect(documents.generateDocument).not.toHaveBeenCalled();
+    expect(documents.storePdf).not.toHaveBeenCalled();
   });
 });

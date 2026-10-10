@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { roundMoney } from '../../common/utils/money';
 import { createHash } from 'crypto';
-import PDFDocument from 'pdfkit';
+import { PDF, PdfReport, type PdfCell } from '../../common/pdf/pdf-report';
 import type { JwtUser } from '../../common/types/auth.types';
 import { SupportStorageService } from '../support/support-storage.service';
 import { VacationsRepository } from './vacations.repository';
@@ -112,160 +112,49 @@ export class VacationReceiptService {
     };
   }
 
-  private buildPdf(input: any): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({
-        size: 'A4',
-        margin: 44,
-        info: {
-          Title: `Aviso e recibo de ferias - ${input.identifier}`,
-          Author: input.company.legalName || input.company.name,
-          Subject: `Ferias ${input.competence}`,
-          Keywords: `ferias,recibo,${input.identifier},${VACATION_RECEIPT_VERSION}`,
-          CreationDate: input.issuedAt,
-        },
-      });
-      const chunks: Buffer[] = [];
-      doc.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-
-      const width = doc.page.width - 88;
-      const address = input.company.address || [
-        input.company.street,
-        input.company.streetNumber,
-        input.company.neighborhood,
-        input.company.city,
-        input.company.state,
-        input.company.zipCode,
-      ].filter(Boolean).join(', ');
-
-      doc.rect(0, 0, doc.page.width, 112).fill('#0f766e');
-      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(18)
-        .text(input.company.legalName || input.company.name, 44, 32, { width });
-      doc.font('Helvetica').fontSize(8.5)
-        .text([input.company.document, address, input.company.email, input.company.phone].filter(Boolean).join(' | '), 44, 61, {
-          width,
-        });
-      doc.font('Helvetica-Bold').fontSize(8)
-        .text(`DOCUMENTO ${input.identifier}`, 44, 91, { width, align: 'right' });
-
-      doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(17)
-        .text('AVISO E RECIBO DE FERIAS', 44, 136, { width, align: 'center' });
-      doc.fillColor('#64748b').font('Helvetica').fontSize(9)
-        .text(`Competencia ${input.competence} | Versao ${VACATION_RECEIPT_VERSION}`, 44, 162, {
-          width,
-          align: 'center',
-        });
-
-      this.sectionTitle(doc, 'DADOS DO COLABORADOR', 194, width);
-      this.infoRow(doc, 218, [
-        ['Nome', input.vacation.employee.name],
-        ['Matricula', input.vacation.employee.registration || input.vacation.employee.id.slice(0, 8).toUpperCase()],
-      ], width);
-      this.infoRow(doc, 258, [
-        ['CPF', input.vacation.employee.cpf || 'Nao informado'],
-        ['Admissao', this.formatDate(input.vacation.employee.admissionDate)],
-      ], width);
-      this.infoRow(doc, 298, [
-        ['Cargo', input.vacation.employee.position],
-        ['Departamento', input.vacation.employee.department],
-      ], width);
-
-      this.sectionTitle(doc, 'PERIODO DE FERIAS', 346, width);
-      this.infoRow(doc, 370, [
-        ['Periodo aquisitivo', input.vacation.acquisitionPeriod],
-        ['Dias de gozo', String(input.vacation.daysUsed)],
-      ], width);
-      this.infoRow(doc, 410, [
-        ['Inicio', this.formatDate(input.vacation.startDate)],
-        ['Termino', this.formatDate(input.vacation.endDate)],
-      ], width);
-
-      this.sectionTitle(doc, 'DEMONSTRATIVO OFICIAL', 458, width);
-      const tableTop = 483;
-      const soldRows = input.vacation.soldDays > 0 ? 2 : 0;
-      const tableHeight = 98 + soldRows * 24;
-      doc.rect(44, tableTop, width, tableHeight).strokeColor('#cbd5e1').stroke();
-      let rowY = tableTop + 10;
-      this.amountRow(doc, rowY, 'Remuneracao mensal cadastrada', input.salary, width);
-      rowY += 24;
-      this.amountRow(doc, rowY, `Remuneracao de ferias (${input.vacation.daysUsed} dias)`, input.vacationPay, width);
-      rowY += 24;
-      this.amountRow(doc, rowY, 'Adicional constitucional de 1/3', input.constitutionalThird, width);
-      if (input.vacation.soldDays > 0) {
-        rowY += 24;
-        this.amountRow(doc, rowY, `Abono pecuniario (${input.vacation.soldDays} dias)`, input.soldDaysPay, width);
-        rowY += 24;
-        this.amountRow(doc, rowY, 'Adicional de 1/3 sobre o abono', input.soldDaysThird, width);
-      }
-
-      const totalTop = tableTop + tableHeight + 14;
-      doc.roundedRect(44, totalTop, width, 58, 8).fill('#ecfdf5');
-      doc.fillColor('#065f46').font('Helvetica-Bold').fontSize(9).text('TOTAL BRUTO CALCULADO', 60, totalTop + 12);
-      doc.fontSize(14).text(this.currency(input.calculatedGross), 60, totalTop + 10, {
-        width: width - 32,
-        align: 'right',
-      });
-      doc.fontSize(9).text('VALOR LIQUIDO PAGO', 60, totalTop + 36);
-      doc.fontSize(14).text(this.currency(input.paidAmount), 60, totalTop + 33, {
-        width: width - 32,
-        align: 'right',
-      });
-
-      const declarationTop = totalTop + 73;
-      doc.fillColor('#334155').font('Helvetica').fontSize(8.5)
-        .text(
-          `Recebi da empresa a importancia liquida de ${this.currency(input.paidAmount)}, referente as ferias acima ` +
-          `descritas, paga em ${this.formatDate(input.payment.paidAt)} por ${input.payment.paymentMethod || 'forma nao informada'}.`,
-          44,
-          declarationTop,
-          { width, align: 'justify', lineGap: 2 },
-        );
-
-      const signatureY = declarationTop + 58;
-      doc.strokeColor('#94a3b8').moveTo(64, signatureY).lineTo(250, signatureY).stroke();
-      doc.moveTo(345, signatureY).lineTo(531, signatureY).stroke();
-      doc.fillColor('#334155').fontSize(8)
-        .text('Assinatura do colaborador', 64, signatureY + 7, { width: 186, align: 'center' })
-        .text('Empregador / RH', 345, signatureY + 7, { width: 186, align: 'center' });
-
-      doc.fillColor('#64748b').fontSize(7)
-        .text(
-          `Emitido em ${this.formatDateTime(input.issuedAt)} por ${input.issuer}. Identificador ${input.identifier}. ` +
-          'O hash SHA-256 integra o registro digital imutavel.',
-          44,
-          792,
-          { width, align: 'center' },
-        );
-      doc.end();
+  private async buildPdf(input: any): Promise<Buffer> {
+    const { company, vacation } = input;
+    const address = company.address || [company.street, company.streetNumber, company.neighborhood, company.city, company.state, company.zipCode].filter(Boolean).join(', ');
+    const report = await PdfReport.create({
+      title: 'Aviso e recibo de férias', number: input.identifier, subtitle: `Competência ${String(input.competence).split('-').reverse().join('/')}`,
+      brand: { name: company.legalName || company.name, document: company.document, logoUrl: company.logoUrl },
+      footerNote: `Emitido por ${input.issuer}. O hash SHA-256 integra o registro digital imutável.`, footerId: `${input.identifier} · ${VACATION_RECEIPT_VERSION}`, generatedAt: input.issuedAt,
     });
-  }
+    if (address || company.email || company.phone) report.paragraph([address, company.email, company.phone].filter(Boolean).join(' · '), { size: 8.5, color: PDF.color.mut });
 
-  private sectionTitle(doc: PDFKit.PDFDocument, title: string, y: number, width: number) {
-    doc.roundedRect(44, y, width, 18, 4).fill('#f1f5f9');
-    doc.fillColor('#0f766e').font('Helvetica-Bold').fontSize(8).text(title, 52, y + 5);
-  }
+    report.section('Dados do colaborador');
+    report.fields([
+      ['Nome', vacation.employee.name], ['Matrícula', vacation.employee.registration || vacation.employee.id.slice(0, 8).toUpperCase()],
+      ['CPF', vacation.employee.cpf || 'Não informado'], ['Admissão', this.formatDate(vacation.employee.admissionDate)],
+      ['Cargo', vacation.employee.position || '-'], ['Departamento', vacation.employee.department || '-'],
+    ], 2);
 
-  private infoRow(doc: PDFKit.PDFDocument, y: number, values: Array<[string, string]>, width: number) {
-    const columnWidth = width / values.length;
-    values.forEach(([label, value], index) => {
-      const x = 44 + columnWidth * index;
-      doc.fillColor('#64748b').font('Helvetica-Bold').fontSize(7).text(label.toUpperCase(), x, y, {
-        width: columnWidth - 12,
-      });
-      doc.fillColor('#0f172a').font('Helvetica').fontSize(9).text(value, x, y + 12, {
-        width: columnWidth - 12,
-        ellipsis: true,
-      });
-    });
-  }
+    report.section('Período de férias');
+    report.fields([
+      ['Período aquisitivo', vacation.acquisitionPeriod || '-'], ['Dias de gozo', String(vacation.daysUsed)],
+      ['Início', this.formatDate(vacation.startDate)], ['Término', this.formatDate(vacation.endDate)],
+    ]);
 
-  private amountRow(doc: PDFKit.PDFDocument, y: number, label: string, amount: number, width: number) {
-    doc.fillColor('#0f172a').font('Helvetica').fontSize(9).text(label, 56, y, { width: width - 170 });
-    doc.font('Helvetica-Bold').text(this.currency(amount), 44, y, { width: width - 12, align: 'right' });
-  }
+    report.section('Demonstrativo oficial');
+    const rows: PdfCell[][] = [
+      ['Remuneração mensal cadastrada', { text: this.currency(input.salary), bold: true }],
+      [`Remuneração de férias (${vacation.daysUsed} dias)`, { text: this.currency(input.vacationPay), bold: true }],
+      ['Adicional constitucional de 1/3', { text: this.currency(input.constitutionalThird), bold: true }],
+    ];
+    if (vacation.soldDays > 0) {
+      rows.push([`Abono pecuniário (${vacation.soldDays} dias)`, { text: this.currency(input.soldDaysPay), bold: true }]);
+      rows.push(['Adicional de 1/3 sobre o abono', { text: this.currency(input.soldDaysThird), bold: true }]);
+    }
+    report.table([{ label: 'Descrição', width: 395 }, { label: 'Valor', width: 120, align: 'right' }], rows, { totals: ['Total bruto calculado', this.currency(input.calculatedGross)] });
+    report.total('Valor líquido pago', this.currency(input.paidAmount));
 
+    report.paragraph(
+      `Recebi da empresa a importância líquida de ${this.currency(input.paidAmount)}, referente às férias acima descritas, paga em ${this.formatDate(input.payment.paidAt)} por ${input.payment.paymentMethod || 'forma não informada'}.`,
+      { size: 9 },
+    );
+    report.signatures([{ label: 'Assinatura do colaborador', sub: vacation.employee.name }, { label: 'Empregador / RH' }]);
+    return report.finish();
+  }
   private currency(value: number) {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }

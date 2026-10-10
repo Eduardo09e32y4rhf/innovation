@@ -1,7 +1,7 @@
-import PDFDocument from 'pdfkit';
+import { fmt, PDF, PdfReport } from '../../../common/pdf/pdf-report';
 
 export interface PunchReceiptData {
-  company: { name: string; document?: string | null };
+  company: { name: string; document?: string | null; logoUrl?: string | null };
   employee: { name: string; registration?: string | null; cpf?: string | null; position?: string | null };
   event: {
     receipt: string;
@@ -37,76 +37,37 @@ export function describeDevice(userAgent?: string | null): string {
   return `${browser} em ${os}`;
 }
 
-export function buildPunchReceiptPdf(data: PunchReceiptData): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 48, info: { Title: `Comprovante de ponto ${data.event.receipt}`, Author: data.company.name } });
-    const chunks: Buffer[] = [];
-    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
-
-    const left = doc.page.margins.left;
-    const width = doc.page.width - left - doc.page.margins.right;
-    const ink = '#111827';
-    const muted = '#6b7280';
-    const line = '#e5e7eb';
-
-    // Cabecalho
-    doc.rect(0, 0, doc.page.width, 92).fill('#0f172a');
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(18).text('COMPROVANTE DE REGISTRO DE PONTO', left, 30, { width });
-    doc.font('Helvetica').fontSize(10).fillColor('#cbd5e1').text(data.company.name + (data.company.document ? `  ·  ${data.company.document}` : ''), left, 56, { width });
-
-    // Destaque: tipo e horario
-    let y = 118;
-    doc.roundedRect(left, y, width, 74, 8).fillAndStroke('#f8fafc', line);
-    doc.fillColor(muted).font('Helvetica').fontSize(9).text(data.event.typeLabel.toUpperCase(), left + 18, y + 14);
-    doc.fillColor(ink).font('Helvetica-Bold').fontSize(26).text(fmtTime(data.event.occurredAt), left + 18, y + 28);
-    doc.fillColor(ink).font('Helvetica').fontSize(12).text(fmtDate(data.event.occurredAt), left + width - 168, y + 36, { width: 150, align: 'right' });
-
-    const section = (title: string, rows: [string, string][]) => {
-      y += 94;
-      doc.fillColor(muted).font('Helvetica-Bold').fontSize(9).text(title.toUpperCase(), left, y);
-      y += 16;
-      doc.moveTo(left, y).lineTo(left + width, y).strokeColor(line).stroke();
-      for (const [label, value] of rows) {
-        y += 8;
-        doc.fillColor(muted).font('Helvetica').fontSize(9).text(label, left, y, { width: 130 });
-        const h = doc.heightOfString(value, { width: width - 140 });
-        doc.fillColor(ink).font('Helvetica').fontSize(10.5).text(value, left + 140, y - 1, { width: width - 140 });
-        y += Math.max(14, h) + 4;
-        doc.moveTo(left, y).lineTo(left + width, y).strokeColor(line).stroke();
-      }
-      y -= 94;
-    };
-
-    section('Colaborador', [
-      ['Nome', data.employee.name],
-      ['Matrícula', data.employee.registration || '—'],
-      ['CPF', maskCpf(data.employee.cpf)],
-      ['Cargo', data.employee.position || '—'],
-    ]);
-    y += 16;
-    const place = data.event.address
-      || (data.event.latitude != null && data.event.longitude != null ? `${data.event.latitude.toFixed(5)}, ${data.event.longitude.toFixed(5)}` : 'Local não informado');
-    const fence = data.event.withinFence == null ? '—' : data.event.withinFence ? 'Dentro da área permitida' : `Fora da área permitida${data.event.distanceMeters != null ? ` (${data.event.distanceMeters} m)` : ''}`;
-    section('Local e dispositivo', [
-      ['Local', place],
-      ['Coordenadas', data.event.latitude != null && data.event.longitude != null ? `${data.event.latitude.toFixed(6)}, ${data.event.longitude.toFixed(6)}` : '—'],
-      ['Área permitida', fence],
-      ['Endereço IP', data.event.ipAddress || '—'],
-      ['Dispositivo', describeDevice(data.event.userAgent)],
-      ['Origem', data.event.origin],
-    ]);
-    y += 16;
-    section('Autenticação', [
-      ['Código', data.event.receipt],
-      ['Emitido em', `${fmtDate(data.issuedAt)} ${fmtTime(data.issuedAt)}`],
-    ]);
-
-    doc.fillColor(muted).font('Helvetica').fontSize(8).text(
-      'Este comprovante registra a marcação efetuada no sistema na data e hora indicadas. O código de autenticação identifica o registro de forma única e permite conferência junto à empresa.',
-      left, doc.page.height - 78, { width, align: 'left' },
-    );
-    doc.end();
+export async function buildPunchReceiptPdf(data: PunchReceiptData): Promise<Buffer> {
+  const { event } = data;
+  const report = await PdfReport.create({
+    title: 'Comprovante de ponto', number: `Código ${event.receipt}`, brand: { name: data.company.name, document: data.company.document, logoUrl: data.company.logoUrl },
+    footerNote: 'Registro da marcação feita no sistema, na data e hora indicadas. O código de autenticação permite conferir o registro junto à empresa.', footerId: `Comprovante ${event.receipt}`, generatedAt: data.issuedAt,
   });
+  const { doc } = report;
+
+  // Destaque: tipo e horário da batida
+  report.ensure(90);
+  doc.roundedRect(PDF.L, report.y, PDF.W, 78, 10).lineWidth(0.8).fillAndStroke(PDF.color.brandSoft, PDF.color.line);
+  doc.font('Helvetica-Bold').fontSize(9).fillColor(PDF.color.brand).text(event.typeLabel.toUpperCase(), PDF.L + 20, report.y + 16, { lineBreak: false, characterSpacing: 1 });
+  doc.font('Helvetica-Bold').fontSize(30).fillColor(PDF.color.ink).text(fmtTime(event.occurredAt), PDF.L + 20, report.y + 32, { lineBreak: false });
+  doc.font('Helvetica').fontSize(13).fillColor(PDF.color.gray).text(fmtDate(event.occurredAt), PDF.L + PDF.W - 200, report.y + 40, { width: 180, align: 'right', lineBreak: false });
+  report.y += 98;
+
+  report.section('Colaborador');
+  report.fields([
+    ['Nome', data.employee.name], ['Matrícula', data.employee.registration || '—'], ['CPF', maskCpf(data.employee.cpf)], ['Cargo', data.employee.position || '—'],
+  ]);
+
+  const place = event.address || (event.latitude != null && event.longitude != null ? `${event.latitude.toFixed(5)}, ${event.longitude.toFixed(5)}` : 'Local não informado');
+  const fence = event.withinFence == null ? '—' : event.withinFence ? 'Dentro da área permitida' : `Fora da área permitida${event.distanceMeters != null ? ` (${event.distanceMeters} m)` : ''}`;
+  report.section('Local e dispositivo');
+  report.fields([['Local', place], ['Área permitida', fence]], 2);
+  report.fields([
+    ['Coordenadas', event.latitude != null && event.longitude != null ? `${event.latitude.toFixed(6)}, ${event.longitude.toFixed(6)}` : '—'],
+    ['Endereço IP', event.ipAddress || '—'], ['Dispositivo', describeDevice(event.userAgent)], ['Origem', event.origin],
+  ], 2);
+
+  report.section('Autenticação');
+  report.fields([['Código', event.receipt], ['Emitido em', `${fmtDate(data.issuedAt)} ${fmtTime(data.issuedAt)}`]], 2);
+  return report.finish();
 }

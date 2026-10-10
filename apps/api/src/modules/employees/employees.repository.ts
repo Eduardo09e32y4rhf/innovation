@@ -259,6 +259,7 @@ export class EmployeesRepository {
           city: true,
           state: true,
           zipCode: true,
+          logoUrl: true,
         },
       }),
       employee.managerId

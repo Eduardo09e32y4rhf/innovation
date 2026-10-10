@@ -1,3 +1,4 @@
+import { fmt, PdfReport } from '../../common/pdf/pdf-report';
 import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateManualContractDto } from './dto/create-manual-contract.dto';
@@ -156,66 +157,31 @@ export class ManualContractsService {
     assertInWallet(actor, contract.company, 'Contrato manual nao encontrado.');
 
     const fileName = `contrato-manual-${contract.company?.name?.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '') || contract.id}.pdf`;
-    const sink = createPdfSink();
-    const pdfkit = await import('pdfkit');
-    const doc = new pdfkit.default({ margin: 38, size: 'A4', bufferPages: true });
-    doc.pipe(sink.stream);
-
-    const money = (value: number | string | null | undefined) => Number(value ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const date = (value?: string | Date | null) => value ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(value)) : '-';
     const planName = contract.plan?.name || 'Plano manual';
-
-    doc.font('Helvetica-Bold').fontSize(16).fillColor('#0f172a').text('Contrato Comercial Manual', { align: 'center' });
-    doc.moveDown(0.3);
-    doc.font('Helvetica').fontSize(9).fillColor('#64748b').text(`Gerado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())} • Revisado por ${actorId}`, { align: 'center' });
-    doc.moveDown(1);
-
-    doc.roundedRect(38, doc.y, 519, 86, 12).fillAndStroke('#f8fafc', '#e2e8f0');
-    doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(10).text('Partes', 54, doc.y + 12);
-    doc.font('Helvetica').fontSize(9).fillColor('#334155');
-    doc.text(`Empresa: ${contract.company?.name || 'Empresa'}`, 54, doc.y + 28);
-    doc.text(`CNPJ: ${contract.company?.document || '-'}`, 54, doc.y + 42);
-    doc.text(`Plano: ${planName}`, 310, doc.y + 28);
-    doc.text(`Status: ${contract.status}`, 310, doc.y + 42);
-
-    doc.moveDown(1.8);
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a').text('Resumo financeiro', { underline: false });
-    doc.moveDown(0.5);
-    const items = [
-      ['Valor acordado', money(Number(contract.agreedAmount))],
-      ['Licenças', String(contract.seatQuantity)],
-      ['Início', date(contract.startsAt)],
-      ['Fim', contract.endsAt ? date(contract.endsAt) : 'Indeterminado'],
-      ['Pagamento', contract.paymentMethod],
-      ['Número externo', contract.externalContractNumber || '-'],
-    ];
-    items.forEach((item, index) => {
-      const col = index % 2;
-      const row = Math.floor(index / 2);
-      const x = col === 0 ? 54 : 310;
-      const y = doc.y + (row * 18);
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#64748b').text(item[0], x, y);
-      doc.font('Helvetica').fontSize(9).fillColor('#0f172a').text(item[1], x, y + 10);
+    const report = await PdfReport.create({
+      title: 'Contrato comercial', number: contract.externalContractNumber ? `Nº ${contract.externalContractNumber}` : undefined, subtitle: 'Contrato manual',
+      chip: { label: String(contract.status).replace(/_/g, ' '), tone: contract.status === 'ACTIVE' ? 'ok' : contract.status === 'CANCELED' ? 'bad' : 'warn' },
+      brand: { platform: true, name: 'Innovation RH' },
+      footerNote: 'Contrato registrado no Innovation RH System.', footerId: `Contrato ${contract.id}`,
     });
-
-    doc.y += 48;
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a').text('Observações');
-    doc.moveDown(0.5);
-    doc.font('Helvetica').fontSize(9).fillColor('#334155').text(contract.notes || 'Sem observações.');
+    report.parties(
+      { title: 'CONTRATADA', name: 'Innovation RH', lines: [`Plano: ${planName}`] },
+      { title: 'CONTRATANTE', name: contract.company?.name || 'Empresa', lines: [`CNPJ: ${fmt.document(contract.company?.document) || '-'}`] },
+    );
+    report.section('Resumo financeiro');
+    report.fields([
+      ['Valor acordado', fmt.money(Number(contract.agreedAmount))], ['Licenças', String(contract.seatQuantity)],
+      ['Pagamento', String(contract.paymentMethod ?? '-')], ['Número externo', contract.externalContractNumber || '-'],
+      ['Início', fmt.day(contract.startsAt)], ['Fim', contract.endsAt ? fmt.day(contract.endsAt) : 'Indeterminado'],
+    ], 2);
+    report.section('Observações');
+    report.paragraph(contract.notes || 'Sem observações.');
     if (contract.documentUrl) {
-      doc.moveDown(0.8);
-      doc.font('Helvetica-Bold').fillColor('#0f172a').text('Documento vinculado');
-      doc.font('Helvetica').fillColor('#2563eb').text(contract.documentUrl, { underline: true });
+      report.section('Documento vinculado');
+      report.notice('Contrato assinado', ['O documento está disponível no endereço abaixo.'], 'info', contract.documentUrl);
     }
-
-    doc.moveDown(1.6);
-    doc.font('Helvetica').fontSize(8).fillColor('#64748b')
-      .text(`Contrato registrado no Innovation RH System • ID ${contract.id}`, { align: 'right' });
-
-    doc.end();
-    sendPdf(res, await sink.done, fileName);
+    sendPdf(res, await report.finish(), fileName);
   }
-
   private validateTransition(current: any, nextStatus: ManualContractStatus, endsAt?: Date) {
     if (nextStatus === 'PENDING_ACCEPTANCE' && !current.documentUrl) {
       throw new BadRequestException('Vincule o documento do contrato antes de envia-lo para aceite.');

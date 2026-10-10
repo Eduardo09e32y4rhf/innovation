@@ -1,3 +1,4 @@
+import { PdfReport } from '../../common/pdf/pdf-report';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
@@ -39,11 +40,20 @@ export class CeoOnboardingService {
     const existing = await this.prisma.cEOContract.findUnique({ where: { ceoUserId_version: { ceoUserId, version: dto.version } } });
     if (existing) throw new ConflictException('A versao deste contrato ja foi emitida e e imutavel.');
     const contract = await this.prisma.cEOContract.create({ data: { ceoUserId, issuedById: actor.sub, version: dto.version, contentHtml: dto.contentHtml, contentHash: hash } });
-    const document = await this.documents.generateDocument(ceo.companyId, 'CONTRACT', `Contrato CEO ${dto.version}`, (pdf) => {
-      pdf.fontSize(16).text(`Contrato do CEO - versao ${dto.version}`);
-      pdf.moveDown().fontSize(10).text(dto.contentHtml.replace(/<[^>]*>/g, ' '));
-      pdf.moveDown().text(`Hash da versao: ${hash}`);
-    }, actor.sub);
+    // Contrato entre a plataforma e a empresa: documento da Innovation, com a logo da Innovation.
+    const report = await PdfReport.create({
+      title: 'Contrato do CEO', number: `Versão ${dto.version}`, brand: { platform: true, name: 'Innovation RH' },
+      footerNote: 'Para assinar, use o PDF desta versão no gov.br e envie o arquivo assinado.', footerId: `Hash ${hash.slice(0, 16)}`,
+    });
+    const text = dto.contentHtml
+      .replace(/<\s*(br|\/p|\/div|\/h[1-6]|\/li|\/tr)\b[^>]*>/gi, '\n')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .split(/\n+/).map((line) => line.replace(/[ \t]+/g, ' ').trim()).filter(Boolean);
+    text.forEach((line) => report.paragraph(line, { size: 10, gap: 8 }));
+    report.fields([['Hash da versão (SHA-256)', hash]], 1);
+    report.signatures([{ label: 'Assinatura do CEO' }, { label: 'Innovation RH' }]);
+    const document = await this.documents.storePdf(ceo.companyId, 'CONTRACT', `Contrato CEO ${dto.version}`, await report.finish(), actor.sub);
     const updated = await this.prisma.cEOContract.update({ where: { id: contract.id }, data: { pdfDocumentId: document.id } });
     await this.prisma.notification.create({
       data: {

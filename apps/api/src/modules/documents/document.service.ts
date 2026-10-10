@@ -68,6 +68,15 @@ export class DocumentService {
     });
   }
 
+  /** Guarda um PDF já montado (pelo kit de relatórios) com SHA-256 e registro imutável. */
+  async storePdf(companyId: string, type: 'REPORT' | 'CONTRACT' | 'PAYSLIP' | 'OTHER', title: string, buffer: Buffer, authorId?: string): Promise<{ id: string; storageKey: string; sha256: string }> {
+    const sha256 = crypto.createHash('sha256').update(buffer).digest('hex');
+    const storageKey = `docs/${companyId}/${Date.now()}-${sha256.substring(0, 8)}.pdf`;
+    await this.storageService.saveFile(storageKey, buffer);
+    const record = await this.prisma.generatedDocument.create({ data: { companyId, type, title, storageKey, sha256, sizeBytes: buffer.length, createdBy: authorId } });
+    this.logger.log(`Generated immutable PDF: ${record.id} (${sha256})`);
+    return { id: record.id, storageKey, sha256 };
+  }
   async getDocumentStream(actor: any, documentId: string) {
     const doc = await this.prisma.generatedDocument.findUnique({ where: { id: documentId } });
     if (!doc) throw new BadRequestException('Documento não encontrado');

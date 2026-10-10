@@ -1,3 +1,4 @@
+import { fmt, PDF, PdfReport } from '../../common/pdf/pdf-report';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { roundMoney } from '../../common/utils/money';
@@ -245,63 +246,38 @@ export class AccountingHubService {
   /** Relatório contábil em PDF (todas as empresas ou uma empresa) com a versão das regras usadas. */
   async reportPdf(actor: JwtUser, month: string | undefined, companyId: string | undefined, res: any) {
     const data = await this.overview(month, companyId);
-    const sink = createPdfSink();
-    const pdfkit = await import('pdfkit');
-    const doc = new pdfkit.default({ margin: 40, size: 'A4', bufferPages: true });
-    doc.pipe(sink.stream);
-
-    const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const title = data.scope === 'COMPANY' ? `Relatório contábil — ${(data as any).company.name}` : 'Relatório contábil — todas as empresas';
-    doc.font('Helvetica-Bold').fontSize(15).fillColor('#0f172a').text(title, { align: 'center' });
-    doc.font('Helvetica').fontSize(9).fillColor('#64748b').text(`Competência ${data.period.key} • gerado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(new Date())} por ${actor.name ?? actor.email}`, { align: 'center' });
-    doc.moveDown(0.8);
+    const company = data.scope === 'COMPANY' ? (data as any).company : null;
+    const logoUrl = company ? (await this.prisma.company.findUnique({ where: { id: company.id }, select: { logoUrl: true } }))?.logoUrl : null;
+    // Relatório de uma empresa leva a logo dela; o consolidado de todas as empresas é da plataforma.
+    const report = await PdfReport.create({
+      title: 'Relatório contábil', subtitle: `Competência ${data.period.key}${company ? '' : ' · todas as empresas'}`,
+      brand: company ? { name: company.name, document: company.document, logoUrl } : { platform: true, name: 'Innovation RH' },
+      footerNote: `Solicitado por ${actor.name ?? actor.email}`, footerId: 'Relatório contábil',
+    });
 
     const t = data.totals as any;
-    const boxes = [['Bruto', money(t.gross)], ['INSS', money(t.inss)], ['IRRF', money(t.irrf)], ['FGTS', money(t.fgts)], ['Líquido', money(t.net)]];
-    const top = doc.y;
-    boxes.forEach(([label, value], index) => {
-      const x = 40 + index * 103;
-      doc.roundedRect(x, top, 98, 44, 6).fillAndStroke('#f8fafc', '#e2e8f0');
-      doc.fillColor('#64748b').font('Helvetica').fontSize(8).text(label, x + 8, top + 8);
-      doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(10).text(value, x + 8, top + 22, { width: 84 });
-    });
-    doc.y = top + 58;
+    report.section('Totais da competência');
+    report.stats([['Bruto', fmt.money(t.gross)], ['INSS', fmt.money(t.inss)], ['IRRF', fmt.money(t.irrf)], ['FGTS', fmt.money(t.fgts)], ['Líquido', fmt.money(t.net)]]);
 
-    const columns = data.scope === 'COMPANY'
-      ? [['Funcionário', 160], ['Status', 70], ['Bruto', 70], ['INSS', 60], ['IRRF', 60], ['FGTS', 55], ['Líquido', 70]]
-      : [['Empresa', 190], ['Fech.', 40], ['Pend.', 40], ['Bruto', 70], ['INSS', 55], ['IRRF', 55], ['Líquido', 65]];
-    const rows: string[][] = data.scope === 'COMPANY'
-      ? (data as any).closings.map((row: any) => [row.employee?.name ?? '-', row.status, money(row.grossPay), money(row.inssDiscount), money(row.irrfDiscount), money(row.fgtsAmount), money(row.netPay)])
-      : (data as any).companies.filter((row: any) => row.closings > 0).map((row: any) => [row.name, String(row.closings), String(row.closingsPending), money(row.gross), money(row.inss), money(row.irrf), money(row.net)]);
-
-    const drawHeader = () => {
-      let x = 40;
-      doc.rect(40, doc.y - 3, 515, 16).fill('#f1f5f9');
-      doc.fillColor('#475569').font('Helvetica-Bold').fontSize(8);
-      const y = doc.y;
-      for (const [label, width] of columns) { doc.text(String(label), x + 3, y, { width: Number(width) - 6, lineBreak: false }); x += Number(width); }
-      doc.y = y + 16;
-    };
-    drawHeader();
-    doc.font('Helvetica').fontSize(8).fillColor('#0f172a');
-    for (const row of rows) {
-      if (doc.y > 760) { doc.addPage(); drawHeader(); doc.font('Helvetica').fontSize(8).fillColor('#0f172a'); }
-      const y = doc.y; let x = 40;
-      row.forEach((cell, index) => { doc.text(cell, x + 3, y, { width: Number(columns[index][1]) - 6, lineBreak: false, ellipsis: true }); x += Number(columns[index][1]); });
-      doc.y = y + 13;
+    const right = 'right' as const;
+    if (data.scope === 'COMPANY') {
+      report.section('Fechamentos', 'por colaborador');
+      report.table(
+        [{ label: 'Colaborador', width: 155 }, { label: 'Status', width: 70 }, { label: 'Bruto', width: 70, align: right }, { label: 'INSS', width: 55, align: right }, { label: 'IRRF', width: 55, align: right }, { label: 'FGTS', width: 55, align: right }, { label: 'Líquido', width: 55, align: right }],
+        (data as any).closings.map((row: any) => [row.employee?.name ?? '-', row.status, fmt.money(row.grossPay), fmt.money(row.inssDiscount), fmt.money(row.irrfDiscount), fmt.money(row.fgtsAmount), { text: fmt.money(row.netPay), bold: true }]),
+        { fontSize: 8, emptyText: 'Nenhum fechamento na competência.' },
+      );
+    } else {
+      report.section('Empresas', 'com fechamento na competência');
+      report.table(
+        [{ label: 'Empresa', width: 165 }, { label: 'Fech.', width: 40, align: right }, { label: 'Pend.', width: 40, align: right }, { label: 'Bruto', width: 70, align: right }, { label: 'INSS', width: 65, align: right }, { label: 'IRRF', width: 65, align: right }, { label: 'Líquido', width: 70, align: right }],
+        (data as any).companies.filter((row: any) => row.closings > 0).map((row: any) => [row.name, String(row.closings), String(row.closingsPending), fmt.money(row.gross), fmt.money(row.inss), fmt.money(row.irrf), { text: fmt.money(row.net), bold: true }]),
+        { fontSize: 8, emptyText: 'Nenhum fechamento na competência.' },
+      );
     }
-    if (!rows.length) doc.fillColor('#64748b').text('Nenhum fechamento na competência.', 40, doc.y + 6);
 
-    doc.moveDown(1.2);
-    const versions = Object.entries(data.ruleVersions).map(([type, version]) => `${type}: ${version ?? 'padrão embutido'}`).join('  •  ');
-    doc.font('Helvetica').fontSize(7).fillColor('#64748b').text(`Regras vigentes — ${versions}. Valores calculados pelo motor de folha com as regras cadastradas na Contabilidade.`, 40, doc.y, { width: 515 });
-
-    const pages = doc.bufferedPageRange();
-    for (let i = 0; i < pages.count; i += 1) {
-      doc.switchToPage(i);
-      doc.fontSize(7).fillColor('#94a3b8').text(`Página ${i + 1} de ${pages.count}`, 40, 810, { align: 'center', width: 515 });
-    }
-    doc.end();
-    sendPdf(res, await sink.done, `relatorio-contabil-${safeFileName(data.scope === 'COMPANY' ? (data as any).company.name : 'plataforma')}-${data.period.key}.pdf`);
+    const versions = Object.entries(data.ruleVersions).map(([type, version]) => `${type}: ${version ?? 'padrão embutido'}`).join('  ·  ');
+    report.paragraph(`Regras vigentes — ${versions}. Valores calculados pelo motor de folha com as regras cadastradas na Contabilidade.`, { size: 8, color: PDF.color.mut });
+    sendPdf(res, await report.finish(), `relatorio-contabil-${safeFileName(data.scope === 'COMPANY' ? (data as any).company.name : 'plataforma')}-${data.period.key}.pdf`);
   }
 }

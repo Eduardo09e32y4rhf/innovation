@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PdfReport } from '../../common/pdf/pdf-report';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -23,6 +24,7 @@ type CompanySnapshot = {
   neighborhood: string | null;
   city: string | null;
   state: string | null;
+  logoUrl: string | null;
 };
 
 type EmployeeSnapshot = {
@@ -47,6 +49,7 @@ const COMPANY_SELECT = {
   neighborhood: true,
   city: true,
   state: true,
+  logoUrl: true,
 } as const;
 
 const EMPLOYEE_SELECT = {
@@ -191,58 +194,50 @@ export class ManagementDocumentsService {
     const title = 'Memória de Cálculo da Folha';
     const periodKey = this.dateKey(closing.periodStart);
     const filename = `fechamento-${this.safeFilename(closing.employee.name)}-${periodKey}.pdf`;
-    const generated = await this.documents.generateDocument(
-      companyId,
-      'PAYSLIP',
-      `${title} - ${closing.employee.name} - ${periodKey}`,
-      (doc: any) => {
-        this.drawHeader(doc, title, `${closing.employee.name} | ${this.period(closing.periodStart, closing.periodEnd)}`, closing.company);
-        this.drawSection(doc, 'Colaborador');
-        this.drawFields(doc, [
-          ['Nome', closing.employee.name],
-          ['CPF', this.formatCpf(closing.employee.cpf)],
-          ['Matrícula', closing.employee.registration ?? 'Não informada'],
-          ['Cargo', closing.employee.position],
-          ['Departamento', closing.employee.department],
-          ['Status do fechamento', closing.status],
-        ]);
+    const report = await this.createReport(title, `${closing.employee.name} | ${this.period(closing.periodStart, closing.periodEnd)}`, closing.company, ['TIME_CLOSING', closing.id, closing.calculationVersion]);
+    this.drawSection(report, 'Colaborador');
+    this.drawFields(report, [
+      ['Nome', closing.employee.name],
+      ['CPF', this.formatCpf(closing.employee.cpf)],
+      ['Matrícula', closing.employee.registration ?? 'Não informada'],
+      ['Cargo', closing.employee.position],
+      ['Departamento', closing.employee.department],
+      ['Status do fechamento', closing.status],
+    ]);
 
-        this.drawSection(doc, 'Jornada');
-        this.drawFields(doc, [
-          ['Horas normais', `${this.decimal(closing.normalHours)} h`],
-          ['Horas extras 50%', `${this.decimal(closing.overtime50)} h`],
-          ['Horas extras 100%', `${this.decimal(closing.overtime100)} h`],
-          ['Adicional noturno', `${this.decimal(closing.nightShift)} h`],
-          ['Faltas', `${closing.absenceMinutes} min`],
-          ['Atrasos', `${closing.lateMinutes} min`],
-          ['Saídas antecipadas', `${closing.earlyLeaveMinutes} min`],
-          ['Dias úteis', String(closing.payableWorkdays)],
-        ]);
+    this.drawSection(report, 'Jornada');
+    this.drawFields(report, [
+      ['Horas normais', `${this.decimal(closing.normalHours)} h`],
+      ['Horas extras 50%', `${this.decimal(closing.overtime50)} h`],
+      ['Horas extras 100%', `${this.decimal(closing.overtime100)} h`],
+      ['Adicional noturno', `${this.decimal(closing.nightShift)} h`],
+      ['Faltas', `${closing.absenceMinutes} min`],
+      ['Atrasos', `${closing.lateMinutes} min`],
+      ['Saídas antecipadas', `${closing.earlyLeaveMinutes} min`],
+      ['Dias úteis', String(closing.payableWorkdays)],
+    ]);
 
-        this.drawSection(doc, 'Proventos, descontos e encargos');
-        this.drawFields(doc, [
-          ['Salário base', this.money(closing.salaryBase)],
-          [`Valor hora / ${closing.monthlyDivisor}`, this.money(closing.hourlyRate)],
-          ['Horas extras 50%', this.money(closing.overtime50Value)],
-          ['Horas extras 100%', this.money(closing.overtime100Value)],
-          ['Adicional noturno', this.money(closing.nightShiftValue)],
-          ['DSR', this.money(closing.dsrValue)],
-          ['Desconto faltas', `- ${this.money(closing.absenceDiscount)}`],
-          ['Desconto atrasos', `- ${this.money(closing.lateDiscount)}`],
-          ['Desconto saída antecipada', `- ${this.money(closing.earlyLeaveDiscount)}`],
-          ['INSS', `- ${this.money(closing.inssDiscount)}`],
-          ['IRRF', `- ${this.money(closing.irrfDiscount)}`],
-          ['FGTS patronal', this.money(closing.fgtsAmount)],
-          ['Base de cálculo', this.money(closing.grossPay)],
-          ['Líquido', this.money(closing.netPay)],
-        ]);
+    this.drawSection(report, 'Proventos, descontos e encargos');
+    this.drawFields(report, [
+      ['Salário base', this.money(closing.salaryBase)],
+      [`Valor hora / ${closing.monthlyDivisor}`, this.money(closing.hourlyRate)],
+      ['Horas extras 50%', this.money(closing.overtime50Value)],
+      ['Horas extras 100%', this.money(closing.overtime100Value)],
+      ['Adicional noturno', this.money(closing.nightShiftValue)],
+      ['DSR', this.money(closing.dsrValue)],
+      ['Desconto faltas', `- ${this.money(closing.absenceDiscount)}`],
+      ['Desconto atrasos', `- ${this.money(closing.lateDiscount)}`],
+      ['Desconto saída antecipada', `- ${this.money(closing.earlyLeaveDiscount)}`],
+      ['INSS', `- ${this.money(closing.inssDiscount)}`],
+      ['IRRF', `- ${this.money(closing.irrfDiscount)}`],
+      ['FGTS patronal', this.money(closing.fgtsAmount)],
+      ['Base de cálculo', this.money(closing.grossPay)],
+      ['Líquido', this.money(closing.netPay)],
+    ]);
 
-        this.drawRuleBox(doc, `Regra de cálculo: ${closing.calculationVersion} | Snapshot tributário: ${closing.taxTableSnapshot ? 'registrado' : 'não registrado'}`);
-        this.drawSignatures(doc, ['RH / Empregador', 'Contabilidade', 'Colaborador']);
-        this.drawFooter(doc, 'TIME_CLOSING', closing.id, closing.calculationVersion);
-      },
-      actorId,
-    );
+    this.drawRuleBox(report, `Regra de cálculo: ${closing.calculationVersion} | Snapshot tributário: ${closing.taxTableSnapshot ? 'registrado' : 'não registrado'}`);
+    this.drawSignatures(report, ['RH / Empregador', 'Contabilidade', 'Colaborador']);
+    const generated = await this.documents.storePdf(companyId, 'PAYSLIP', `${title} - ${closing.employee.name} - ${periodKey}`, await report.finish(), actorId);
 
     await this.attachMetadata(generated.id, {
       module: 'MANAGEMENT',
@@ -300,52 +295,44 @@ export class ManagementDocumentsService {
     const title = 'Encaminhamento para Exame Médico Ocupacional';
     const typeLabel = this.asoType(data.asoType);
     const filename = `encaminhamento-aso-${this.safeFilename(employee.name)}.pdf`;
-    const generated = await this.documents.generateDocument(
-      companyId,
-      'OTHER',
-      `${title} - ${employee.name}`,
-      (doc: any) => {
-        this.drawHeader(doc, title, `${employee.name} | ${typeLabel}`, company);
-        this.drawParagraph(
-          doc,
-          `Encaminhamos o(a) colaborador(a) abaixo qualificado(a) para a realização de Exame Médico Ocupacional (${typeLabel}), conforme a NR-7.`,
-        );
-        this.drawParagraph(
-          doc,
-          'Solicitamos a avaliação clínica, os exames complementares aplicáveis e a emissão do respectivo Atestado de Saúde Ocupacional (ASO).',
-        );
-        this.drawSection(doc, 'Dados do empregador');
-        this.drawFields(doc, [
-          ['Razão social', company.legalName ?? company.name],
-          ['CNPJ', company.document ?? 'Não informado'],
-          ['Endereço', this.companyAddress(company)],
-          ['Contato', [company.phone, company.email].filter(Boolean).join(' | ') || 'Não informado'],
-        ]);
-        this.drawSection(doc, 'Qualificação do colaborador');
-        this.drawFields(doc, [
-          ['Nome completo', employee.name],
-          ['CPF', this.formatCpf(employee.cpf)],
-          ['Data de nascimento', this.formatDate(employee.birthDate)],
-          ['Cargo', employee.position],
-          ['Departamento', employee.department],
-          ['Admissão', this.formatDate(employee.admissionDate)],
-        ]);
-        this.drawSection(doc, 'Dados do encaminhamento');
-        this.drawFields(doc, [
-          ['Tipo de exame', typeLabel],
-          ['Clínica', data.clinicName ?? 'A definir'],
-          ['Endereço da clínica', data.clinicAddress ?? 'Não informado'],
-          ['Data prevista', this.formatDate(data.examDate)],
-        ]);
-        if (data.observation) {
-          this.drawSection(doc, 'Observações');
-          this.drawParagraph(doc, data.observation);
-        }
-        this.drawSignatures(doc, ['Autorização RH / Empregador', 'Recebimento pela clínica', 'Assinatura do colaborador']);
-        this.drawFooter(doc, 'ASO_REFERRAL', data.sourceId, 'NR7_2026_1');
-      },
-      actorId,
+    const report = await this.createReport(title, `${employee.name} | ${typeLabel}`, company, ['ASO_REFERRAL', data.sourceId, 'NR7_2026_1']);
+    this.drawParagraph(
+      report,
+      `Encaminhamos o(a) colaborador(a) abaixo qualificado(a) para a realização de Exame Médico Ocupacional (${typeLabel}), conforme a NR-7.`,
     );
+    this.drawParagraph(
+      report,
+      'Solicitamos a avaliação clínica, os exames complementares aplicáveis e a emissão do respectivo Atestado de Saúde Ocupacional (ASO).',
+    );
+    this.drawSection(report, 'Dados do empregador');
+    this.drawFields(report, [
+      ['Razão social', company.legalName ?? company.name],
+      ['CNPJ', company.document ?? 'Não informado'],
+      ['Endereço', this.companyAddress(company)],
+      ['Contato', [company.phone, company.email].filter(Boolean).join(' | ') || 'Não informado'],
+    ]);
+    this.drawSection(report, 'Qualificação do colaborador');
+    this.drawFields(report, [
+      ['Nome completo', employee.name],
+      ['CPF', this.formatCpf(employee.cpf)],
+      ['Data de nascimento', this.formatDate(employee.birthDate)],
+      ['Cargo', employee.position],
+      ['Departamento', employee.department],
+      ['Admissão', this.formatDate(employee.admissionDate)],
+    ]);
+    this.drawSection(report, 'Dados do encaminhamento');
+    this.drawFields(report, [
+      ['Tipo de exame', typeLabel],
+      ['Clínica', data.clinicName ?? 'A definir'],
+      ['Endereço da clínica', data.clinicAddress ?? 'Não informado'],
+      ['Data prevista', this.formatDate(data.examDate)],
+    ]);
+    if (data.observation) {
+      this.drawSection(report, 'Observações');
+      this.drawParagraph(report, data.observation);
+    }
+    this.drawSignatures(report, ['Autorização RH / Empregador', 'Recebimento pela clínica', 'Assinatura do colaborador']);
+    const generated = await this.documents.storePdf(companyId, 'OTHER', `${title} - ${employee.name}`, await report.finish(), actorId);
 
     await this.attachMetadata(generated.id, {
       module: 'MANAGEMENT',
@@ -379,40 +366,32 @@ export class ManagementDocumentsService {
     const isSuspension = data.type === 'SUSPENSION_NOTICE';
     const title = isSuspension ? 'Termo de Suspensão Disciplinar' : 'Termo de Advertência Disciplinar';
     const filename = `${isSuspension ? 'suspensao' : 'advertencia'}-${this.safeFilename(employee.name)}.pdf`;
-    const generated = await this.documents.generateDocument(
-      companyId,
-      'OTHER',
-      `${title} - ${employee.name}`,
-      (doc: any) => {
-        this.drawHeader(doc, title, data.title ?? employee.name, company);
-        this.drawSection(doc, 'Qualificação do colaborador');
-        this.drawFields(doc, [
-          ['Nome', employee.name],
-          ['CPF', this.formatCpf(employee.cpf)],
-          ['Matrícula', employee.registration ?? 'Não informada'],
-          ['Cargo', employee.position],
-          ['Departamento', employee.department],
-          ['Data da ocorrência', this.formatDate(data.occurrenceDate)],
-        ]);
-        this.drawSection(doc, 'Fundamentação e fato');
-        this.drawParagraph(
-          doc,
-          `Pelo presente documento, comunicamos a aplicação de ${isSuspension ? 'suspensão' : 'advertência'} disciplinar ao(à) colaborador(a) identificado(a), em razão da ocorrência descrita abaixo.`,
-        );
-        if (data.legalReason) this.drawRuleBox(doc, `Motivo / fundamento: ${data.legalReason}`);
-        this.drawParagraph(doc, data.message);
-        if (isSuspension) {
-          this.drawRuleBox(doc, `Período de suspensão: ${data.suspensionDays ?? 1} dia(s).`);
-        }
-        this.drawParagraph(
-          doc,
-          'A reincidência em condutas semelhantes poderá resultar em medidas disciplinares mais severas, observadas a legislação vigente, a gradação das penalidades e as circunstâncias do caso.',
-        );
-        this.drawSignatures(doc, ['Assinatura do colaborador', 'Empregador / RH', 'Testemunha 1', 'Testemunha 2']);
-        this.drawFooter(doc, data.type, data.sourceId, 'DISCIPLINARY_2026_1');
-      },
-      actorId,
+    const report = await this.createReport(title, data.title ?? employee.name, company, [data.type, data.sourceId, 'DISCIPLINARY_2026_1']);
+    this.drawSection(report, 'Qualificação do colaborador');
+    this.drawFields(report, [
+      ['Nome', employee.name],
+      ['CPF', this.formatCpf(employee.cpf)],
+      ['Matrícula', employee.registration ?? 'Não informada'],
+      ['Cargo', employee.position],
+      ['Departamento', employee.department],
+      ['Data da ocorrência', this.formatDate(data.occurrenceDate)],
+    ]);
+    this.drawSection(report, 'Fundamentação e fato');
+    this.drawParagraph(
+      report,
+      `Pelo presente documento, comunicamos a aplicação de ${isSuspension ? 'suspensão' : 'advertência'} disciplinar ao(à) colaborador(a) identificado(a), em razão da ocorrência descrita abaixo.`,
     );
+    if (data.legalReason) this.drawRuleBox(report, `Motivo / fundamento: ${data.legalReason}`);
+    this.drawParagraph(report, data.message);
+    if (isSuspension) {
+      this.drawRuleBox(report, `Período de suspensão: ${data.suspensionDays ?? 1} dia(s).`);
+    }
+    this.drawParagraph(
+      report,
+      'A reincidência em condutas semelhantes poderá resultar em medidas disciplinares mais severas, observadas a legislação vigente, a gradação das penalidades e as circunstâncias do caso.',
+    );
+    this.drawSignatures(report, ['Assinatura do colaborador', 'Empregador / RH', 'Testemunha 1', 'Testemunha 2']);
+    const generated = await this.documents.storePdf(companyId, 'OTHER', `${title} - ${employee.name}`, await report.finish(), actorId);
 
     await this.attachMetadata(generated.id, {
       module: 'MANAGEMENT',
@@ -453,84 +432,37 @@ export class ManagementDocumentsService {
     });
   }
 
-  private drawHeader(doc: any, title: string, subtitle: string, company: CompanySnapshot) {
-    doc.font('Helvetica-Bold').fontSize(16).fillColor('#0f172a').text(title, { align: 'center' });
-    doc.moveDown(0.2);
-    doc.font('Helvetica').fontSize(9).fillColor('#64748b').text(subtitle, { align: 'center' });
-    doc.moveDown(0.8);
-    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#0f766e').lineWidth(1.5).stroke();
-    doc.moveDown(0.7);
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a').text(company.legalName ?? company.name);
-    doc.font('Helvetica').fontSize(8.5).fillColor('#475569')
-      .text(`CNPJ: ${company.document ?? 'Não informado'} | ${this.companyAddress(company)}`);
-    doc.moveDown(0.6);
-  }
-
-  private drawSection(doc: any, title: string) {
-    this.ensureSpace(doc, 55);
-    doc.moveDown(0.6);
-    doc.roundedRect(50, doc.y, 495, 20, 3).fill('#ecfdf5');
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#0f766e').text(title.toUpperCase(), 58, doc.y - 15, { width: 479 });
-    doc.moveDown(0.7);
-  }
-
-  private drawFields(doc: any, fields: Array<[string, string]>) {
-    for (const [label, value] of fields) {
-      this.ensureSpace(doc, 24);
-      const y = doc.y;
-      doc.font('Helvetica-Bold').fontSize(8).fillColor('#64748b').text(label, 58, y, { width: 145 });
-      doc.font('Helvetica').fontSize(9).fillColor('#0f172a').text(this.cleanText(value), 205, y, { width: 330 });
-      doc.moveDown(0.35);
-    }
-  }
-
-  private drawParagraph(doc: any, text: string) {
-    this.ensureSpace(doc, 60);
-    doc.font('Helvetica').fontSize(9.5).fillColor('#334155')
-      .text(this.cleanText(text), 58, doc.y, { width: 479, align: 'justify', lineGap: 3 });
-    doc.moveDown(0.5);
-  }
-
-  private drawRuleBox(doc: any, text: string) {
-    this.ensureSpace(doc, 45);
-    const height = Math.max(34, doc.heightOfString(this.cleanText(text), { width: 455 }) + 16);
-    const y = doc.y;
-    doc.roundedRect(58, y, 479, height, 4).fillAndStroke('#f8fafc', '#cbd5e1');
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#334155')
-      .text(this.cleanText(text), 70, y + 8, { width: 455 });
-    doc.y = y + height + 8;
-  }
-
-  private drawSignatures(doc: any, labels: string[]) {
-    this.ensureSpace(doc, 115);
-    doc.moveDown(2.5);
-    const width = 230;
-    labels.forEach((label, index) => {
-      if (index > 0 && index % 2 === 0) doc.moveDown(3.2);
-      const x = index % 2 === 0 ? 55 : 310;
-      const y = doc.y;
-      doc.moveTo(x, y).lineTo(x + width, y).strokeColor('#334155').lineWidth(0.7).stroke();
-      doc.font('Helvetica').fontSize(8).fillColor('#64748b').text(label, x, y + 5, { width, align: 'center' });
-      if (index % 2 === 1) doc.y = y;
+  private createReport(title: string, subtitle: string, company: CompanySnapshot, footer: string[]) {
+    const [kind, sourceId, ruleVersion] = footer;
+    return PdfReport.create({
+      title, subtitle, brand: { name: company.legalName ?? company.name, document: company.document, logoUrl: company.logoUrl },
+      footerNote: `Documento oficial gerado pelo Innovation RH · Regra: ${ruleVersion}`, footerId: `${kind}/${sourceId}`,
     });
-    doc.moveDown(2);
   }
 
-  private drawFooter(doc: any, kind: string, sourceId: string, ruleVersion: string) {
-    this.ensureSpace(doc, 35);
-    doc.moveDown(0.8);
-    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
-    doc.moveDown(0.3);
-    doc.font('Helvetica').fontSize(7).fillColor('#94a3b8').text(
-      `Documento oficial gerado pelo Innovation RH | Origem: ${kind}/${sourceId} | Regra: ${ruleVersion} | Emissão: ${this.formatDateTime(new Date())}`,
-      { align: 'center' },
-    );
+  private drawSection(report: PdfReport, title: string) {
+    report.section(title);
   }
 
-  private ensureSpace(doc: any, required: number) {
-    if (doc.y + required > doc.page.height - 55) doc.addPage();
+  private drawFields(report: PdfReport, fields: Array<[string, string]>) {
+    report.fields(fields.map(([label, value]) => [label, this.cleanText(value)] as [string, string]), 2);
   }
 
+  private drawParagraph(report: PdfReport, text: string) {
+    report.paragraph(this.cleanText(text), { size: 10 });
+  }
+
+  /** Destaque em caixa: "Rótulo: texto" vira título e corpo. */
+  private drawRuleBox(report: PdfReport, text: string) {
+    const clean = this.cleanText(text);
+    const split = clean.indexOf(': ');
+    if (split > 0 && split < 40) report.notice(clean.slice(0, split), [clean.slice(split + 2)], 'neutral');
+    else report.notice(clean, [], 'neutral');
+  }
+
+  private drawSignatures(report: PdfReport, labels: string[]) {
+    report.signatures(labels.map((label) => ({ label })));
+  }
   private companyAddress(company: CompanySnapshot) {
     return [
       company.street,

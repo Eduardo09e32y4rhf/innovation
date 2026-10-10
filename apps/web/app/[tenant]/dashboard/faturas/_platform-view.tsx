@@ -103,6 +103,9 @@ export default function PlatformInvoicesView() {
           <button type="button" className="btn btn-outline inline-flex items-center gap-1.5 text-sm" onClick={async () => { try { await api.faturas.downloadStatementPdf({}); } catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível gerar o extrato.'); } }}>
             <FileDown size={14} aria-hidden="true" /> Extrato PDF
           </button>
+          <button type="button" className="btn btn-outline inline-flex items-center gap-1.5 text-sm" onClick={async () => { try { await api.faturas.downloadCostCentersPdf({}); } catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível gerar o centro de custo.'); } }}>
+            <FileDown size={14} aria-hidden="true" /> Centro de custo PDF
+          </button>
           <button type="button" onClick={() => void load()} disabled={loading} className="btn btn-outline inline-flex items-center gap-1.5 text-sm">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} aria-hidden="true" /> Atualizar
           </button>

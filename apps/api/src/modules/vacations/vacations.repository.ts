@@ -55,6 +55,7 @@ export class VacationsRepository {
         city: true,
         state: true,
         zipCode: true,
+        logoUrl: true,
       },
     });
   }

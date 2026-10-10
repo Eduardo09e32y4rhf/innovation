@@ -291,6 +291,12 @@ export class FaturasController {
     return this.service.statementPdf(query, actor.role === 'COMERCIAL' ? actor.sub : undefined, actor, res);
   }
 
+  @Get('plataforma/cost-centers/pdf')
+  @RequireFaturasPermission('faturas.todas_empresas')
+  costCentersPdf(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto, @Res() res: import('express').Response) {
+    return this.service.costCentersPdf(query, actor.role === 'COMERCIAL' ? actor.sub : undefined, actor, res);
+  }
+
   @Post('plataforma/companies/:companyId/coupon')
   @RequireFaturasPermission('faturas.desconto')
   applyCoupon(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Body() dto: ApplyCouponDto) {

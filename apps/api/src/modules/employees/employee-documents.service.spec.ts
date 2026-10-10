@@ -16,7 +16,7 @@ function createService(documentData: any = null) {
     getOfficialDocumentData: vi.fn().mockResolvedValue(documentData),
   };
   const documents = {
-    generateDocument: vi.fn().mockResolvedValue({
+    storePdf: vi.fn().mockResolvedValue({
       id: 'document-1',
       storageKey: 'docs/company-1/document.pdf',
       sha256: 'abc123',
@@ -52,11 +52,11 @@ describe('EmployeeDocumentsService', () => {
         end: new Date('2026-07-31T23:59:59.999Z'),
       }),
     );
-    expect(documents.generateDocument).toHaveBeenCalledWith(
+    expect(documents.storePdf).toHaveBeenCalledWith(
       'company-1',
       'REPORT',
       expect.stringContaining('Espelho de ponto - Maria da Silva'),
-      expect.any(Function),
+      expect.any(Buffer),
       'user-1',
     );
     expect(documents.getDocumentStream).toHaveBeenCalledWith(
@@ -103,6 +103,6 @@ describe('EmployeeDocumentsService', () => {
     await expect(
       service.generate('company-1', actor, 'employee-inexistente', 'EMPLOYEE_RECORD'),
     ).rejects.toBeInstanceOf(NotFoundException);
-    expect(documents.generateDocument).not.toHaveBeenCalled();
+    expect(documents.storePdf).not.toHaveBeenCalled();
   });
 });
