@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { PayrollItemType, PayrollStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
+import { overtimePaymentRatio } from '../time-track/overtime-policy';
 import { CancelPayrollDto, CreatePayrollDto, DEDUCTION_TYPES, ManualPayrollItemDto, UpdatePayrollDto } from './dto/create-payroll.dto';
 
 const DAY_MS = 86_400_000;
@@ -161,11 +162,13 @@ export class PayrollService {
 
     const tracks = await this.prisma.timeTrack.findMany({
       where: { companyId, employeeId: employee.id, date: { gte: start, lte: end } },
-      select: { absenceMinutes: true, lateMinutes: true, earlyLeaveMinutes: true, overtime50Minutes: true, overtime100Minutes: true, nightShiftMinutes: true, overtimeApprovalStatus: true, incidentType: true },
+      select: { absenceMinutes: true, lateMinutes: true, earlyLeaveMinutes: true, overtime50Minutes: true, overtime100Minutes: true, nightShiftMinutes: true, overtimeApprovalStatus: true, overtimeHandling: true, overtimePaymentMinutes: true, incidentType: true },
     });
     const sum = (pick: (t: (typeof tracks)[number]) => number | null | undefined, only?: (t: (typeof tracks)[number]) => boolean) =>
       tracks.filter((t) => (only ? only(t) : true)).reduce((s, t) => s + Math.max(0, Number(pick(t) ?? 0) || 0), 0);
-    const approved = (t: (typeof tracks)[number]) => t.overtimeApprovalStatus === 'APPROVED';
+    // Extra paga = so a autorizada e so a parte que nao foi para o banco de horas (mesma regra do fechamento).
+    const paidOvertime = (pick: (t: (typeof tracks)[number]) => number | null | undefined) =>
+      tracks.reduce((s, t) => s + Math.round(Math.max(0, Number(pick(t) ?? 0) || 0) * overtimePaymentRatio(t)), 0);
     const suspensionDays = tracks.filter((t) => t.incidentType === 'SUSPENSÃO' && (t.absenceMinutes ?? 0) > 0).length;
 
     const taxContext = await this.officialCalculator.resolveTaxContext(end);
@@ -177,8 +180,8 @@ export class PayrollService {
       weeklyMinutes: dailyMinutes * Math.max(1, 7 - restDays.length),
       isPartialMonth: !fullMonth,
       scheduledMinutesInPeriod: workdays * dailyMinutes,
-      overtime50Minutes: sum((t) => t.overtime50Minutes, approved),
-      overtime100Minutes: sum((t) => t.overtime100Minutes, approved),
+      overtime50Minutes: paidOvertime((t) => t.overtime50Minutes),
+      overtime100Minutes: paidOvertime((t) => t.overtime100Minutes),
       nightShiftMinutes: sum((t) => t.nightShiftMinutes),
       absenceMinutes: sum((t) => t.absenceMinutes),
       lateMinutes: sum((t) => t.lateMinutes),

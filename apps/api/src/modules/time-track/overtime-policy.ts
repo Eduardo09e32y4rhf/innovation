@@ -7,6 +7,28 @@ export interface CompanyOvertimePolicy {
   validityMonths: number;
 }
 
+export interface OvertimeTrackLike {
+  overtime50Minutes?: number | null;
+  overtime100Minutes?: number | null;
+  overtimeApprovalStatus?: string | null;
+  overtimeHandling?: string | null;
+  overtimePaymentMinutes?: number | null;
+}
+
+/**
+ * Fracao da hora extra do dia que vai para o PAGAMENTO na folha (0 a 1). Regra unica do fechamento e da folha.
+ * Extra so vale depois de autorizada: pendente ou recusada nunca e paga. O que foi para o banco de horas nao e pago.
+ */
+export function overtimePaymentRatio(track: OvertimeTrackLike, forcedHandling?: 'PAYMENT' | 'BANK'): number {
+  const total = (track.overtime50Minutes || 0) + (track.overtime100Minutes || 0);
+  if (!total) return 0;
+  if (track.overtimeApprovalStatus !== 'APPROVED') return 0;
+  const handling = forcedHandling || track.overtimeHandling;
+  if (handling === 'BANK') return 0;
+  if (handling === 'SPLIT') return Math.min(1, Math.max(0, (track.overtimePaymentMinutes || 0) / total));
+  return 1;
+}
+
 export async function getOvertimePolicy(prisma: PrismaService, companyId: string): Promise<CompanyOvertimePolicy> {
   const rule = await prisma.overtimeRule.findUnique({ where: { companyId }, select: { overtimePolicy: true, bankValidityMonths: true } });
   return {

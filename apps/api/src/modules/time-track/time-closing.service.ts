@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { PayrollCalculationService } from './payroll-calculation.service';
-import { getOvertimePolicy } from './overtime-policy';
+import { getOvertimePolicy, overtimePaymentRatio } from './overtime-policy';
 import { buildTimeSheetPdf } from './time-sheet-pdf';
 import { saoPauloDayOfWeek, toSaoPauloDateKey } from '../../common/utils/date.utils';
 
@@ -801,15 +801,9 @@ export class TimeClosingService {
     };
   }
 
-  private paymentRatio(track: any, forcedHandling?: 'PAYMENT' | 'BANK', approved = false): number {
-    const total = (track.overtime50Minutes || 0) + (track.overtime100Minutes || 0);
-    if (!total) return 0;
-    const handling = forcedHandling || track.overtimeHandling;
-    if (handling === 'BANK') return 0;
-    if (handling === 'PAYMENT') return 1;
-    if (!approved) return 0;
-    if (track.overtimeHandling === 'SPLIT') return Math.min(1, Math.max(0, (track.overtimePaymentMinutes || 0) / total));
-    return 1;
+  // Regra unica (overtime-policy.ts), a mesma da folha. O 3o parametro e mantido so por compatibilidade com os chamadores.
+  private paymentRatio(track: any, forcedHandling?: 'PAYMENT' | 'BANK', _approved = false): number {
+    return overtimePaymentRatio(track, forcedHandling);
   }
 
   private expectedMinutes(employee: any, schedule?: any): number {
