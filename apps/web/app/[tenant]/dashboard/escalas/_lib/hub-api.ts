@@ -21,6 +21,10 @@ export interface RequestInput {
   peerEmployeeId?: string;
 }
 
+export type LaunchKind = 'FOLGA_EXTRA' | 'FOLGA_BANCO' | 'ATESTADO' | 'FERIADO';
+export interface LaunchInput { kind: LaunchKind; employeeIds: string[]; dateStart: string; dateEnd: string; reason: string; holidayName?: string; attachmentId?: string }
+export interface LaunchResult { kind: LaunchKind; applied: number; people: { employeeId: string; name: string; applied: string[]; skipped: { date: string; reason: string }[]; error?: string }[] }
+
 export const hubApi = {
   overview: () => request<Overview>('/escalas/overview'),
   calendar: (month: string, scope: string, department?: string) => request<CalendarPayload>(`/escalas/calendar${qs({ month, scope, department })}`),
@@ -51,6 +55,18 @@ export const hubApi = {
 
   createOverride: (body: { employeeId: string; date: string; type: string; altEntry?: string; altExit?: string; reason: string }) => request<unknown>('/escalas/overrides', { method: 'POST', body }),
   removeOverride: (id: string) => request<unknown>(`/escalas/overrides/${enc(id)}`, { method: 'DELETE' }),
+  launch: (body: LaunchInput) => request<LaunchResult>('/escalas/launch', { method: 'POST', body }),
+  launchBank: (employeeIds: string[]) => request<{ usesBank: boolean; validityMonths: number; balances: Record<string, number> }>(`/escalas/launch/bank${qs({ employeeIds: employeeIds.join(',') })}`),
+  async uploadCertificate(employeeId: string, file: File) {
+    const token = readAuthSession().token;
+    const form = new FormData();
+    form.append('employeeId', employeeId);
+    form.append('file', file);
+    const response = await fetch(`${API_URL}/escalas/launch/attachment`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : undefined, body: form });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) throw new ApiError(response.status, payload?.error?.message || payload?.message || 'Não foi possível enviar o arquivo.', payload);
+    return (payload?.data ?? payload) as { id: string; fileName: string };
+  },
   assignPreview: (body: { employeeIds: string[]; scheduleId: string; startDate: string; endDate?: string }) => request<any>('/escalas/assign/preview', { method: 'POST', body }),
   assign: (body: { employeeIds: string[]; scheduleId: string; startDate: string; endDate?: string }) => request<any>('/escalas/assign', { method: 'POST', body }),
 

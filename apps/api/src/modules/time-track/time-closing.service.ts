@@ -106,7 +106,7 @@ export class TimeClosingService {
     const results = [];
 
     const employeeIds = employees.map(e => e.id);
-    const [allTracks, allOccurrences, allSchedules] = await Promise.all([
+    const [allTracks, allOccurrences, allSchedules, allDayOffs] = await Promise.all([
       this.prisma.timeTrack.findMany({
         where: { companyId, employeeId: { in: employeeIds }, date: { gte: periodStart, lte: periodEnd } },
         orderBy: { date: 'asc' },
@@ -124,7 +124,17 @@ export class TimeClosingService {
         include: { schedule: true },
         orderBy: { startDate: 'desc' },
       }),
+      // Folga concedida, feriado local e atestado lançados na escala: o dia é pago, não é falta.
+      this.prisma.scheduleException.findMany({
+        where: { companyId, employeeId: { in: employeeIds }, date: { gte: periodStart, lte: periodEnd }, exceptionType: { in: ['FOLGA', 'FERIADO_LOCAL', 'ATESTADO'] } },
+        select: { employeeId: true, date: true },
+      }),
     ]);
+    const dayOffKeys = new Map<string, Set<string>>();
+    for (const item of allDayOffs) {
+      if (!dayOffKeys.has(item.employeeId)) dayOffKeys.set(item.employeeId, new Set());
+      dayOffKeys.get(item.employeeId)!.add(this.dateKey(item.date));
+    }
 
     const tracksByEmployee = new Map<string, typeof allTracks>();
     const occurrencesByEmployee = new Map<string, typeof allOccurrences>();
@@ -152,6 +162,7 @@ export class TimeClosingService {
       const justifiedDates = new Set(occurrences
         .filter((item) => this.isJustifyingOccurrence(item.type))
         .map((item) => this.dateKey(item.date)));
+      for (const key of dayOffKeys.get(employee.id) ?? []) justifiedDates.add(key);
       let payableWorkdays = 0;
       let paidRestDays = 0;
       let missingAbsenceMinutes = 0;

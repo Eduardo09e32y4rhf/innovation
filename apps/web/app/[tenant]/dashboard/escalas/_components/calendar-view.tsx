@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/app/components/ui';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useQuery } from '@/app/hooks/use-data';
@@ -67,42 +67,51 @@ function Legend() {
 }
 
 function TeamGrid({ data, onOpen }: { data: CalendarPayload; onOpen: (employeeId: string, date: string) => void }) {
+  const scroller = useRef<HTMLDivElement>(null);
+  // Ao abrir (ou quando o dia vira), leva a coluna de HOJE para a vista, deixando os nomes fixos à esquerda.
+  useEffect(() => {
+    const box = scroller.current; const head = box?.querySelector<HTMLElement>('th[data-today="true"]');
+    if (box && head) box.scrollTo({ left: Math.max(0, head.offsetLeft - 240 - 3 * head.offsetWidth), behavior: 'smooth' });
+  }, [data.today, data.dates]);
   if (!data.employees.length) return <p className="card-v2 p-6 text-sm text-fg-sub">Nenhum funcionário neste escopo.</p>;
   return (
-    <div className="card-v2 overflow-auto" style={{ maxHeight: '70vh' }}>
-      <table className="border-separate border-spacing-0 text-xs">
-        <caption className="sr-only">Escala da equipe no mês</caption>
-        <thead>
-          <tr>
-            <th scope="col" className="sticky left-0 top-0 z-20 min-w-[170px] border-b border-r border-border bg-bg-elev px-3 py-2 text-left font-medium">Funcionário</th>
-            {data.dates.map((date) => {
-              const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
-              return <th key={date} scope="col" className={`sticky top-0 z-10 min-w-[38px] border-b border-border bg-bg-elev px-1 py-1.5 text-center font-medium ${date === data.today ? 'text-purple-700' : dow === 0 || dow === 6 ? 'text-fg-sub' : ''}`}><div>{date.slice(8, 10)}</div><div className="text-[10px] font-normal">{WEEKDAYS[dow][0]}</div></th>;
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {data.employees.map((employee) => (
-            <tr key={employee.id}>
-              <th scope="row" className="sticky left-0 z-10 border-b border-r border-border bg-bg-elev px-3 py-1.5 text-left font-medium"><span className="block truncate">{employee.name}</span><span className="block truncate text-[10px] font-normal text-fg-sub">{employee.department ?? ''}</span></th>
-              {employee.days.map((day, index) => {
-                const date = data.dates[index];
-                return (
-                  <td key={date} className="border-b border-border p-0.5">
-                    <button type="button" onClick={() => onOpen(employee.id, date)} title={`${employee.name} · ${date.split('-').reverse().join('/')} · ${DAY_TYPE_LABEL[day.type]}${day.entry ? ` ${day.entry}–${day.exit}` : ''}`}
-                      aria-label={`${employee.name}, ${date.split('-').reverse().join('/')}: ${DAY_TYPE_LABEL[day.type]}`}
-                      className={`relative flex h-8 w-full items-center justify-center rounded border text-[10px] font-semibold ${DAY_TYPE_STYLE[day.type]}`}>
-                      {CODE[day.type] || (day.entry ? day.entry.slice(0, 2) : '')}
-                      {day.status && day.status !== 'OK' && <span className={`absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full ${STATUS_DOT[day.status]}`} />}
-                    </button>
-                  </td>
-                );
+    <div className="card-v2 flex flex-col overflow-hidden">
+      <div ref={scroller} className="overflow-auto" style={{ maxHeight: 'calc(100dvh - 19rem)', minHeight: 320 }}>
+        <table className="border-separate border-spacing-0 text-sm">
+          <caption className="sr-only">Escala da equipe no mês</caption>
+          <thead>
+            <tr>
+              <th scope="col" className="sticky left-0 top-0 z-30 min-w-[220px] max-w-[220px] border-b border-r border-border bg-bg-elev px-4 py-3 text-left text-sm font-semibold">Funcionário</th>
+              {data.dates.map((date) => {
+                const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
+                const isToday = date === data.today;
+                return <th key={date} scope="col" data-today={isToday ? 'true' : undefined} className={`sticky top-0 z-20 min-w-[46px] border-b border-border px-1 py-2 text-center font-semibold ${isToday ? 'bg-purple-600 text-white' : `bg-bg-elev ${dow === 0 || dow === 6 ? 'text-fg-sub' : ''}`}`}><div className="text-sm">{date.slice(8, 10)}</div><div className="text-[11px] font-normal">{isToday ? 'Hoje' : WEEKDAYS[dow][0]}</div></th>;
               })}
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="p-3"><Legend /></div>
+          </thead>
+          <tbody>
+            {data.employees.map((employee) => (
+              <tr key={employee.id}>
+                <th scope="row" className="sticky left-0 z-10 min-w-[220px] max-w-[220px] border-b border-r border-border bg-bg-elev px-4 py-2 text-left"><span className="block truncate text-sm font-semibold">{employee.name}</span><span className="block truncate text-xs font-normal text-fg-sub">{employee.department ?? ''}</span></th>
+                {employee.days.map((day, index) => {
+                  const date = data.dates[index];
+                  return (
+                    <td key={date} className={`border-b border-border p-0.5 ${date === data.today ? 'bg-purple-50' : ''}`}>
+                      <button type="button" onClick={() => onOpen(employee.id, date)} title={`${employee.name} · ${date.split('-').reverse().join('/')} · ${DAY_TYPE_LABEL[day.type]}${day.entry ? ` ${day.entry}–${day.exit}` : ''}`}
+                        aria-label={`${employee.name}, ${date.split('-').reverse().join('/')}: ${DAY_TYPE_LABEL[day.type]}`}
+                        className={`relative flex h-11 w-full items-center justify-center rounded-md border text-[13px] font-semibold transition hover:shadow ${DAY_TYPE_STYLE[day.type]} ${date === data.today ? 'ring-2 ring-purple-500' : ''}`}>
+                        {CODE[day.type] || (day.entry ? day.entry.slice(0, 2) : '')}
+                        {day.status && day.status !== 'OK' && <span className={`absolute right-1 top-1 h-2 w-2 rounded-full ${STATUS_DOT[day.status]}`} />}
+                      </button>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="border-t border-border p-3"><Legend /></div>
     </div>
   );
 }
@@ -120,9 +129,26 @@ export function CalendarView({ overview, month, setMonth, onOpenDay, onLaunch, o
   const departments = useMemo(() => [...new Set((calendar.data?.employees ?? []).map((employee) => employee.department).filter(Boolean))] as string[], [calendar.data]);
   const canLaunch = Boolean(overview.capabilities['schedule.write']);
 
+  // O calendário acompanha o relógio: na virada do dia (ou ao voltar para a aba) recarrega e, se estava no mês atual, continua nele.
+  const lastDay = useRef(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date()));
+  const latest = useRef({ month, setMonth, refetch: calendar.refetch });
+  latest.current = { month, setMonth, refetch: calendar.refetch };
+  useEffect(() => {
+    const tick = () => {
+      const now = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+      if (now === lastDay.current) return;
+      const wasCurrent = latest.current.month === lastDay.current.slice(0, 7);
+      lastDay.current = now;
+      if (wasCurrent && latest.current.month !== now.slice(0, 7)) latest.current.setMonth(now.slice(0, 7)); else latest.current.refetch();
+    };
+    const timer = window.setInterval(tick, 30_000);
+    document.addEventListener('visibilitychange', tick);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', tick); };
+  }, []);
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="space-y-3">
+      <div className="sticky top-16 z-20 -mx-1 flex flex-wrap items-center justify-between gap-3 bg-bg/95 px-1 py-2 backdrop-blur">
         <div className="flex items-center gap-1">
           <Button variant="outline" size="sm" aria-label="Mês anterior" onClick={() => setMonth(shiftMonth(month, -1))}><ChevronLeft size={16} /></Button>
           <h2 className="min-w-[160px] text-center text-base font-semibold capitalize">{monthLabel(month)}</h2>

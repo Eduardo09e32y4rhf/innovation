@@ -1,4 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { LaunchDto, LaunchService } from './launch/launch.service';
 import { contentDisposition, safeFileName } from '../../common/pdf/pdf-response';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -25,6 +27,7 @@ export class HubController {
     private readonly scope: ScheduleScopeService,
     private readonly prisma: PrismaService,
     private readonly schedules: ScheduleService,
+    private readonly launches: LaunchService,
   ) {}
 
   @Get('overview')
@@ -129,4 +132,35 @@ export class HubController {
 
   private async assertAssignScope(actor: JwtUser, dto: AssignScheduleDto) {
     for (const employeeId of dto.employeeIds) await this.scope.assertEmployee(actor, 'schedule.write', employeeId);
-  }}
+  }
+
+  /** Lançamentos individuais ou em lote: folga extra, folga pelo banco, atestado (com foto) e feriado. */
+  @Roles(...rolesWith('schedule.write'))
+  @Post('launch')
+  launch(@CurrentUser() actor: JwtUser, @Body() dto: LaunchDto) {
+    return this.launches.launch(actor, dto);
+  }
+
+  @Roles(...rolesWith('schedule.write'))
+  @Get('launch/bank')
+  launchBank(@CurrentUser() actor: JwtUser, @Query('employeeIds') employeeIds = '') {
+    return this.launches.bank(actor, String(employeeIds).split(',').map((id) => id.trim()).filter(Boolean));
+  }
+
+  @Roles(...rolesWith('schedule.write'))
+  @Post('launch/attachment')
+  @UseInterceptors(FileInterceptor('file'))
+  launchAttachment(@CurrentUser() actor: JwtUser, @Body('employeeId') employeeId: string, @UploadedFile() file: any) {
+    return this.launches.saveAttachment(actor, employeeId, file);
+  }
+
+  @Roles(...rolesWith('schedule.write'))
+  @Get('launch/attachments/:id')
+  async launchAttachmentFile(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Res() reply: any) {
+    const { stream, fileName, mimetype } = await this.launches.attachmentFile(actor, id);
+    reply.header('Content-Type', mimetype || 'application/octet-stream');
+    reply.header('Content-Disposition', contentDisposition(fileName));
+    reply.header('Cache-Control', 'private, no-store');
+    return stream.pipe(reply);
+  }
+}

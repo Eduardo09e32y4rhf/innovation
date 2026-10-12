@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button, Modal } from '@/app/components/ui';
 import { useQuery } from '@/app/hooks/use-data';
-import { hubApi } from '../_lib/hub-api';
+import { hubApi, type LaunchKind } from '../_lib/hub-api';
+import { EXTRA_MODES, ExtraLaunchForm } from './launch-extras';
 import { DAY_TYPE_LABEL, errorMessage, fmtDate } from '../_lib/format';
 
 const input = 'input-v2 w-full text-base sm:text-sm';
@@ -23,9 +24,11 @@ export function LaunchDialog({ isOpen, employeeId, onClose, onDone }: { isOpen: 
   const [preview, setPreview] = useState<any>(null);
   const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<'ESCALA' | LaunchKind>('ESCALA');
 
   useEffect(() => {
     if (!isOpen) return;
+    setMode('ESCALA');
     setSelected(new Set(employeeId ? [employeeId] : [])); setScheduleId(''); setStartDate(today()); setEndDate(''); setSearch(''); setPreview(null);
   }, [isOpen, employeeId]);
 
@@ -61,8 +64,15 @@ export function LaunchDialog({ isOpen, employeeId, onClose, onDone }: { isOpen: 
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={() => !busy && onClose()} title="Lançar escala" description="Escolha as pessoas, a escala e a vigência. Você vê os conflitos antes de confirmar." maxWidth="max-w-2xl">
-      <div className="space-y-4">
+    <Modal isOpen={isOpen} onClose={() => !busy && onClose()} title="Lançar" description={mode === 'ESCALA' ? 'Escolha as pessoas, a escala e a vigência. Você vê os conflitos antes de confirmar.' : 'Individual ou em lote. Os funcionários são avisados.'} maxWidth="max-w-2xl">
+      <nav aria-label="Tipo de lançamento" className="mb-4 flex gap-1 overflow-x-auto border-b border-border">
+        {[{ id: 'ESCALA', label: 'Escala' }, ...EXTRA_MODES].map((item) => (
+          <button key={item.id} type="button" aria-current={mode === item.id ? 'page' : undefined} onClick={() => setMode(item.id as typeof mode)}
+            className={`min-h-11 whitespace-nowrap border-b-2 px-3 text-sm font-medium ${mode === item.id ? 'border-purple-600 text-purple-700' : 'border-transparent text-fg-sub hover:text-fg'}`}>{item.label}</button>
+        ))}
+      </nav>
+      {mode !== 'ESCALA' && <ExtraLaunchForm kind={mode} employeeId={employeeId} isOpen={isOpen} onClose={onClose} onDone={onDone} />}
+      {mode === 'ESCALA' && <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="space-y-1.5 text-sm font-medium sm:col-span-3">Escala
             <select className={input} value={scheduleId} onChange={(event) => setScheduleId(event.target.value)}><option value="">Escolha…</option>{active.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.scaleType}{item.entryTime ? ` · ${item.entryTime}–${item.exitTime}` : ''}</option>)}</select>
@@ -100,7 +110,7 @@ export function LaunchDialog({ isOpen, employeeId, onClose, onDone }: { isOpen: 
           <Button variant="outline" onClick={onClose} disabled={busy}>Cancelar</Button>
           <Button isLoading={busy} disabled={!canApply} onClick={apply}>Lançar escala</Button>
         </div>
-      </div>
+      </div>}
     </Modal>
   );
 }

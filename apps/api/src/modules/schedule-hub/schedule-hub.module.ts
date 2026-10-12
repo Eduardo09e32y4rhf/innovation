@@ -6,6 +6,7 @@ import { CalendarService } from './calendar/calendar.service';
 import { DayResolver } from './calendar/day-resolver';
 import { HubController } from './hub.controller';
 import { HubNotifyService } from './notify.service';
+import { LaunchService } from './launch/launch.service';
 import { OverridesService } from './overrides/overrides.service';
 import { OverviewService } from './overview/overview.service';
 import { PolicyController } from './policy/policy.controller';
@@ -18,7 +19,7 @@ import { RequestsService } from './requests/requests.service';
 @Module({
   imports: [ScheduleAccessModule, TimeTrackModule, EscalaModule],
   controllers: [HubController, PolicyController, PunchController, RequestsController],
-  providers: [DayResolver, CalendarService, OverviewService, OverridesService, PolicyService, PunchService, RequestsService, HubNotifyService],
+  providers: [DayResolver, CalendarService, OverviewService, OverridesService, LaunchService, PolicyService, PunchService, RequestsService, HubNotifyService],
   exports: [DayResolver, PolicyService],
 })
 export class ScheduleHubModule {}
