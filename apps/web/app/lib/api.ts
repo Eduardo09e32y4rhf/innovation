@@ -483,6 +483,12 @@ export interface PlanQuote {
   prorationAmount: number; remainingDays: number; cycleDays: number; effectiveAt?: string | null;
 }
 
+export interface DeductionRule {
+  id: string; name: string; category: 'BENEFIT' | 'OTHER'; kind: 'PERCENT' | 'FIXED'; value: number; base: 'GROSS' | 'SALARY'; maxAmount: number | null;
+  scope: 'ALL' | 'POSITION' | 'DEPARTMENT' | 'EMPLOYEE'; targets: string[]; startDate: string | null; endDate: string | null; isActive: boolean;
+}
+export type DeductionRuleInput = Omit<DeductionRule, 'id'>;
+
 export interface RefundRequestItem {
   ticketId: string; ticketNumber: string; status: string; requestedAt: string; reason: string;
   requester: { name?: string | null; email?: string | null };
@@ -804,6 +810,12 @@ export const api = {
     update: (id: string, data: any) => request<any>(`/time-rules/${id}`, { method: 'PUT', body: data }),
     archive: (id: string) => request<any>(`/time-rules/${id}/archive`, { method: 'PUT' }),
     activate: (id: string) => request<any>(`/time-rules/${id}/activate`, { method: 'PUT' }),
+  },
+  deductionRules: {
+    list: () => request<{ rules: DeductionRule[]; positions: string[]; departments: string[] }>('/deduction-rules'),
+    create: (body: DeductionRuleInput) => request<DeductionRule>('/deduction-rules', { method: 'POST', body }),
+    update: (id: string, body: Partial<DeductionRuleInput>) => request<DeductionRule>(`/deduction-rules/${id}`, { method: 'PATCH', body }),
+    remove: (id: string) => request<{ deleted: boolean }>(`/deduction-rules/${id}`, { method: 'DELETE' }),
   },
   timeClosing: {
     list: () => request<any[]>('/time-closing'),

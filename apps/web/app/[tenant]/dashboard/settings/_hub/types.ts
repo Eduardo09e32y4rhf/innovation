@@ -1,6 +1,6 @@
-import { Building2, CalendarDays, Database, Landmark, Shield, UserRound, Users, type LucideIcon } from 'lucide-react';
+import { Building2, CalendarDays, Database, Landmark, Shield, UserRound, Users, Wallet, type LucideIcon } from 'lucide-react';
 
-export type SettingsSection = 'conta' | 'seguranca' | 'empresa' | 'feriados' | 'horaextra' | 'acessos' | 'dados';
+export type SettingsSection = 'conta' | 'seguranca' | 'empresa' | 'feriados' | 'horaextra' | 'descontos' | 'acessos' | 'dados';
 
 export const SECTION_META: Record<SettingsSection, { label: string; hint: string; icon: LucideIcon }> = {
   conta: { label: 'Meu perfil', hint: 'Seus dados e senha', icon: UserRound },
@@ -8,20 +8,21 @@ export const SECTION_META: Record<SettingsSection, { label: string; hint: string
   empresa: { label: 'Dados da empresa', hint: 'Cadastro, endereço e logo', icon: Building2 },
   feriados: { label: 'Feriados', hint: 'Calendário usado no ponto e na folha', icon: CalendarDays },
   horaextra: { label: 'Hora extra e banco', hint: 'Pagar na folha ou usar banco de horas', icon: Landmark },
+  descontos: { label: 'Descontos e benefícios', hint: 'Vale-transporte, plano de saúde e outros descontos da folha', icon: Wallet },
   acessos: { label: 'Usuários e acessos', hint: 'Quem entra no sistema', icon: Users },
   dados: { label: 'Importar e exportar', hint: 'Planilhas de funcionários e férias', icon: Database },
 };
 
 export const SECTION_GROUPS: Array<{ title: string; items: SettingsSection[] }> = [
   { title: 'Pessoal', items: ['conta', 'seguranca'] },
-  { title: 'Empresa', items: ['empresa', 'feriados', 'horaextra', 'acessos', 'dados'] },
+  { title: 'Empresa', items: ['empresa', 'feriados', 'horaextra', 'descontos', 'acessos', 'dados'] },
 ];
 
 /** Seções visíveis por perfil. O servidor continua sendo a autoridade (RolesGuard). */
 export const SECTION_POLICY: Record<string, SettingsSection[]> = {
-  DEV: ['conta', 'seguranca', 'empresa', 'feriados', 'horaextra', 'acessos', 'dados'],
-  ADMIN: ['conta', 'seguranca', 'empresa', 'feriados', 'horaextra', 'acessos', 'dados'],
-  RH: ['conta', 'seguranca', 'empresa', 'feriados', 'horaextra', 'acessos', 'dados'],
+  DEV: ['conta', 'seguranca', 'empresa', 'feriados', 'horaextra', 'descontos', 'acessos', 'dados'],
+  ADMIN: ['conta', 'seguranca', 'empresa', 'feriados', 'horaextra', 'descontos', 'acessos', 'dados'],
+  RH: ['conta', 'seguranca', 'empresa', 'feriados', 'horaextra', 'descontos', 'acessos', 'dados'],
   CEO: ['conta', 'seguranca'],
   CONTABIL: ['conta', 'seguranca'],
   COMERCIAL: ['conta', 'seguranca'],

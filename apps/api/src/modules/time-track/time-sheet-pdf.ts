@@ -21,6 +21,8 @@ export interface TimeSheetData {
   company: { name?: string | null; document?: string | null; logoUrl?: string | null } | null;
   employee: { name: string; cpf?: string | null; registration?: string | null; position?: string | null; department?: string | null };
   tracks: TimeSheetTrack[];
+  deductionsJson?: unknown;
+  benefitsDiscount?: number | null;
   normalHours?: number | null;
   overtime50?: number | null;
   overtime100?: number | null;
@@ -91,6 +93,8 @@ export function payslipLines(data: TimeSheetData): Line[] {
     { code: '101', description: 'Faltas e atrasos', reference: `${num(data.absenceMinutes) + num(data.lateMinutes) + num(data.earlyLeaveMinutes)} min`, deduction: num(data.absenceDiscount) },
     { code: '110', description: 'INSS', reference: '', deduction: num(data.inssDiscount) },
     { code: '111', description: 'IRRF', reference: '', deduction: num(data.irrfDiscount) },
+    // Descontos definidos pela empresa (benefícios etc.)
+    ...(Array.isArray(data.deductionsJson) ? (data.deductionsJson as Array<{ name?: string; detail?: string; amount?: number }>).map((item, index) => ({ code: String(201 + index), description: String(item.name ?? 'Desconto'), reference: String(item.detail ?? ''), deduction: num(item.amount) })) : []),
   ];
   return lines.filter((line, index) => index === 0 || (line.earning ?? 0) > 0 || (line.deduction ?? 0) > 0);
 }

@@ -8,6 +8,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { PayrollCalculationService } from './payroll-calculation.service';
 import { getOvertimePolicy, overtimePaymentRatio } from './overtime-policy';
 import { PDF, PdfReport } from '../../common/pdf/pdf-report';
+import { computeDeductions } from '../payroll/deduction-rules';
 import { appendMirror, buildPayslipPdf, buildTimeSheetPdf, timeSheetBrand } from './time-sheet-pdf';
 import { saoPauloDayOfWeek, toSaoPauloDateKey } from '../../common/utils/date.utils';
 
@@ -94,6 +95,7 @@ export class TimeClosingService {
     });
     if (existingLocked) throw new BadRequestException('O periodo possui fechamento em revisao, aprovado ou fechado. Reabra-o antes de gerar novamente.');
 
+    const deductionRules = await this.prisma.payrollDeductionRule.findMany({ where: { companyId, isActive: true } });
     const overtimeRule = await this.prisma.overtimeRule.upsert({
       where: { companyId },
       create: { companyId },
@@ -257,6 +259,10 @@ export class TimeClosingService {
         taxContext,
       });
 
+      // Descontos da empresa (benefícios etc.) saem do líquido depois de INSS e IRRF.
+      const deductions = computeDeductions(deductionRules, employee, { gross: financial.grossPay, salaryBase: financial.salaryBase, netBefore: financial.netPay, periodStart, periodEnd });
+      const netPay = Math.round((financial.netPay - deductions.total + Number.EPSILON) * 100) / 100;
+
       await this.prisma.timeClosing.deleteMany({
         where: { companyId, employeeId: employee.id, periodStart, periodEnd, status: TimeClosingStatus.DRAFT },
       });
@@ -280,8 +286,11 @@ export class TimeClosingService {
           lateMinutes,
           earlyLeaveMinutes,
           ...financial,
+          netPay,
+          benefitsDiscount: deductions.total,
+          deductionsJson: deductions.items as any,
           taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
-          totalPayable: financial.netPay,
+          totalPayable: netPay,
         },
         include: { employee: true },
       }));
@@ -368,13 +377,19 @@ export class TimeClosingService {
         dependents: Array.isArray(updated.employee.dependents) ? updated.employee.dependents.length : 0,
         taxContext,
       });
+      const rules = await tx.payrollDeductionRule.findMany({ where: { companyId, isActive: true } });
+      const deductions = computeDeductions(rules, updated.employee, { gross: financial.grossPay, salaryBase: financial.salaryBase, netBefore: financial.netPay, periodStart: closing.periodStart, periodEnd: closing.periodEnd });
+      const netPay = Math.round((financial.netPay - deductions.total + Number.EPSILON) * 100) / 100;
       return tx.timeClosing.update({
         where: { id },
         data: {
           [dto.field]: value,
           ...financial,
+          netPay,
+          benefitsDiscount: deductions.total,
+          deductionsJson: deductions.items as any,
           taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
-          totalPayable: financial.netPay,
+          totalPayable: netPay,
         },
         include: { employee: true },
       });

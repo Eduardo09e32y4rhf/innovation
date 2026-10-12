@@ -393,6 +393,10 @@ model Company {
   holidays            Holiday[]
   timeClosings        TimeClosing[]
   medicalCertificates MedicalCertificate[]
+  payrollDeductionRules PayrollDeductionRule[]
+  promotionPolicy       PromotionPolicy?
+  employeePromotions    EmployeePromotion[]
+  documentTemplates     DocumentTemplate[]
   platformPlan        PlatformPlan?            @relation(fields: [platformPlanId], references: [id])
   platformInvoices    PlatformInvoice[]
   platformContract    PlatformContract?
@@ -663,6 +667,7 @@ model Employee {
   timeClosings         TimeClosing[]
   vacationEntitlements VacationEntitlement[]
   medicalCertificates  MedicalCertificate[]
+  promotions           EmployeePromotion[]
 
   // MÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³dulo Escala
   userSchedules      UserSchedule[]
@@ -1731,6 +1736,9 @@ model TimeClosing {
   fgtsBase           Float  @default(0)
   fgtsAmount         Float  @default(0)
   netPay             Float  @default(0)
+  // Descontos da empresa (beneficios etc.) tirados do liquido depois de INSS/IRRF. netPay ja vem descontado.
+  benefitsDiscount   Float  @default(0)
+  deductionsJson     Json?
   calculationVersion String @default("CLT_2026_1")
   taxTableSnapshot   Json?
 
@@ -1747,6 +1755,90 @@ model TimeClosing {
 
   @@index([companyId, status, periodStart])
   @@index([employeeId, periodStart])
+}
+
+/// Regra de desconto da empresa na folha/fechamento: vale-transporte, plano de saude, coparticipacao, etc.
+/// Vale para todos (ALL), por cargo (POSITION), por setor (DEPARTMENT) ou para pessoas escolhidas (EMPLOYEE).
+model PayrollDeductionRule {
+  id              String    @id @default(uuid()) @db.Uuid
+  companyId       String    @db.Uuid
+  name            String
+  category        String    @default("BENEFIT") // BENEFIT | OTHER
+  kind            String // PERCENT | FIXED
+  value           Decimal   @db.Decimal(12, 4)
+  base            String    @default("GROSS") // GROSS | SALARY (so para PERCENT)
+  maxAmount       Decimal?  @db.Decimal(12, 2)
+  scope           String    @default("ALL") // ALL | POSITION | DEPARTMENT | EMPLOYEE
+  targets         String[]  @default([])
+  startDate       DateTime? @db.Date
+  endDate         DateTime? @db.Date
+  isActive        Boolean   @default(true)
+  createdByUserId String?   @db.Uuid
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, isActive])
+}
+
+/// Regras de promocao definidas pela empresa (uma por empresa).
+model PromotionPolicy {
+  id                String   @id @default(uuid()) @db.Uuid
+  companyId         String   @unique @db.Uuid
+  minMonthsInRole   Int      @default(0)
+  maxRaisePercent   Decimal? @db.Decimal(6, 2)
+  requireReason     Boolean  @default(true)
+  positions         String[] @default([]) // escada de cargos permitidos (vazio = qualquer)
+  autoNotify        Boolean  @default(true)
+  updatedByUserId   String?  @db.Uuid
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+/// Promocao lancada: ajusta cargo e salario na data de vigencia e avisa o colaborador sozinha.
+model EmployeePromotion {
+  id               String    @id @default(uuid()) @db.Uuid
+  companyId        String    @db.Uuid
+  employeeId       String    @db.Uuid
+  previousPosition String?
+  newPosition      String?
+  previousSalary   Decimal?  @db.Decimal(12, 2)
+  newSalary        Decimal?  @db.Decimal(12, 2)
+  effectiveDate    DateTime  @db.Date
+  status           String    @default("SCHEDULED") // SCHEDULED | APPLIED | CANCELED
+  reason           String?
+  notificationId   String?   @db.Uuid
+  createdByUserId  String?   @db.Uuid
+  appliedAt        DateTime?
+  canceledAt       DateTime?
+  createdAt        DateTime  @default(now())
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status, effectiveDate])
+  @@index([employeeId])
+}
+
+/// Modelos de documento da empresa (advertencia, suspensao, comunicado...). Termo de uso e boas-vindas continuam sendo da Innovation.
+model DocumentTemplate {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyId       String   @db.Uuid
+  name            String
+  kind            String // ADVERTENCIA | SUSPENSAO | COMUNICADO | OUTRO
+  title           String
+  body            String   @db.Text
+  isActive        Boolean  @default(true)
+  createdByUserId String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, kind, isActive])
 }
 
 model TimeClosingAdjustment {
@@ -3245,4 +3337,92 @@ model RecruitmentDocument {
 
   @@index([companyId, applicationId])
   @@index([requestId])
+}
+
+/// Escritorio de contabilidade: dados de cada empresa-cliente (regime, responsavel, honorario).
+model AccountingClient {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId     String   @unique @db.Uuid
+  taxRegime     String   @default("SIMPLES")
+  responsibleId String?  @db.Uuid
+  monthlyFee    Decimal  @default(0) @db.Decimal(10, 2)
+  feeDueDay     Int      @default(10)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+/// Tarefa interna da equipe do escritorio (por departamento, opcionalmente ligada a uma empresa-cliente).
+model AccountingTask {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId   String?   @db.Uuid
+  title       String
+  description String?
+  department  String    @default("DP")
+  priority    String    @default("NORMAL")
+  status      String    @default("OPEN")
+  dueDate     DateTime?
+  assigneeId  String?   @db.Uuid
+  createdById String    @db.Uuid
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, dueDate])
+  @@index([companyId])
+  @@index([assigneeId])
+}
+
+/// Checklist mensal manual por cliente (os itens automaticos sao calculados, nao ficam aqui).
+model AccountingChecklistItem {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId  String    @db.Uuid
+  month      String
+  itemKey    String
+  done       Boolean   @default(false)
+  doneAt     DateTime?
+  doneById   String?   @db.Uuid
+  note       String?
+  updatedAt  DateTime  @updatedAt
+
+  @@unique([companyId, month, itemKey])
+  @@index([month])
+}
+
+/// Cobranca de documentos ao cliente (extrato, notas, atestados...) por competencia.
+model AccountingDocRequest {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId      String    @db.Uuid
+  month          String
+  docType        String    @default("OUTROS")
+  title          String
+  status         String    @default("PENDING")
+  dueDate        DateTime?
+  receivedAt     DateTime?
+  lastReminderAt DateTime?
+  reminderCount  Int       @default(0)
+  note           String?
+  createdById    String    @db.Uuid
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([companyId, month])
+  @@index([status])
+}
+
+/// Honorario mensal cobrado pelo escritorio de cada cliente.
+model AccountingFee {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId String    @db.Uuid
+  month     String
+  amount    Decimal   @db.Decimal(10, 2)
+  dueDate   DateTime
+  status    String    @default("OPEN")
+  paidAt    DateTime?
+  note      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([companyId, month])
+  @@index([status, dueDate])
 }

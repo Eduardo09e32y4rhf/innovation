@@ -1,12 +1,13 @@
 ﻿import { Module } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { DeductionRulesController } from './deduction-rules.controller';
 import { PayrollController } from './payroll.controller';
 import { PayrollRepository } from './payroll.repository';
 import { PayrollService } from './payroll.service';
 import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
 
 @Module({
-  controllers: [PayrollController],
+  controllers: [PayrollController, DeductionRulesController],
   providers: [PayrollService, PayrollRepository, PrismaService, PayrollCalculationService],
   exports: [PayrollService],
 })

@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PayrollItemType, PayrollStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { computeDeductions, DEDUCTION_PREFIX } from './deduction-rules';
 import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
 import { overtimePaymentRatio } from '../time-track/overtime-policy';
 import { CancelPayrollDto, CreatePayrollDto, DEDUCTION_TYPES, ManualPayrollItemDto, UpdatePayrollDto } from './dto/create-payroll.dto';
@@ -196,7 +197,13 @@ export class PayrollService {
     const deductions = round2(manual.filter((i) => DEDUCTION_TYPES.includes(i.type)).reduce((s, i) => s + i.amount, 0));
     const gross = round2(calc.grossPay + earnings);
     const taxes = this.officialCalculator.applyTaxes(gross, dependents, taxContext);
-    const net = round2(Math.max(0, taxes.netPay - deductions));
+    // Descontos da empresa (benefícios etc.), depois de INSS e IRRF — mesma regra do fechamento.
+    const [companyRules, who] = await Promise.all([
+      this.prisma.payrollDeductionRule.findMany({ where: { companyId, isActive: true } }),
+      this.prisma.employee.findUnique({ where: { id: employee.id }, select: { position: true, department: true } }),
+    ]);
+    const companyDeductions = computeDeductions(companyRules, { id: employee.id, ...who }, { gross, salaryBase: calc.salaryBase, netBefore: round2(Math.max(0, taxes.netPay - deductions)), periodStart: start, periodEnd: end });
+    const net = round2(Math.max(0, taxes.netPay - deductions - companyDeductions.total));
     if (![gross, net, taxes.inssDiscount, taxes.irrfDiscount, taxes.fgtsAmount].every((v) => Number.isFinite(v))) {
       throw new BadRequestException(`Não foi possível calcular a folha de ${employee.name}: confira salário e jornada no cadastro.`);
     }
@@ -213,6 +220,7 @@ export class PayrollService {
       ...manual.filter((i) => DEDUCTION_TYPES.includes(i.type)).map((i) => item(i.type as PayrollItemType, i.description.trim(), i.amount, true)),
       item('INSS', 'Contribuição INSS', taxes.inssDiscount, true),
       item('IRRF', 'Imposto de Renda Retido na Fonte', taxes.irrfDiscount, true),
+      ...companyDeductions.items.map((d) => item('OTHER_DEDUCTION', `${DEDUCTION_PREFIX}${d.name} (${d.detail})`, d.amount, true)),
       item('FGTS', 'FGTS (encargo patronal, não desconta do funcionário)', taxes.fgtsAmount, false),
     ];
 
@@ -255,7 +263,7 @@ export class PayrollService {
     await this.assertNoOverlap(companyId, current.employeeId, periodStart, periodEnd, employee.name, id);
 
     const manual: ManualPayrollItemDto[] = dto.items ?? current.items
-      .filter((i) => ['BONUS', 'COMMISSION', 'OTHER_EARNING', 'ADVANCE', 'OTHER_DEDUCTION'].includes(i.type) && !i.description.startsWith('DSR'))
+      .filter((i) => ['BONUS', 'COMMISSION', 'OTHER_EARNING', 'ADVANCE', 'OTHER_DEDUCTION'].includes(i.type) && !i.description.startsWith('DSR') && !i.description.startsWith(DEDUCTION_PREFIX))
       .map((i) => ({ type: i.type as ManualPayrollItemDto['type'], description: i.description, amount: Number(i.amount) }));
 
     const built = await this.build(companyId, employee as EmployeeForPayroll, periodStart, periodEnd, days, manual);

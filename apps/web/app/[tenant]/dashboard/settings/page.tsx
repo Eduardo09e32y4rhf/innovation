@@ -9,6 +9,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { resolveUserRole } from '@/app/lib/user-role';
 import { CompanySection } from './_hub/company-section';
 import { DataSection } from './_hub/data-section';
+import { DeductionsSection } from './_hub/deductions-section';
 import { HolidaysSection } from './_hub/holidays-section';
 import { OvertimeSection } from './_hub/overtime-section';
 import { AccountSection } from './_hub/profile-section';
@@ -78,6 +79,7 @@ function Hub() {
           {active === 'empresa' && <CompanySection canEdit={canEditCompany} />}
           {active === 'feriados' && <HolidaysSection />}
           {active === 'horaextra' && <OvertimeSection />}
+          {active === 'descontos' && <DeductionsSection canEdit={canEditCompany} />}
           {active === 'acessos' && (
             <section className={`${cardClass} space-y-3`}>
               <p className="text-sm text-fg-sub">Criar acessos, atrelar a funcionários, mudar a visão, bloquear, cancelar ou excluir usuários, gerar senha provisória e ver o histórico de cada pessoa ficam na tela de Usuários.</p>

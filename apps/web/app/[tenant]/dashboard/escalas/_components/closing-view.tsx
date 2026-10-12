@@ -38,7 +38,11 @@ export function ClosingView({ overview, month, setMonth }: { overview: Overview;
   const periodStart = `${month}-01`;
   const periodEnd = `${month}-${String(new Date(year, monthNumber, 0).getDate()).padStart(2, '0')}`;
   const closings = useMemo(() => (list.data ?? []).filter((item: any) => item.periodStart.slice(0, 10) >= periodStart && item.periodEnd.slice(0, 10) <= periodEnd), [list.data, periodStart, periodEnd]);
-  const totals = closings.reduce((sum: any, item: any) => ({ gross: sum.gross + Number(item.grossPay ?? 0), net: sum.net + Number(item.netPay ?? 0), ot: sum.ot + Number(item.overtime50 ?? 0) + Number(item.overtime100 ?? 0) }), { gross: 0, net: 0, ot: 0 });
+  const totals = closings.reduce((sum: any, item: any) => ({
+    gross: sum.gross + Number(item.grossPay ?? 0), net: sum.net + Number(item.netPay ?? 0), ot: sum.ot + Number(item.overtime50 ?? 0) + Number(item.overtime100 ?? 0),
+    inss: sum.inss + Number(item.inssDiscount ?? 0), irrf: sum.irrf + Number(item.irrfDiscount ?? 0), benefits: sum.benefits + Number(item.benefitsDiscount ?? 0), fgts: sum.fgts + Number(item.fgtsAmount ?? 0),
+  }), { gross: 0, net: 0, ot: 0, inss: 0, irrf: 0, benefits: 0, fgts: 0 });
+  const [detail, setDetail] = useState<any>(null);
 
   async function run(operation: () => Promise<unknown>, done: () => void) {
     if (lock.current) return;
@@ -97,23 +101,34 @@ export function ClosingView({ overview, month, setMonth }: { overview: Overview;
       ) : list.loading && !list.data ? <LoadingState label="Carregando fechamentos…" /> : list.error ? <ErrorState message={list.error} onRetry={list.refetch} /> : (
         <>
           <p className="text-sm text-fg-sub">Fluxo: Rascunho → Em revisão → Aprovado → Fechado. Após fechado, correções exigem reabertura com motivo.</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[['Fechamentos', String(closings.length)], ['Horas extras (h)', totals.ot.toFixed(1)], ['Bruto', money(totals.gross)], ['Líquido', money(totals.net)]].map(([title, value]) => <div key={title} className="card-v2 p-4"><p className="text-sm text-fg-sub">{title}</p><p className="mt-1 text-xl font-semibold tabular-nums">{value}</p></div>)}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+            {[['Fechamentos', String(closings.length)], ['Horas extras (h)', totals.ot.toFixed(1)], ['Bruto', money(totals.gross)], ['INSS', money(totals.inss)], ['IRRF', money(totals.irrf)], ['Benefícios e outros descontos', money(totals.benefits)], ['Líquido', money(totals.net)]].map(([title, value]) => <div key={title} className="card-v2 p-4"><p className="text-xs text-fg-sub">{title}</p><p className="mt-1 text-lg font-semibold tabular-nums">{value}</p></div>)}
           </div>
+          <p className="text-xs text-fg-sub">FGTS patronal do mês (encargo da empresa, não sai do funcionário): <strong>{money(totals.fgts)}</strong>. Clique em <strong>Detalhes</strong> para ver a memória de cálculo de cada pessoa. Os descontos de benefícios são cadastrados em Configurações → Descontos e benefícios.</p>
           {closings.length === 0 ? <EmptyState message="Nenhum fechamento neste mês. Gere o fechamento para revisar os valores." /> : (
-            <div className="card-v2 overflow-x-auto">
-              <table className="w-full min-w-[820px] text-left text-sm">
+            <div className="card-v2 overflow-auto" style={{ maxHeight: 'calc(100dvh - 22rem)', minHeight: 260 }}>
+              <table className="w-full min-w-[1240px] border-separate border-spacing-0 text-left text-sm">
                 <caption className="sr-only">Fechamentos por funcionário</caption>
-                <thead className="border-b border-border bg-bg-sub text-xs text-fg-sub"><tr>{['Funcionário', 'Jornada', 'Bruto', 'Líquido', 'Status', 'Ações'].map((title) => <th key={title} scope="col" className="px-4 py-2.5 font-medium">{title}</th>)}</tr></thead>
-                <tbody className="divide-y divide-border">
-                  {closings.map((item: any) => (
-                    <tr key={item.id} className="align-top">
-                      <th scope="row" className="px-4 py-3 text-left font-medium">{item.employee?.name ?? 'Funcionário'}<span className="block text-xs font-normal text-fg-sub">{period(item)}</span></th>
-                      <td className="px-4 py-3 text-xs">HE 50%: {Number(item.overtime50 ?? 0).toFixed(1)}h · HE 100%: {Number(item.overtime100 ?? 0).toFixed(1)}h<br />Noturno: {Number(item.nightShift ?? 0).toFixed(1)}h · Faltas: {item.absenceMinutes ?? 0} min · Atrasos: {item.lateMinutes ?? 0} min</td>
-                      <td className="px-4 py-3 tabular-nums">{money(item.grossPay)}</td>
-                      <td className="px-4 py-3 tabular-nums font-medium">{money(item.netPay)}</td>
-                      <td className="px-4 py-3"><span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs">{STATUS[item.status] ?? item.status}</span></td>
-                      <td className="px-4 py-3"><div className="flex flex-wrap gap-1.5">
+                <thead className="text-xs text-fg-sub"><tr>{['Funcionário', 'Salário base', 'Extras + noturno + DSR', 'Faltas e atrasos', 'Bruto', 'INSS', 'IRRF', 'Benefícios', 'Líquido', 'Status', 'Ações'].map((title, index) => <th key={title} scope="col" className={`sticky top-0 z-10 border-b border-border bg-bg-sub px-3 py-2.5 font-medium ${index === 0 ? 'left-0 z-20 min-w-[200px] border-r' : ''} ${index >= 1 && index <= 8 ? 'text-right' : ''}`}>{title}</th>)}</tr></thead>
+                <tbody>
+                  {closings.map((item: any) => {
+                    const variable = Number(item.overtime50Value ?? 0) + Number(item.overtime100Value ?? 0) + Number(item.nightShiftValue ?? 0) + Number(item.dsrValue ?? 0);
+                    const docked = Number(item.absenceDiscount ?? 0) + Number(item.lateDiscount ?? 0) + Number(item.earlyLeaveDiscount ?? 0);
+                    const cell = 'border-b border-border px-3 py-3 text-right tabular-nums';
+                    return (
+                    <tr key={item.id} className="align-top hover:bg-bg-sub/60">
+                      <th scope="row" className="sticky left-0 z-10 min-w-[200px] border-b border-r border-border bg-bg-elev px-3 py-3 text-left font-medium">{item.employee?.name ?? 'Funcionário'}<span className="block text-xs font-normal text-fg-sub">{period(item)}</span></th>
+                      <td className={cell}>{money(item.salaryBase)}</td>
+                      <td className={`${cell} text-emerald-700`}>{variable > 0 ? `+ ${money(variable)}` : '—'}</td>
+                      <td className={`${cell} text-rose-700`}>{docked > 0 ? `− ${money(docked)}` : '—'}</td>
+                      <td className={`${cell} font-medium`}>{money(item.grossPay)}</td>
+                      <td className={`${cell} text-rose-700`}>− {money(item.inssDiscount)}</td>
+                      <td className={`${cell} text-rose-700`}>{Number(item.irrfDiscount ?? 0) > 0 ? `− ${money(item.irrfDiscount)}` : 'isento'}</td>
+                      <td className={`${cell} text-rose-700`}>{Number(item.benefitsDiscount ?? 0) > 0 ? `− ${money(item.benefitsDiscount)}` : '—'}</td>
+                      <td className={`${cell} font-semibold`}>{money(item.netPay)}</td>
+                      <td className="border-b border-border px-3 py-3"><span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs">{STATUS[item.status] ?? item.status}</span></td>
+                      <td className="border-b border-border px-3 py-3"><div className="flex flex-wrap gap-1.5">
+                        <Button size="sm" variant="outline" onClick={() => setDetail(item)}>Detalhes</Button>
                         <Button size="sm" variant="outline" isLoading={downloading === item.id} onClick={() => pdf(item)}><Download size={14} aria-hidden="true" /> PDF</Button>
                         {canWrite && ['DRAFT', 'IN_REVIEW'].includes(item.status) && <Button size="sm" variant="outline" disabled={busy} onClick={() => setAdjust(item)}>Ajuste</Button>}
                         {canWrite && item.status === 'DRAFT' && <Button size="sm" disabled={busy} onClick={() => setDecision({ action: 'review', item })}>Enviar p/ revisão</Button>}
@@ -123,13 +138,16 @@ export function ClosingView({ overview, month, setMonth }: { overview: Overview;
                         {canWrite && item.status !== 'CLOSED' && <Button size="sm" variant="danger" disabled={busy} onClick={() => setDecision({ action: 'delete', item })}>Excluir</Button>}
                       </div></td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </>
       )}
+
+      {detail && <MemoryModal item={detail} onClose={() => setDetail(null)} />}
 
       <ConfirmDialog isOpen={Boolean(decision)} onClose={() => setDecision(null)} onConfirm={confirm} title={label} isLoading={busy} variant={decision?.action === 'delete' ? 'danger' : 'primary'} confirmText={label}
         description={decision?.item ? `${decision.item.employee?.name ?? 'Funcionário'} · ${period(decision.item)} · líquido ${money(decision.item.netPay)}. ${decision.action === 'close' ? 'Depois de fechar, correções exigem reabertura com motivo.' : 'Confirme após revisar os valores.'}` : `${day(periodStart)} a ${day(periodEnd)}. O servidor gera ou recalcula os rascunhos dos funcionários elegíveis; fechamentos protegidos continuam bloqueados.`} />
@@ -144,6 +162,45 @@ export function ClosingView({ overview, month, setMonth }: { overview: Overview;
         </form>
       </Modal>
     </div>
+  );
+}
+
+/** Memória de cálculo: do salário ao líquido, linha por linha (como um holerite). */
+function MemoryModal({ item, onClose }: { item: any; onClose: () => void }) {
+  const n = (value: unknown) => Number(value ?? 0);
+  const hours = (value: unknown) => `${n(value).toFixed(2).replace('.', ',')} h`;
+  const deductions: Array<{ name: string; detail: string; amount: number }> = Array.isArray(item.deductionsJson) ? item.deductionsJson : [];
+  const rows: Array<[string, string, number, 'plus' | 'minus' | 'total' | 'info']> = [
+    ['Salário base', item.payableWorkdays != null ? `${item.payableWorkdays} dias úteis · hora ${money(item.hourlyRate)} (÷${item.monthlyDivisor})` : '', n(item.salaryBase), 'plus'],
+    ['Hora extra 50%', hours(item.overtime50), n(item.overtime50Value), 'plus'],
+    ['Hora extra 100%', hours(item.overtime100), n(item.overtime100Value), 'plus'],
+    ['Adicional noturno', hours(item.nightShift), n(item.nightShiftValue), 'plus'],
+    ['Reflexo em DSR', `${n(item.paidRestDays)} dias de descanso`, n(item.dsrValue), 'plus'],
+    ['Faltas e suspensão', `${n(item.absenceMinutes)} min`, n(item.absenceDiscount), 'minus'],
+    ['Atrasos', `${n(item.lateMinutes)} min`, n(item.lateDiscount), 'minus'],
+    ['Saídas antecipadas', `${n(item.earlyLeaveMinutes)} min`, n(item.earlyLeaveDiscount), 'minus'],
+    ['BRUTO', '', n(item.grossPay), 'total'],
+    ['INSS', `base ${money(item.inssBase)}`, n(item.inssDiscount), 'minus'],
+    ['IRRF', n(item.irrfDiscount) > 0 ? `base ${money(item.irrfBase)}` : 'isento neste valor', n(item.irrfDiscount), 'minus'],
+    ...deductions.map((d): [string, string, number, 'minus'] => [d.name, d.detail, n(d.amount), 'minus']),
+    ['LÍQUIDO A RECEBER', '', n(item.netPay), 'total'],
+    ['FGTS do mês (encargo da empresa, não desconta do funcionário)', '8% do bruto', n(item.fgtsAmount), 'info'],
+  ];
+  return (
+    <Modal isOpen onClose={onClose} title="Memória de cálculo" description={`${item.employee?.name ?? ''} · ${period(item)}`} maxWidth="max-w-2xl">
+      <table className="w-full text-sm">
+        <thead className="text-xs text-fg-sub"><tr><th className="py-1.5 text-left font-medium">Item</th><th className="py-1.5 text-left font-medium">Referência</th><th className="py-1.5 text-right font-medium">Valor</th></tr></thead>
+        <tbody>
+          {rows.filter(([label, , value, kind]) => kind === 'total' || kind === 'info' || label === 'Salário base' || value > 0).map(([label, ref, value, kind]) => (
+            <tr key={label} className={`border-t border-border ${kind === 'total' ? 'bg-bg-sub font-semibold' : ''}`}>
+              <td className="py-2 pr-2">{label}</td><td className="py-2 pr-2 text-xs text-fg-sub">{ref}</td>
+              <td className={`py-2 text-right tabular-nums ${kind === 'plus' ? 'text-emerald-700' : kind === 'minus' ? 'text-rose-700' : ''}`}>{kind === 'minus' ? '− ' : kind === 'plus' ? '+ ' : ''}{money(value)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-3 text-xs text-fg-sub">Valores calculados com as regras vigentes (INSS e IRRF de {item.calculationVersion ?? 'tabela vigente'}). Conferência final é da contabilidade.</p>
+    </Modal>
   );
 }
 
