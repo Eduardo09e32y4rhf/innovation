@@ -9,29 +9,23 @@ export function initialsOf(name?: string | null) {
 }
 
 /**
- * Logo da empresa legível em qualquer formato: fica sobre fundo branco (logo escura ou transparente aparece),
- * mantém a proporção (logo horizontal ocupa largura, não vira uma tira de 48 px) e cai nas iniciais se faltar ou quebrar.
- * Com `compactFallback`, logo horizontal vira as iniciais quando a barra lateral está recolhida (classes em globals.css).
+ * Logo da empresa sempre em quadrado com cantos arredondados, sobre fundo branco (logo escura ou transparente aparece).
+ * A imagem inteira cabe no quadrado, sem cortar; se faltar ou quebrar, mostra as iniciais.
+ * Dica: o logo fica maior e mais nítido quando a imagem enviada é quadrada e sem margem sobrando.
  */
-export function CompanyLogo({ name, logoUrl, height = 48, maxWidth = 200, compactFallback = false, className = '' }: {
+export function CompanyLogo({ name, logoUrl, height = 48, className = '' }: {
   name?: string | null; logoUrl?: string | null; height?: number; maxWidth?: number; compactFallback?: boolean; className?: string;
 }) {
   const [failed, setFailed] = useState(false);
-  const [wide, setWide] = useState(false);
-  useEffect(() => { setFailed(false); setWide(false); }, [logoUrl]);
-  const initials = (
-    <span aria-hidden="true" className={`inline-flex shrink-0 items-center justify-center rounded-xl bg-[var(--color-brand)] font-semibold text-white ${className}`} style={{ width: height, height, fontSize: height * 0.36 }}>{initialsOf(name)}</span>
-  );
-  if (!logoUrl || failed) return initials;
+  useEffect(() => { setFailed(false); }, [logoUrl]);
+  const box = { width: height, height };
+  if (!logoUrl || failed) {
+    return <span aria-hidden="true" className={`inline-flex shrink-0 items-center justify-center rounded-xl bg-[var(--color-brand)] font-semibold text-white ${className}`} style={{ ...box, fontSize: height * 0.36 }}>{initialsOf(name)}</span>;
+  }
   return (
-    <>
-      <span className={`${wide && compactFallback ? 'company-logo-full ' : ''}inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-white ${className}`} style={{ height, minWidth: height, maxWidth }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logoUrl} alt={name ? `Logo ${name}` : 'Logo da empresa'} onError={() => setFailed(true)}
-          onLoad={(event) => { const img = event.currentTarget; setWide(img.naturalWidth / Math.max(1, img.naturalHeight) > 1.4); }}
-          style={{ height: height - 10, width: 'auto', maxWidth: maxWidth - 10, objectFit: 'contain', padding: 0, margin: 5 }} />
-      </span>
-      {wide && compactFallback && <span className="company-logo-mini hidden">{initials}</span>}
-    </>
+    <span className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-white ${className}`} style={box}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={logoUrl} alt={name ? `Logo ${name}` : 'Logo da empresa'} onError={() => setFailed(true)} className="h-full w-full object-contain p-0.5" />
+    </span>
   );
 }

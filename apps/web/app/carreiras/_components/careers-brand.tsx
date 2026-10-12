@@ -5,7 +5,7 @@ import { CompanyLogo } from '@/app/_components/company-logo';
 import type { PublicCompany } from '../_lib/public-jobs';
 
 export function CareersLogo({ company }: { company: PublicCompany }) {
-  return <CompanyLogo name={company.name} logoUrl={company.logoUrl} height={52} maxWidth={200} />;
+  return <CompanyLogo name={company.name} logoUrl={company.logoUrl} height={64} />;
 }
 export function CareersBrand({ company, companyId }: { company: PublicCompany; companyId: string; compact?: boolean }) {
   return <Link href={'/carreiras/' + encodeURIComponent(companyId)} className="inline-flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" aria-label={'Vagas da ' + company.name}>
