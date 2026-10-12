@@ -4,9 +4,9 @@ import {
   ArrowRight, Briefcase, CalendarRange, CheckCircle2, ChevronDown, ClipboardList, FileSpreadsheet, FileUp, Filter, Globe2, HeartHandshake,
   Menu, Sparkles, Sun, UserRoundCog, Users, X,
 } from 'lucide-react';
-import Image from 'next/image';
 import { CompanyIdentity, GRUPO } from './_components/company-identity';
 import Link from 'next/link';
+import { BrandLogo, BrandMark } from './_components/brand-logo';
 import { useEffect, useState } from 'react';
 import { PricingSection } from './_components/pricing-section';
 import { PontoDemo, RotatingWord, VagasBoard } from './_components/landing/interactive';
@@ -54,10 +54,6 @@ const FAQ = [
   { q: 'Meus dados ficam protegidos?', a: 'O acesso é separado por empresa e por perfil, com senhas fortes e registro de auditoria. Há consentimento e termos de uso na plataforma, em linha com a LGPD.' },
 ];
 
-function Logo({ size = 40 }: { size?: number }) {
-  return <Image src="/logo-innovation-clean.png" alt="" width={size * 2} height={size * 2} priority className="rounded-full object-cover" style={{ width: size, height: size }} />;
-}
-
 export default function Home() {
   const [open, setOpen] = useState<number | null>(0);
   const [menu, setMenu] = useState(false);
@@ -76,8 +72,7 @@ export default function Home() {
       <header className={`sticky top-0 z-40 transition ${scrolled ? 'border-b border-white/10 bg-[var(--auth-bg-end)]/85 backdrop-blur-xl' : 'bg-transparent'}`}>
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5" aria-label="Innovation RH Connect — início">
-            <Logo size={38} />
-            <span className="text-base font-bold tracking-tight">Innovation <span className="font-medium text-purple-300">RH Connect</span></span>
+            <BrandLogo size={40} />
           </Link>
           <nav aria-label="Seções" className="hidden items-center gap-7 text-sm text-white/75 lg:flex">
             {NAV.map(([label, href]) => <a key={href} href={href} className="transition hover:text-white">{label}</a>)}
@@ -122,7 +117,7 @@ export default function Home() {
               <div aria-hidden="true" className="lp-orbit absolute inset-2 rounded-full border border-dashed border-pink-300/30"><i className="absolute -top-1.5 left-1/2 h-3 w-3 rounded-full bg-pink-300 shadow-[0_0_16px_#f9a8d4]" /></div>
               <div aria-hidden="true" className="lp-orbit-rev absolute inset-10 rounded-full border border-amber-300/25"><i className="absolute -bottom-1.5 left-1/3 h-2.5 w-2.5 rounded-full bg-amber-300 shadow-[0_0_14px_#fcd34d]" /></div>
               <div className="lp-float relative"><div aria-hidden="true" className="absolute inset-0 rounded-full bg-fuchsia-500/40 blur-3xl" />
-                <Image src="/logo-innovation-clean.png" alt="Innovation RH Connect" width={420} height={420} priority className="relative h-44 w-44 rounded-full shadow-[0_0_80px_-10px_rgba(217,70,239,.8)] sm:h-56 sm:w-56" /></div>
+                <div className="relative drop-shadow-[0_0_60px_rgba(217,70,239,.7)]"><BrandMark size={200} /></div></div>
 
               <div className="lp-float-slow absolute left-0 top-4 rounded-xl border border-white/15 bg-[#120a2e]/90 px-3.5 py-2.5 text-xs shadow-xl backdrop-blur sm:-left-4">
                 <p className="flex items-center gap-2 font-semibold"><span className="lp-wiggle inline-block">📩</span> Nova candidatura</p><p className="mt-0.5 text-white/60">chegou pelo portal de carreiras</p></div>
@@ -257,7 +252,7 @@ export default function Home() {
       {/* ───────── Rodapé ───────── */}
       <footer className="border-t border-white/10 bg-black/20">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
-          <div><Link href="/" className="flex items-center gap-2.5"><Logo size={40} /><span className="font-bold">Innovation RH Connect</span></Link><p className="mt-3 max-w-xs text-sm text-white/60">Vagas, escalas, ponto, férias e fechamento em uma plataforma só.</p></div>
+          <div><Link href="/" className="inline-flex" aria-label="Innovation RH Connect — início"><BrandLogo size={40} /></Link><p className="mt-3 max-w-xs text-sm text-white/60">Vagas, escalas, ponto, férias e fechamento em uma plataforma só.</p></div>
           <nav aria-label="Produto"><p className="text-sm font-semibold">Produto</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/carreiras" className="hover:text-white">Portal de vagas</Link></li><li><a href="#vagas" className="hover:text-white">Recrutamento</a></li><li><a href="#gestao" className="hover:text-white">Gestão</a></li><li><a href="#planos" className="hover:text-white">Planos</a></li></ul></nav>
           <nav aria-label="Conta"><p className="text-sm font-semibold">Conta</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/login" className="hover:text-white">Entrar</Link></li><li><Link href="/cadastro" className="hover:text-white">Criar empresa</Link></li><li><Link href="/esqueci-senha" className="hover:text-white">Recuperar senha</Link></li></ul></nav>
           <nav aria-label="Legal"><p className="text-sm font-semibold">Ajuda e legal</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/suporte" className="hover:text-white">Suporte</Link></li><li><Link href="/privacidade" className="hover:text-white">Privacidade</Link></li><li><Link href="/termos" className="hover:text-white">Termos de uso</Link></li></ul></nav>
