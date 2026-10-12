@@ -81,6 +81,9 @@ enum JobStatus {
   OPEN
   CLOSED
   DRAFT
+  PENDING_APPROVAL
+  PAUSED
+  FILLED
 }
 
 enum CandidateStatus {
@@ -1328,6 +1331,8 @@ model Job {
   reopenCount    Int       @default(0)
   // Processo interno: so funcionarios da empresa se candidatam (pela matricula), fora do portal publico.
   isInternal     Boolean   @default(false)
+  // Vaga confidencial (reposicao/substituicao): nao aparece nas listas publicas, so por link direto.
+  confidential   Boolean   @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -1567,6 +1572,13 @@ model Application {
   selectedById    String?           @db.Uuid
   forwardedAt     DateTime?
   forwardedById   String?           @db.Uuid
+  consentVersion  String?
+  /// Link secreto do portal do candidato (acompanhar status sem login).
+  trackingToken   String?           @unique
+  /// Motivo padronizado da reprovacao (lista fixa); rejectionReason guarda o texto livre.
+  rejectionCode   String?
+  retentionUntil  DateTime?
+  anonymizedAt    DateTime?
   // Candidatura interna: funcionario que se candidatou (pela matricula).
   employeeId      String?           @db.Uuid
   createdAt       DateTime          @default(now())
@@ -3453,4 +3465,84 @@ model TimesheetAck {
 
   @@unique([employeeId, month])
   @@index([companyId, month])
+}
+
+/// Configuracao de recrutamento por empresa: retencao de dados (LGPD) e e-mails automaticos ao candidato.
+model RecruitmentSetting {
+  companyId          String   @id @db.Uuid
+  retentionMonths    Int      @default(12)
+  receiptEmail       Boolean  @default(true)
+  rejectionEmail     Boolean  @default(true)
+  rejectionMessage   String?
+  /// Etapas de aprovacao para publicar uma vaga, em ordem: GESTOR, RH, FINANCEIRO. Vazio = sem aprovacao.
+  approvalSteps      String[] @default([])
+  updatedAt          DateTime @updatedAt
+}
+
+/// Dados de diversidade (opcionais, anonimos nos relatorios). Ficam separados da candidatura e nunca entram na avaliacao.
+model CandidateDiversity {
+  applicationId String   @id @db.Uuid
+  companyId     String   @db.Uuid
+  gender        String?
+  race          String?
+  pcd           Boolean?
+  createdAt     DateTime @default(now())
+
+  @@index([companyId])
+}
+
+/// Pedidos do titular (LGPD art. 18): acesso, correcao e exclusao dos dados da candidatura.
+model CandidateRequest {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId   String    @db.Uuid
+  email       String
+  type        String
+  message     String?
+  status      String    @default("OPEN")
+  response    String?
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?   @db.Uuid
+
+  @@index([companyId, status])
+}
+
+/// Requisicao de vaga: cada etapa de aprovacao (gestor, RH, financeiro) antes de publicar.
+model JobApproval {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId String    @db.Uuid
+  jobId     String    @db.Uuid
+  step      String
+  position  Int
+  status    String    @default("PENDING")
+  decidedBy String?   @db.Uuid
+  decidedAt DateTime?
+  note      String?
+  createdAt DateTime  @default(now())
+
+  @@unique([jobId, step])
+  @@index([companyId, status])
+}
+
+/// Orcamento de vagas (headcount) por area: limite de vagas abertas ao mesmo tempo.
+model AreaHeadcount {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId  String   @db.Uuid
+  department String
+  budget     Int
+  updatedAt  DateTime @updatedAt
+
+  @@unique([companyId, department])
+}
+
+/// Modelo de vaga reutilizavel (campos, perguntas e criterios).
+model JobTemplate {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId String   @db.Uuid
+  name      String
+  data      Json
+  createdBy String?  @db.Uuid
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
 }

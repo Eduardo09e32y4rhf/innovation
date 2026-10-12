@@ -6,11 +6,14 @@
 export const REACTIVATION_DAYS = 30;
 const DAY = 86_400_000;
 
-export type JobPhase = 'DRAFT' | 'OPEN' | 'CLOSED_RECENT' | 'ARCHIVED';
+export type JobPhase = 'DRAFT' | 'PENDING_APPROVAL' | 'OPEN' | 'PAUSED' | 'CLOSED_RECENT' | 'ARCHIVED';
 export interface JobLifecycle { phase: JobPhase; acceptsApplications: boolean; canReactivate: boolean; reactivatableUntil: string | null; daysLeft: number | null }
 
 export function jobLifecycle(job: { status: string; closedAt?: Date | string | null; updatedAt?: Date | string | null; deadline?: Date | string | null }, now = new Date()): JobLifecycle {
   if (job.status === 'DRAFT') return { phase: 'DRAFT', acceptsApplications: false, canReactivate: false, reactivatableUntil: null, daysLeft: null };
+  if (job.status === 'PENDING_APPROVAL') return { phase: 'PENDING_APPROVAL', acceptsApplications: false, canReactivate: false, reactivatableUntil: null, daysLeft: null };
+  // Pausada: some das listas e nao recebe candidatos, mas volta a qualquer momento (sem prazo e sem contar como vaga nova).
+  if (job.status === 'PAUSED') return { phase: 'PAUSED', acceptsApplications: false, canReactivate: true, reactivatableUntil: null, daysLeft: null };
   if (job.status === 'OPEN') {
     const expired = job.deadline ? new Date(job.deadline).getTime() < now.getTime() : false;
     return { phase: 'OPEN', acceptsApplications: !expired, canReactivate: false, reactivatableUntil: null, daysLeft: null };
@@ -23,16 +26,20 @@ export function jobLifecycle(job: { status: string; closedAt?: Date | string | n
 }
 
 /** Campos que mudam ao trocar o status da vaga (null = não mexe). */
-export function statusChange(current: { status: string; closedAt?: Date | string | null; updatedAt?: Date | string | null; reopenCount?: number }, next: 'OPEN' | 'CLOSED' | 'DRAFT', now = new Date()):
+export type JobStatusInput = 'OPEN' | 'CLOSED' | 'DRAFT' | 'PAUSED' | 'FILLED';
+export function statusChange(current: { status: string; closedAt?: Date | string | null; updatedAt?: Date | string | null; reopenCount?: number }, next: JobStatusInput, now = new Date()):
   { ok: true; data: Record<string, unknown> } | { ok: false; message: string } {
   if (next === current.status) return { ok: true, data: {} };
-  if (next === 'CLOSED') return { ok: true, data: { closedAt: now } };
-  if (next === 'OPEN' && current.status === 'CLOSED') {
+  if (current.status === 'PENDING_APPROVAL') return { ok: false, message: 'Esta vaga aguarda aprovação da requisição. Ela abre sozinha quando todas as etapas aprovarem.' };
+  if (next === 'PAUSED') return current.status === 'OPEN' ? { ok: true, data: {} } : { ok: false, message: 'Só uma vaga aberta pode ser pausada.' };
+  if (next === 'OPEN' && current.status === 'PAUSED') return { ok: true, data: {} };
+  if (next === 'CLOSED' || next === 'FILLED') return { ok: true, data: { closedAt: now } };
+  if (next === 'OPEN' && (current.status === 'CLOSED' || current.status === 'FILLED')) {
     const life = jobLifecycle(current, now);
     if (!life.canReactivate) return { ok: false, message: `Esta vaga foi encerrada há mais de ${REACTIVATION_DAYS} dias e não pode mais ser reativada. Duplique a vaga para abrir um novo processo.` };
     return { ok: true, data: { closedAt: null, reopenedAt: now, reopenCount: (current.reopenCount ?? 0) + 1 } };
   }
-  if (next === 'DRAFT' && current.status === 'CLOSED') return { ok: false, message: 'Vaga encerrada não volta para rascunho. Reative-a (até 30 dias) ou duplique.' };
+  if (next === 'DRAFT' && (current.status === 'CLOSED' || current.status === 'FILLED')) return { ok: false, message: 'Vaga encerrada não volta para rascunho. Reative-a (até 30 dias) ou duplique.' };
   return { ok: true, data: next === 'OPEN' ? { closedAt: null } : {} };
 }
 

@@ -17,6 +17,8 @@ import { RecruitmentService } from './recruitment.service';
 import { jobLifecycle, statusChange } from './job-lifecycle';
 import { normalizeAnswerValue, validateAnswerShape, type RuleQuestion } from './recruitment-rules';
 import { normalizeSource } from './application-source';
+import { RecruitmentPrivacyService } from './recruitment-privacy.service';
+import { JobWorkflowService } from './job-workflow.service';
 
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 
@@ -26,6 +28,8 @@ export class JobsService {
     private readonly repository: JobsRepository,
     private readonly storage: JobsStorageService,
     private readonly recruitment: RecruitmentService,
+    private readonly privacy: RecruitmentPrivacyService,
+    private readonly workflow: JobWorkflowService,
   ) {}
 
   async list(companyId: string, jobScope: Prisma.JobWhereInput = {}) {
@@ -61,7 +65,10 @@ export class JobsService {
 
   async create(companyId: string, dto: CreateJobDto) {
     await this.assertJobQuota(companyId);
-    return this.repository.create(companyId, this.normalizeJob(dto));
+    const gate = await this.workflow.prepare(companyId, { currentStatus: null, nextStatus: dto.status ?? 'OPEN', department: dto.department, openings: dto.openings });
+    const job = await this.repository.create(companyId, { ...this.normalizeJob(dto), status: gate.status });
+    if (gate.startApproval) await this.workflow.startApproval(companyId, job.id, gate.steps);
+    return job;
   }
 
   async update(companyId: string, id: string, dto: UpdateJobDto) {
@@ -69,8 +76,10 @@ export class JobsService {
     // Encerrar grava a data; reativar vale por 30 dias e NAO conta como vaga nova no limite do plano (nao passa por assertJobQuota).
     const change = dto.status ? statusChange(current, dto.status) : { ok: true as const, data: {} };
     if (!change.ok) throw new BadRequestException({ code: 'JOB_REACTIVATION_EXPIRED', message: change.message });
-    const result = await this.repository.update(companyId, id, { ...this.normalizeJob(dto), ...change.data });
+    const gate = await this.workflow.prepare(companyId, { currentStatus: current.status, nextStatus: dto.status, department: dto.department ?? current.department, openings: dto.openings ?? current.openings, jobId: id });
+    const result = await this.repository.update(companyId, id, { ...this.normalizeJob(dto), ...change.data, ...(dto.status ? { status: gate.status } : {}) });
     if (!result.count) throw new NotFoundException('Vaga nao encontrada.');
+    if (gate.startApproval) await this.workflow.startApproval(companyId, id, gate.steps);
     return this.get(companyId, id);
   }
 
@@ -281,6 +290,8 @@ export class JobsService {
         await this.storage.remove(storageKey);
         throw new ConflictException('Voce ja se inscreveu nesta vaga. Sua candidatura esta em analise.');
       }
+      await this.privacy.afterApply(result.application.id, { gender: dto.gender, race: dto.race, pcd: dto.pcd });
+      if (result.application.status === 'REJECTED') await this.privacy.afterRejected(result.application.id);
       return { received: true, applicationId: result.application.id };
     } catch (error) {
       if (!(error instanceof ConflictException)) await this.storage.remove(storageKey);

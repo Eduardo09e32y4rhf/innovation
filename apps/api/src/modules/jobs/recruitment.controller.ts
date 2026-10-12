@@ -94,7 +94,7 @@ export class RecruitmentController {
   @Get('applications/:id')
   async application(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
     await this.scope.assertApplication(companyId, actor, id);
-    return this.service.getApplication(companyId, id);
+    return this.service.getApplication(companyId, id, actor.sub);
   }
 
   @Patch('applications/:id/stage')

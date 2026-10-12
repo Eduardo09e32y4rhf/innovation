@@ -42,8 +42,8 @@ class JobFieldsDto {
   requirements?: string[];
 
   @IsOptional()
-  @IsIn(['OPEN', 'CLOSED', 'DRAFT'])
-  status?: 'OPEN' | 'CLOSED' | 'DRAFT';
+  @IsIn(['OPEN', 'CLOSED', 'DRAFT', 'PAUSED', 'FILLED'])
+  status?: 'OPEN' | 'CLOSED' | 'DRAFT' | 'PAUSED' | 'FILLED';
 
   @IsOptional()
   @IsString()
@@ -93,6 +93,11 @@ class JobFieldsDto {
   @IsOptional()
   @IsBoolean()
   isInternal?: boolean;
+
+  /** Vaga confidencial (reposição/substituição): fora das listas públicas, acessível só por link direto. */
+  @IsOptional()
+  @IsBoolean()
+  confidential?: boolean;
 }
 
 export class CreateJobDto extends JobFieldsDto {

@@ -6,18 +6,21 @@ import { useParams } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
-import { Button, ConfirmDialog, PageHeader } from '@/app/components/ui';
+import { Button, ConfirmDialog, Modal, PageHeader } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
 import { Pill } from './_components/bits';
+import { ApprovalsPanel } from './_components/approvals-panel';
 import { jobsApi } from './jobs-api';
+import { workflowApi } from './workflow-api';
 import { EMPLOYMENT_TYPE_LABEL, JOB_STATUS_LABEL, WORK_MODE_LABEL, daysSince, salaryLabel, type Job, type JobStatus } from './types';
 
 const ALLOWED_ROLES = new Set(['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR']);
-const STATUS_TONE = { OPEN: 'success', DRAFT: 'warning', CLOSED: 'default' } as const;
+const STATUS_TONE = { OPEN: 'success', DRAFT: 'warning', CLOSED: 'default', PENDING_APPROVAL: 'warning', PAUSED: 'default', FILLED: 'default' } as const;
 const STATUS_FILTERS: { value: JobStatus | ''; label: string }[] = [
   { value: '', label: 'Todas' }, { value: 'OPEN', label: 'Abertas' },
+  { value: 'PENDING_APPROVAL', label: 'Em aprovação' }, { value: 'PAUSED', label: 'Pausadas' }, { value: 'FILLED', label: 'Preenchidas' },
   { value: 'DRAFT', label: 'Rascunhos' }, { value: 'CLOSED', label: 'Encerradas' },
 ];
 const errorMessage = (cause: unknown) => cause instanceof ApiError ? cause.message : 'Não foi possível concluir a ação.';
@@ -35,12 +38,14 @@ export default function JobsPage() {
   const [status, setStatus] = useState<JobStatus | ''>('');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<Job | null>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const templates = useQuery(() => workflowApi.templates(), [company?.id], { enabled: canAccess && templatesOpen });
   const base = `/${tenant}/dashboard/jobs`;
   const rows = jobs.data ?? [];
   const counts = useMemo(() => rows.reduce((result, job) => {
     result[job.status] += 1;
     return result;
-  }, { all: rows.length, OPEN: 0, DRAFT: 0, CLOSED: 0 }), [rows]);
+  }, { all: rows.length, OPEN: 0, DRAFT: 0, CLOSED: 0, PENDING_APPROVAL: 0, PAUSED: 0, FILLED: 0 }), [rows]);
   const filtered = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('pt-BR');
     return rows.filter((job) => (!status || job.status === status) && (!term || [job.title, job.location, job.department, job.employmentType, ...(job.benefits ?? [])].some((value) => value?.toLocaleLowerCase('pt-BR').includes(term))));
@@ -70,10 +75,13 @@ export default function JobsPage() {
         subtitle="Gerencie oportunidades, acompanhe candidaturas e conduza cada processo seletivo."
         actions={<div className="flex flex-wrap items-center gap-2">
           <Link href="/carreiras" target="_blank" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-bg px-4 text-sm font-semibold text-fg transition hover:bg-bg-sub"><ExternalLink size={16} aria-hidden="true" /> Portal de carreiras</Link>
+          <Link href={`${base}/metrics`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-bg px-4 text-sm font-semibold text-fg transition hover:bg-bg-sub">Relatórios</Link>
           {canConfigure && <Link href={`${base}/settings`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-bg px-4 text-sm font-semibold text-fg transition hover:bg-bg-sub"><Settings2 size={16} aria-hidden="true" /> Configurar funil</Link>}
           {canManage && <Link href={`${base}/new`} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--color-brand)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--color-brand-700)]"><Plus size={17} aria-hidden="true" /> Nova vaga</Link>}
         </div>}
       />
+
+      <ApprovalsPanel base={base} onChanged={() => { jobs.refetch(); stats.refetch(); }} />
 
       <section aria-label="Resumo do recrutamento" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Metric label="Vagas abertas" value={stats.data?.jobs.open ?? counts.OPEN} icon={<Briefcase size={19} />} detail={`${counts.OPEN} oportunidades publicadas`} />
@@ -105,6 +113,12 @@ export default function JobsPage() {
         )}
       </section>
 
+
+      <Modal isOpen={templatesOpen} onClose={() => setTemplatesOpen(false)} title="Criar vaga a partir de um modelo" description="A vaga nasce como rascunho com campos, perguntas e critérios do modelo.">
+        {templates.loading && !templates.data ? <LoadingState label="Carregando modelos…" /> : (templates.data ?? []).length === 0 ? <EmptyState message="Nenhum modelo salvo. Use o botão Modelo no card de uma vaga." /> : (
+          <ul className="space-y-2">{(templates.data ?? []).map((item) => <li key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm">{item.name}<Button size="sm" onClick={async () => { try { const job = await workflowApi.useTemplate(item.id); toast.success('Vaga criada em rascunho.'); setTemplatesOpen(false); window.location.assign(`${base}/${job.id}/edit`); } catch (cause) { toast.error(errorMessage(cause)); } }}>Usar</Button></li>)}</ul>
+        )}
+      </Modal>
       <ConfirmDialog isOpen={!!toDelete} onClose={() => setToDelete(null)} title="Excluir vaga" description={toDelete && (toDelete._count?.applications ?? 0) > 0 ? 'Esta vaga tem candidaturas. Ela será encerrada e o histórico dos candidatos, preservado.' : 'A vaga será removida definitivamente.'} confirmText="Excluir vaga" onConfirm={async () => {
         if (!toDelete) return;
         const job = toDelete;
@@ -128,7 +142,7 @@ function JobCard({ job, base, canManage, busy, onCopy, onRun, onDelete }: {
   const inProgress = job.pipeline?.inProgress ?? 0;
   const rest = Math.max(0, total - fresh - inProgress);
   const life = job.lifecycle;
-  const archived = job.status === 'CLOSED' && life?.phase === 'ARCHIVED';
+  const archived = (job.status === 'CLOSED' || job.status === 'FILLED') && life?.phase === 'ARCHIVED';
   const expired = Boolean(job.deadline && new Date(job.deadline) < new Date());
   const daysLeft = job.deadline ? Math.ceil((new Date(job.deadline).getTime() - Date.now()) / 86_400_000) : null;
   const details = [job.department, job.location, job.workMode && WORK_MODE_LABEL[job.workMode], job.employmentType && (EMPLOYMENT_TYPE_LABEL[job.employmentType] ?? job.employmentType)].filter(Boolean);
@@ -137,9 +151,18 @@ function JobCard({ job, base, canManage, busy, onCopy, onRun, onDelete }: {
     <div className="flex items-start gap-3 p-4 sm:p-5"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-lg font-semibold text-[var(--color-brand)]">{job.title.trim().charAt(0).toUpperCase()}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Pill tone={STATUS_TONE[job.status]}>{JOB_STATUS_LABEL[job.status]}</Pill>{job.isInternal && <span className="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-700">Interna</span>}{fresh > 0 && <span className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">{fresh} novo{fresh === 1 ? '' : 's'}</span>}</div><Link href={`${base}/${job.id}`} className="mt-2 block truncate text-base font-semibold text-fg hover:text-[var(--color-brand)]">{job.title}</Link><p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-sub">{details.map((item, index) => <span key={String(item)} className="inline-flex items-center gap-1">{index === 1 && job.location && <MapPin size={12} aria-hidden="true" />}{item}</span>)}</p></div></div>
     <div className="px-4 pb-4 sm:px-5"><div className="flex items-end justify-between gap-3"><div><p className="text-2xl font-semibold tabular-nums text-fg">{total}</p><p className="text-xs text-fg-sub">candidaturas recebidas</p></div><p className="text-right text-xs text-fg-sub">{job.openings} vaga{job.openings === 1 ? '' : 's'} · publicada há {daysSince(job.createdAt)} dia{daysSince(job.createdAt) === 1 ? '' : 's'}</p></div><div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-bg-sub" aria-label={`${fresh} novos, ${inProgress} em processo e ${rest} em outras etapas`}>{total > 0 && <><span className="bg-rose-400" style={{ width: `${fresh / total * 100}%` }} /><span className="bg-violet-500" style={{ width: `${inProgress / total * 100}%` }} /><span className="bg-slate-300" style={{ width: `${rest / total * 100}%` }} /></>}</div><p className="mt-2 text-xs text-fg-sub">{fresh} novos · {inProgress} em processo · {rest} em outras etapas</p>
       {job.deadline && <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-medium ${expired ? 'bg-rose-50 text-rose-700' : daysLeft !== null && daysLeft <= 3 ? 'bg-amber-50 text-amber-800' : 'bg-bg-sub text-fg-sub'}`}>{expired ? 'Inscrições encerradas em ' : daysLeft !== null && daysLeft <= 3 ? `Últimos ${Math.max(daysLeft, 0)} dia(s) · até ` : 'Inscrições até '}{new Date(job.deadline).toLocaleDateString('pt-BR')}</p>}
-      {job.status === 'CLOSED' && life && <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-medium ${life.canReactivate ? 'bg-amber-50 text-amber-800' : 'bg-bg-sub text-fg-sub'}`}>{life.canReactivate ? `Encerrada, sem receber candidatos. Pode reativar até ${life.reactivatableUntil ? new Date(life.reactivatableUntil).toLocaleDateString('pt-BR') : ''} (faltam ${life.daysLeft} dia${life.daysLeft === 1 ? '' : 's'}); reativar não conta como vaga nova no plano.` : 'Encerrada há mais de 30 dias. Para abrir de novo, duplique a vaga.'}</p>}
+      {(job.status === 'CLOSED' || job.status === 'FILLED') && life && <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-medium ${life.canReactivate ? 'bg-amber-50 text-amber-800' : 'bg-bg-sub text-fg-sub'}`}>{life.canReactivate ? `Encerrada, sem receber candidatos. Pode reativar até ${life.reactivatableUntil ? new Date(life.reactivatableUntil).toLocaleDateString('pt-BR') : ''} (faltam ${life.daysLeft} dia${life.daysLeft === 1 ? '' : 's'}); reativar não conta como vaga nova no plano.` : 'Encerrada há mais de 30 dias. Para abrir de novo, duplique a vaga.'}</p>}
       <p className="mt-3 text-xs font-semibold text-fg">{salaryLabel(job)}</p>
     </div>
-    <footer className="mt-auto flex flex-wrap items-center gap-2 border-t border-border px-4 py-3 sm:px-5"><Link href={`${base}/${job.id}`} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[var(--color-brand)] px-3 text-xs font-semibold text-white hover:bg-[var(--color-brand-700)]"><Users size={14} aria-hidden="true" /> Candidatos</Link>{canManage && <Link href={`${base}/${job.id}/edit`} className="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-xs font-semibold text-fg hover:bg-bg-sub">Editar</Link>}{!job.isInternal && <Button size="sm" variant="outline" onClick={onCopy} aria-label={`Copiar link público de ${job.title}`}><Copy size={14} aria-hidden="true" /></Button>}{canManage && <>{!archived && <Button size="sm" variant="ghost" isLoading={busy} onClick={() => onRun(() => jobsApi.update(job.id, { status: job.status === 'OPEN' ? 'CLOSED' : 'OPEN' }), job.status === 'OPEN' ? 'Vaga encerrada. Fica visível por 30 dias e pode ser reativada.' : job.status === 'CLOSED' ? 'Vaga reativada (não conta como vaga nova no plano).' : 'Vaga publicada.')}>{job.status === 'OPEN' ? 'Encerrar' : job.status === 'CLOSED' ? 'Reativar' : 'Publicar'}</Button>}<Button size="sm" variant="ghost" onClick={() => onRun(() => jobsApi.duplicate(job.id), 'Vaga duplicada como rascunho.')}>Duplicar</Button><Button size="sm" variant="ghost" className="text-rose-700" onClick={onDelete}>Excluir</Button></>}</footer>
+    <footer className="mt-auto flex flex-wrap items-center gap-2 border-t border-border px-4 py-3 sm:px-5"><Link href={`${base}/${job.id}`} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[var(--color-brand)] px-3 text-xs font-semibold text-white hover:bg-[var(--color-brand-700)]"><Users size={14} aria-hidden="true" /> Candidatos</Link>{canManage && <Link href={`${base}/${job.id}/edit`} className="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-xs font-semibold text-fg hover:bg-bg-sub">Editar</Link>}{!job.isInternal && <Button size="sm" variant="outline" onClick={onCopy} aria-label={`Copiar link público de ${job.title}`}><Copy size={14} aria-hidden="true" /></Button>}{canManage && <>{!archived && job.status !== 'PENDING_APPROVAL' && <StatusActions job={job} busy={busy} onRun={onRun} />}<Button size="sm" variant="ghost" onClick={() => { const name = window.prompt('Nome do modelo de vaga:', job.title); if (name) onRun(() => workflowApi.createTemplate(job.id, name), 'Modelo salvo. Use em Nova vaga.'); }}>Modelo</Button><Button size="sm" variant="ghost" onClick={() => onRun(() => jobsApi.duplicate(job.id), 'Vaga duplicada como rascunho.')}>Duplicar</Button><Button size="sm" variant="ghost" className="text-rose-700" onClick={onDelete}>Excluir</Button></>}</footer>
   </article>;
+}
+
+/** Ações de status conforme a situação da vaga: abrir, pausar, marcar como preenchida, encerrar e reativar. */
+function StatusActions({ job, busy, onRun }: { job: Job; busy: boolean; onRun: (action: () => Promise<unknown>, success: string) => void }) {
+  const set = (status: string, success: string, label: string) => <Button size="sm" variant="ghost" isLoading={busy} onClick={() => onRun(() => jobsApi.update(job.id, { status: status as JobStatus }), success)}>{label}</Button>;
+  if (job.status === 'OPEN') return <>{set('PAUSED', 'Vaga pausada. Volta quando você retomar.', 'Pausar')}{set('FILLED', 'Vaga marcada como preenchida.', 'Preenchida')}{set('CLOSED', 'Vaga encerrada. Fica visível por 30 dias e pode ser reativada.', 'Encerrar')}</>;
+  if (job.status === 'PAUSED') return <>{set('OPEN', 'Vaga retomada.', 'Retomar')}{set('CLOSED', 'Vaga encerrada.', 'Encerrar')}</>;
+  if (job.status === 'CLOSED' || job.status === 'FILLED') return set('OPEN', 'Vaga reativada (não conta como vaga nova no plano).', 'Reativar');
+  return set('OPEN', 'Vaga enviada para publicação.', 'Publicar');
 }

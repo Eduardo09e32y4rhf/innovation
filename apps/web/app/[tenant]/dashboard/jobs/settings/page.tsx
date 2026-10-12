@@ -11,6 +11,8 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
 import { SectionCard, TagChip, inputClass } from '../_components/bits';
+import { PrivacySettings } from '../_components/privacy-settings';
+import { WorkflowSettings } from '../_components/workflow-settings';
 import { jobsApi } from '../jobs-api';
 import { STAGE_KIND_LABEL, type Stage, type StageKind } from '../types';
 
@@ -103,6 +105,10 @@ export default function RecruitmentSettingsPage() {
           {tags.data?.length === 0 && <li className="text-sm text-fg-sub">Nenhuma tag criada.</li>}
         </ul>
       </SectionCard>
+
+      <WorkflowSettings />
+
+      <PrivacySettings />
     </div>
   );
 }

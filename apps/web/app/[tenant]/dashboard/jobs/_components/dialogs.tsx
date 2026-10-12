@@ -3,30 +3,34 @@
 import { useEffect, useState } from 'react';
 import { Button, Modal } from '@/app/components/ui';
 import { Field, inputClass } from './bits';
-import { REJECTION_SUGGESTIONS, type HirePayload } from '../types';
+import type { HirePayload } from '../types';
+
+/** Motivos padronizados de reprovação (mesma lista do servidor): permitem relatório por motivo. */
+export const REJECTION_CODE_LIST: Array<[string, string]> = [['PERFIL', 'Perfil não aderente à vaga'], ['EXPERIENCIA', 'Experiência insuficiente'], ['SALARIO', 'Pretensão salarial acima da faixa'], ['LOCALIZACAO', 'Localização incompatível'], ['DISPONIBILIDADE', 'Disponibilidade incompatível'], ['COMPORTAMENTAL', 'Perfil comportamental não aderente'], ['DESISTENCIA', 'Candidato desistiu'], ['VAGA_CANCELADA', 'Vaga cancelada ou preenchida'], ['OUTRO', 'Outro motivo']];
 
 export function RejectDialog({
   isOpen, count, onClose, onConfirm,
-}: { isOpen: boolean; count: number; onClose: () => void; onConfirm: (reason: string) => Promise<void> }) {
+}: { isOpen: boolean; count: number; onClose: () => void; onConfirm: (reason: string, code?: string) => Promise<void> }) {
   const [reason, setReason] = useState('');
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (isOpen) setReason(''); }, [isOpen]);
+  useEffect(() => { if (isOpen) { setReason(''); setCode(''); } }, [isOpen]);
 
   async function submit() {
     if (!reason.trim() || busy) return;
     setBusy(true);
-    try { await onConfirm(reason.trim()); } finally { setBusy(false); }
+    try { await onConfirm(reason.trim(), code || undefined); } finally { setBusy(false); }
   }
 
   return (
     <Modal isOpen={isOpen} onClose={busy ? () => undefined : onClose} title="Reprovar candidato" description={count > 1 ? `${count} candidatos serão reprovados.` : 'Registre o motivo para manter o histórico do processo.'}>
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2">
-          {REJECTION_SUGGESTIONS.map((item) => (
-            <button key={item} type="button" className={`btn btn-sm ${reason === item ? 'btn-primary' : 'btn-outline'}`} onClick={() => setReason(item)}>{item}</button>
+          {REJECTION_CODE_LIST.map(([value, label]) => (
+            <button key={value} type="button" aria-pressed={code === value} className={`btn btn-sm ${code === value ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setCode(value); setReason(label); }}>{label}</button>
           ))}
         </div>
-        <Field label="Motivo" required><input className={inputClass} value={reason} maxLength={300} onChange={(event) => setReason(event.target.value)} /></Field>
+        <Field label="Motivo" required><input className={inputClass} value={reason} maxLength={300} onChange={(event) => { setReason(event.target.value); if (!REJECTION_CODE_LIST.some(([, label]) => label === event.target.value)) setCode('OUTRO'); }} /></Field>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={onClose} disabled={busy}>Cancelar</Button>
           <Button variant="danger" isLoading={busy} disabled={!reason.trim()} onClick={submit}>Reprovar</Button>

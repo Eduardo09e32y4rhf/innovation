@@ -1,3 +1,6 @@
+import { visibleEvaluations } from './blind-evaluation';
+import { REJECTION_CODES } from './recruitment-privacy';
+import { RecruitmentPrivacyService } from './recruitment-privacy.service';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { buildCsv } from '../../common/utils/csv';
 import type { Prisma } from '@prisma/client';
@@ -47,7 +50,7 @@ const candidateStatusFor = (kind: string) => (kind === 'APPLIED' ? 'NEW' : kind)
 
 @Injectable()
 export class RecruitmentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly privacy: RecruitmentPrivacyService) {}
 
   // ─── Funil (pipeline) ───────────────────────────────────────────
   async ensureDefaultPipeline(companyId: string) {
@@ -339,7 +342,7 @@ export class RecruitmentService {
     return { pipeline, questions, criteria, applications: items };
   }
 
-  async getApplication(companyId: string, id: string) {
+  async getApplication(companyId: string, id: string, viewerId?: string) {
     const app = await this.prisma.application.findFirst({
       where: { id, companyId },
       include: {
@@ -362,20 +365,22 @@ export class RecruitmentService {
       ...this.present(app, criteria, new Map(questions.map((question) => [question.id, question]))),
       job: app.job,
       criteria,
-      evaluations: app.evaluations,
+      ...(() => { const view = viewerId ? visibleEvaluations(app.evaluations, viewerId, criteria.map((criterion) => criterion.id)) : { items: app.evaluations, blind: false }; return { evaluations: view.items, evaluationsHidden: view.blind, ...(view.blind ? { evaluationScore: null } : {}) }; })(),
       notes: app.notes,
       interviews: app.interviews,
       events: app.events,
     };
   }
 
-  private async moveInTx(tx: Tx, companyId: string, userId: string, id: string, dto: { stageId: string; note?: string; rejectionReason?: string }) {
+  private async moveInTx(tx: Tx, companyId: string, userId: string, id: string, dto: { stageId: string; note?: string; rejectionReason?: string; rejectionCode?: string }) {
     const app = await tx.application.findFirst({ where: { id, companyId }, include: { stage: true } });
     if (!app) throw new NotFoundException('Candidatura nao encontrada.');
     if (app.status === 'HIRED') throw new BadRequestException('Candidato já contratado não pode mudar de etapa.');
     const stage = await tx.pipelineStage.findFirst({ where: { id: dto.stageId, pipeline: { companyId } } });
     if (!stage) throw new BadRequestException('Etapa inválida.');
     if (stage.kind === 'HIRED') throw new BadRequestException('Use "Contratar" para admitir o candidato.');
+    const code = dto.rejectionCode && REJECTION_CODES[dto.rejectionCode] ? dto.rejectionCode : null;
+    if (stage.kind === 'REJECTED' && code && !(dto.rejectionReason ?? '').trim()) dto = { ...dto, rejectionReason: REJECTION_CODES[code] };
     if (stage.kind === 'REJECTED' && !(dto.rejectionReason ?? '').trim()) {
       throw new BadRequestException('Informe o motivo da reprovação.');
     }
@@ -388,6 +393,7 @@ export class RecruitmentService {
         status: stage.kind,
         stageMovedAt: new Date(),
         rejectionReason: stage.kind === 'REJECTED' ? dto.rejectionReason!.trim() : null,
+        rejectionCode: stage.kind === 'REJECTED' ? code : null,
       },
     });
     await tx.candidate.updateMany({ where: { id: app.candidateId, status: { not: 'HIRED' } }, data: { status: candidateStatusFor(stage.kind) } });
@@ -405,7 +411,10 @@ export class RecruitmentService {
   }
 
   moveApplication(companyId: string, userId: string, id: string, dto: MoveApplicationDto) {
-    return this.prisma.$transaction((tx) => this.moveInTx(tx, companyId, userId, id, dto));
+    return this.prisma.$transaction((tx) => this.moveInTx(tx, companyId, userId, id, dto)).then((result) => {
+      if (result.status === 'REJECTED') void this.privacy.afterRejected(id);
+      return result;
+    });
   }
 
   async bulk(companyId: string, userId: string, dto: BulkApplicationsDto) {
@@ -419,8 +428,9 @@ export class RecruitmentService {
       const errors: string[] = [];
       for (const id of ids) {
         try {
-          await this.prisma.$transaction((tx) => this.moveInTx(tx, companyId, userId, id, { stageId: dto.stageId!, rejectionReason: dto.rejectionReason }));
+          await this.prisma.$transaction((tx) => this.moveInTx(tx, companyId, userId, id, { stageId: dto.stageId!, rejectionReason: dto.rejectionReason, rejectionCode: dto.rejectionCode }));
           moved += 1;
+          void this.privacy.afterRejected(id);
         } catch (error: any) {
           errors.push(error?.message ?? 'Falha ao mover');
         }

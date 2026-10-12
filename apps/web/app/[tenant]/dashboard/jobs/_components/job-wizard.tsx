@@ -20,14 +20,14 @@ const SENIORITY = ['Estágio', 'Júnior', 'Pleno', 'Sênior', 'Especialista', 'L
 interface Draft {
   title: string; department: string; location: string; workMode: string; employmentType: string; seniority: string; openings: number;
   description: string; requirementsText: string; benefitsText: string;
-  salaryMin: string; salaryMax: string; salaryHidden: boolean; deadline: string; status: JobStatus; isInternal: boolean;
+  salaryMin: string; salaryMax: string; salaryHidden: boolean; deadline: string; status: JobStatus; isInternal: boolean; confidential: boolean;
   questions: Question[]; criteria: Criterion[];
 }
 
 const EMPTY: Draft = {
   title: '', department: '', location: '', workMode: '', employmentType: 'CLT', seniority: '', openings: 1,
   description: '', requirementsText: '', benefitsText: '',
-  salaryMin: '', salaryMax: '', salaryHidden: false, deadline: '', status: 'DRAFT', isInternal: false,
+  salaryMin: '', salaryMax: '', salaryHidden: false, deadline: '', status: 'DRAFT', isInternal: false, confidential: false,
   questions: [], criteria: [],
 };
 
@@ -76,7 +76,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
           employmentType: job.employmentType ?? '', seniority: job.seniority ?? '', openings: job.openings ?? 1,
           description: job.description, requirementsText: (job.requirements ?? []).join('\n'), benefitsText: (job.benefits ?? []).join('\n'),
           salaryMin: job.salaryMin != null ? String(job.salaryMin) : '', salaryMax: job.salaryMax != null ? String(job.salaryMax) : '',
-          salaryHidden: job.salaryHidden, deadline: job.deadline ? job.deadline.slice(0, 10) : '', status: job.status, isInternal: Boolean(job.isInternal),
+          salaryHidden: job.salaryHidden, deadline: job.deadline ? job.deadline.slice(0, 10) : '', status: job.status, isInternal: Boolean(job.isInternal), confidential: Boolean((job as { confidential?: boolean }).confidential),
           questions: questions.map((question) => ({ ...question, options: question.options ?? [] })),
           criteria: criteria.map(({ id, name, weight }) => ({ id, name, weight })),
         };
@@ -110,7 +110,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
         openings: Math.max(1, Number(draft.openings) || 1),
         requirements: lines(draft.requirementsText), benefits: lines(draft.benefitsText),
         salaryMin: draft.salaryMin ? Number(draft.salaryMin) : undefined, salaryMax: draft.salaryMax ? Number(draft.salaryMax) : undefined,
-        salaryHidden: draft.salaryHidden, deadline: draft.deadline || null, status, isInternal: draft.isInternal,
+        salaryHidden: draft.salaryHidden, deadline: draft.deadline || null, status, isInternal: draft.isInternal, confidential: draft.confidential,
       };
       const saved = jobId ? await jobsApi.update(jobId, payload) : await jobsApi.create(payload);
       await jobsApi.saveQuestions(saved.id, draft.questions.map((question) => ({ ...question, label: question.label.trim() })));
@@ -155,6 +155,10 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                 <label className="flex items-start gap-3 rounded-xl border border-purple-200 bg-purple-50/60 p-3 text-sm sm:col-span-2">
                   <input type="checkbox" className="mt-1 h-4 w-4" checked={draft.isInternal} disabled={Boolean(jobId)} onChange={(event) => set('isInternal', event.target.checked)} />
                   <span><span className="block font-semibold text-fg">Processo interno (só para funcionários da empresa)</span><span className="block text-xs text-fg-sub">Não aparece no portal de carreiras. O funcionário se candidata pela <strong>matrícula</strong> e o sistema já preenche os dados do cadastro dele; se estiverem desatualizados, o RH é avisado.{jobId ? ' (Não dá para mudar depois de criada.)' : ''}</span></span>
+                </label>
+                <label className="flex items-start gap-3 rounded-xl border border-border bg-bg-sub p-3 text-sm sm:col-span-2">
+                  <input type="checkbox" className="mt-1 h-4 w-4" checked={draft.confidential} onChange={(event) => set('confidential', event.target.checked)} />
+                  <span><span className="block font-semibold text-fg">Vaga confidencial (reposição ou substituição)</span><span className="block text-xs text-fg-sub">Não aparece nas listas do portal de carreiras. Só quem recebe o link direto consegue ver e se candidatar.</span></span>
                 </label>
                 <Field label="Título da vaga" required className="sm:col-span-2"><input className={inputClass} value={draft.title} maxLength={160} placeholder="Ex.: Analista de RH Sênior" onChange={(event) => set('title', event.target.value)} /></Field>
                 <Field label="Departamento"><input className={inputClass} value={draft.department} maxLength={120} placeholder="Ex.: Recursos Humanos" onChange={(event) => set('department', event.target.value)} /></Field>

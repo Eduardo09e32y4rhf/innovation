@@ -63,6 +63,9 @@ export type JobApplicationInput = {
   consent: boolean;
   website?: string;
   source?: string;
+  gender?: string;
+  race?: string;
+  pcd?: string;
   resume: File;
   answers?: Record<string, string | string[]>;
 };
@@ -363,6 +366,7 @@ export async function applyToPublicJob(
   }
   formData.append('consent', String(Boolean(input.consent)));
   if (input.source) formData.append('source', input.source);
+  for (const key of ['gender', 'race', 'pcd'] as const) { if (input[key]) formData.append(key, input[key] as string); }
   if (input.answers && Object.keys(input.answers).length) {
     formData.append('answers', JSON.stringify(input.answers));
   }
@@ -486,4 +490,14 @@ export function jobPostingJsonLd(job: PublicJob, pageUrl: string): Record<string
     directApply: true,
     url: pageUrl,
   };
+}
+
+export type CandidateStatus = { job: string; company: string; appliedAt: string; status: string; statusLabel: string; stage: string | null; timeline: Array<{ at: string; label: string }>; retentionUntil?: string | null };
+
+export async function getCandidateStatus(token: string): Promise<CandidateStatus> {
+  return (await fetchPublic(`/public/candidate-status/${encodeURIComponent(token)}`)) as CandidateStatus;
+}
+
+export async function sendPrivacyRequest(input: { email: string; type: 'ACCESS' | 'CORRECTION' | 'DELETION'; message?: string }): Promise<void> {
+  await fetchPublic('/public/candidate-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
 }

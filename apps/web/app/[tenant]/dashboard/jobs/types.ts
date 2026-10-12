@@ -1,4 +1,4 @@
-export type JobStatus = 'OPEN' | 'CLOSED' | 'DRAFT';
+export type JobStatus = 'OPEN' | 'CLOSED' | 'DRAFT' | 'PENDING_APPROVAL' | 'PAUSED' | 'FILLED';
 export type StageKind = 'APPLIED' | 'SCREENING' | 'INTERVIEW' | 'OFFER' | 'HIRED' | 'REJECTED';
 export type QuestionType = 'TEXT' | 'LONG' | 'SELECT' | 'MULTI' | 'YESNO' | 'NUMBER';
 
@@ -27,7 +27,7 @@ export interface Job {
   reopenCount?: number;
   /** Processo interno: só funcionários da empresa se candidatam, pela matrícula. */
   isInternal?: boolean;
-  lifecycle?: { phase: 'DRAFT' | 'OPEN' | 'CLOSED_RECENT' | 'ARCHIVED'; acceptsApplications: boolean; canReactivate: boolean; reactivatableUntil: string | null; daysLeft: number | null };
+  lifecycle?: { phase: 'DRAFT' | 'PENDING_APPROVAL' | 'OPEN' | 'PAUSED' | 'CLOSED_RECENT' | 'ARCHIVED'; acceptsApplications: boolean; canReactivate: boolean; reactivatableUntil: string | null; daysLeft: number | null };
   _count?: { applications?: number; questions?: number };
   pipeline?: { new: number; inProgress: number; hired: number; rejected: number };
 }
@@ -208,6 +208,9 @@ export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
   OPEN: 'Aberta',
   CLOSED: 'Encerrada',
   DRAFT: 'Rascunho',
+  PENDING_APPROVAL: 'Aguardando aprovação',
+  PAUSED: 'Pausada',
+  FILLED: 'Preenchida',
 };
 
 export const EMPLOYMENT_TYPE_LABEL: Record<string, string> = {

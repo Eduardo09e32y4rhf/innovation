@@ -46,3 +46,23 @@ describe('cadastro desatualizado (candidatura interna)', () => {
     expect(reportedChanges({ phone: '11999990000', email: 'a@b.com' }, { phone: '(11) 98888-7777', email: 'novo@b.com' })).toEqual(['telefone: (11) 98888-7777', 'e-mail: novo@b.com']);
   });
 });
+
+describe('pausada, preenchida e aguardando aprovação', () => {
+  it('pausada não aceita candidatos, mas reativa sempre (sem prazo)', () => {
+    expect(jobLifecycle({ status: 'PAUSED' }, hoje)).toMatchObject({ phase: 'PAUSED', acceptsApplications: false, canReactivate: true });
+    expect(statusChange({ status: 'PAUSED' }, 'OPEN', hoje)).toEqual({ ok: true, data: {} });
+  });
+  it('só vaga aberta pode ser pausada', () => {
+    expect(statusChange({ status: 'OPEN' }, 'PAUSED', hoje).ok).toBe(true);
+    expect(statusChange({ status: 'DRAFT' }, 'PAUSED', hoje).ok).toBe(false);
+  });
+  it('preenchida grava a data como encerrada e segue a regra dos 30 dias', () => {
+    expect(statusChange({ status: 'OPEN' }, 'FILLED', hoje)).toEqual({ ok: true, data: { closedAt: hoje } });
+    expect(jobLifecycle({ status: 'FILLED', closedAt: diasAtras(5) }, hoje)).toMatchObject({ phase: 'CLOSED_RECENT', canReactivate: true });
+    expect(statusChange({ status: 'FILLED', closedAt: diasAtras(45) }, 'OPEN', hoje).ok).toBe(false);
+  });
+  it('aguardando aprovação não aceita candidatos e não muda de status à mão', () => {
+    expect(jobLifecycle({ status: 'PENDING_APPROVAL' }, hoje)).toMatchObject({ phase: 'PENDING_APPROVAL', acceptsApplications: false });
+    expect(statusChange({ status: 'PENDING_APPROVAL' }, 'OPEN', hoje).ok).toBe(false);
+  });
+});

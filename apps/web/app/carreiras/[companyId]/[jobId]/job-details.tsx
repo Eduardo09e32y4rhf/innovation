@@ -10,7 +10,7 @@ import {
   type PublicJob, type PublicQuestion,
 } from '../../_lib/public-jobs';
 
-const EMPTY = { name: '', email: '', phone: '', linkedinUrl: '', coverLetter: '', website: '', consent: false };
+const EMPTY = { name: '', email: '', phone: '', linkedinUrl: '', coverLetter: '', website: '', consent: false, gender: '', race: '', pcd: '' };
 type Answers = Record<string, string | string[]>;
 
 function maskPhone(value: string) {
@@ -243,8 +243,17 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
                   <p id="resume-error" role={fileError ? 'alert' : undefined} className="text-sm text-rose-800">{fileError}</p>
                 </fieldset>
 
+                <fieldset disabled={submitting} className="min-w-0 space-y-3 border-t border-border pt-4">
+                  <legend className="mb-1 text-sm font-semibold">Diversidade (opcional)</legend>
+                  <p className="text-xs text-fg-mut">Estas informações são voluntárias, ficam separadas da sua candidatura e não entram na avaliação. Servem só para relatórios anônimos de diversidade.</p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <label className="block space-y-1"><span className="text-sm font-medium">Gênero</span><select className={input} value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))}><option value="">Prefiro não informar</option><option value="MULHER">Mulher</option><option value="HOMEM">Homem</option><option value="NAO_BINARIO">Não binário</option></select></label>
+                    <label className="block space-y-1"><span className="text-sm font-medium">Cor ou raça</span><select className={input} value={form.race} onChange={(event) => setForm((current) => ({ ...current, race: event.target.value }))}><option value="">Prefiro não informar</option><option value="AMARELA">Amarela</option><option value="BRANCA">Branca</option><option value="INDIGENA">Indígena</option><option value="PARDA">Parda</option><option value="PRETA">Preta</option></select></label>
+                    <label className="block space-y-1"><span className="text-sm font-medium">Pessoa com deficiência</span><select className={input} value={form.pcd} onChange={(event) => setForm((current) => ({ ...current, pcd: event.target.value }))}><option value="">Prefiro não informar</option><option value="sim">Sim</option><option value="nao">Não</option></select></label>
+                  </div>
+                </fieldset>
                 <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg bg-bg-sub p-3"><input type="checkbox" required className="mt-1 h-5 w-5 shrink-0" checked={form.consent} onChange={(event) => setForm((current) => ({ ...current, consent: event.target.checked }))} />
-                  <span className="text-sm leading-6">Autorizo o tratamento dos dados enviados para avaliação da minha candidatura. Li a <Link className="underline" href="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</Link>.</span></label>
+                  <span className="text-sm leading-6">Autorizo o tratamento dos dados enviados para avaliação da minha candidatura. Li a <Link className="underline" href="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</Link>. Meus dados serão guardados pelo prazo do processo seletivo e eu posso pedir acesso, correção ou exclusão a qualquer momento em <Link className="underline" href="/carreiras/privacidade" target="_blank" rel="noopener noreferrer">Meus dados</Link>.</span></label>
                 <Button type="submit" className="w-full" isLoading={submitting} disabled={!form.consent}>Enviar candidatura</Button>
               </form>
             )}

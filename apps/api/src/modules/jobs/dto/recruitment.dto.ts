@@ -126,6 +126,11 @@ export class MoveApplicationDto {
   @IsString()
   @MaxLength(300)
   rejectionReason?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  rejectionCode?: string;
 }
 
 export class BulkApplicationsDto {
@@ -134,6 +139,11 @@ export class BulkApplicationsDto {
   @ArrayMaxSize(200)
   @IsUUID('all', { each: true })
   ids!: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  rejectionCode?: string;
 
   @IsIn(['MOVE', 'TAG_ADD', 'TAG_REMOVE', 'FAVORITE'])
   action!: 'MOVE' | 'TAG_ADD' | 'TAG_REMOVE' | 'FAVORITE';

@@ -92,12 +92,12 @@ export default function JobCandidatesPage() {
     } catch (cause) { toast.error(message(cause, 'Falha ao mover em lote.')); }
   }
 
-  async function confirmReject(reason: string) {
+  async function confirmReject(reason: string, code?: string) {
     if (!reject) return;
     if (reject.ids.length > 1 && !canUseBulkActions) { toast.error('Este perfil precisa reprovar candidatos individualmente.'); return; }
     try {
-      if (reject.ids.length === 1) await jobsApi.move(reject.ids[0], { stageId: rejectStageId, rejectionReason: reason });
-      else await jobsApi.bulk({ ids: reject.ids, action: 'MOVE', stageId: rejectStageId, rejectionReason: reason });
+      if (reject.ids.length === 1) await jobsApi.move(reject.ids[0], { stageId: rejectStageId, rejectionReason: reason, rejectionCode: code });
+      else await jobsApi.bulk({ ids: reject.ids, action: 'MOVE', stageId: rejectStageId, rejectionReason: reason, rejectionCode: code });
       toast.success('Reprovação registrada.');
       setReject(null); setSelectedIds(new Set()); refresh();
     } catch (cause) { toast.error(message(cause, 'Não foi possível reprovar.')); }

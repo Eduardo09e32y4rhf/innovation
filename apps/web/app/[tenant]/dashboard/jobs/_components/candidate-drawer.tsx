@@ -71,7 +71,7 @@ export function CandidateDrawer({
               <Star size={16} className={data.favorite ? 'fill-amber-400 text-amber-500' : ''} aria-hidden="true" /> {data.favorite ? 'Favorito' : 'Favoritar'}
             </Button>
             {data.score !== null && <Pill tone="info">{data.score} pts</Pill>}
-            {data.evaluationScore !== null && <Pill tone="brand">Nota {data.evaluationScore}/5</Pill>}
+            {data.evaluationScore !== null && <Pill tone="brand">Nota {data.evaluationScore}/5</Pill>}{(data as { evaluationsHidden?: boolean }).evaluationsHidden && <span className="text-xs text-fg-sub">Avaliação cega: as notas dos colegas aparecem depois que você avaliar todos os critérios.</span>}
             {data.knockedOut && <Pill tone="danger">Fora do critério</Pill>}
           </div>
 
