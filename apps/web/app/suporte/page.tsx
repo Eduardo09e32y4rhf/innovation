@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, HeadphonesIcon, CheckCircle2, AlertCircle, Loader2, LifeBuoy, Send, ShieldCheck, Building2 } from 'lucide-react';
 import api from '@/app/lib/api';
+import { BackLink } from '../_components/back-link';
 
 const display = { className: 'font-display' };
 
@@ -67,9 +68,7 @@ export default function SuportePage() {
       <div className="w-full max-w-2xl">
         {/* Botão Voltar e Banner Interno */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <Link href="/login" className="inline-flex items-center gap-2 text-sm font-bold text-teal-400 hover:text-teal-300 transition-colors">
-            <ArrowLeft size={16} /> Voltar para o Login
-          </Link>
+          <BackLink fallbackHref="/login" fallbackLabel="Voltar para o Login" className="inline-flex items-center gap-2 text-sm font-bold text-teal-400 hover:text-teal-300 transition-colors" />
           <Link 
             href="/dashboard/support" 
             className="inline-flex items-center gap-2 text-xs font-semibold bg-teal-500/10 text-teal-300 border border-teal-500/20 px-3.5 py-2 rounded-xl hover:bg-teal-500/20 transition-all"

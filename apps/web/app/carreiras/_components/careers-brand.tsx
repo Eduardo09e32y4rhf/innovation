@@ -15,6 +15,6 @@ export function CareersBrand({ company, companyId }: { company: PublicCompany; c
 }export function CareersFooter({ company }: { company: PublicCompany }) {
   return <footer className="border-t border-border bg-bg-elev"><div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-fg-mut sm:flex-row sm:items-center sm:justify-between">
     <p>{company.name === 'Innovation RH' ? 'Innovation RH · Carreiras' : 'Processo seletivo de ' + company.name}</p>
-    <nav aria-label="Informações do portal" className="flex flex-wrap gap-2"><Link className="btn btn-ghost" href="/privacidade">Privacidade</Link><Link className="btn btn-ghost" href="/termos">Termos</Link><Link className="btn btn-ghost" href="/suporte">Suporte</Link></nav>
+    <nav aria-label="Informações do portal" className="flex flex-wrap gap-2"><Link className="btn btn-ghost" href="/privacidade?de=carreiras">Privacidade</Link><Link className="btn btn-ghost" href="/termos?de=carreiras">Termos</Link><Link className="btn btn-ghost" href="/suporte?de=carreiras">Suporte</Link></nav>
   </div></footer>;
 }

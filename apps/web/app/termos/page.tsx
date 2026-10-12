@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import { BackLink } from '../_components/back-link';
 import { CompanyIdentity, GRUPO } from '../_components/company-identity';
 const display = { className: 'font-display' };
 
@@ -7,9 +7,7 @@ export default function TermosPage() {
   return (
     <main className={`${display.className} min-h-screen bg-[#050b14] text-slate-300 py-16 px-6`}>
       <div className="max-w-3xl mx-auto">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-teal-400 hover:text-teal-300 mb-8 transition-colors">
-          <ArrowLeft size={16} /> Voltar para a página inicial
-        </Link>
+        <BackLink fallbackHref="/" fallbackLabel="Voltar para a página inicial" className="inline-flex items-center gap-2 text-sm font-bold text-teal-400 hover:text-teal-300 mb-8 transition-colors" />
         <div className="flex items-center gap-4 mb-6">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-400">
             <FileText size={24} />

@@ -166,7 +166,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
       <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-[#e9e5f0] py-6 text-[11px] text-[#736d80]">
         <span><b className="text-[#241b38]">innovation.</b> RH · Carreiras</span>
         <span>Conectando pessoas a novas possibilidades.</span>
-        <nav aria-label="Informações" className="flex gap-4"><Link href="/carreiras/privacidade" className="hover:text-[#7240da]">Privacidade</Link><Link href="/termos" className="hover:text-[#7240da]">Termos</Link><Link href="/suporte" className="hover:text-[#7240da]">Suporte</Link></nav>
+        <nav aria-label="Informações" className="flex gap-4"><Link href="/carreiras/privacidade" className="hover:text-[#7240da]">Privacidade</Link><Link href="/termos?de=carreiras" className="hover:text-[#7240da]">Termos</Link><Link href="/suporte?de=carreiras" className="hover:text-[#7240da]">Suporte</Link></nav>
       </footer>
     </div>
   </div>;
