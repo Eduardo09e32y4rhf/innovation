@@ -3,7 +3,6 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import '../../landing.css';
 import { BrandLogo } from '../brand-logo';
-import { CompanyIdentity } from '../company-identity';
 
 const HIGHLIGHTS = [
   { icon: Briefcase, text: 'Vagas, portal de carreiras e funil de candidatos' },
@@ -12,8 +11,8 @@ const HIGHLIGHTS = [
 ];
 
 /** Moldura única das telas de acesso (login, recuperação, cadastro), no mesmo visual da página inicial. */
-export function AuthShell({ title, subtitle, children, footer, wide = false }: {
-  title: string; subtitle?: string; children: ReactNode; footer?: ReactNode; wide?: boolean;
+export function AuthShell({ title, subtitle, children, footer, wide = false, full = false }: {
+  title: string; subtitle?: string; children: ReactNode; footer?: ReactNode; wide?: boolean; full?: boolean;
 }) {
   return (
     <main className="relative min-h-[100svh] overflow-x-hidden"
@@ -22,9 +21,9 @@ export function AuthShell({ title, subtitle, children, footer, wide = false }: {
       <div aria-hidden="true" className="lp-glow pointer-events-none absolute -left-32 top-10 h-96 w-96 rounded-full bg-fuchsia-600/30 blur-[110px]" />
       <div aria-hidden="true" className="lp-glow pointer-events-none absolute -right-24 bottom-10 h-96 w-96 rounded-full bg-amber-400/20 blur-[110px]" />
 
-      <div className={`relative z-10 mx-auto grid min-h-[100svh] max-w-6xl items-center gap-10 px-4 py-8 sm:px-6 lg:gap-16 ${wide ? 'lg:grid-cols-[1fr_minmax(0,40rem)]' : 'lg:grid-cols-[1fr_minmax(0,28rem)]'}`}>
+      <div className={`relative z-10 mx-auto grid min-h-[100svh] ${full ? 'max-w-5xl' : 'max-w-6xl'} items-center gap-10 px-4 py-8 sm:px-6 lg:gap-16 ${full ? 'lg:grid-cols-1' : wide ? 'lg:grid-cols-[1fr_minmax(0,40rem)]' : 'lg:grid-cols-[1fr_minmax(0,28rem)]'}`}>
         {/* Painel da marca (só em telas largas) */}
-        <aside className="hidden lg:block">
+        <aside className={full ? 'hidden' : 'hidden lg:block'}>
           <Link href="/" className="inline-flex items-center gap-3" aria-label="Innovation RH Connect — página inicial">
             <BrandLogo size={48} />
           </Link>
@@ -45,7 +44,7 @@ export function AuthShell({ title, subtitle, children, footer, wide = false }: {
 
         <div className="w-full">
           {/* Logo no celular, onde o painel some */}
-          <Link href="/" className="mb-5 flex justify-center lg:hidden" aria-label="Innovation RH Connect — página inicial">
+          <Link href="/" className={`mb-5 flex justify-center ${full ? '' : 'lg:hidden'}`} aria-label="Innovation RH Connect — página inicial">
             <BrandLogo size={56} />
           </Link>
           <div className="rounded-3xl bg-gradient-to-br from-fuchsia-400/60 via-purple-400/30 to-amber-300/60 p-px shadow-[0_24px_80px_-20px_rgba(217,70,239,.55)]">
@@ -58,7 +57,6 @@ export function AuthShell({ title, subtitle, children, footer, wide = false }: {
             </div>
           </div>
           {footer && <div className="mt-5 text-center text-sm text-white/80">{footer}</div>}
-          <CompanyIdentity claro className="mt-6 text-center text-[11px] leading-4" />
         </div>
       </div>
     </main>

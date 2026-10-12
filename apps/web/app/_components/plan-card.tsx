@@ -10,7 +10,7 @@ export const num = (value: unknown) => { const n = typeof value === 'number' ? v
 /** Texto padrão quando o plano ainda não tem itens cadastrados na área de planos. */
 const FALLBACK: Record<string, (n: number) => string[]> = {
   RS: (n) => [`${n} vagas por mês inclusas`, 'Recrutamento completo', 'Portal de carreiras e funil de candidatos'],
-  BASICO: (n) => [`${n} colaboradores inclusos`, `${n + 1} acessos: 1 admin + ${n} colaboradores`, 'Escalas, férias e fechamento da equipe', 'Ponto por localização, com ajuste aprovado pelo gestor'],
+  BASICO: (n) => [`${n} colaboradores inclusos`, 'Escalas, férias e fechamento da equipe', 'Ponto por localização, com ajuste aprovado pelo gestor'],
   PREMIUM: (n) => [`${n} colaboradores inclusos`, 'Tudo do plano Básico', 'Recrutamento e Seleção completo'],
 };
 
@@ -19,7 +19,7 @@ export function planCardData(plan: PublicPlatformPlan) {
   const price = num(plan.baseMonthlyPrice) || num(plan.price);
   const features = plan.features?.length ? plan.features : (FALLBACK[plan.code ?? '']?.(plan.includedUnits ?? 0) ?? []);
   const extraPrice = num(plan.userMonthlyPrice);
-  const unit = plan.extraUnitLabel === 'vaga' ? 'vaga' : 'colaborador';
+  const unit = plan.extraUnitLabel === 'vaga' || plan.code === 'RS' ? 'vaga' : 'colaborador';
   return { price, features, extra: extraPrice > 0 ? { label: unit === 'vaga' ? 'Vaga adicional' : 'Colaborador adicional', text: `${brl(extraPrice)} por ${unit}` } : null };
 }
 

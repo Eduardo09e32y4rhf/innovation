@@ -15,7 +15,7 @@ VALUES
    ARRAY['50 vagas por mês inclusas','Recrutamento completo','Portal de carreiras e funil de candidatos'],'vaga',now()),
   (gen_random_uuid(),'BASICO','Básico','RH completo para a sua equipe',99.99,'MONTHLY',1,0,99.99,2.50,10,
    'MONTHLY',2,false,'2026.2',ARRAY['employees','time-track','vacations','management'],true,false,
-   ARRAY['10 colaboradores inclusos','11 acessos: 1 admin + 10 colaboradores','Escalas, férias e fechamento da equipe','Ponto por localização, com ajuste aprovado pelo gestor'],'colaborador',now()),
+   ARRAY['10 colaboradores inclusos','Escalas, férias e fechamento da equipe','Ponto por localização, com ajuste aprovado pelo gestor'],'colaborador',now()),
   (gen_random_uuid(),'PREMIUM','Completo','RH completo + Recrutamento e Seleção',199.99,'MONTHLY',1,0,199.99,1.99,20,
    'MONTHLY',3,true,'2026.2',ARRAY['employees','time-track','vacations','management','recruitment'],true,false,
    ARRAY['20 colaboradores inclusos','60 vagas por mês inclusas','Tudo do plano Básico','Recrutamento e Seleção completo'],'colaborador',now())

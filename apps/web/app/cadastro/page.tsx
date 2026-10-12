@@ -124,7 +124,7 @@ function CadastroForm() {
   const estimate = unitPrice + Math.max(0, seats - (plan?.includedUnits ?? 0)) * seatPrice;
 
   return (
-    <AuthShell wide title="Crie sua empresa" subtitle={step === 1 ? 'Etapa 1 de 2 · Dados da empresa e do administrador' : 'Etapa 2 de 2 · Plano e confirmação'}
+    <AuthShell wide full={step === 2} title="Crie sua empresa" subtitle={step === 1 ? 'Etapa 1 de 2 · Dados da empresa e do administrador' : 'Etapa 2 de 2 · Plano e confirmação'}
       footer={<>Já tem conta? <Link href="/login" className="font-semibold text-white underline">Entrar</Link></>}>
       <div className="mb-5 flex gap-2" aria-hidden="true">
         {[1, 2].map((n) => <span key={n} className={`h-1.5 flex-1 rounded-full ${n <= step ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600' : 'bg-zinc-200'}`} />)}
@@ -161,12 +161,12 @@ function CadastroForm() {
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="c-seats" label={plan?.code === 'RS' ? 'Vagas por mês' : 'Colaboradores (além do admin)'}><input id="c-seats" type="number" min={1} max={plan?.maxUsers || 10000} required className={authInput} value={seats} onChange={(e) => setSeats(Math.max(1, Math.floor(Number(e.target.value)) || 1))} /></Field>
+            <Field id="c-seats" label={plan?.code === 'RS' ? 'Vagas por mês' : 'Colaboradores'}><input id="c-seats" type="number" min={1} max={plan?.maxUsers || 10000} required className={authInput} value={seats} onChange={(e) => setSeats(Math.max(1, Math.floor(Number(e.target.value)) || 1))} /></Field>
             <Field id="c-coupon" label="Cupom (opcional)"><input id="c-coupon" autoComplete="off" className={authInput} value={form.couponCode} onChange={(e) => set('couponCode', e.target.value.trim())} /></Field>
           </div>
 
           {plan && !plan.isFree && estimate > 0 && (
-            <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">Estimativa mensal: <strong>{brl(estimate)}</strong> <span className="text-xs text-zinc-500">(plano + {seats} {plan?.code === 'RS' ? 'vaga' : 'colaborador'}{seats > 1 ? (plan?.code === 'RS' ? 's' : 'es') : ''}, acesso do admin incluso; o valor final com descontos aparece no checkout)</span></p>
+            <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">Estimativa mensal: <strong>{brl(estimate)}</strong> <span className="text-xs text-zinc-500">(plano + {seats} {plan?.code === 'RS' ? 'vaga' : 'colaborador'}{seats > 1 ? (plan?.code === 'RS' ? 's' : 'es') : ''}, o valor final com descontos aparece no checkout)</span></p>
           )}
 
           <label className="flex items-start gap-2 text-sm text-zinc-600">
