@@ -1,5 +1,6 @@
 'use client';
 
+import { CompanyLogo } from '@/app/_components/company-logo';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
@@ -41,10 +42,8 @@ export function SidebarV2({ open, onClose, mode = 'auto' }: { open: boolean; onC
       role={mobile && open ? 'dialog' : undefined} aria-modal={mobile && open ? true : undefined}
       className={'workspace-sidebar flex flex-col workspace-sidebar-' + mode + (open ? ' workspace-sidebar-open' : '')}>
       <div className="flex min-h-20 items-center gap-1 px-4">
-        <Link href={tenantRoute(tenant, '/dashboard')} onClick={onClose} className="workspace-brand flex min-h-11 min-w-0 flex-1 items-center gap-3" aria-label="Innovation RH — Dashboard">
-          <span className={'flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg text-sm font-semibold ' + (hasLogo ? 'border border-border bg-white' : 'bg-brand text-white')}>
-            {hasLogo ? <img src={company!.logoUrl!} width={40} height={40} alt="" className="h-full w-full object-contain p-1" onError={() => setLogoFailed(true)} /> : companyInitials(company?.name)}
-          </span>
+        <Link href={tenantRoute(tenant, '/dashboard')} onClick={onClose} className="workspace-brand flex min-h-11 min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1" aria-label="Innovation RH — Dashboard">
+          <CompanyLogo name={company?.name} logoUrl={hasLogo ? company!.logoUrl : null} height={44} maxWidth={170} compactFallback />
           <span className="workspace-brand-copy min-w-0"><span className="block line-clamp-2 text-sm font-semibold leading-tight text-fg" title={company?.name}>{company?.name || 'Área de trabalho'}</span></span>
         </Link>
         <button type="button" aria-label="Fechar menu principal" className="btn-icon shrink-0 lg:hidden" onClick={onClose}><X size={18} aria-hidden="true" /></button>

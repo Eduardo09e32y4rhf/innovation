@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -422,11 +422,15 @@ textarea.form-control { height: auto; min-height: 96px; padding-block: 10px; }
   .workspace-sidebar-compact { width: 80px; }
   .workspace-sidebar-compact .workspace-nav-label, .workspace-sidebar-compact .workspace-nav-group, .workspace-sidebar-compact .workspace-brand-copy, .workspace-sidebar-compact .workspace-user-copy { display: none; }
   .workspace-sidebar-compact .workspace-sidebar-link, .workspace-sidebar-compact .workspace-brand { justify-content: center; }
+  .workspace-sidebar-compact .company-logo-full { display: none; }
+  .workspace-sidebar-compact .company-logo-mini { display: inline-flex; }
 }
 @media (min-width: 1024px) and (max-width: 1439px) {
   .workspace-sidebar-auto { width: 80px; }
   .workspace-sidebar-auto .workspace-nav-label, .workspace-sidebar-auto .workspace-nav-group, .workspace-sidebar-auto .workspace-brand-copy, .workspace-sidebar-auto .workspace-user-copy { display: none; }
   .workspace-sidebar-auto .workspace-sidebar-link, .workspace-sidebar-auto .workspace-brand { justify-content: center; }
+  .workspace-sidebar-auto .company-logo-full { display: none; }
+  .workspace-sidebar-auto .company-logo-mini { display: inline-flex; }
 }
 @media (max-width: 1023px) {
   .workspace-body { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
