@@ -10,10 +10,11 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { PricingSection } from './_components/pricing-section';
 import { PontoDemo, RotatingWord, VagasBoard } from './_components/landing/interactive';
+import { PortalVagas } from './_components/landing/portal-vagas';
 import { Reveal } from './_components/landing/motion';
 import './landing.css';
 
-const NAV = [['Vagas', '#vagas'], ['Gestão', '#gestao'], ['Ponto', '#ponto'], ['Planos', '#planos'], ['Dúvidas', '#faq']] as const;
+const NAV = [['Portal de vagas', '/carreiras'], ['Recrutamento', '#vagas'], ['Gestão', '#gestao'], ['Ponto', '#ponto'], ['Planos', '#planos'], ['Dúvidas', '#faq']] as const;
 
 const WORDS = ['contratar', 'escalar', 'organizar', 'crescer', 'cuidar de gente'] as const;
 
@@ -112,7 +113,7 @@ export default function Home() {
               <Reveal delay={240}>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <Link href="/cadastro" className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-300 to-pink-300 px-7 text-sm font-bold text-[#2e1065] shadow-[0_12px_40px_-8px_rgba(251,191,36,.5)] transition hover:-translate-y-0.5">Criar minha empresa <ArrowRight size={16} className="transition group-hover:translate-x-1" aria-hidden="true" /></Link>
-                  <a href="#vagas" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/30 px-7 text-sm font-semibold hover:bg-white/10">Experimentar o funil de vagas</a>
+                  <Link href="/carreiras" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/30 px-7 text-sm font-semibold hover:bg-white/10">Procurar vagas</Link>
                 </div>
               </Reveal>
             </div>
@@ -139,6 +140,16 @@ export default function Home() {
             {[...MARQUEE, ...MARQUEE].map((item, i) => <span key={i} className="flex items-center gap-10">{item}<i className="h-1.5 w-1.5 rounded-full bg-amber-300" /></span>)}
           </div>
         </div>
+
+        {/* ───────── Portal de vagas (vagas abertas de verdade) ───────── */}
+        <section id="portal-vagas" className="mx-auto max-w-6xl scroll-mt-20 px-4 pt-20 sm:px-6">
+          <Reveal className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-widest text-amber-200">Portal de vagas</p>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-5xl">Procurando emprego? <span className="lp-text-warm">Veja as vagas abertas</span></h2>
+            <p className="mt-4 text-lg text-white/75">Vagas publicadas pelas empresas que usam a plataforma. Escolha, envie seu currículo e acompanhe a candidatura.</p>
+          </Reveal>
+          <div className="mt-10"><PortalVagas /></div>
+        </section>
 
         {/* ───────── Vagas ───────── */}
         <section id="vagas" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
@@ -247,7 +258,7 @@ export default function Home() {
       <footer className="border-t border-white/10 bg-black/20">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div><Link href="/" className="flex items-center gap-2.5"><Logo size={40} /><span className="font-bold">Innovation RH Connect</span></Link><p className="mt-3 max-w-xs text-sm text-white/60">Vagas, escalas, ponto, férias e fechamento em uma plataforma só.</p></div>
-          <nav aria-label="Produto"><p className="text-sm font-semibold">Produto</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><a href="#vagas" className="hover:text-white">Vagas</a></li><li><a href="#gestao" className="hover:text-white">Gestão</a></li><li><a href="#planos" className="hover:text-white">Planos</a></li></ul></nav>
+          <nav aria-label="Produto"><p className="text-sm font-semibold">Produto</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/carreiras" className="hover:text-white">Portal de vagas</Link></li><li><a href="#vagas" className="hover:text-white">Recrutamento</a></li><li><a href="#gestao" className="hover:text-white">Gestão</a></li><li><a href="#planos" className="hover:text-white">Planos</a></li></ul></nav>
           <nav aria-label="Conta"><p className="text-sm font-semibold">Conta</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/login" className="hover:text-white">Entrar</Link></li><li><Link href="/cadastro" className="hover:text-white">Criar empresa</Link></li><li><Link href="/esqueci-senha" className="hover:text-white">Recuperar senha</Link></li></ul></nav>
           <nav aria-label="Legal"><p className="text-sm font-semibold">Ajuda e legal</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/suporte" className="hover:text-white">Suporte</Link></li><li><Link href="/privacidade" className="hover:text-white">Privacidade</Link></li><li><Link href="/termos" className="hover:text-white">Termos de uso</Link></li></ul></nav>
         </div>
