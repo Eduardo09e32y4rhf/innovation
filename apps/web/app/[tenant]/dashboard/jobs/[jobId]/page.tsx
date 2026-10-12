@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Columns3, Copy, ExternalLink, Pencil, Star, Table2 } from 'lucide-react';
+import { ArrowLeft, Columns3, Copy, ExternalLink, Pencil, Star, Table2, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -14,6 +14,7 @@ import { Pill } from '../_components/bits';
 import { CandidateDrawer } from '../_components/candidate-drawer';
 import { CandidatesTable, KanbanBoard } from '../_components/candidate-views';
 import { HireDialog, RejectDialog } from '../_components/dialogs';
+import { InternalCandidateForm } from '../_components/internal-candidate';
 import { JobRecruiters } from '../_components/job-recruiters';
 import { selectableStages } from '../stage-access';
 import { FiltersBar } from '../_components/filters-bar';
@@ -35,6 +36,7 @@ export default function JobCandidatesPage() {
   const [filters, setFilters] = useState<ApplicationFilters>({});
   const [debounced, setDebounced] = useState<ApplicationFilters>({});
   const [view, setView] = useState<'kanban' | 'table'>('kanban');
+  const [internalOpen, setInternalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
   const [reject, setReject] = useState<{ ids: string[] } | null>(null);
@@ -132,6 +134,7 @@ export default function JobCandidatesPage() {
   return (
     <div className="mx-auto w-full max-w-[1700px] space-y-4 p-4 sm:p-6">
       <Link href={base} className="inline-flex items-center gap-1 text-sm text-fg-sub hover:text-fg"><ArrowLeft size={15} aria-hidden="true" /> Voltar para vagas</Link>
+      {internalOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Adicionar candidato interno"><div className="w-full max-w-lg rounded-2xl bg-bg p-5 shadow-xl"><h2 className="text-lg font-semibold text-fg">Adicionar candidato interno</h2><p className="mb-3 text-xs text-fg-sub">Digite a matrícula: os dados do cadastro do funcionário já vêm preenchidos.</p><InternalCandidateForm jobId={jobId} onCancel={() => setInternalOpen(false)} onDone={() => { setInternalOpen(false); refresh(); }} /></div></div>}
 
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
@@ -147,8 +150,9 @@ export default function JobCandidatesPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           {canEdit && <Link href={`${base}/${jobId}/edit`} className="btn btn-outline btn-md"><Pencil size={16} aria-hidden="true" /> Editar vaga</Link>}
-          {jobData && <Button variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(`${window.location.origin}/carreiras/${jobData.companyId}/${jobData.id}`); toast.success('Link público copiado.'); } catch { toast.error('Não foi possível copiar.'); } }}><Copy size={16} aria-hidden="true" /> Copiar link</Button>}
-          {jobData && <Link href={`/carreiras/${jobData.companyId}/${jobData.id}`} target="_blank" className="btn btn-outline btn-md"><ExternalLink size={16} aria-hidden="true" /> Ver publicação</Link>}
+          {jobData?.isInternal && jobData.lifecycle?.acceptsApplications && <Button variant="outline" onClick={() => setInternalOpen(true)}><UserPlus size={16} aria-hidden="true" /> Adicionar candidato interno</Button>}
+          {jobData && !jobData.isInternal && <Button variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(`${window.location.origin}/carreiras/${jobData.companyId}/${jobData.id}`); toast.success('Link público copiado.'); } catch { toast.error('Não foi possível copiar.'); } }}><Copy size={16} aria-hidden="true" /> Copiar link</Button>}
+          {jobData && !jobData.isInternal && <Link href={`/carreiras/${jobData.companyId}/${jobData.id}`} target="_blank" className="btn btn-outline btn-md"><ExternalLink size={16} aria-hidden="true" /> Ver publicação</Link>}
           <div className="inline-flex overflow-hidden rounded-lg border border-border" role="group" aria-label="Modo de visualização">
             <button type="button" aria-pressed={view === 'kanban'} onClick={() => setView('kanban')} className={`flex items-center gap-1.5 px-3 py-2 text-sm ${view === 'kanban' ? 'bg-purple-600 text-white' : 'hover:bg-bg-sub'}`}><Columns3 size={15} aria-hidden="true" /> Funil</button>
             <button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')} className={`flex items-center gap-1.5 px-3 py-2 text-sm ${view === 'table' ? 'bg-purple-600 text-white' : 'hover:bg-bg-sub'}`}><Table2 size={15} aria-hidden="true" /> Tabela</button>

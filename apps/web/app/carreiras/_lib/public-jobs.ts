@@ -36,6 +36,9 @@ export type PublicJob = {
   createdAt?: string | null;
   updatedAt?: string | null;
   company?: PublicCompany | null;
+  /** Vaga encerrada ainda visível (até 30 dias): não recebe candidaturas. */
+  closed?: boolean;
+  closedAt?: string | null;
 };
 
 export type PublicQuestion = {
@@ -59,6 +62,7 @@ export type JobApplicationInput = {
   coverLetter?: string;
   consent: boolean;
   website?: string;
+  source?: string;
   resume: File;
   answers?: Record<string, string | string[]>;
 };
@@ -182,6 +186,8 @@ function normalizeJob(value: unknown, fallbackCompanyId: string): PublicJob | nu
     createdAt: optionalString(record.createdAt),
     updatedAt: optionalString(record.updatedAt),
     company: companyRecord ? normalizeCompany(companyRecord, companyId) : null,
+    closed: record.closed === true || record.acceptsApplications === false,
+    closedAt: optionalString(record.closedAt),
   };
 }
 
@@ -356,6 +362,7 @@ export async function applyToPublicJob(
     formData.append('website', input.website.trim());
   }
   formData.append('consent', String(Boolean(input.consent)));
+  if (input.source) formData.append('source', input.source);
   if (input.answers && Object.keys(input.answers).length) {
     formData.append('answers', JSON.stringify(input.answers));
   }
@@ -440,4 +447,43 @@ export function employmentTypeLabel(type?: string | null): string {
 
   if (!type) return 'A combinar';
   return labels[type.toUpperCase()] ?? type.replaceAll('_', ' ');
+}
+
+/** Origem do clique (?src= ou ?utm_source=) para medir qual canal traz candidatos. */
+export function readTrafficSource(search: string): string | undefined {
+  const params = new URLSearchParams(search);
+  const value = (params.get('src') ?? params.get('utm_source') ?? '').trim().slice(0, 40);
+  return value || undefined;
+}
+
+/** Link de divulgação por canal: o mesmo endereço da vaga com ?src=canal. */
+export function trackedJobUrl(baseUrl: string, channel: string): string {
+  const url = new URL(baseUrl);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('src', channel);
+  return url.toString();
+}
+
+/** Dados estruturados schema.org/JobPosting (Google for Jobs). */
+export function jobPostingJsonLd(job: PublicJob, pageUrl: string): Record<string, unknown> {
+  const employment: Record<string, string> = { CLT: 'FULL_TIME', PJ: 'CONTRACTOR', ESTAGIO: 'INTERN', TEMPORARIO: 'TEMPORARY', PART_TIME: 'PART_TIME' };
+  const remote = String(job.workMode ?? '').toUpperCase() === 'REMOTE' || String(job.workMode ?? '').toUpperCase() === 'REMOTO';
+  const salaryVisible = !job.salaryHidden && (job.salaryMin || job.salaryMax);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
+    title: job.title,
+    description: [job.description, ...(job.requirements.length ? ['Requisitos: ' + job.requirements.join('; ')] : []), ...(job.benefits.length ? ['Benefícios: ' + job.benefits.join('; ')] : [])].join('\n\n'),
+    datePosted: job.createdAt ?? undefined,
+    validThrough: job.deadline ?? undefined,
+    employmentType: employment[String(job.employmentType ?? '').toUpperCase()] ?? undefined,
+    hiringOrganization: { '@type': 'Organization', name: job.company?.name ?? 'Empresa' },
+    jobLocationType: remote ? 'TELECOMMUTE' : undefined,
+    jobLocation: job.location ? { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: job.location, addressCountry: 'BR' } } : undefined,
+    baseSalary: salaryVisible ? { '@type': 'MonetaryAmount', currency: 'BRL', value: { '@type': 'QuantitativeValue', minValue: job.salaryMin ?? undefined, maxValue: job.salaryMax ?? undefined, unitText: 'MONTH' } } : undefined,
+    totalJobOpenings: job.openings > 1 ? job.openings : undefined,
+    directApply: true,
+    url: pageUrl,
+  };
 }

@@ -29,6 +29,11 @@ export class ApplyJobDto {
   @MaxLength(200)
   website?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  source?: string;
+
   @Transform(({ value }) => value === true || value === 'true')
   @IsBoolean()
   @Equals(true, { message: 'Consentimento obrigatorio para enviar a candidatura.' })

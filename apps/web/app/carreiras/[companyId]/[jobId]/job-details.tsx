@@ -6,7 +6,7 @@ import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { CareersBrand, CareersFooter } from '../../_components/careers-brand';
 import {
-  applyToPublicJob, CareersApiError, employmentTypeLabel, getPublicJob, publicSalaryLabel, validateResume, workModeLabel,
+  applyToPublicJob, CareersApiError, employmentTypeLabel, getPublicJob, jobPostingJsonLd, publicSalaryLabel, readTrafficSource, trackedJobUrl, validateResume, workModeLabel,
   type PublicJob, type PublicQuestion,
 } from '../../_lib/public-jobs';
 
@@ -135,7 +135,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
 
     pending.current = true; setSubmitting(true);
     try {
-      const result = await applyToPublicJob(job.id, { ...form, resume, answers });
+      const result = await applyToPublicJob(job.id, { ...form, resume, answers, source: readTrafficSource(window.location.search) });
       setSuccess(result.message); setForm(EMPTY); setAnswers({}); setResume(null);
       if (fileInput.current) fileInput.current.value = '';
     } catch (cause) {
@@ -169,6 +169,9 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
 
       <main className="mx-auto max-w-6xl space-y-5 px-4 py-6 sm:px-6">
         <PageHeader title={job.title} subtitle={[job.location || 'Local não informado', employmentTypeLabel(job.employmentType)].join(' · ')} actions={<a className="btn btn-primary" href="#application">Candidatar-me</a>} />
+
+        <ShareBar title={job.title} companyName={company.name} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd(job, typeof window === 'undefined' ? '' : window.location.origin + window.location.pathname)).replace(/</g, '\\u003c') }} />
         <div className="flex flex-wrap gap-2">
           {job.department && <Chip>{job.department}</Chip>}
           {workModeLabel(job.workMode) && <Chip>{workModeLabel(job.workMode)}</Chip>}
@@ -190,7 +193,9 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
 
           <section id="application" className="card-v2 min-w-0 scroll-mt-4 p-5 sm:p-6 lg:sticky lg:top-4" aria-label="Candidatura">
             <h2 className="text-lg font-semibold">Enviar candidatura</h2><p className="mt-2 text-sm text-fg-mut">Campos com * são obrigatórios.</p>
-            {success ? (
+            {job.closed ? (
+              <div role="status" className="mt-5 space-y-3"><p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Esta vaga foi encerrada{job.closedAt ? ` em ${new Date(job.closedAt).toLocaleDateString('pt-BR')}` : ''} e não recebe mais candidaturas.</p><Link className="btn btn-outline" href={companyPath}>Ver outras vagas desta empresa</Link></div>
+            ) : success ? (
               <div ref={successRef} tabIndex={-1} role="status" className="mt-5 space-y-4">
                 <h3 className="text-lg font-semibold text-emerald-800">Candidatura recebida!</h3>
                 <p className="text-sm">{success}</p>
@@ -247,6 +252,25 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
         </div>
       </main>
       <CareersFooter company={company} />
+    </div>
+  );
+}
+
+/** Compartilhar a vaga: cada canal recebe um link com ?src=, e a candidatura fica marcada com a origem. */
+function ShareBar({ title, companyName }: { title: string; companyName: string }) {
+  const [copied, setCopied] = useState(false);
+  const base = () => window.location.origin + window.location.pathname;
+  const open = (channel: string, build: (url: string) => string) => window.open(build(trackedJobUrl(base(), channel)), '_blank', 'noopener,noreferrer');
+  async function copy() {
+    try { await navigator.clipboard.writeText(trackedJobUrl(base(), 'site')); setCopied(true); window.setTimeout(() => setCopied(false), 2000); } catch { /* sem permissão de área de transferência */ }
+  }
+  const text = (url: string) => `Vaga: ${title} na ${companyName}. Candidate-se: ${url}`;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm" aria-label="Compartilhar vaga" role="group">
+      <span className="text-fg-mut">Compartilhar:</span>
+      <button type="button" className="btn btn-outline" onClick={() => open('whatsapp', (url) => `https://wa.me/?text=${encodeURIComponent(text(url))}`)}>WhatsApp</button>
+      <button type="button" className="btn btn-outline" onClick={() => open('linkedin', (url) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`)}>LinkedIn</button>
+      <button type="button" className="btn btn-outline" onClick={() => void copy()}>{copied ? 'Link copiado' : 'Copiar link'}</button>
     </div>
   );
 }

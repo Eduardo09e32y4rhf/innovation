@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+﻿import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -39,7 +39,10 @@ const openJob = () => ({
 });
 
 /** Politica unica de disponibilidade: catalogo, empresa, detalhe e candidatura usam esta mesma condicao. */
-const availablePublicJob = () => ({ ...openJob(), company: PUBLIC_JOB_COMPANY });
+const availablePublicJob = () => ({ ...openJob(), isInternal: false, company: PUBLIC_JOB_COMPANY });
+
+/** Vaga encerrada ha menos de 30 dias: continua visivel por link (sem aceitar candidatos) e no painel da empresa. */
+const recentlyClosedJob = () => ({ status: 'CLOSED' as const, isInternal: false, closedAt: { gte: new Date(Date.now() - 30 * 86_400_000) }, company: PUBLIC_JOB_COMPANY });
 
 const PUBLIC_QUESTION_SELECT = { id: true, label: true, type: true, required: true, options: true } satisfies Prisma.JobQuestionSelect;
 
@@ -135,6 +138,14 @@ export class JobsRepository {
     return this.prisma.job.findFirst({
       where: { companyId, id: jobId, ...availablePublicJob() },
       select: { ...PUBLIC_JOB_SELECT, questions: { select: PUBLIC_QUESTION_SELECT, orderBy: { position: 'asc' } } },
+    });
+  }
+
+  /** Vaga encerrada recentemente (para mostrar o aviso de encerrada em vez de 404). */
+  publicRecentlyClosedById(jobId: string) {
+    return this.prisma.job.findFirst({
+      where: { id: jobId, ...recentlyClosedJob() },
+      select: { ...PUBLIC_JOB_SELECT, closedAt: true, company: { select: { id: true, name: true, slug: true, logoUrl: true, primaryColor: true } } },
     });
   }
 
@@ -365,3 +376,4 @@ export class JobsRepository {
     }
   }
 }
+

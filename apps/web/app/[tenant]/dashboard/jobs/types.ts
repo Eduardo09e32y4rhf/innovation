@@ -23,6 +23,11 @@ export interface Job {
   deadline?: string | null;
   createdAt: string;
   updatedAt: string;
+  closedAt?: string | null;
+  reopenCount?: number;
+  /** Processo interno: só funcionários da empresa se candidatam, pela matrícula. */
+  isInternal?: boolean;
+  lifecycle?: { phase: 'DRAFT' | 'OPEN' | 'CLOSED_RECENT' | 'ARCHIVED'; acceptsApplications: boolean; canReactivate: boolean; reactivatableUntil: string | null; daysLeft: number | null };
   _count?: { applications?: number; questions?: number };
   pipeline?: { new: number; inProgress: number; hired: number; rejected: number };
 }
@@ -44,6 +49,17 @@ export interface JobPayload {
   salaryMax?: number;
   salaryHidden?: boolean;
   deadline?: string | null;
+  isInternal?: boolean;
+}
+
+export interface InternalLookup {
+  employeeId: string; registration: string; name: string; email?: string | null; phone?: string | null; cpf?: string | null;
+  position?: string | null; department?: string | null; address?: string | null; outdated: string[];
+}
+
+export interface InternalJob {
+  id: string; title: string; description: string; department?: string | null; location?: string | null; workMode?: string | null;
+  seniority?: string | null; openings: number; deadline?: string | null; alreadyApplied: boolean;
 }
 
 export interface Stage {

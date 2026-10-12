@@ -14,7 +14,9 @@ import type { Prisma } from '@prisma/client';
 import { JobsRepository } from './jobs.repository';
 import { JobsStorageService } from './jobs-storage.service';
 import { RecruitmentService } from './recruitment.service';
+import { jobLifecycle, statusChange } from './job-lifecycle';
 import { normalizeAnswerValue, validateAnswerShape, type RuleQuestion } from './recruitment-rules';
+import { normalizeSource } from './application-source';
 
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 
@@ -33,6 +35,7 @@ export class JobsService {
       const by = (status: string) => rows.find((row) => row.status === status)?._count ?? 0;
       return {
         ...job,
+        lifecycle: jobLifecycle(job),
         pipeline: {
           new: by('APPLIED'),
           inProgress: by('SCREENING') + by('INTERVIEW') + by('OFFER'),
@@ -46,7 +49,7 @@ export class JobsService {
   async get(companyId: string, id: string) {
     const job = await this.repository.find(companyId, id);
     if (!job) throw new NotFoundException('Vaga nao encontrada.');
-    return job;
+    return { ...job, lifecycle: jobLifecycle(job) };
   }
 
   private async assertJobQuota(companyId: string) {
@@ -62,8 +65,11 @@ export class JobsService {
   }
 
   async update(companyId: string, id: string, dto: UpdateJobDto) {
-    await this.get(companyId, id);
-    const result = await this.repository.update(companyId, id, this.normalizeJob(dto));
+    const current = await this.get(companyId, id);
+    // Encerrar grava a data; reativar vale por 30 dias e NAO conta como vaga nova no limite do plano (nao passa por assertJobQuota).
+    const change = dto.status ? statusChange(current, dto.status) : { ok: true as const, data: {} };
+    if (!change.ok) throw new BadRequestException({ code: 'JOB_REACTIVATION_EXPIRED', message: change.message });
+    const result = await this.repository.update(companyId, id, { ...this.normalizeJob(dto), ...change.data });
     if (!result.count) throw new NotFoundException('Vaga nao encontrada.');
     return this.get(companyId, id);
   }
@@ -116,7 +122,7 @@ export class JobsService {
   async delete(companyId: string, id: string) {
     const job = await this.get(companyId, id);
     if (job._count.applications > 0) {
-      await this.repository.update(companyId, id, { status: 'CLOSED' });
+      await this.repository.update(companyId, id, { status: 'CLOSED', closedAt: new Date() });
       return { deleted: false, archived: true };
     }
     const result = await this.repository.delete(companyId, id);
@@ -170,7 +176,13 @@ export class JobsService {
 
   async publicJobById(jobId: string) {
     const job = await this.repository.publicJobById(jobId);
-    if (!job) throw new NotFoundException('Vaga nao encontrada ou encerrada.');
+    if (!job) {
+      // Encerrada ha menos de 30 dias: continua visivel, mas nao recebe candidaturas.
+      const closed = await this.repository.publicRecentlyClosedById(jobId);
+      if (!closed) throw new NotFoundException('Vaga nao encontrada ou encerrada.');
+      const { company: closedCompany, closedAt, ...closedDetails } = closed;
+      return { company: closedCompany, job: { ...this.toPublicJob(closedDetails), company: closedCompany, closed: true, acceptsApplications: false, closedAt } };
+    }
     const { company, ...details } = job;
     return { company, job: { ...this.toPublicJob(details), company } };
   }
@@ -250,7 +262,7 @@ export class JobsService {
       const result = await this.repository.apply(
         job.companyId,
         job.id,
-        { ...dto, source: 'CAREERS_PORTAL', name: safeName, email: normalizedEmail },
+        { ...dto, source: normalizeSource(dto.source), name: safeName, email: normalizedEmail },
         {
           key: storageKey,
           name: this.safeFileName(file.filename, format.extension),
@@ -338,3 +350,4 @@ export class JobsService {
     return `${base || 'curriculo'}.${extension}`;
   }
 }
+

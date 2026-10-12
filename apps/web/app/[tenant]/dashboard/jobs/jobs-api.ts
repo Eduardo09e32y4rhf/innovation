@@ -9,6 +9,8 @@ import type {
   Criterion,
   HirePayload,
   HireResult,
+  InternalJob,
+  InternalLookup,
   Job,
   JobPayload,
   Pipeline,
@@ -57,6 +59,10 @@ export const jobsApi = {
   update: (id: string, payload: Partial<JobPayload>) => request<Job>(`/jobs/${enc(id)}`, { method: 'PATCH', body: payload }),
   remove: (id: string) => request<{ deleted: boolean; archived?: boolean }>(`/jobs/${enc(id)}`, { method: 'DELETE' }),
   duplicate: (id: string) => request<Job>(`/jobs/${enc(id)}/duplicate`, { method: 'POST', body: {} }),
+
+  internalJobs: () => request<InternalJob[]>('/internal-jobs'),
+  internalLookup: (registration: string) => request<InternalLookup>(`/internal-jobs/lookup?registration=${enc(registration)}`),
+  internalApply: (jobId: string, body: { registration: string; phone?: string; email?: string; coverLetter?: string }) => request<{ received: boolean; applicationId: string; rhNotified: boolean }>(`/internal-jobs/${enc(jobId)}/apply`, { method: 'POST', body }),
 
   stats: () => request<Stats>('/jobs/stats'),
   talent: (q = '') => request<{ id: string; name: string; email?: string | null; phone?: string | null; status: string; applications: { id: string; jobId: string; status: string; job: { title: string } }[] }[]>(`/jobs/talent${q ? `?q=${enc(q)}` : ''}`),

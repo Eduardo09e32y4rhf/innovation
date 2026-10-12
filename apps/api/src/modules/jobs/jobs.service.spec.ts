@@ -63,7 +63,7 @@ describe('JobsService', () => {
       archived: true,
     });
     expect(repository.delete).not.toHaveBeenCalled();
-    expect(repository.update).toHaveBeenCalledWith('company-1', 'job-1', { status: 'CLOSED' });
+    expect(repository.update).toHaveBeenCalledWith('company-1', 'job-1', { status: 'CLOSED', closedAt: expect.any(Date) });
   });
 
   it('does not expose the internal resume storage key', async () => {

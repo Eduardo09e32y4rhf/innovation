@@ -31,6 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'vacations', label: 'Férias', href: '/dashboard/vacations', icon: CalendarDays, group: 'Trabalho', roles: COMPANY_ROLES, moduleKey: 'vacations' },
   { id: 'management', label: 'Gestão', href: '/dashboard/management', icon: ShieldCheck, group: 'Trabalho', roles: ['DEV', 'ADMIN', 'RH', 'GESTOR'], moduleKey: 'management', anyPermission: ['platform.manage', 'users.view_team'] },
   { id: 'jobs', label: 'Vagas', href: '/dashboard/jobs', icon: Briefcase, group: 'Trabalho', roles: ['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR'], moduleKey: 'recruitment' },
+  { id: 'internal-jobs', label: 'Vagas internas', href: '/dashboard/jobs/internas', icon: Briefcase, group: 'Trabalho', roles: ['FUNCIONARIO'], moduleKey: 'recruitment' },
   { id: 'users', label: 'Usuários', href: '/dashboard/users', icon: UserRoundCog, group: 'Administração', roles: ['DEV', 'ADMIN', 'RH'], anyPermission: ['users.manage_employees'] },
   { id: 'faturas', label: 'Faturas', href: '/dashboard/faturas', icon: Receipt, group: 'Administração', roles: ['DEV', 'CEO', 'CONTABIL', 'ADMIN', 'RH'], anyPermission: ['faturas.ver'] },
   { id: 'settings', label: 'Configurações', href: '/dashboard/settings', icon: Settings2, group: 'Administração', roles: ALL_ROLES },

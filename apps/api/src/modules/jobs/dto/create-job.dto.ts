@@ -88,6 +88,11 @@ class JobFieldsDto {
   @IsOptional()
   @IsUUID()
   pipelineId?: string | null;
+
+  /** Processo interno: só funcionários da empresa se candidatam (pela matrícula); não aparece no portal público. */
+  @IsOptional()
+  @IsBoolean()
+  isInternal?: boolean;
 }
 
 export class CreateJobDto extends JobFieldsDto {
