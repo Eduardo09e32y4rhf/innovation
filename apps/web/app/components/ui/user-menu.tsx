@@ -19,13 +19,26 @@ export function UserMenu({ showName = false, placement = 'bottom' }: { showName?
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  // Posição fixa calculada a partir do botão: não é cortada pela barra lateral nem sai da tela.
+  const [pos, setPos] = useState<{ left: number; top?: number; bottom?: number } | null>(null);
+  const MENU_WIDTH = 300;
+  const place = () => {
+    const rect = trigger.current?.getBoundingClientRect();
+    if (!rect) return;
+    const width = Math.min(MENU_WIDTH, window.innerWidth - 16);
+    const left = Math.max(8, Math.min(placement === 'top' ? rect.left : rect.right - width, window.innerWidth - width - 8));
+    setPos(placement === 'top' ? { left, bottom: window.innerHeight - rect.top + 8 } : { left, top: rect.bottom + 8 });
+  };
   const go = (suffix: string) => { setOpen(false); router.push('/' + encodeURIComponent(tenant) + '/dashboard/' + suffix); };
   useEffect(() => {
     if (!open) return;
+    place();
+    window.addEventListener('resize', place);
     root.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
     const outside = (event: MouseEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
     document.addEventListener('mousedown', outside);
-    return () => document.removeEventListener('mousedown', outside);
+    return () => { document.removeEventListener('mousedown', outside); window.removeEventListener('resize', place); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
   return <div ref={root} className="relative min-w-0" onKeyDown={(event) => {
     if (!open) return;
@@ -44,7 +57,7 @@ export function UserMenu({ showName = false, placement = 'bottom' }: { showName?
       {showName && <span className="workspace-user-copy min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-fg">{user?.name || 'Usuário'}</span><span className="block truncate text-xs text-fg-mut">{ROLE_LABEL[role] || role}</span></span>}
       {!showName && <ChevronDown size={16} className="hidden text-fg-mut sm:block" aria-hidden="true" />}
     </button>
-    {open && <div role="menu" aria-label="Conta do usuário" className={'absolute right-0 z-[75] w-[min(88vw,320px)] rounded-xl border border-border bg-bg-elev p-2 shadow-v2-xl ' + (placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2')}>
+    {open && pos && <div role="menu" aria-label="Conta do usuário" style={{ position: 'fixed', left: pos.left, top: pos.top, bottom: pos.bottom, width: Math.min(MENU_WIDTH, window.innerWidth - 16), maxHeight: 'calc(100vh - 16px)', overflowY: 'auto' }} className="z-[75] rounded-xl border border-border bg-bg-elev p-2 shadow-v2-xl">
       <div className="mb-1 border-b border-border px-3 py-3"><p className="break-words text-sm font-semibold text-fg">{user?.name || 'Usuário'}</p><p className="break-all text-xs text-fg-mut">{user?.email}</p><p className="mt-1 text-xs text-fg-mut">{ROLE_LABEL[role] || role}{company?.name ? ' · ' + company.name : ''}</p></div>
       <button role="menuitem" type="button" onClick={() => go('settings?section=security')} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm text-fg hover:bg-bg-sub"><UserRound size={18} aria-hidden="true" />Minha conta</button>
       <button role="menuitem" type="button" onClick={() => go('settings?section=security')} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm text-fg hover:bg-bg-sub"><KeyRound size={18} aria-hidden="true" />Alterar senha</button>
