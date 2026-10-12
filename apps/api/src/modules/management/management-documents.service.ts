@@ -152,6 +152,8 @@ export class ManagementDocumentsService {
       legalReason: this.optionalText(extra.legalReason),
       occurrenceDate: this.optionalDate(extra.occurrenceDate),
       suspensionDays: this.optionalNumber(extra.suspensionDays),
+      // Modelo da própria empresa: o texto do aviso (já preenchido com os dados) substitui o texto padrão do termo.
+      customBody: extra.templateId ? true : false,
     });
   }
 
@@ -361,6 +363,7 @@ export class ManagementDocumentsService {
       occurrenceDate?: Date;
       suspensionDays?: number;
       preview?: boolean;
+      customBody?: boolean;
     },
   ): Promise<GeneratedManagementDocument> {
     const isSuspension = data.type === 'SUSPENSION_NOTICE';
@@ -376,20 +379,26 @@ export class ManagementDocumentsService {
       ['Departamento', employee.department],
       ['Data da ocorrência', this.formatDate(data.occurrenceDate)],
     ]);
-    this.drawSection(report, 'Fundamentação e fato');
-    this.drawParagraph(
-      report,
-      `Pelo presente documento, comunicamos a aplicação de ${isSuspension ? 'suspensão' : 'advertência'} disciplinar ao(à) colaborador(a) identificado(a), em razão da ocorrência descrita abaixo.`,
-    );
-    if (data.legalReason) this.drawRuleBox(report, `Motivo / fundamento: ${data.legalReason}`);
-    this.drawParagraph(report, data.message);
-    if (isSuspension) {
-      this.drawRuleBox(report, `Período de suspensão: ${data.suspensionDays ?? 1} dia(s).`);
+    if (data.customBody) {
+      // Texto do modelo da empresa, parágrafo por parágrafo.
+      this.drawSection(report, data.title ?? title);
+      for (const part of String(data.message).split(/\n{1,}/).map((p) => p.trim()).filter(Boolean)) this.drawParagraph(report, part);
+    } else {
+      this.drawSection(report, 'Fundamentação e fato');
+      this.drawParagraph(
+        report,
+        `Pelo presente documento, comunicamos a aplicação de ${isSuspension ? 'suspensão' : 'advertência'} disciplinar ao(à) colaborador(a) identificado(a), em razão da ocorrência descrita abaixo.`,
+      );
+      if (data.legalReason) this.drawRuleBox(report, `Motivo / fundamento: ${data.legalReason}`);
+      this.drawParagraph(report, data.message);
+      if (isSuspension) {
+        this.drawRuleBox(report, `Período de suspensão: ${data.suspensionDays ?? 1} dia(s).`);
+      }
+      this.drawParagraph(
+        report,
+        'A reincidência em condutas semelhantes poderá resultar em medidas disciplinares mais severas, observadas a legislação vigente, a gradação das penalidades e as circunstâncias do caso.',
+      );
     }
-    this.drawParagraph(
-      report,
-      'A reincidência em condutas semelhantes poderá resultar em medidas disciplinares mais severas, observadas a legislação vigente, a gradação das penalidades e as circunstâncias do caso.',
-    );
     this.drawSignatures(report, ['Assinatura do colaborador', 'Empregador / RH', 'Testemunha 1', 'Testemunha 2']);
     const generated = await this.documents.storePdf(companyId, 'OTHER', `${title} - ${employee.name}`, await report.finish(), actorId);
 

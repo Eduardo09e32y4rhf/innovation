@@ -56,6 +56,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
+import { DocumentTemplatesModule } from './modules/document-templates/document-templates.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { CommercialSalesModule } from './modules/commercial-sales/commercial-sales.module';
 import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.module';
@@ -116,6 +117,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     CeoOnboardingModule,
     PayrollModule,
     PromotionsModule,
+    DocumentTemplatesModule,
     LookupModule,
     WelcomeModule,
     ScheduleModule.forRoot(),

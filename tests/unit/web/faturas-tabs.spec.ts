@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { resolveFaturasTab, visibleFaturasTabs } from '../../../apps/web/app/[tenant]/dashboard/faturas/_tabs';
 
 describe('abas de Faturas (visao da plataforma)', () => {
   it('DEV, CEO e CONTABIL veem tudo; COMERCIAL nao ve a aba', () => {
-    expect(visibleFaturasTabs('DEV')).toEqual(['faturas', 'assinaturas', 'planos', 'cupons']);
-    expect(visibleFaturasTabs('CEO')).toEqual(['faturas', 'assinaturas', 'planos', 'cupons']);
-    expect(visibleFaturasTabs('CONTABIL')).toEqual(['faturas', 'assinaturas', 'planos', 'cupons']);
+    expect(visibleFaturasTabs('DEV')).toEqual(['faturas', 'reembolsos', 'assinaturas', 'planos', 'cupons']);
+    expect(visibleFaturasTabs('CEO')).toEqual(['faturas', 'reembolsos', 'assinaturas', 'planos', 'cupons']);
+    expect(visibleFaturasTabs('CONTABIL')).toEqual(['faturas', 'reembolsos', 'assinaturas', 'planos', 'cupons']);
     expect(visibleFaturasTabs('COMERCIAL')).toEqual([]);
   });
   it('perfis de empresa nao veem nenhuma aba da plataforma', () => {

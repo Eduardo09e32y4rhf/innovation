@@ -2,7 +2,8 @@
 
 import { Button } from '@/app/components/ui/button';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { TemplatesPanel } from './templates-panel';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery, useMutation } from '@/app/hooks/use-data';
 import { api, type Employee } from '@/app/lib/api';
@@ -57,6 +58,7 @@ export default function NotificationsPage() {
   }), [notifications, filterStatus, filterType]);
 
   const [showForm, setShowForm] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const handleGenerateTermoPdf = async (notificationId: string) => {
     setPdfId(notificationId);
@@ -80,10 +82,14 @@ export default function NotificationsPage() {
           <p className="mt-1 text-xs text-slate-500">Comunicados, alertas, advertências e suspensões.</p>
         </div>
         {canManage && (
-          <Button variant="primary" type="button" onClick={() => setShowForm(!showForm)} className=" inline-flex items-center gap-2 px-4 text-xs">
-            {showForm ? 'FECHAR' : '+ NOVA NOTIFICAÇÃO'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" type="button" onClick={() => setShowTemplates(true)} className="px-4 text-xs">MODELOS DA EMPRESA</Button>
+            <Button variant="primary" type="button" onClick={() => setShowForm(!showForm)} className=" inline-flex items-center gap-2 px-4 text-xs">
+              {showForm ? 'FECHAR' : '+ NOVA NOTIFICAÇÃO'}
+            </Button>
+          </div>
         )}
+        {showTemplates && <TemplatesPanel onClose={() => setShowTemplates(false)} />}
       </div>
 
       {showForm && <CreateNotificationForm employees={employees} onCreated={() => { listQuery.refetch(); setShowForm(false); }} />}
@@ -182,6 +188,18 @@ function CreateNotificationForm({ employees, onCreated }: { employees: Employee[
   });
 
   const isPenalty = type === 'WARNING_NOTICE' || type === 'SUSPENSION_NOTICE';
+  const [templateId, setTemplateId] = useState('');
+  const templatesQuery = useQuery(() => api.documentTemplates.list(), []);
+  const wantedKind = type === 'WARNING_NOTICE' ? 'ADVERTENCIA' : type === 'SUSPENSION_NOTICE' ? 'SUSPENSAO' : 'COMUNICADO';
+  const fitting = (templatesQuery.data?.templates ?? []).filter((t) => t.isActive && (t.kind === wantedKind || t.kind === 'OUTRO'));
+  useEffect(() => { setTemplateId(''); }, [type]);
+  async function fillFromTemplate() {
+    if (!templateId) return;
+    try {
+      const out = await api.documentTemplates.render(templateId, { employeeId: empId || undefined, reason: legalReason || undefined, occurrenceDate: occurrenceDate || undefined, suspensionDays: type === 'SUSPENSION_NOTICE' ? Number(suspensionDays) : undefined });
+      setTitle(out.title); setContent(out.message);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível usar o modelo.'); }
+  }
   const selected = employees.find((e) => e.id === empId);
   const noAccess = Boolean(selected && !selected.userId);
 
@@ -201,6 +219,7 @@ function CreateNotificationForm({ employees, onCreated }: { employees: Employee[
       ...(empId ? { employeeIds: [empId], targetType: 'SPECIFIC' } : { targetType: 'ALL' }),
       ...(isPenalty ? { occurrenceDate, legalReason: legalReason.trim() } : {}),
       ...(type === 'SUSPENSION_NOTICE' ? { suspensionDays: Number(suspensionDays) } : {}),
+      ...(templateId ? { templateId } : {}),
       ...(type === 'PROMOTION_NOTICE' ? { newPosition: newPosition.trim() || undefined, newSalary: newSalary ? Number(newSalary.replace(/\./g, '').replace(',', '.')) : undefined, effectiveDate: effectiveDate || undefined } : {}),
     }).catch(() => undefined);
   };
@@ -257,9 +276,22 @@ function CreateNotificationForm({ employees, onCreated }: { employees: Employee[
           </>
         )}
 
+        {fitting.length > 0 && (
+          <div className="form-group sm:col-span-2">
+            <span>Modelo da empresa (opcional)</span>
+            <div className="flex flex-wrap gap-2">
+              <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="input-v2 min-w-[220px] flex-1">
+                <option value="">Texto padrão do sistema</option>
+                {fitting.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+              <Button type="button" variant="outline" disabled={!templateId || (isPenalty && !empId)} onClick={() => void fillFromTemplate()}>Preencher com o modelo</Button>
+            </div>
+            {templateId && <p className="mt-1 text-xs text-slate-500">O texto do modelo (com nome, cargo, data e motivo) vai para o campo abaixo e você pode ajustar. O PDF sai com o texto do seu modelo.</p>}
+          </div>
+        )}
         <label className="form-group sm:col-span-2">
           <span>{isPenalty ? 'Detalhes da ocorrência *' : 'Mensagem *'}</span>
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} className="input-v2 resize-none" />
+          <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={templateId ? 10 : 4} className="input-v2 resize-none" />
         </label>
       </div>
 

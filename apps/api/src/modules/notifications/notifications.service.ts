@@ -184,8 +184,13 @@ export class NotificationsService {
 
     const isPenalty = type === 'WARNING_NOTICE' || type === 'SUSPENSION_NOTICE';
     const extra: Record<string, any> = { ...(body?.extraJson ?? {}) };
-    for (const key of ['occurrenceDate', 'legalReason', 'suspensionDays', 'newPosition', 'newSalary', 'effectiveDate']) {
+    for (const key of ['occurrenceDate', 'legalReason', 'suspensionDays', 'newPosition', 'newSalary', 'effectiveDate', 'templateId']) {
       if (body?.[key] !== undefined && body[key] !== '') extra[key] = body[key];
+    }
+    // Modelo de documento da empresa: precisa existir nesta empresa e estar ligado (o PDF usa o texto do modelo no lugar do texto padrão).
+    if (extra.templateId) {
+      const template = await this.prisma.documentTemplate.findFirst({ where: { id: String(extra.templateId), companyId, isActive: true }, select: { id: true } });
+      if (!template) throw new BadRequestException('O modelo de documento escolhido não existe ou está desligado.');
     }
 
     if (type === 'PROMOTION_NOTICE') {

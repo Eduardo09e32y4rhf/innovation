@@ -489,6 +489,9 @@ export interface DeductionRule {
 }
 export type DeductionRuleInput = Omit<DeductionRule, 'id'>;
 
+export interface DocumentTemplateItem { id: string; name: string; kind: 'ADVERTENCIA' | 'SUSPENSAO' | 'COMUNICADO' | 'OUTRO'; title: string; body: string; isActive: boolean }
+export type DocumentTemplateInput = Omit<DocumentTemplateItem, 'id'>;
+
 export interface PromotionPolicy { minMonthsInRole: number; maxRaisePercent: number | null; requireReason: boolean; positions: string[]; autoNotify: boolean }
 export interface PromotionItem {
   id: string; employeeId: string; previousPosition: string | null; newPosition: string | null; previousSalary: number | null; newSalary: number | null;
@@ -817,6 +820,13 @@ export const api = {
     update: (id: string, data: any) => request<any>(`/time-rules/${id}`, { method: 'PUT', body: data }),
     archive: (id: string) => request<any>(`/time-rules/${id}/archive`, { method: 'PUT' }),
     activate: (id: string) => request<any>(`/time-rules/${id}/activate`, { method: 'PUT' }),
+  },
+  documentTemplates: {
+    list: (kind?: string) => request<{ templates: DocumentTemplateItem[]; variables: Array<{ key: string; label: string }>; kinds: string[] }>(`/document-templates${kind ? `?kind=${kind}` : ''}`),
+    create: (body: DocumentTemplateInput) => request<DocumentTemplateItem>('/document-templates', { method: 'POST', body }),
+    update: (id: string, body: Partial<DocumentTemplateInput>) => request<DocumentTemplateItem>(`/document-templates/${id}`, { method: 'PATCH', body }),
+    remove: (id: string) => request<{ deleted: boolean }>(`/document-templates/${id}`, { method: 'DELETE' }),
+    render: (id: string, body: { employeeId?: string; reason?: string; occurrenceDate?: string; suspensionDays?: number }) => request<{ title: string; message: string }>(`/document-templates/${id}/render`, { method: 'POST', body }),
   },
   promotions: {
     policy: () => request<PromotionPolicy>('/promotions/policy'),
