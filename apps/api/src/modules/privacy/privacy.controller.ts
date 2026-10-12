@@ -15,7 +15,7 @@ export class AcceptTermsDto {
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
+@Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'RH_RS', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
 @Controller('legal')
 export class PrivacyController {
   constructor(private readonly service: PrivacyService) {}

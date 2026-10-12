@@ -87,9 +87,12 @@ export class PrivacyService {
       throw new BadRequestException('Biometria e selfie devem ser enviadas somente pelo fluxo facial especifico, separado do aceite de privacidade.');
     }
     const doc = await this.document(user);
+    // Perfis de plataforma podem não ter companyId no token: usa o da conta gravada no banco.
+    const companyId = user.companyId || (await this.repository.getUserData(user.sub))?.companyId;
+    if (!companyId) throw new BadRequestException('Sua conta não está vinculada a uma empresa. Procure o suporte.');
 
     const consent = await this.repository.acceptConsent({
-      companyId: user.companyId,
+      companyId,
       userId: user.sub,
       termVersion: CURRENT_TERMS_VERSION,
       purpose: TERMS_PURPOSE,
@@ -102,7 +105,7 @@ export class PrivacyService {
     });
 
     const payloadToSign = JSON.stringify({
-      companyId: user.companyId,
+      companyId,
       userId: user.sub,
       termVersion: CURRENT_TERMS_VERSION,
       contentHash: doc.contentHash,
@@ -127,7 +130,7 @@ export class PrivacyService {
     // O aceite já está gravado: nada abaixo pode travar ou derrubar a resposta.
     try {
       await this.repository.createAuditLog({
-        companyId: user.companyId,
+        companyId,
         userId: user.sub,
         action: 'PRIVACY_TERMS_ACCEPTED',
         entity: 'PrivacyConsent',
