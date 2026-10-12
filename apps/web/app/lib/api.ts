@@ -174,6 +174,13 @@ async function downloadRequest(path: string): Promise<void> {
     const message = Array.isArray(raw) ? raw.join(', ') : raw ? String(raw) : `Nao foi possivel baixar o arquivo (erro ${response.status}).`;
     throw new ApiError(response.status, message, data);
   }
+  // Rotas antigas devolvem {"url": "..."} em vez do arquivo: segue o endereço em vez de salvar um JSON com nome de PDF.
+  if (/application\/json/i.test(response.headers.get('content-type') || '')) {
+    const body = safeJson(await response.text());
+    const next = (body as any)?.data?.url ?? (body as any)?.url;
+    if (typeof next === 'string' && next.startsWith('/') && !next.startsWith('//') && next !== path) return downloadRequest(next);
+    throw new ApiError(500, 'O servidor não devolveu o documento (resposta inesperada). Tente de novo ou avise o suporte.', body);
+  }
   const blob = await response.blob();
   if (blob.size === 0) throw new ApiError(500, 'O servidor devolveu um arquivo vazio.');
   const filename = parseDownloadName(response.headers.get('content-disposition') || '');
@@ -842,7 +849,7 @@ export const api = {
   documents: {
     list: () => request<any[]>('/time-closing'),
     generate: (input: { month: number; year: number }) => request<any>('/time-closing/generate', { method: 'POST', body: input }),
-    downloadIndividual: (closingId: string) => downloadRequest(`/time-closing/${closingId}/pdf`),
+    downloadIndividual: (closingId: string) => downloadRequest(`/time-closing/${closingId}/pdf-stream`),
     downloadCollective: (month: string, employeeIds?: string[]) => {
       const params = new URLSearchParams({ month });
       if (employeeIds && employeeIds.length) {

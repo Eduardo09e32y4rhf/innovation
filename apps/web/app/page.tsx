@@ -5,6 +5,7 @@ import {
   Menu, Sparkles, Sun, UserRoundCog, Users, X,
 } from 'lucide-react';
 import Image from 'next/image';
+import { CompanyIdentity, GRUPO } from './_components/company-identity';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { PricingSection } from './_components/pricing-section';
@@ -250,7 +251,10 @@ export default function Home() {
           <nav aria-label="Conta"><p className="text-sm font-semibold">Conta</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/login" className="hover:text-white">Entrar</Link></li><li><Link href="/cadastro" className="hover:text-white">Criar empresa</Link></li><li><Link href="/esqueci-senha" className="hover:text-white">Recuperar senha</Link></li></ul></nav>
           <nav aria-label="Legal"><p className="text-sm font-semibold">Ajuda e legal</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/suporte" className="hover:text-white">Suporte</Link></li><li><Link href="/privacidade" className="hover:text-white">Privacidade</Link></li><li><Link href="/termos" className="hover:text-white">Termos de uso</Link></li></ul></nav>
         </div>
-        <p className="border-t border-white/10 py-5 text-center text-xs text-white/45">&copy; {new Date().getFullYear()} Innovation RH. Todos os direitos reservados.</p>
+        <div className="border-t border-white/10 px-4 py-6 text-center text-xs leading-5">
+          <CompanyIdentity claro />
+          <p className="mt-2 text-white/45">&copy; {new Date().getFullYear()} {GRUPO.nome} — CNPJ {GRUPO.cnpj}. Todos os direitos reservados.</p>
+        </div>
       </footer>
     </div>
   );

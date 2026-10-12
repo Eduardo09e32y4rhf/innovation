@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft, Shield } from 'lucide-react';
+import { CompanyIdentity, GRUPO } from '../_components/company-identity';
 const display = { className: 'font-display' };
 
 export default function PrivacidadePage() {
@@ -17,7 +18,7 @@ export default function PrivacidadePage() {
         </div>
         <div className="space-y-6 text-sm leading-relaxed bg-white/[0.02] border border-white/5 p-8 rounded-3xl">
           <p>
-            Na <strong>Innovation RH Connect</strong>, a privacidade e a segurança dos dados dos seus colaboradores são nossa prioridade máxima. Esta política descreve como coletamos, usamos e protegemos as informações pessoais no nosso sistema de gestão.
+            A <strong>Innovation RH Connect</strong> é uma plataforma do grupo <strong>{GRUPO.nome}</strong> (CNPJ {GRUPO.cnpj}, {GRUPO.endereco}). Na Innovation RH Connect, a privacidade e a segurança dos dados dos seus colaboradores são nossa prioridade máxima. Esta política descreve como coletamos, usamos e protegemos as informações pessoais no nosso sistema de gestão.
           </p>
           <h2 className="text-xl font-bold text-white mt-8 mb-4">1. Coleta de Dados</h2>
           <p>Coletamos apenas as informações estritamente necessárias para a prestação dos nossos serviços de RH e controle de jornada, incluindo dados de geolocalização e biometria facial, quando habilitados e com o consentimento explícito, para garantir a autenticidade dos registros de ponto (em conformidade com a portaria 671/MTP).</p>
@@ -26,6 +27,7 @@ export default function PrivacidadePage() {
           <h2 className="text-xl font-bold text-white mt-8 mb-4">3. Conformidade com a LGPD</h2>
           <p>Garantimos a total aderência à Lei Geral de Proteção de Dados (LGPD). Todos os colaboradores cadastrados possuem o direito de solicitar a exclusão, portabilidade ou revisão dos seus dados diretamente junto ao RH da empresa contratante.</p>
         </div>
+        <CompanyIdentity claro className="mt-8 text-center text-xs" />
       </div>
     </main>
   );

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft, FileText } from 'lucide-react';
+import { CompanyIdentity, GRUPO } from '../_components/company-identity';
 const display = { className: 'font-display' };
 
 export default function TermosPage() {
@@ -17,7 +18,7 @@ export default function TermosPage() {
         </div>
         <div className="space-y-6 text-sm leading-relaxed bg-white/[0.02] border border-white/5 p-8 rounded-3xl">
           <p>
-            Bem-vindo aos Termos de Serviço da <strong>Innovation RH Connect</strong>. Ao utilizar nossa plataforma de gestão, você concorda em cumprir as diretrizes aqui estabelecidas.
+            Bem-vindo aos Termos de Serviço da <strong>Innovation RH Connect</strong>, plataforma do grupo <strong>{GRUPO.nome}</strong> (CNPJ {GRUPO.cnpj}, {GRUPO.endereco}). Ao utilizar nossa plataforma de gestão, você concorda em cumprir as diretrizes aqui estabelecidas.
           </p>
           <h2 className="text-xl font-bold text-white mt-8 mb-4">1. Licença de Uso</h2>
           <p>Concedemos à sua empresa uma licença limitada, não exclusiva e intransferível para o uso do nosso software como serviço (SaaS), destinada exclusivamente à gestão interna do seu departamento de recursos humanos e controle de jornada.</p>
@@ -26,6 +27,7 @@ export default function TermosPage() {
           <h2 className="text-xl font-bold text-white mt-8 mb-4">3. Disponibilidade e SLA</h2>
           <p>Garantimos um Service Level Agreement (SLA) de 99.8% de disponibilidade (uptime) da plataforma, assegurando que o seu DP e os registros de ponto dos seus colaboradores operem sem interrupções em horários críticos.</p>
         </div>
+        <CompanyIdentity claro className="mt-8 text-center text-xs" />
       </div>
     </main>
   );

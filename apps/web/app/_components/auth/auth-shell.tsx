@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import '../../landing.css';
+import { CompanyIdentity } from '../company-identity';
 
 const HIGHLIGHTS = [
   { icon: Briefcase, text: 'Vagas, portal de carreiras e funil de candidatos' },
@@ -58,6 +59,7 @@ export function AuthShell({ title, subtitle, children, footer, wide = false }: {
             </div>
           </div>
           {footer && <div className="mt-5 text-center text-sm text-white/80">{footer}</div>}
+          <CompanyIdentity claro className="mt-6 text-center text-[11px] leading-4" />
         </div>
       </div>
     </main>
