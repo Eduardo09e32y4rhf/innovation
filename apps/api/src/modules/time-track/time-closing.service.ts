@@ -11,6 +11,7 @@ import { PDF, PdfReport } from '../../common/pdf/pdf-report';
 import { computeDeductions } from '../payroll/deduction-rules';
 import { appendMirror, buildPayslipPdf, buildTimeSheetPdf, timeSheetBrand } from './time-sheet-pdf';
 import { saoPauloDayOfWeek, toSaoPauloDateKey } from '../../common/utils/date.utils';
+import { analyzeTimesheet, salaryDeadline, type ComplianceIssue } from './closing-compliance';
 
 interface GenerateClosingDto {
   employeeIds?: string[];
@@ -21,6 +22,8 @@ interface GenerateClosingDto {
   referenceMonth?: number;
   referenceYear?: number;
   overtimeHandling?: 'PAYMENT' | 'BANK';
+  /** Fecha mesmo com marcacoes impares ou ajustes sem ciencia do gestor (fica registrado na auditoria). */
+  acknowledgeIssues?: boolean;
 }
 
 interface CollectivePdfQuery {
@@ -106,6 +109,8 @@ export class TimeClosingService {
     });
     const holidayKeys = new Set(holidays.map((holiday) => this.dateKey(holiday.date)));
     const results = [];
+    const prepared: Array<{ employeeId: string; data: any }> = [];
+    const blockingByEmployee: Array<{ employeeId: string; name: string; issues: ComplianceIssue[] }> = [];
 
     const employeeIds = employees.map(e => e.id);
     const [allTracks, allOccurrences, allSchedules, allDayOffs] = await Promise.all([
@@ -169,6 +174,7 @@ export class TimeClosingService {
       let paidRestDays = 0;
       let missingAbsenceMinutes = 0;
       let missingAbsenceDays = 0;
+      const unjustifiedAbsenceDates: string[] = [];
       let scheduledMinutesInPeriod = 0;
 
       const today = new Date();
@@ -199,6 +205,7 @@ export class TimeClosingService {
           if (date <= today && !trackByDate.has(key) && !justifiedDates.has(key)) {
             missingAbsenceMinutes += expectedForDay;
             missingAbsenceDays++;
+            unjustifiedAbsenceDates.push(key);
           }
         }
       }
@@ -225,10 +232,19 @@ export class TimeClosingService {
         absenceMinutes += Math.max(0, track.absenceMinutes || 0);
         lateMinutes += track.lateMinutes || 0;
         earlyLeaveMinutes += track.earlyLeaveMinutes || 0;
-        if (track.incidentType === 'falta') absenceDays++;
+        if (track.incidentType === 'falta') {
+          absenceDays++;
+          if (!justifiedDates.has(this.dateKey(track.date))) unjustifiedAbsenceDates.push(this.dateKey(track.date));
+        }
         if ((track.lateMinutes || 0) > 0) lateArrivalDays++;
         if (track.clockedInWithoutFacial) fallbackPunches++;
       }
+
+      // Conferência legal (art. 66, 71 e Lei 605/49): intervalo suprimido é pago com 50% e falta injustificada tira o DSR da semana.
+      const compliance = analyzeTimesheet({ tracks, unjustifiedAbsenceDates, periodStart, periodEnd });
+      overtime50Minutes += compliance.breakDeficitMinutes;
+      const blocking = compliance.issues.filter((issue) => issue.severity === 'BLOCK');
+      if (blocking.length) blockingByEmployee.push({ employeeId: employee.id, name: employee.name, issues: blocking });
 
       const weeklyMinutes = this.weeklyMinutesFromSchedule(schedules[0]?.schedule)
         ?? employee.workScheduleRule?.weeklyMinutes
@@ -251,6 +267,7 @@ export class TimeClosingService {
         earlyLeaveMinutes,
         payableWorkdays,
         paidRestDays,
+        dsrLossDays: compliance.restLossWeeks.length,
         dependents,
         overtime50Factor: Number(overtimeRule.weekdayRate),
         overtime100Factor: Number(overtimeRule.sundayHolidayRate),
@@ -263,11 +280,7 @@ export class TimeClosingService {
       const deductions = computeDeductions(deductionRules, employee, { gross: financial.grossPay, salaryBase: financial.salaryBase, netBefore: financial.netPay, periodStart, periodEnd });
       const netPay = Math.round((financial.netPay - deductions.total + Number.EPSILON) * 100) / 100;
 
-      await this.prisma.timeClosing.deleteMany({
-        where: { companyId, employeeId: employee.id, periodStart, periodEnd, status: TimeClosingStatus.DRAFT },
-      });
-      results.push(await this.prisma.timeClosing.create({
-        data: {
+      prepared.push({ employeeId: employee.id, data: {
           companyId,
           employeeId: employee.id,
           periodStart,
@@ -291,11 +304,69 @@ export class TimeClosingService {
           deductionsJson: deductions.items as any,
           taxTableSnapshot: JSON.parse(JSON.stringify(taxContext)),
           totalPayable: netPay,
-        },
-        include: { employee: true },
-      }));
+      } });
+    }
+
+    // Marcações ímpares e ajustes sem ciência do gestor travam o fechamento: calcular em cima deles gera folha errada.
+    if (blockingByEmployee.length && !dto.acknowledgeIssues) {
+      throw new BadRequestException({
+        code: 'CLOSING_BLOCKED',
+        message: `Existem pendências no ponto de ${blockingByEmployee.length} funcionário(s). Resolva antes de fechar.`,
+        employees: blockingByEmployee,
+      });
+    }
+    if (blockingByEmployee.length) {
+      await this.prisma.auditLog.create({ data: { companyId, userId: actor.sub, action: 'TIME_CLOSING_FORCED_WITH_ISSUES', entity: 'TimeClosing', metadata: { employees: blockingByEmployee.map((item) => ({ id: item.employeeId, name: item.name, issues: item.issues.length })) } } }).catch(() => undefined);
+    }
+    for (const item of prepared) {
+      await this.prisma.timeClosing.deleteMany({ where: { companyId, employeeId: item.employeeId, periodStart, periodEnd, status: TimeClosingStatus.DRAFT } });
+      results.push(await this.prisma.timeClosing.create({ data: item.data, include: { employee: true } }));
     }
     return results;
+  }
+
+  /** Conferência do mês antes de fechar: pendências legais por funcionário (marcações, ajustes, intervalo, interjornada, faltas). */
+  async conference(companyId: string, month?: string) {
+    const match = /^(\d{4})-(\d{2})$/.exec(month ?? '');
+    const now = new Date();
+    const year = match ? Number(match[1]) : now.getUTCFullYear();
+    const monthNumber = match ? Number(match[2]) : now.getUTCMonth() + 1;
+    const periodStart = new Date(Date.UTC(year, monthNumber - 1, 1));
+    const periodEnd = new Date(Date.UTC(year, monthNumber, 0));
+    const [employees, tracks, occurrences, holidays] = await Promise.all([
+      this.prisma.employee.findMany({ where: { companyId, admissionDate: { lte: periodEnd }, OR: [{ terminationDate: null }, { terminationDate: { gte: periodStart } }] }, select: { id: true, name: true, position: true }, orderBy: { name: 'asc' }, take: 2000 }),
+      this.prisma.timeTrack.findMany({ where: { companyId, date: { gte: periodStart, lte: periodEnd } }, orderBy: { date: 'asc' } }),
+      this.prisma.timeOccurrence.findMany({ where: { companyId, date: { gte: periodStart, lte: periodEnd }, status: 'APPROVED' }, select: { employeeId: true, date: true, type: true } }),
+      this.prisma.holiday.findMany({ where: { OR: [{ companyId }, { companyId: null }], date: { gte: periodStart, lte: periodEnd } }, select: { date: true } }),
+    ]);
+    const holidayKeys = new Set(holidays.map((holiday) => this.dateKey(holiday.date)));
+    const today = new Date();
+    const rows = employees.map((employee) => {
+      const own = tracks.filter((track) => track.employeeId === employee.id);
+      const byDate = new Set(own.map((track) => this.dateKey(track.date)));
+      const justified = new Set(occurrences.filter((o) => o.employeeId === employee.id && this.isJustifyingOccurrence(o.type)).map((o) => this.dateKey(o.date)));
+      const absences: string[] = [];
+      for (const date of this.eachDate(periodStart, periodEnd)) {
+        const key = this.dateKey(date);
+        const weekday = saoPauloDayOfWeek(date);
+        if (date > today || weekday === 0 || weekday === 6 || holidayKeys.has(key) || byDate.has(key) || justified.has(key)) continue;
+        absences.push(key);
+      }
+      const result = analyzeTimesheet({ tracks: own, unjustifiedAbsenceDates: absences, periodStart, periodEnd });
+      return { employeeId: employee.id, name: employee.name, position: employee.position, daysRecorded: own.length, ...result };
+    });
+    const deadline = salaryDeadline(monthNumber === 12 ? year + 1 : year, monthNumber === 12 ? 1 : monthNumber + 1, holidayKeys);
+    return {
+      period: { month: `${year}-${String(monthNumber).padStart(2, '0')}`, start: periodStart, end: periodEnd },
+      salaryDeadline: deadline,
+      totals: {
+        employees: rows.length,
+        blocking: rows.filter((row) => row.issues.some((issue) => issue.severity === 'BLOCK')).length,
+        warnings: rows.filter((row) => row.issues.length > 0 && !row.issues.some((issue) => issue.severity === 'BLOCK')).length,
+        clean: rows.filter((row) => row.issues.length === 0).length,
+      },
+      employees: rows.filter((row) => row.issues.length > 0),
+    };
   }
 
   async list(companyId: string, status?: TimeClosingStatus) {
@@ -766,3 +837,4 @@ export class TimeClosingService {
   private currency(value: number): string { return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
   private safeFilename(value: string): string { return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_-]+/g, '_'); }
 }
+

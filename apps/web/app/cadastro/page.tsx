@@ -171,12 +171,12 @@ function CadastroForm() {
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="c-seats" label="Usuários"><input id="c-seats" type="number" min={1} max={plan?.maxUsers || 10000} required className={authInput} value={seats} onChange={(e) => setSeats(Math.max(1, Math.floor(Number(e.target.value)) || 1))} /></Field>
+            <Field id="c-seats" label={plan?.code === 'RS' ? 'Vagas por mês' : 'Colaboradores (além do admin)'}><input id="c-seats" type="number" min={1} max={plan?.maxUsers || 10000} required className={authInput} value={seats} onChange={(e) => setSeats(Math.max(1, Math.floor(Number(e.target.value)) || 1))} /></Field>
             <Field id="c-coupon" label="Cupom (opcional)"><input id="c-coupon" autoComplete="off" className={authInput} value={form.couponCode} onChange={(e) => set('couponCode', e.target.value.trim())} /></Field>
           </div>
 
           {plan && !plan.isFree && estimate > 0 && (
-            <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">Estimativa mensal: <strong>{brl(estimate)}</strong> <span className="text-xs text-zinc-500">(base + {seats} usuário{seats > 1 ? 's' : ''}; o valor final com descontos aparece no checkout)</span></p>
+            <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">Estimativa mensal: <strong>{brl(estimate)}</strong> <span className="text-xs text-zinc-500">(plano + {seats} {plan?.code === 'RS' ? 'vaga' : 'colaborador'}{seats > 1 ? (plan?.code === 'RS' ? 's' : 'es') : ''}, acesso do admin incluso; o valor final com descontos aparece no checkout)</span></p>
           )}
 
           <label className="flex items-start gap-2 text-sm text-zinc-600">
@@ -202,3 +202,4 @@ function Field({ id, label, children }: { id: string; label: string; children: R
 export default function CadastroPage() {
   return <Suspense fallback={<p role="status" className="p-6 text-center">Carregando…</p>}><CadastroForm /></Suspense>;
 }
+

@@ -50,6 +50,8 @@ export interface PayrollCalculationInput {
   earlyLeaveMinutes?: number;
   payableWorkdays: number;
   paidRestDays: number;
+  /** Semanas que perderam o DSR por falta injustificada (Lei 605/49): descontam 1/30 do salario cada. */
+  dsrLossDays?: number;
   dependents?: number;
   overtime50Factor?: number;
   overtime100Factor?: number;
@@ -197,7 +199,8 @@ export class PayrollCalculationService {
     
     // In partial months, absences might have been correctly accounted for in the reduced salary base depending on interpretation.
     // However, if we reduced the salary base based on scheduled hours of that short period, we should STILL deduct absences that happened in that period.
-    const absenceDiscount = this.money((Math.max(0, input.absenceMinutes) / 60) * hourlyRate);
+    const dsrLossDiscount = this.money(Math.max(0, input.dsrLossDays ?? 0) * (salaryBase / 30));
+    const absenceDiscount = this.money((Math.max(0, input.absenceMinutes) / 60) * hourlyRate + dsrLossDiscount);
     const lateDiscount = this.money((Math.max(0, input.lateMinutes ?? 0) / 60) * hourlyRate);
     const earlyLeaveDiscount = this.money((Math.max(0, input.earlyLeaveMinutes ?? 0) / 60) * hourlyRate);
     const totalJornadaDeduction = absenceDiscount + lateDiscount + earlyLeaveDiscount;
@@ -339,3 +342,5 @@ export class PayrollCalculationService {
     return roundMoney(value, digits);
   }
 }
+
+

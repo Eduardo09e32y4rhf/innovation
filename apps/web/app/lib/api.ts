@@ -846,7 +846,8 @@ export const api = {
     getById: (id: string) => request<any>(`/time-closing/${id}`),
     myPayslips: () => request<Array<{ id: string; periodStart: string; periodEnd: string; status: string; grossPay: number; netPay: number }>>('/time-closing/me/payslips'),
     downloadMyPayslip: (id: string) => downloadRequest(`/time-closing/me/payslips/${id}/pdf`),
-    generate: (input: { month?: number; year?: number; periodStart?: string; periodEnd?: string; employeeIds?: string[]; overtimeHandling?: 'PAYMENT' | 'BANK' }) => request<any[]>('/time-closing/generate', { method: 'POST', body: input }),
+    generate: (input: { month?: number; year?: number; periodStart?: string; periodEnd?: string; employeeIds?: string[]; overtimeHandling?: 'PAYMENT' | 'BANK'; acknowledgeIssues?: boolean }) => request<any[]>('/time-closing/generate', { method: 'POST', body: input }),
+    conference: (month: string) => request<ClosingConference>(`/time-closing/conference?month=${encodeURIComponent(month)}`),
     downloadCollectivePdf: (month: string, employeeIds: string[] = []) =>
       downloadRequest(`/time-closing/collective/pdf${makeQuery({
         month,
@@ -1176,4 +1177,11 @@ export const api = {
 };
 
 export default api;
+
+export interface ClosingConferenceIssue { code: string; severity: 'BLOCK' | 'WARN'; date?: string; message: string }
+export interface ClosingConference {
+  period: { month: string; start: string; end: string }; salaryDeadline: string;
+  totals: { employees: number; blocking: number; warnings: number; clean: number };
+  employees: Array<{ employeeId: string; name: string; position?: string | null; daysRecorded: number; breakDeficitMinutes: number; issues: ClosingConferenceIssue[] }>;
+}
 

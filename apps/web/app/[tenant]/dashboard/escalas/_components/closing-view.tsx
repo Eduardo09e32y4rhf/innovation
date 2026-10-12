@@ -8,6 +8,7 @@ import { Button, ConfirmDialog, Modal } from '@/app/components/ui';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { useQuery } from '@/app/hooks/use-data';
 import { can } from '@/app/lib/schedule-access';
+import { ClosingConference } from './closing-conference';
 import { currentMonthKey, errorMessage, monthLabel, shiftMonth } from '../_lib/format';
 import type { Overview } from '../_lib/types';
 
@@ -100,6 +101,7 @@ export function ClosingView({ overview, month, setMonth }: { overview: Overview;
         <p className="card-v2 p-5 text-sm text-fg-sub">O fechamento da folha é feito pelo RH. Baixe aqui a folha de ponto do mês ou acompanhe a situação do seu espelho na aba Ponto.</p>
       ) : list.loading && !list.data ? <LoadingState label="Carregando fechamentos…" /> : list.error ? <ErrorState message={list.error} onRetry={list.refetch} /> : (
         <>
+          {canWrite && <ClosingConference month={month} canForce={canWrite} onForce={() => { if (window.confirm('Gerar o fechamento mesmo com pendências no ponto? Isso fica registrado na auditoria.')) void run(() => api.timeClosing.generate({ periodStart, periodEnd, month: monthNumber, year, acknowledgeIssues: true }), () => undefined); }} />}
           <p className="text-sm text-fg-sub">Fluxo: Rascunho → Em revisão → Aprovado → Fechado. Após fechado, correções exigem reabertura com motivo.</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
             {[['Fechamentos', String(closings.length)], ['Horas extras (h)', totals.ot.toFixed(1)], ['Bruto', money(totals.gross)], ['INSS', money(totals.inss)], ['IRRF', money(totals.irrf)], ['Benefícios e outros descontos', money(totals.benefits)], ['Líquido', money(totals.net)]].map(([title, value]) => <div key={title} className="card-v2 p-4"><p className="text-xs text-fg-sub">{title}</p><p className="mt-1 text-lg font-semibold tabular-nums">{value}</p></div>)}

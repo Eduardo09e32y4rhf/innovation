@@ -4,11 +4,11 @@ const prisma = new PrismaClient();
 
 const ALL = ['employees', 'time-track', 'vacations', 'management', 'recruitment'];
 
-// price = valor base mensal; includedUnits = usuarios (ou vagas/mes no R&S) cobertos; userMonthlyPrice = adicional por unidade extra.
+// price = valor base mensal; includedUnits = colaboradores (ou vagas/mes no So RH) inclusos; extra = adicional por unidade alem do incluso.
 const plans = [
-  { code: 'PREMIUM', name: 'Premium', description: 'Completo: todas as abas, 10 usuarios inclusos', base: 199.99, included: 10, modules: ALL, order: 1, recommended: true },
-  { code: 'RS', name: 'R&S', description: 'Recrutamento e Selecao: aba Vagas, ate 50 vagas/mes', base: 99.99, included: 50, modules: ['recruitment'], order: 2, recommended: false },
-  { code: 'BASICO', name: 'Basico', description: 'Todas as abas, exceto Vagas', base: 99.99, included: 10, modules: ALL.filter((m) => m !== 'recruitment'), order: 3, recommended: false },
+  { code: 'RS', name: 'Só RH', description: 'Apenas Recrutamento e Seleção', base: 99.99, included: 50, extra: 2.49, modules: ['recruitment'], order: 1, recommended: false },
+  { code: 'BASICO', name: 'Básico', description: 'RH completo para a sua equipe', base: 99.99, included: 10, extra: 2.5, modules: ALL.filter((m) => m !== 'recruitment'), order: 2, recommended: false },
+  { code: 'PREMIUM', name: 'Completo', description: 'RH completo + Recrutamento e Seleção', base: 199.99, included: 20, extra: 1.99, modules: ALL, order: 3, recommended: true },
 ];
 
 async function main() {
@@ -22,7 +22,7 @@ async function main() {
       commitmentMonths: 1,
       discountPercent: 0,
       baseMonthlyPrice: p.base,
-      userMonthlyPrice: 2,
+      userMonthlyPrice: p.extra,
       includedUnits: p.included,
       asaasCycle: 'MONTHLY',
       displayOrder: p.order,
@@ -34,7 +34,7 @@ async function main() {
     };
     await prisma.platformPlan.upsert({ where: { code: p.code }, update: data, create: data });
   }
-  console.log('Catalogo Premium / R&S / Basico atualizado.');
+  console.log('Catalogo Só RH / Básico / Completo atualizado.');
 }
 
 main()
@@ -43,3 +43,5 @@ main()
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());
+
+

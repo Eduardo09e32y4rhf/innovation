@@ -41,7 +41,7 @@ function Contabilidade() {
           <div className="min-w-0">
             <p className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest"><Calculator size={13} aria-hidden="true" /> Contabilidade</p>
             <h1 className="mt-2 break-words text-2xl font-black leading-tight sm:text-3xl">{companyId ? (companyName ?? 'Empresa') : 'Contabilidade'}</h1>
-            <p className="mt-1 text-sm text-white/80">Regras de cálculo, conferência de fechamentos e aprovação da folha. Ao aprovar, a folha do funcionário já fica correta.</p>
+            <p className="mt-1 text-sm text-white/80">Rotina do escritório: prazos e obrigações, checklist do mês por cliente, cobrança de documentos, tarefas, honorários, folha e regras de cálculo.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <ScopePicker selected={selected} onSelect={(company) => update(company ? { company: company.id, cn: company.name } : { company: null, cn: null })} />
@@ -61,3 +61,4 @@ export default function ContabilidadePage() {
     </Suspense>
   );
 }
+

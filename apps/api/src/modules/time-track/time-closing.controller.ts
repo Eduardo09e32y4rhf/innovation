@@ -17,6 +17,10 @@ export class TimeClosingController {
   @Roles(...rolesWith('closing.write'))
   generate(@Req() req: any, @Body() body: any) { return this.service.generate(req.user.companyId, req.user, body); }
 
+  @Get('conference')
+  @Roles(...rolesWith('closing.read'))
+  conference(@Req() req: any, @Query('month') month?: string) { return this.service.conference(req.user.companyId, month); }
+
   // Politica de hora extra da empresa (declarada antes de ':id' para nao ser capturada por ele).
   @Get('overtime-policy')
   @Roles('ADMIN', 'RH', 'DEV', 'CEO', 'CONTABIL')
@@ -91,3 +95,4 @@ export class TimeClosingController {
   @Roles(...rolesWith('closing.read'))
   streamPdf(@Req() req: any, @Res() res: any, @Param('id') id: string) { return this.service.streamPdf(req.user.companyId, id, res, req.user); }
 }
+
