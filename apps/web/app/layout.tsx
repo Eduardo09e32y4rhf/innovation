@@ -10,8 +10,12 @@ export const metadata: Metadata = {
   },
   description: 'Plataforma de RH com controle de ponto, férias, alertas e comunicação corporativa.',
   icons: {
-    icon: '/logo-innovation-clean.png',
-    apple: '/logo-innovation-clean.png',
+    icon: [
+      { url: '/favicon-innovation.svg', type: 'image/svg+xml' },
+      { url: '/favicon-innovation-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-innovation-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/favicon-innovation-180.png',
   },
 };
 
