@@ -65,8 +65,10 @@ export class AuthService {
     private readonly mail: MailService,
   ) {}
 
-  publicPlans() {
-    return this.repository.listPublicPlans();
+  /** Valores em número: o Decimal do Prisma sai no JSON como objeto {s,e,d} e o site lia R$ 0,00. */
+  async publicPlans() {
+    const plans = await this.repository.listPublicPlans();
+    return plans.map((plan) => ({ ...plan, price: Number(plan.price), discountPercent: Number(plan.discountPercent), baseMonthlyPrice: Number(plan.baseMonthlyPrice), userMonthlyPrice: Number(plan.userMonthlyPrice) }));
   }
 
   async quotePublicPlan(dto: { planId: string; seatQuantity: number; couponCode?: string }) {
