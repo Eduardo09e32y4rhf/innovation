@@ -161,14 +161,23 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
   const input = 'input-v2 min-h-11 text-base sm:text-sm';
 
   return (
-    <div className="min-h-screen bg-bg text-fg">
+    <div className="min-h-screen bg-[#fbfafc] text-[#241b38]">
       <a className="sr-only focus:not-sr-only focus:block focus:p-4" href="#application">Ir para a candidatura</a>
-      <header className="border-b border-border bg-bg-elev"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4">
-        <CareersBrand company={company} companyId={companyId} compact /><Link className="btn btn-outline" href={companyPath}>Todas as oportunidades</Link>
+      <header className="border-b border-[#e9e5f0]"><div className="mx-auto flex h-20 max-w-[1200px] items-center justify-between gap-3 px-5 sm:px-9">
+        <CareersBrand company={company} companyId={companyId} compact />
+        <nav className="flex items-center gap-3 text-[13px]"><Link className="rounded-lg border border-[#e9e5f0] px-4 py-3 text-[#7240da] hover:border-[#c7b0ed]" href={companyPath}>← Todas as oportunidades</Link></nav>
       </div></header>
 
-      <main className="mx-auto max-w-6xl space-y-5 px-4 py-6 sm:px-6">
-        <PageHeader title={job.title} subtitle={[job.location || 'Local não informado', employmentTypeLabel(job.employmentType)].join(' · ')} actions={<a className="btn btn-primary" href="#application">Candidatar-me</a>} />
+      <main className="mx-auto max-w-[1200px] space-y-5 px-5 py-6 sm:px-9">
+        <section className="relative overflow-hidden rounded-[18px] border border-[#e4d9f4] bg-[#f0eafa] px-6 py-7 sm:px-9">
+          <span aria-hidden="true" className="pointer-events-none absolute -top-10 right-4 text-[220px] leading-none text-[#e4d7f6]">↗</span>
+          <div className="relative">
+            <p className="text-xs text-[#736d80]">{company.name} · Carreiras</p>
+            <h1 className="my-5 max-w-[850px] break-words text-[28px] font-semibold leading-tight tracking-tight sm:text-4xl">{job.title}</h1>
+            <p className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[#6b5b80]"><span>{job.location || 'Local não informado'}</span><span>{employmentTypeLabel(job.employmentType)}</span>{workModeLabel(job.workMode) && <span>{workModeLabel(job.workMode)}</span>}{job.seniority && <span>{job.seniority}</span>}{salary && <span><b>{salary}</b></span>}</p>
+            <div className="mt-6"><a className="inline-flex min-h-12 items-center rounded-[9px] bg-[#7240da] px-6 text-[13px] font-semibold text-white transition hover:bg-[#5b29be]" href="#application">Candidatar-me ↗</a></div>
+          </div>
+        </section>
 
         <ShareBar title={job.title} companyName={company.name} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd(job, typeof window === 'undefined' ? '' : window.location.origin + window.location.pathname)).replace(/</g, '\\u003c') }} />
@@ -182,7 +191,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
         </div>
 
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
-          <article className="card-v2 min-w-0 space-y-6 p-5 sm:p-6">
+          <article className="min-w-0 space-y-6 rounded-[14px] border border-[#e9e5f0] bg-white p-5 sm:p-7">
             <section><h2 className="text-lg font-semibold">Sobre a vaga</h2><p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7">{job.description || 'Descrição não informada.'}</p></section>
             {!!job.requirements.length && <section><h2 className="font-semibold">Requisitos</h2><ul className="mt-3 list-disc space-y-2 pl-5 text-sm">{job.requirements.map((item, index) => <li key={index}>{item}</li>)}</ul></section>}
             {!!job.benefits.length && <section><h2 className="font-semibold">Benefícios</h2><ul className="mt-3 flex flex-wrap gap-2">{job.benefits.map((benefit, index) => <li key={index}><Chip>{benefit}</Chip></li>)}</ul></section>}
@@ -191,7 +200,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
             </section>
           </article>
 
-          <section id="application" className="card-v2 min-w-0 scroll-mt-4 p-5 sm:p-6 lg:sticky lg:top-4" aria-label="Candidatura">
+          <section id="application" className="min-w-0 scroll-mt-4 rounded-[15px] border border-[#e3d8f1] bg-white p-5 shadow-[0_14px_36px_#51227708] sm:p-7 lg:sticky lg:top-4" aria-label="Candidatura">
             <h2 className="text-lg font-semibold">Enviar candidatura</h2><p className="mt-2 text-sm text-fg-mut">Campos com * são obrigatórios.</p>
             {job.closed ? (
               <div role="status" className="mt-5 space-y-3"><p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Esta vaga foi encerrada{job.closedAt ? ` em ${new Date(job.closedAt).toLocaleDateString('pt-BR')}` : ''} e não recebe mais candidaturas.</p><Link className="btn btn-outline" href={companyPath}>Ver outras vagas desta empresa</Link></div>
@@ -254,7 +263,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
                 </fieldset>
                 <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg bg-bg-sub p-3"><input type="checkbox" required className="mt-1 h-5 w-5 shrink-0" checked={form.consent} onChange={(event) => setForm((current) => ({ ...current, consent: event.target.checked }))} />
                   <span className="text-sm leading-6">Autorizo o tratamento dos dados enviados para avaliação da minha candidatura. Li a <Link className="underline" href="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</Link>. Meus dados serão guardados pelo prazo do processo seletivo e eu posso pedir acesso, correção ou exclusão a qualquer momento em <Link className="underline" href="/carreiras/privacidade" target="_blank" rel="noopener noreferrer">Meus dados</Link>.</span></label>
-                <Button type="submit" className="w-full" isLoading={submitting} disabled={!form.consent}>Enviar candidatura</Button>
+                <Button type="submit" className="w-full !bg-[#7240da] hover:!bg-[#5b29be]" isLoading={submitting} disabled={!form.consent}>Enviar candidatura</Button>
               </form>
             )}
           </section>
