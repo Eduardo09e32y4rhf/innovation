@@ -55,12 +55,24 @@ function PlanModal({ plan, onClose, onDone }: { plan?: any; onClose: () => void;
     activeModules: (plan?.activeModules ?? MODULES.map(m => m.id)) as string[],
     isFree: plan?.isFree ?? false,
     isHidden: plan?.isHidden ?? false,
+    isRecommended: plan?.isRecommended ?? false,
+    displayOrder: plan?.displayOrder ?? 0,
+    includedUnits: plan?.includedUnits ?? 0,
+    userMonthlyPrice: plan ? String(parseMoney(plan.userMonthlyPrice)) : '0',
+    extraUnitLabel: (plan?.extraUnitLabel ?? 'colaborador') as string,
+    featuresText: ((plan?.features ?? []) as string[]).join('\n'),
   });
 
   const save = useMutation(() => {
+    const { featuresText, ...rest } = form;
     const payload = {
-      ...form,
+      ...rest,
       price: form.isFree ? 0 : parseMoney(form.price),
+      baseMonthlyPrice: form.isFree ? 0 : parseMoney(form.price),
+      userMonthlyPrice: parseMoney(form.userMonthlyPrice),
+      includedUnits: Number(form.includedUnits) || 0,
+      displayOrder: Number(form.displayOrder) || 0,
+      features: featuresText.split('\n').map((line) => line.trim()).filter(Boolean),
       maxUsers: Number(form.maxUsers),
       maxEmployees: Number(form.maxEmployees),
     };
@@ -109,7 +121,7 @@ function PlanModal({ plan, onClose, onDone }: { plan?: any; onClose: () => void;
           </label>
 
           <label className="block space-y-1.5 text-xs font-semibold text-slate-600">
-            <span>Descrição (opcional)</span>
+            <span>Subtítulo do card (descrição)</span>
             <textarea
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -193,6 +205,42 @@ function PlanModal({ plan, onClose, onDone }: { plan?: any; onClose: () => void;
             </label>
           </div>
 
+
+          {/* Card de venda: tudo que aparece na landing e no cadastro */}
+          <div className="rounded-[10px] border border-violet-200 bg-violet-50/50 p-4 space-y-3">
+            <p className="text-xs font-black text-slate-900">Card de venda (landing e cadastro)</p>
+            <div className="grid grid-cols-3 gap-3">
+              <label className="block space-y-1.5 text-xs font-semibold text-slate-600">
+                <span>Incluso no plano</span>
+                <input type="number" min={0} value={form.includedUnits} onChange={e => setForm(f => ({ ...f, includedUnits: Number(e.target.value) || 0 }))} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-indigo-500" />
+              </label>
+              <label className="block space-y-1.5 text-xs font-semibold text-slate-600">
+                <span>Adicional (R$)</span>
+                <input type="text" inputMode="decimal" value={form.userMonthlyPrice} onChange={e => setForm(f => ({ ...f, userMonthlyPrice: e.target.value }))} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-indigo-500" />
+              </label>
+              <label className="block space-y-1.5 text-xs font-semibold text-slate-600">
+                <span>Adicional por</span>
+                <select value={form.extraUnitLabel} onChange={e => setForm(f => ({ ...f, extraUnitLabel: e.target.value }))} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm bg-white outline-none focus:border-indigo-500">
+                  <option value="colaborador">Colaborador</option>
+                  <option value="vaga">Vaga</option>
+                </select>
+              </label>
+            </div>
+            <label className="block space-y-1.5 text-xs font-semibold text-slate-600">
+              <span>Itens do card (um por linha, até 12)</span>
+              <textarea value={form.featuresText} onChange={e => setForm(f => ({ ...f, featuresText: e.target.value }))} rows={5} placeholder={'10 colaboradores inclusos\n11 acessos: 1 admin + 10 colaboradores'} className="w-full rounded-[8px] border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 resize-y" />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 p-3 border border-slate-200 rounded-[8px] bg-white cursor-pointer">
+                <input type="checkbox" checked={form.isRecommended} onChange={e => setForm(f => ({ ...f, isRecommended: e.target.checked }))} className="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+                Mais popular (destaque)
+              </label>
+              <label className="block space-y-1 text-xs font-semibold text-slate-600">
+                <span>Ordem na tela</span>
+                <input type="number" value={form.displayOrder} onChange={e => setForm(f => ({ ...f, displayOrder: Number(e.target.value) || 0 }))} className="h-10 w-full rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-indigo-500 bg-white" />
+              </label>
+            </div>
+          </div>
           {/* Módulos */}
           <div>
             <span className="block text-xs font-bold text-slate-800 mb-2">Módulos incluídos</span>

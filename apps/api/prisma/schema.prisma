@@ -1940,6 +1940,10 @@ model PlatformPlan {
   isActive         Boolean      @default(true)
   isFree           Boolean      @default(false)
   isHidden         Boolean      @default(false)
+  /// Linhas do card de venda (landing e cadastro). Editavel na area de planos; vazio usa o texto padrao.
+  features         String[]     @default([])
+  /// Unidade do adicional no card: colaborador ou vaga.
+  extraUnitLabel   String       @default("colaborador")
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 

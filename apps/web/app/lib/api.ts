@@ -583,6 +583,8 @@ export interface PublicPlatformPlan {
   baseMonthlyPrice?: number;
   userMonthlyPrice?: number;
   includedUnits?: number;
+  features?: string[];
+  extraUnitLabel?: string;
   asaasCycle?: string;
   pricingVersion?: string;
   isRecommended?: boolean;

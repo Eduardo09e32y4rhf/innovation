@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { AuthAlert, AuthShell, authButton, authInput, authLink } from '@/app/_components/auth/auth-shell';
 import { PasswordField, isStrongPassword } from '@/app/_components/auth/password-field';
+import { PlanCard } from '@/app/_components/plan-card';
 import type { Company, User as AuthUser } from '@/app/contexts/AuthContext';
 import { api, type PublicPlatformPlan } from '@/app/lib/api';
 import { persistAuthSession } from '@/app/lib/auth-session';
@@ -152,21 +153,10 @@ function CadastroForm() {
 
           {plans && plans.length > 0 && (
             <fieldset className="space-y-2">
-              <legend className="mb-1 text-sm font-medium text-zinc-700">Plano</legend>
-              {plans.map((item) => {
-                const price = num(item.baseMonthlyPrice) || num(item.price);
-                const selected = item.id === planId;
-                return (
-                  <label key={item.id} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${selected ? 'border-[var(--color-brand)] bg-purple-50 ring-1 ring-[var(--color-brand)]' : 'border-zinc-200 hover:border-zinc-300'}`}>
-                    <input type="radio" name="plan" className="mt-1" checked={selected} onChange={() => setPlanId(item.id)} />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold text-zinc-900">{item.name}</span>
-                        <span className="text-sm font-semibold text-[var(--color-brand-700)]">{item.isFree ? 'Grátis' : `a partir de ${brl(price)}/mês`}</span></span>
-                      {item.description && <span className="mt-0.5 block text-xs text-zinc-500">{item.description}</span>}
-                    </span>
-                  </label>
-                );
-              })}
+              <legend className="mb-2 text-sm font-medium text-zinc-700">Escolha o plano da sua empresa</legend>
+              <div role="radiogroup" aria-label="Plano" className="grid gap-4 pt-3 md:grid-cols-3">
+                {plans.map((item) => <PlanCard key={item.id} plan={item} tone="light" selected={item.id === planId} onSelect={() => setPlanId(item.id)} />)}
+              </div>
             </fieldset>
           )}
 

@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
-const PLAN_FIELDS = ['code', 'name', 'description', 'price', 'cycle', 'commitmentMonths', 'discountPercent', 'baseMonthlyPrice', 'userMonthlyPrice', 'includedUnits', 'asaasCycle', 'displayOrder', 'isRecommended', 'pricingVersion', 'maxUsers', 'maxEmployees', 'activeModules', 'isActive', 'isFree', 'isHidden'] as const;
+const PLAN_FIELDS = ['code', 'name', 'description', 'price', 'cycle', 'commitmentMonths', 'discountPercent', 'baseMonthlyPrice', 'userMonthlyPrice', 'includedUnits', 'asaasCycle', 'displayOrder', 'isRecommended', 'pricingVersion', 'maxUsers', 'maxEmployees', 'activeModules', 'isActive', 'isFree', 'isHidden', 'features', 'extraUnitLabel'] as const;
 
 @Injectable()
 export class PlatformPlansService {
@@ -70,6 +70,15 @@ export class PlatformPlansService {
     if (payload.userMonthlyPrice !== undefined) payload.userMonthlyPrice = this.moneyToNumber(payload.userMonthlyPrice);
     if (payload.commitmentMonths !== undefined) payload.commitmentMonths = Number(payload.commitmentMonths) || 1;
     
+    // O card de venda e o checkout leem o valor base: mantem os dois iguais quando so o preco e editado.
+    if (payload.price !== undefined && payload.baseMonthlyPrice === undefined) payload.baseMonthlyPrice = payload.price;
+    if (payload.features !== undefined) {
+      if (!Array.isArray(payload.features)) throw new BadRequestException('Itens do plano invalidos.');
+      payload.features = payload.features.map((item: unknown) => String(item ?? '').trim().slice(0, 140)).filter(Boolean).slice(0, 12);
+    }
+    if (payload.extraUnitLabel !== undefined) payload.extraUnitLabel = payload.extraUnitLabel === 'vaga' ? 'vaga' : 'colaborador';
+    if (payload.includedUnits !== undefined) payload.includedUnits = Math.max(0, Math.trunc(Number(payload.includedUnits)) || 0);
+
     if (payload.maxUsers !== undefined) payload.maxUsers = Math.max(1, Number(payload.maxUsers) || 1);
     if (payload.maxEmployees !== undefined) payload.maxEmployees = Math.max(1, Number(payload.maxEmployees) || 1);
     return payload;
