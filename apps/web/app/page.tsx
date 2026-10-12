@@ -136,16 +136,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ───────── Portal de vagas (vagas abertas de verdade) ───────── */}
-        <section id="portal-vagas" className="mx-auto max-w-6xl scroll-mt-20 px-4 pt-20 sm:px-6">
-          <Reveal className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-amber-200">Portal de vagas</p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-5xl">Procurando emprego? <span className="lp-text-warm">Veja as vagas abertas</span></h2>
-            <p className="mt-4 text-lg text-white/75">Vagas publicadas pelas empresas que usam a plataforma. Escolha, envie seu currículo e acompanhe a candidatura.</p>
-          </Reveal>
-          <div className="mt-10"><PortalVagas /></div>
-        </section>
-
         {/* ───────── Vagas ───────── */}
         <section id="vagas" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
           <Reveal className="mx-auto max-w-3xl text-center">
@@ -219,6 +209,9 @@ export default function Home() {
 
         {/* ───────── Planos ───────── */}
         <section id="planos" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6"><PricingSection /></section>
+
+        {/* ───────── Portal de vagas: depois dos planos, para quem procura emprego (vagas abertas de verdade) ───────── */}
+        <section id="portal-vagas" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-16 pt-4 sm:px-6"><Reveal><PortalVagas /></Reveal></section>
 
         {/* ───────── FAQ ───────── */}
         <section id="faq" className="mx-auto max-w-3xl scroll-mt-20 px-4 py-16 sm:px-6">
