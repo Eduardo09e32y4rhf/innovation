@@ -1,8 +1,8 @@
 import { Briefcase, CalendarRange, CheckCircle2, Clock3 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import '../../landing.css';
+import { BrandLogo } from '../brand-logo';
 import { CompanyIdentity } from '../company-identity';
 
 const HIGHLIGHTS = [
@@ -26,8 +26,7 @@ export function AuthShell({ title, subtitle, children, footer, wide = false }: {
         {/* Painel da marca (só em telas largas) */}
         <aside className="hidden lg:block">
           <Link href="/" className="inline-flex items-center gap-3" aria-label="Innovation RH Connect — página inicial">
-            <Image src="/logo-innovation-clean.png" alt="" width={96} height={96} priority className="h-12 w-12 rounded-full object-cover" />
-            <span className="text-lg font-bold tracking-tight text-white">Innovation <span className="font-medium text-purple-300">RH Connect</span></span>
+            <BrandLogo size={48} />
           </Link>
           <h2 className="mt-10 text-5xl font-extrabold leading-[1.08] tracking-tight text-white">Contrate bem.<span className="lp-text-warm block">Cuide melhor.</span></h2>
           <p className="mt-5 max-w-md text-lg text-white/75">Da vaga aberta ao mês fechado, tudo no mesmo lugar.</p>
@@ -47,7 +46,7 @@ export function AuthShell({ title, subtitle, children, footer, wide = false }: {
         <div className="w-full">
           {/* Logo no celular, onde o painel some */}
           <Link href="/" className="mb-5 flex justify-center lg:hidden" aria-label="Innovation RH Connect — página inicial">
-            <Image src="/logo-innovation-clean.png" alt="Innovation RH Connect" width={190} height={190} priority className="lp-float h-auto w-[clamp(100px,28vw,130px)] rounded-full object-contain drop-shadow-2xl" />
+            <BrandLogo size={56} />
           </Link>
           <div className="rounded-3xl bg-gradient-to-br from-fuchsia-400/60 via-purple-400/30 to-amber-300/60 p-px shadow-[0_24px_80px_-20px_rgba(217,70,239,.55)]">
             <div className="rounded-[calc(1.5rem-1px)] bg-white p-5 sm:p-8">
