@@ -11,11 +11,18 @@ import { readAuthSession } from '@/app/lib/auth-session';
 import { VACATION_STATUS_LABEL, formatDate, formatPeriod } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { hasPermission } from '@/app/lib/permissions';
-import { acquisitionWindow, availableDays, diffDays, processVacationDecisions, type VacationEntitlement, type VacationRow } from './vacation-data';
+import { acquisitionWindow, availableDays, diffDays, processVacationDecisions, vacationRadar, type RadarKind, type VacationEntitlement, type VacationRow } from './vacation-data';
 
-type Tab = 'active' | 'rejected' | 'history' | 'alerts';
+type Tab = 'active' | 'rejected' | 'history' | 'alerts' | 'radar';
 type Decision = { ids: string[]; status: 'APPROVED' | 'REJECTED' };
-const tabs: { value: Tab; label: string }[] = [{ value: 'active', label: 'Ativas' }, { value: 'rejected', label: 'Recusadas' }, { value: 'history', label: 'Histórico' }, { value: 'alerts', label: 'Avisos' }];
+const tabs: { value: Tab; label: string }[] = [{ value: 'active', label: 'Ativas' }, { value: 'radar', label: 'Radar' }, { value: 'rejected', label: 'Recusadas' }, { value: 'history', label: 'Histórico' }, { value: 'alerts', label: 'Avisos' }];
+const RADAR_LABEL: Record<RadarKind, { label: string; tone: string }> = {
+  OVERDUE: { label: 'Vencidas', tone: 'border-rose-200 bg-rose-50 text-rose-900' },
+  CRITICAL: { label: 'Vencem em até 90 dias', tone: 'border-amber-200 bg-amber-50 text-amber-900' },
+  AVAILABLE: { label: 'Com direito', tone: 'border-emerald-200 bg-emerald-50 text-emerald-900' },
+  ACQUIRING: { label: 'Ainda adquirindo', tone: 'border-border bg-bg-sub text-fg' },
+  TAKEN: { label: 'Já tiraram', tone: 'border-sky-200 bg-sky-50 text-sky-900' },
+};
 
 export default function VacationsPage() {
   const { user } = useAuth();
@@ -25,6 +32,8 @@ export default function VacationsPage() {
   const vacations = useQuery(() => api.vacations.list(), [], { pollMs: 30000 });
   const employees = useQuery(() => api.employees.list(), []);
   const [open, setOpen] = useState(false);
+  const [requestFor, setRequestFor] = useState('');
+  const [radarKind, setRadarKind] = useState<RadarKind | ''>('');
   const [tab, setTab] = useState<Tab>('active');
   const [search, setSearch] = useState('');
   const [employeeFilter, setEmployeeFilter] = useState('');
@@ -44,7 +53,7 @@ export default function VacationsPage() {
     const readView = () => {
       const params = new URLSearchParams(window.location.search);
       const candidate = params.get('tab');
-      setTab(tabs.some(item => item.value === candidate) && (candidate !== 'alerts' || canApprove) ? candidate as Tab : 'active');
+      setTab(tabs.some(item => item.value === candidate) && (!['alerts', 'radar'].includes(candidate ?? '') || canApprove) ? candidate as Tab : 'active');
       setEmployeeFilter(isSelfOnly ? '' : params.get('employeeId') ?? '');
       setMonth(/^\d{4}-\d{2}$/.test(params.get('month') ?? '') ? params.get('month') : '');
     };
@@ -66,7 +75,7 @@ export default function VacationsPage() {
   }
   const filteredRows = rows.filter(row => {
     const term = search.trim().toLocaleLowerCase('pt-BR');
-    const matchesSearch = !term || normalizeDisplayName(row.employee?.name ?? '').toLocaleLowerCase('pt-BR').includes(term) || row.acquisitionPeriod.includes(term);
+    const matchesSearch = !term || normalizeDisplayName(row.employee?.name ?? '').toLocaleLowerCase('pt-BR').includes(term) || (row.acquisitionPeriod ?? '').includes(term);
     const matchesMonth = !month || (row.startDate.slice(0, 7) <= month && row.endDate.slice(0, 7) >= month);
     return matchesSearch && matchesMonth && (!employeeFilter || row.employeeId === employeeFilter);
   });
@@ -78,6 +87,12 @@ export default function VacationsPage() {
   const allSelected = activeRows.length > 0 && visibleSelection.length === activeRows.length;
   function toggle(id: string) { setSelectedRows(previous => previous.includes(id) ? previous.filter(value => value !== id) : [...previous, id]); }
   function selectAll() { setSelectedRows(previous => allSelected ? previous.filter(id => !activeRows.some(row => row.id === id)) : [...new Set([...previous, ...activeRows.map(row => row.id)])]); }
+
+  const radar = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase('pt-BR');
+    return vacationRadar(employees.data ?? [], rows).filter(item => !term || normalizeDisplayName(item.name).toLocaleLowerCase('pt-BR').includes(term) || (item.registration ?? '').toLowerCase().includes(term));
+  }, [employees.data, vacations.data, search]);
+  const radarCounts = useMemo(() => radar.reduce<Record<string, number>>((acc, item) => ({ ...acc, [item.kind]: (acc[item.kind] ?? 0) + 1 }), {}), [radar]);
 
   const alertItems = useMemo(() => {
     const byId = new Map<string, { employee: Employee; entitlement: VacationEntitlement }>();
@@ -147,7 +162,7 @@ export default function VacationsPage() {
       </div>
       {(search || employeeFilter || month) && <Button type="button" variant="ghost" className="mt-3" onClick={() => { setSearch(''); setEmployeeFilter(''); setMonth(''); const url = new URL(window.location.href); url.searchParams.delete('employeeId'); url.searchParams.delete('month'); window.history.replaceState(null, '', url.pathname + url.search); }}>Limpar filtros</Button>}
     </section>
-    <nav aria-label="Visões de férias" className="flex flex-wrap gap-2">{tabs.filter(item => item.value !== 'alerts' || canApprove).map(item => <Button type="button" key={item.value} variant={tab === item.value ? 'primary' : 'outline'} aria-pressed={tab === item.value} onClick={() => changeTab(item.value)}>{item.label} ({vacations.data ? item.value === 'active' ? activeRows.length : item.value === 'rejected' ? rejectedRows.length : item.value === 'history' ? historyRows.length : alertItems.length : '—'})</Button>)}</nav>
+    <nav aria-label="Visões de férias" className="flex flex-wrap gap-2">{tabs.filter(item => !['alerts', 'radar'].includes(item.value) || canApprove).map(item => <Button type="button" key={item.value} variant={tab === item.value ? 'primary' : 'outline'} aria-pressed={tab === item.value} onClick={() => changeTab(item.value)}>{item.label} ({vacations.data ? item.value === 'active' ? activeRows.length : item.value === 'rejected' ? rejectedRows.length : item.value === 'history' ? historyRows.length : item.value === 'radar' ? (radarCounts.OVERDUE ?? 0) + (radarCounts.CRITICAL ?? 0) : alertItems.length : '—'})</Button>)}</nav>
     {vacations.error && <ErrorState message={vacations.error} onRetry={vacations.refetch} />}
     {results.length > 0 && <section aria-label="Resultado das decisões" aria-live="polite" className="card-v2 space-y-2 p-4"><h2 className="font-semibold">{results.filter(result => result.success).length} de {results.length} decisões salvas</h2>{results.map(result => <p key={result.id} className={result.success ? 'text-sm text-emerald-800' : 'text-sm text-rose-800'}>{normalizeDisplayName(rows.find(row => row.id === result.id)?.employee?.name ?? 'Solicitação')} · {result.message}</p>)}</section>}
     {receiptError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><p>{receiptError}</p><Button type="button" variant="ghost" onClick={() => setReceiptError('')}>Fechar aviso</Button></div>}
@@ -155,7 +170,19 @@ export default function VacationsPage() {
       <label className="flex min-h-11 items-center gap-3 text-sm"><input type="checkbox" className="h-5 w-5 accent-purple-700" checked={allSelected} disabled={busy} onChange={selectAll} /> Selecionar todas as {activeRows.length} pendentes visíveis</label>
       <Button type="button" disabled={visibleSelection.length === 0 || busy} onClick={() => setDecision({ ids: visibleSelection, status: 'APPROVED' })}>Aprovar selecionadas ({visibleSelection.length})</Button>
     </div>}
-    {vacations.loading && !vacations.data ? <LoadingState label="Carregando solicitações…" /> : !vacations.data ? null : tab === 'alerts' ? <section className="card-v2 space-y-4 p-4"><h2 className="font-semibold">Prazos e saldo dos ciclos registrados</h2><p className="text-sm text-fg-sub">Avisos usam os períodos e saldos retornados pelo servidor. Funcionários sem um ciclo registrado precisam de consulta no formulário; esta lista não comprova ausência de pendências.</p>{alertItems.length === 0 ? <EmptyState message="Nenhum ciclo registrado com saldo e prazo próximo nos filtros atuais." /> : alertItems.map(item => <article key={item.entitlement.id} className="rounded-lg border border-amber-200 bg-amber-50 p-4"><h3 className="font-semibold text-amber-950">{normalizeDisplayName(item.employee.name)}</h3><p className="mt-1 text-sm text-amber-900">Admissão: {formatDate(item.employee.admissionDate)} · Período: {formatPeriod(item.entitlement.acquisitionStart, item.entitlement.acquisitionEnd)}</p><p className="mt-1 text-sm text-amber-900">Prazo concessivo: {formatDate(item.entitlement.concessionEnd)} · Saldo disponível: {availableDays(item.entitlement)} dias</p>{canRequest && <Button type="button" variant="outline" className="mt-3" onClick={() => { setEmployeeFilter(item.employee.id); setOpen(true); }}>Solicitar para este funcionário</Button>}</article>)}</section> : displayRows.length === 0 ? <EmptyState message={rows.length === 0 ? 'Nenhuma solicitação de férias registrada.' : 'Nenhuma solicitação nesta visão e nos filtros atuais.'} /> : <>
+    {vacations.loading && !vacations.data ? <LoadingState label="Carregando solicitações…" /> : !vacations.data ? null : tab === 'radar' ? <section className="space-y-4" aria-label="Radar de férias">
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant={radarKind === '' ? 'primary' : 'outline'} onClick={() => setRadarKind('')}>Todos ({radar.length})</Button>
+        {(Object.keys(RADAR_LABEL) as RadarKind[]).map(kind => <Button key={kind} type="button" variant={radarKind === kind ? 'primary' : 'outline'} onClick={() => setRadarKind(kind)}>{RADAR_LABEL[kind].label} ({radarCounts[kind] ?? 0})</Button>)}
+      </div>
+      <p className="text-sm text-fg-sub">Calculado pela data de admissão: o direito nasce aos 12 meses e o prazo para tirar vence 12 meses depois (aos 24). Pedidos pendentes, aprovados e concluídos contam como dias já usados.</p>
+      {radar.filter(item => !radarKind || item.kind === radarKind).length === 0 ? <EmptyState message="Nenhum funcionário nesta situação." /> : <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{radar.filter(item => !radarKind || item.kind === radarKind).map(item => <article key={item.employeeId} className={'rounded-xl border p-4 ' + RADAR_LABEL[item.kind].tone}>
+        <div className="flex items-start justify-between gap-2"><h3 className="break-words font-semibold">{normalizeDisplayName(item.name)}</h3><span className="shrink-0 rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold">{RADAR_LABEL[item.kind].label}</span></div>
+        <p className="mt-1 text-xs opacity-80">Admissão {formatDate(item.admissionDate)} · {Math.floor(item.monthsOfService / 12)} ano(s) e {item.monthsOfService % 12} mês(es) de casa{item.registration ? ' · mat. ' + item.registration : ''}</p>
+        <p className="mt-2 text-sm">Ciclo {item.cycle}: {item.detail}</p>
+        {canRequest && item.kind !== 'ACQUIRING' && item.kind !== 'TAKEN' && <Button type="button" variant="outline" className="mt-3" onClick={() => { setRequestFor(item.employeeId); setOpen(true); }}>Solicitar férias</Button>}
+      </article>)}</div>}
+    </section> : tab === 'alerts' ? <section className="card-v2 space-y-4 p-4"><h2 className="font-semibold">Prazos e saldo dos ciclos registrados</h2><p className="text-sm text-fg-sub">Avisos usam os períodos e saldos retornados pelo servidor. Funcionários sem um ciclo registrado precisam de consulta no formulário; esta lista não comprova ausência de pendências.</p>{alertItems.length === 0 ? <EmptyState message="Nenhum ciclo registrado com saldo e prazo próximo nos filtros atuais." /> : alertItems.map(item => <article key={item.entitlement.id} className="rounded-lg border border-amber-200 bg-amber-50 p-4"><h3 className="font-semibold text-amber-950">{normalizeDisplayName(item.employee.name)}</h3><p className="mt-1 text-sm text-amber-900">Admissão: {formatDate(item.employee.admissionDate)} · Período: {formatPeriod(item.entitlement.acquisitionStart, item.entitlement.acquisitionEnd)}</p><p className="mt-1 text-sm text-amber-900">Prazo concessivo: {formatDate(item.entitlement.concessionEnd)} · Saldo disponível: {availableDays(item.entitlement)} dias</p>{canRequest && <Button type="button" variant="outline" className="mt-3" onClick={() => { setEmployeeFilter(item.employee.id); setOpen(true); }}>Solicitar para este funcionário</Button>}</article>)}</section> : displayRows.length === 0 ? <EmptyState message={rows.length === 0 ? 'Nenhuma solicitação de férias registrada.' : 'Nenhuma solicitação nesta visão e nos filtros atuais.'} /> : <>
       <div className="space-y-3 md:hidden">{displayRows.map(row => <article key={row.id} className="card-v2 space-y-4 p-4">
         <div className="flex flex-wrap items-start justify-between gap-2"><h2 className="break-words font-semibold">{normalizeDisplayName(row.employee?.name ?? 'Funcionário')}</h2><StatusBadge row={row} /></div>
         <p className="text-sm">{formatPeriod(row.startDate, row.endDate)} · {row.daysUsed} dias</p>
@@ -172,7 +199,7 @@ export default function VacationsPage() {
         </tr>)}</tbody>
       </table></div></section>
     </>}
-    {open && <NewVacationModal key={user?.companyId} employees={employees.data ?? []} employeeError={employees.error} employeeLoading={employees.loading} onRetryEmployees={employees.refetch} existingVacations={rows} initialEmployeeId={isSelfOnly ? ownEmployeeId : employeeFilter} lockEmployee={isSelfOnly} onClose={() => setOpen(false)} onDone={() => { setOpen(false); vacations.refetch(); }} />}
+    {open && <NewVacationModal key={user?.companyId} employees={employees.data ?? []} employeeError={employees.error} employeeLoading={employees.loading} onRetryEmployees={employees.refetch} existingVacations={rows} initialEmployeeId={isSelfOnly ? ownEmployeeId : requestFor || employeeFilter} lockEmployee={isSelfOnly} onClose={() => { setOpen(false); setRequestFor(''); }} onDone={() => { setOpen(false); setRequestFor(''); vacations.refetch(); }} />}
     <ConfirmDialog isOpen={!!decision} onClose={() => !busy && setDecision(null)} title={decision?.status === 'REJECTED' ? 'Rejeitar solicitação' : 'Aprovar férias'} description={decision ? decision.ids.map(id => { const row = rows.find(item => item.id === id); return normalizeDisplayName(row?.employee?.name ?? 'Funcionário') + ': ' + formatPeriod(row?.startDate, row?.endDate); }).join('; ') : ''} confirmText={decision?.status === 'REJECTED' ? 'Rejeitar solicitação' : 'Aprovar ' + (decision?.ids.length ?? 0) + ' solicitação(ões)'} variant={decision?.status === 'REJECTED' ? 'danger' : 'primary'} isLoading={busy} onConfirm={saveDecision} />
   </div>;
 }
@@ -210,7 +237,7 @@ function NewVacationModal({ employees, existingVacations, initialEmployeeId, loc
     const token = readAuthSession().token;
     fetch(API_URL + '/vacations/employee/' + encodeURIComponent(form.employeeId) + '/entitlements', { signal: controller.signal, headers: { Authorization: 'Bearer ' + (token ?? '') } })
       .then(async response => { if (!response.ok) throw new Error('Não foi possível consultar os ciclos e saldos.'); return response.json(); })
-      .then(data => { if (!controller.signal.aborted) setEntitlements(data); })
+      .then(data => { if (!controller.signal.aborted) setEntitlements(Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []); })
       .catch(error => { if (!controller.signal.aborted) setEntitlementError(error.message); })
       .finally(() => { if (!controller.signal.aborted) setEntitlementLoading(false); });
     return () => controller.abort();
