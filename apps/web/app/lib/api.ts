@@ -483,6 +483,13 @@ export interface PlanQuote {
   prorationAmount: number; remainingDays: number; cycleDays: number; effectiveAt?: string | null;
 }
 
+export interface RefundRequestItem {
+  ticketId: string; ticketNumber: string; status: string; requestedAt: string; reason: string;
+  requester: { name?: string | null; email?: string | null };
+  company: { id: string; name: string; document?: string | null } | null;
+  invoice: { id: string; description?: string | null; amount: number; paidAt?: string | null; refundedAmount: number; refundable: number; billingType?: string | null; provider?: string | null; refundStatus?: string | null } | null;
+}
+
 export interface SeatsQuote {
   currentSeats: number; nextSeats: number; currentTotal: number; nextTotal: number; kind: 'UPGRADE' | 'DOWNGRADE' | 'SEM_MUDANCA';
   prorationAmount: number; remainingDays: number; cycleDays: number; periodEnd?: string | null; downgradeEffectiveAt?: string | null;
@@ -1030,6 +1037,8 @@ export const api = {
     activateSubscription: (companyId: string, input: { planId: string; seatQuantity: number; chargeNow: boolean; reason: string }) => request<{ activated: boolean; total: number; invoiceId: string | null }>(`/faturas/plataforma/companies/${companyId}/activate-subscription`, { method: 'POST', body: input }),
     applyCoupon: (companyId: string, input: { code: string; reason: string }) => request<Record<string, unknown>>(`/faturas/plataforma/companies/${companyId}/coupon`, { method: 'POST', body: input }),
     cancelSubscription: (companyId: string, input: { mode: 'NOW' | 'END_OF_CYCLE'; reason: string }) => request<{ canceled: boolean; cancelAt?: string }>(`/faturas/plataforma/companies/${companyId}/cancel-subscription`, { method: 'POST', body: input }),
+    refundRequests: (status: 'abertos' | 'todos' = 'abertos') => request<RefundRequestItem[]>(`/faturas/plataforma/reembolsos?status=${status}`),
+    decideRefund: (ticketId: string, input: { action: 'APPROVE' | 'REJECT'; amount?: number; note?: string }) => request<{ ticketNumber: string; decision: string }>(`/faturas/plataforma/reembolsos/${ticketId}/decidir`, { method: 'POST', body: input, timeoutMs: 40000 }),
     minhasPermissoes: () => request<{ permissions: string[] }>('/faturas/permissoes/minhas', { silent: true, keepSessionOn401: true }),
     rolePermissions: () => request<FaturasRolePermissions>('/faturas/permissoes'),
     setRolePermissions: (role: string, permissions: string[]) => request<{ role: string; permissions: string[] }>(`/faturas/permissoes/${role}`, { method: 'PUT', body: { permissions } }),

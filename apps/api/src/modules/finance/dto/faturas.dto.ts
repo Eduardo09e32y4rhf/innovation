@@ -69,6 +69,13 @@ export class PartialRefundDto extends ReasonDto {
   amount!: number;
 }
 
+/** Decisão sobre um pedido de reembolso do cliente (aprovar total/parcial ou recusar com motivo). */
+export class DecideRefundDto {
+  @IsIn(['APPROVE', 'REJECT']) action!: 'APPROVE' | 'REJECT';
+  @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0.01) amount?: number;
+  @IsOptional() @IsString() @MaxLength(500) note?: string;
+}
+
 export class FullRefundDto extends ReasonDto {
   @IsOptional() @IsUUID() idempotencyKey?: string;
 }

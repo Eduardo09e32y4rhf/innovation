@@ -12,11 +12,12 @@ describe('userHasFaturasPermission', () => {
     expect(userHasFaturasPermission({ role: 'GESTOR' }, 'faturas.ver')).toBe(false);
   });
 
-  it('contador só vê e anexa NF; não cobra nem reembolsa', () => {
+  it('contador vê, anexa NF e decide reembolsos; não cobra nem dá desconto', () => {
     expect(userHasFaturasPermission({ role: 'CONTABIL' }, 'faturas.todas_empresas')).toBe(true);
     expect(userHasFaturasPermission({ role: 'CONTABIL' }, 'faturas.nf_anexar')).toBe(true);
     expect(userHasFaturasPermission({ role: 'CONTABIL' }, 'faturas.cobrar')).toBe(false);
-    expect(userHasFaturasPermission({ role: 'CONTABIL' }, 'faturas.reembolsar')).toBe(false);
+    expect(userHasFaturasPermission({ role: 'CONTABIL' }, 'faturas.desconto')).toBe(false);
+    expect(userHasFaturasPermission({ role: 'CONTABIL' }, 'faturas.reembolsar')).toBe(true);
   });
 
   it('permissões personalizadas substituem o padrão, dentro do teto do perfil', () => {

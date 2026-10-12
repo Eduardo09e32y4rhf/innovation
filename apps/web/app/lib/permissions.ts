@@ -163,7 +163,8 @@ const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     'platform.view_finance',
     'faturas.ver',
     'faturas.nf_anexar',
-    'faturas.todas_empresas'
+    'faturas.todas_empresas',
+    'faturas.reembolsar'
   ],
   'comercial': [
     'settings.change_own_password',

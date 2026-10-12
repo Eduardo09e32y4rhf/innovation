@@ -9,6 +9,7 @@ import { BillingCronService } from './billing-cron.service';
 import { CompanyBillingController } from './company-billing.controller';
 import { FaturasAcoesService } from './faturas-acoes.service';
 import { FaturasEmpresaService } from './faturas-empresa.service';
+import { FaturasReembolsosService } from './faturas-reembolsos.service';
 import { FaturasController } from './faturas.controller';
 import { FaturasPermissoesController } from './faturas-permissoes.controller';
 import { FaturasPermissionsService } from '../../common/permissions/faturas-permissions.service';
@@ -50,6 +51,7 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     FaturasService,
     FaturasAcoesService,
     FaturasEmpresaService,
+    FaturasReembolsosService,
     FaturasPermissionsService,
   ],
   controllers: [

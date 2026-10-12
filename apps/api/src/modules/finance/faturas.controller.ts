@@ -9,10 +9,11 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { FaturasPermissionGuard, RequireFaturasPermission } from '../../common/permissions/require-faturas-permission';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ListPlatformInvoicesDto } from './dto/platform-finance.dto';
-import { ActivateSubscriptionDto, ReleaseAccessDto, RefundRequestDto, CompanyCancelDto, ApplyCouponDto, CompanyChangePlanDto, CompanyChangeSeatsDto, AttachFiscalDto, CancelSubscriptionDto, CancelInvoiceDto, ChangePlanDto, ChangeSeatsDto, DiscountInvoiceDto, FreeDaysDto, FullRefundDto, ListFaturasCompaniesDto, PartialRefundDto, RecurringDiscountDto } from './dto/faturas.dto';
+import { DecideRefundDto, ActivateSubscriptionDto, ReleaseAccessDto, RefundRequestDto, CompanyCancelDto, ApplyCouponDto, CompanyChangePlanDto, CompanyChangeSeatsDto, AttachFiscalDto, CancelSubscriptionDto, CancelInvoiceDto, ChangePlanDto, ChangeSeatsDto, DiscountInvoiceDto, FreeDaysDto, FullRefundDto, ListFaturasCompaniesDto, PartialRefundDto, RecurringDiscountDto } from './dto/faturas.dto';
 import { CreatePlatformInvoiceDto } from './dto/platform-finance.dto';
 import { FaturasAcoesService } from './faturas-acoes.service';
 import { FaturasEmpresaService } from './faturas-empresa.service';
+import { FaturasReembolsosService } from './faturas-reembolsos.service';
 import { FaturasService } from './faturas.service';
 import { InvoicePdfService } from './invoice-pdf.service';
 import { sendPdf } from '../../common/pdf/pdf-response';
@@ -36,6 +37,7 @@ export class FaturasController {
     private readonly acoes: FaturasAcoesService,
     private readonly empresa: FaturasEmpresaService,
     private readonly pdf: InvoicePdfService,
+    private readonly reembolsosService: FaturasReembolsosService,
   ) {}
 
   // ---- Visão da empresa ----
@@ -194,6 +196,19 @@ export class FaturasController {
   @RequireFaturasPermission('faturas.reembolsar')
   refundPartial(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: PartialRefundDto) {
     return this.acoes.partialRefund(id, dto, actor);
+  }
+
+  /** Fila de pedidos de reembolso feitos pelos clientes (abertos por padrão). */
+  @Get('plataforma/reembolsos')
+  @RequireFaturasPermission('faturas.todas_empresas')
+  reembolsos(@Query('status') status?: string) {
+    return this.reembolsosService.list(status === 'todos' ? 'todos' : 'abertos');
+  }
+
+  @Post('plataforma/reembolsos/:ticketId/decidir')
+  @RequireFaturasPermission('faturas.reembolsar')
+  decidirReembolso(@CurrentUser() actor: JwtUser, @Param('ticketId', ParseUUIDPipe) ticketId: string, @Body() dto: DecideRefundDto) {
+    return this.reembolsosService.decide(ticketId, dto, actor);
   }
 
   @Post('plataforma/invoices/:id/refund')

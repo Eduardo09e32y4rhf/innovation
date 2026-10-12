@@ -21,7 +21,8 @@ export const FATURAS_DEFAULTS: Partial<Record<UserRole, readonly FaturasPermissi
   RH: ['faturas.ver', 'faturas.pagar'],
   DEV: FATURAS_PERMISSIONS,
   CEO: FATURAS_PERMISSIONS,
-  CONTABIL: ['faturas.ver', 'faturas.nf_anexar', 'faturas.todas_empresas'],
+  // O contador decide os pedidos de reembolso dos clientes (aprovar/recusar); não cobra nem dá desconto.
+  CONTABIL: ['faturas.ver', 'faturas.nf_anexar', 'faturas.todas_empresas', 'faturas.reembolsar'],
 };
 
 /** Somente estes perfis enxergam a aba Faturas. Os demais (GESTOR, FUNCIONARIO, CONSULTA, COMERCIAL...) nao tem acesso, nem por permissao personalizada. */

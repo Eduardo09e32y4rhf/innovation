@@ -5,6 +5,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { AssinaturasView } from './_assinaturas';
 import { CuponsView } from './_cupons';
 import { PlanosView } from './_planos';
+import { ReembolsosView } from './_reembolsos';
 import PlatformInvoicesView from './_platform-view';
 import { FATURAS_TAB_LABEL, resolveFaturasTab, visibleFaturasTabs } from './_tabs';
 
@@ -41,6 +42,7 @@ export default function PlatformFaturas() {
         </nav>
       )}
       {tab === 'faturas' && <PlatformInvoicesView />}
+      {tab === 'reembolsos' && <ReembolsosView />}
       {tab === 'assinaturas' && <AssinaturasView params={{ tenant }} />}
       {tab === 'planos' && <PlanosView params={{ tenant }} />}
       {tab === 'cupons' && <CuponsView />}
