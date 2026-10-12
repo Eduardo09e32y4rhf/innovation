@@ -157,12 +157,11 @@ function empName(id: string, employees: Employee[]) {
 
 const TYPE_INFO: Record<string, { label: string; hint: string }> = {
   SIMPLE_NOTICE: { label: 'Comunicado', hint: 'Aviso geral. Aparece para todos assim que entrarem no sistema.' },
-  PROMOTION_NOTICE: { label: 'Promoção / reconhecimento', hint: 'Mensagem de parabéns que aparece ao funcionário assim que ele entrar.' },
   WARNING_NOTICE: { label: 'Advertência', hint: 'Documento formal. O funcionário precisa assinar (ou recusar) ao entrar.' },
   SUSPENSION_NOTICE: { label: 'Suspensão', hint: 'Documento formal. Lança os dias no ponto e o desconto entra na folha.' },
 };
 
-const TYPE_LABEL: Record<string, string> = { ...Object.fromEntries(Object.entries(TYPE_INFO).map(([k, v]) => [k, v.label])), SYSTEM_NOTICE: 'Sistema', RH_NOTICE: 'RH', VACATION_NOTICE: 'Férias', DOCUMENT_NOTICE: 'Documento', URGENT_NOTICE: 'Urgente', PLATFORM_NOTICE: 'Plataforma' };
+const TYPE_LABEL: Record<string, string> = { ...Object.fromEntries(Object.entries(TYPE_INFO).map(([k, v]) => [k, v.label])), PROMOTION_NOTICE: 'Promoção (automático)', SYSTEM_NOTICE: 'Sistema', RH_NOTICE: 'RH', VACATION_NOTICE: 'Férias', DOCUMENT_NOTICE: 'Documento', URGENT_NOTICE: 'Urgente', PLATFORM_NOTICE: 'Plataforma' };
 
 function CreateNotificationForm({ employees, onCreated }: { employees: Employee[]; onCreated: () => void }) {
   const [title, setTitle] = useState('');

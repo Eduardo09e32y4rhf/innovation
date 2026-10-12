@@ -3,7 +3,7 @@
 import { usePathname, useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
-import { Bell, CalendarDays, FileClock, HardHat, HeartPulse, LayoutDashboard, UserRoundPlus } from 'lucide-react';
+import { Award, Bell, CalendarDays, FileClock, HardHat, HeartPulse, LayoutDashboard, UserRoundPlus } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { cn } from '@/app/lib/cn';
 import styles from '../escalas/_components/operational-ui.module.css';
@@ -35,6 +35,7 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
         { name: 'Comunicados', href: `${base}/notifications`, icon: Bell },
         ...(canManage ? [
           { name: 'Admissão', href: `${base}/onboarding`, icon: UserRoundPlus },
+          { name: 'Promoções', href: `${base}/promotions`, icon: Award },
           { name: 'Folha de pagamento', href: `${base}/payroll`, icon: FileClock },
         ] : []),
       ],

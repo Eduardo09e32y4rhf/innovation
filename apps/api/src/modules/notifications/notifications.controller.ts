@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -45,6 +45,8 @@ export class NotificationsController {
   @Roles('DEV', 'ADMIN', 'RH')
   @Post('admin')
   createAdminNotice(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: any) {
+    // Promoção não é mais comunicado manual: lance em Gestão → Promoções (ajusta cargo e salário e avisa sozinho).
+    if (body?.type === 'PROMOTION_NOTICE') throw new BadRequestException('Promoções são lançadas em Gestão → Promoções: o sistema ajusta cargo e salário e avisa o colaborador sozinho.');
     return this.svc.createAdminNotice(companyId, actor.sub, body);
   }
 

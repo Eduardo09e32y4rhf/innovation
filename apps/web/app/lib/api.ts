@@ -489,6 +489,13 @@ export interface DeductionRule {
 }
 export type DeductionRuleInput = Omit<DeductionRule, 'id'>;
 
+export interface PromotionPolicy { minMonthsInRole: number; maxRaisePercent: number | null; requireReason: boolean; positions: string[]; autoNotify: boolean }
+export interface PromotionItem {
+  id: string; employeeId: string; previousPosition: string | null; newPosition: string | null; previousSalary: number | null; newSalary: number | null;
+  effectiveDate: string; status: 'SCHEDULED' | 'APPLIED' | 'CANCELED'; reason: string | null; notificationId: string | null; appliedAt: string | null;
+  employee: { id: string; name: string; position: string | null; department: string | null };
+}
+
 export interface RefundRequestItem {
   ticketId: string; ticketNumber: string; status: string; requestedAt: string; reason: string;
   requester: { name?: string | null; email?: string | null };
@@ -810,6 +817,13 @@ export const api = {
     update: (id: string, data: any) => request<any>(`/time-rules/${id}`, { method: 'PUT', body: data }),
     archive: (id: string) => request<any>(`/time-rules/${id}/archive`, { method: 'PUT' }),
     activate: (id: string) => request<any>(`/time-rules/${id}/activate`, { method: 'PUT' }),
+  },
+  promotions: {
+    policy: () => request<PromotionPolicy>('/promotions/policy'),
+    savePolicy: (body: PromotionPolicy) => request<PromotionPolicy>('/promotions/policy', { method: 'PUT', body }),
+    list: () => request<PromotionItem[]>('/promotions'),
+    create: (body: { employeeId: string; newPosition?: string; newSalary?: number; effectiveDate: string; reason?: string }) => request<PromotionItem>('/promotions', { method: 'POST', body }),
+    cancel: (id: string) => request<{ id: string; status: string }>(`/promotions/${id}/cancel`, { method: 'POST', body: {} }),
   },
   deductionRules: {
     list: () => request<{ rules: DeductionRule[]; positions: string[]; departments: string[] }>('/deduction-rules'),
