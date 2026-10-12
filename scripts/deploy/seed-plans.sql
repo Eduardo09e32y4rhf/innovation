@@ -6,14 +6,14 @@
 BEGIN;
 
 INSERT INTO "PlatformPlan"
-  ("code","name","description","price","cycle","commitmentMonths","discountPercent","baseMonthlyPrice","userMonthlyPrice","includedUnits",
+  ("id","code","name","description","price","cycle","commitmentMonths","discountPercent","baseMonthlyPrice","userMonthlyPrice","includedUnits",
    "asaasCycle","displayOrder","isRecommended","pricingVersion","activeModules","isActive","isHidden","updatedAt")
 VALUES
-  ('RS','Só RH','Apenas Recrutamento e Seleção',99.99,'MONTHLY',1,0,99.99,2.49,50,
+  (gen_random_uuid(),'RS','Só RH','Apenas Recrutamento e Seleção',99.99,'MONTHLY',1,0,99.99,2.49,50,
    'MONTHLY',1,false,'2026.2',ARRAY['recruitment'],true,false,now()),
-  ('BASICO','Básico','RH completo para a sua equipe',99.99,'MONTHLY',1,0,99.99,2.50,10,
+  (gen_random_uuid(),'BASICO','Básico','RH completo para a sua equipe',99.99,'MONTHLY',1,0,99.99,2.50,10,
    'MONTHLY',2,false,'2026.2',ARRAY['employees','time-track','vacations','management'],true,false,now()),
-  ('PREMIUM','Completo','RH completo + Recrutamento e Seleção',199.99,'MONTHLY',1,0,199.99,1.99,20,
+  (gen_random_uuid(),'PREMIUM','Completo','RH completo + Recrutamento e Seleção',199.99,'MONTHLY',1,0,199.99,1.99,20,
    'MONTHLY',3,true,'2026.2',ARRAY['employees','time-track','vacations','management','recruitment'],true,false,now())
 ON CONFLICT ("code") DO UPDATE SET
   "name" = EXCLUDED."name",
