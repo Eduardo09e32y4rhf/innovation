@@ -1,4 +1,4 @@
-﻿-- Dispensa de controle de ponto (art. 62) e ciencia do funcionario sobre o espelho do mes
+-- Dispensa de controle de ponto (art. 62) e ciencia do funcionario sobre o espelho do mes
 ALTER TABLE "Employee" ADD COLUMN "timeControlExempt" BOOLEAN NOT NULL DEFAULT false;
 
 CREATE TABLE "TimesheetAck" (
