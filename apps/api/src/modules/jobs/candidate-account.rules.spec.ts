@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  admissionPrefill, funnelCount, generateLoginCode, hashSecret, highestEducation, isEmail, isValidCpf, profileCompleteness, safeEqualHex, sanitizeEducation,
+  admissionPrefill, funnelCount, generateLoginCode, hashSecret, highestEducation, isEmail, isValidCpf, profileCompleteness, safeEqualHex, sanitizeEducation, hashPassword, verifyPassword, passwordProblem, parseBirthDate, sanitizeSkills, talentCard,
 } from './candidate-account.rules';
 
 describe('CPF', () => {
@@ -83,5 +83,44 @@ describe('pré-preenchimento na admissão', () => {
   it('CPF inválido não vai para o funcionário', () => {
     const data: any = admissionPrefill({ cpf: '123' });
     expect(data.cpfDigits).toBeUndefined();
+  });
+});
+
+describe('senha', () => {
+  it('guarda com sal (dois hashes diferentes) e confere', () => {
+    const a = hashPassword('segredo123'); const b = hashPassword('segredo123');
+    expect(a).not.toBe(b);
+    expect(verifyPassword('segredo123', a)).toBe(true);
+    expect(verifyPassword('segredo124', a)).toBe(false);
+    expect(verifyPassword('x', null)).toBe(false);
+    expect(verifyPassword('x', 'lixo')).toBe(false);
+  });
+  it('exige 8+ caracteres com letras e números', () => {
+    expect(passwordProblem('abc12')).toMatch(/pelo menos 8/);
+    expect(passwordProblem('somenteletras')).toMatch(/letras e números/);
+    expect(passwordProblem('12345678')).toMatch(/letras e números/);
+    expect(passwordProblem('segredo123')).toBeNull();
+  });
+});
+
+describe('perfil profissional', () => {
+  const now = new Date(Date.UTC(2026, 9, 13));
+  it('data de nascimento: válida, existente, passada e 14+ anos', () => {
+    expect(parseBirthDate('1990-05-17', now)?.toISOString().slice(0, 10)).toBe('1990-05-17');
+    expect(parseBirthDate('', now)).toBeNull();
+    expect(parseBirthDate('1990-02-31', now)).toBeUndefined();
+    expect(parseBirthDate('17/05/1990', now)).toBeUndefined();
+    expect(parseBirthDate('2020-01-01', now)).toBeUndefined();
+    expect(parseBirthDate('1899-01-01', now)).toBeUndefined();
+  });
+  it('conhecimentos: sem repetidos, sem vazios, no máximo 15', () => {
+    expect(sanitizeSkills([' SPED ', 'sped', '', 'Excel'])).toEqual(['SPED', 'Excel']);
+    expect(sanitizeSkills(Array.from({ length: 30 }, (_, i) => `s${i}`))).toHaveLength(15);
+    expect(sanitizeSkills('x')).toEqual([]);
+  });
+  it('cartão do banco de talentos não traz CPF, contato, rua nem nascimento exato', () => {
+    const card = talentCard({ id: 'a', name: 'Camila', cpf: '52998224725', phone: '11999999999', street: 'Rua X', birthDate: new Date(Date.UTC(1990, 5, 1)), city: 'Osasco', hasDriverLicense: false, driverLicenseCategory: 'B', resumeKey: 'k' }, now);
+    expect(card).toMatchObject({ age: 36, city: 'Osasco', driverLicenseCategory: null, hasResume: true });
+    expect(JSON.stringify(card)).not.toMatch(/52998224725|11999999999|Rua X|1990/);
   });
 });

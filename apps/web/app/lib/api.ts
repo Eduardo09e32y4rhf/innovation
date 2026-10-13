@@ -793,6 +793,9 @@ export const api = {
     rhAlerts: () => request<{ asoExpired: number; asoExpiringSoon: number; pendingAdmissionAso: number; inaptoCount: number; items: { type: string; employeeId: string; employeeName: string; message: string; target: string }[] }>('/management/aso/alerts/rh'),
   },
 
+  candidateAccounts: {
+    list: (q?: string, page?: number) => request<DevCandidatesPage>('/candidate-accounts' + makeQuery({ q, page })),
+  },
   employees: {
     list: (page?: number, pageSize?: number, search?: string, status?: string) => request<Employee[]>('/employees' + makeQuery({ page, pageSize, search, status })),
     swapCandidates: () => request<any[]>('/employees/swap-candidates'),
@@ -1190,3 +1193,11 @@ export interface ClosingConference {
   employees: Array<{ employeeId: string; name: string; position?: string | null; daysRecorded: number; breakDeficitMinutes: number; issues: ClosingConferenceIssue[] }>;
 }
 
+
+
+export type DevCandidate = {
+  id: string; email: string; name: string | null; profession: string | null; city: string | null; state: string | null; highestEducation: string | null;
+  hasDriverLicense: boolean | null; driverLicenseCategory: string | null; hasResume: boolean; hasPassword: boolean; talentPool: boolean; applications: number;
+  createdAt: string; lastLoginAt: string | null; locked: boolean;
+};
+export type DevCandidatesPage = { total: number; page: number; pageSize: number; items: DevCandidate[] };

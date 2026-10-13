@@ -26,10 +26,19 @@ export function candidateRequestAnsweredEmail(input: { company: string; type: st
   };
 }
 
-export function candidateLoginCodeEmail(input: { code: string; minutes: number }): MailContent {
+export function candidatePasswordResetEmail(input: { code: string; minutes: number }): MailContent {
   return {
-    subject: `Seu código de acesso: ${input.code}`,
-    html: layout('Seu código de acesso', `<p>Use o código abaixo para entrar na Área do candidato:</p><p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:18px 0">${escapeHtml(input.code)}</p><p style="font-size:13px;color:#666">O código vale por ${input.minutes} minutos e só pode ser usado uma vez. Se não foi você, ignore este e-mail.</p>`),
-    text: `Seu código de acesso à Área do candidato: ${input.code}\nValido por ${input.minutes} minutos. Se não foi você, ignore este e-mail.`,
+    subject: `Código para criar uma nova senha: ${input.code}`,
+    html: layout('Recuperar senha', `<p>Use o código abaixo para criar uma nova senha na Área do candidato:</p><p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:18px 0">${escapeHtml(input.code)}</p><p style="font-size:13px;color:#666">O código vale por ${input.minutes} minutos e só pode ser usado uma vez. Se não foi você, ignore este e-mail.</p>`),
+    text: `Código para criar uma nova senha na Área do candidato: ${input.code}\nValido por ${input.minutes} minutos. Se não foi você, ignore este e-mail.`,
+  };
+}
+
+export function candidateInviteEmail(input: { name: string; company: string; jobTitle: string; message?: string | null; jobUrl: string; accountUrl: string }): MailContent {
+  const note = (input.message ?? '').trim();
+  return {
+    subject: `${input.company} convidou você para a vaga ${input.jobTitle}`,
+    html: layout('Você foi convidado(a) para uma vaga', `<p>Olá, ${escapeHtml(input.name)}.</p><p>A <strong>${escapeHtml(input.company)}</strong> viu seu perfil no banco de talentos e convida você para a vaga <strong>${escapeHtml(input.jobTitle)}</strong>.</p>${note ? `<p style="border-left:3px solid #7240da;padding-left:12px">${escapeHtml(note).replace(/\n/g, '<br>')}</p>` : ''}<p style="font-size:12px;color:#666">Seu e-mail e telefone não foram compartilhados com a empresa. Você decide se quer se candidatar. Para sair do banco de talentos, desmarque a opção no seu perfil em <a href="${escapeHtml(input.accountUrl)}">Área do candidato</a>.</p>`, { label: 'Ver a vaga', url: input.jobUrl }),
+    text: `Olá, ${input.name}.\n\n${input.company} convida você para a vaga ${input.jobTitle}.${note ? `\n\n${note}` : ''}\n\nVer a vaga: ${input.jobUrl}\nSeus contatos não foram compartilhados. Sair do banco de talentos: ${input.accountUrl}`,
   };
 }

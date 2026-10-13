@@ -1,13 +1,38 @@
 import { Transform } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsObject, IsOptional, IsString, Length, MaxLength } from 'class-validator';
 
-export class CandidateRequestCodeDto {
+export class CandidateEmailDto {
   @IsEmail()
   @MaxLength(240)
   email!: string;
 }
 
-export class CandidateVerifyCodeDto {
+export class CandidateRegisterDto {
+  @IsEmail()
+  @MaxLength(240)
+  email!: string;
+
+  @IsString()
+  @MaxLength(128)
+  password!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  name?: string;
+}
+
+export class CandidateLoginDto {
+  @IsEmail()
+  @MaxLength(240)
+  email!: string;
+
+  @IsString()
+  @MaxLength(128)
+  password!: string;
+}
+
+export class CandidateResetPasswordDto {
   @IsEmail()
   @MaxLength(240)
   email!: string;
@@ -15,6 +40,10 @@ export class CandidateVerifyCodeDto {
   @IsString()
   @Length(6, 6)
   code!: string;
+
+  @IsString()
+  @MaxLength(128)
+  password!: string;
 }
 
 /** Perfil mínimo (LGPD): só o necessário para se candidatar. Sem RG, PIS, banco, estado civil ou dependentes. */
@@ -35,6 +64,12 @@ export class CandidateUpdateProfileDto {
   @ArrayMaxSize(8)
   education?: Record<string, unknown>[];
 
+  @IsOptional() @IsString() @MaxLength(10) birthDate?: string;
+  @IsOptional() @IsString() @MaxLength(120) profession?: string;
+  @IsOptional() @IsArray() @ArrayMaxSize(15) skills?: string[];
+  @IsOptional() @IsBoolean() hasDriverLicense?: boolean;
+  @IsOptional() @IsString() @MaxLength(3) driverLicenseCategory?: string;
+  @IsOptional() @IsBoolean() talentPoolConsent?: boolean;
   @IsOptional() @IsBoolean() consent?: boolean;
   @IsOptional() @IsBoolean() admissionShareConsent?: boolean;
 }

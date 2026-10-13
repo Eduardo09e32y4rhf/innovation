@@ -53,7 +53,19 @@ async function download(path: string, fallbackName: string) {
   URL.revokeObjectURL(url);
 }
 
+export type TalentCard = {
+  id: string; name: string; age: number | null; profession: string | null; skills: string[]; city: string | null; state: string | null; neighborhood: string | null;
+  education: { level: string; status: string; course: string; school: string }[]; highestEducation: string | null;
+  hasDriverLicense: boolean | null; driverLicenseCategory: string | null; hasResume: boolean; alreadyApplied: boolean; invites: { jobId: string; status: string }[];
+};
+export type TalentPage = { total: number; page: number; pageSize: number; truncated: boolean; items: TalentCard[] };
+export type TalentFilters = { q?: string; city?: string; state?: string; education?: string; license?: string; category?: string; page?: number };
+
 export const jobsApi = {
+  talentSearch: (filters: TalentFilters) => request<TalentPage>(`/talent-pool${query(filters as unknown as ApplicationFilters)}`),
+  talentInvite: (id: string, body: { jobId: string; message?: string }) => request<{ id: string; emailSent: boolean }>(`/talent-pool/${enc(id)}/invite`, { method: 'POST', body }),
+  downloadTalentResume: (id: string, name = 'curriculo') => download(`/talent-pool/${enc(id)}/resume`, name),
+
   list: () => request<Job[]>('/jobs'),
   get: (id: string) => request<Job>(`/jobs/${enc(id)}`),
   create: (payload: JobPayload) => request<Job>('/jobs', { method: 'POST', body: payload }),

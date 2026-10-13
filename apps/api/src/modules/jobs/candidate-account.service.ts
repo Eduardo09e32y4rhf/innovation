@@ -1,15 +1,15 @@
-import { BadRequestException, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { CandidateAccount } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { JobsService } from './jobs.service';
 import { JobsStorageService } from './jobs-storage.service';
-import { candidateLoginCodeEmail } from './recruitment-mails';
+import { candidatePasswordResetEmail } from './recruitment-mails';
 import { PRIVACY_VERSION, STAGE_LABEL_FOR_CANDIDATE } from './recruitment-privacy';
 import {
-  funnelCount, generateLoginCode, hashSecret, isEmail, isValidCpf, LOGIN_CODE_MAX_ATTEMPTS, LOGIN_CODE_TTL_MINUTES, normalizeEmail, onlyDigits,
-  profileChecklist, profileCompleteness, safeEqualHex, sanitizeEducation, SESSION_TTL_DAYS,
+  DRIVER_LICENSE_CATEGORIES, funnelCount, generateLoginCode, hashPassword, hashSecret, isEmail, isValidCpf, LOGIN_CODE_MAX_ATTEMPTS, LOGIN_CODE_TTL_MINUTES, LOGIN_LOCK_MINUTES, LOGIN_MAX_FAILURES,
+  normalizeEmail, onlyDigits, parseBirthDate, passwordProblem, profileChecklist, profileCompleteness, safeEqualHex, sanitizeEducation, sanitizeSkills, SESSION_TTL_DAYS, verifyPassword,
 } from './candidate-account.rules';
 import type { CandidateApplyDto, CandidateUpdateProfileDto } from './dto/candidate-account.dto';
 
@@ -19,6 +19,8 @@ const MAX_CODES_PER_WINDOW = 3;
 const FUNNEL_STATUSES = ['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER'] as const;
 
 type Account = CandidateAccount;
+/** Hash descartável para igualar o tempo de resposta quando o e-mail não existe. */
+const DUMMY_HASH = hashPassword('senha-descartavel-1');
 
 @Injectable()
 export class CandidateAccountService {
@@ -31,40 +33,89 @@ export class CandidateAccountService {
     private readonly jobs: JobsService,
   ) {}
 
-  // ---------- login por código no e-mail ----------
-  /** Resposta sempre igual: não revela se o e-mail já tem conta. */
-  async requestCode(rawEmail: string) {
+  // ---------- cadastro, login e recuperação de senha ----------
+  private async startSession(accountId: string) {
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 86_400_000);
+    await this.prisma.candidateSession.create({ data: { accountId, tokenHash: hashSecret(token), expiresAt } });
+    return { token, expiresAt };
+  }
+
+  /** Cria a conta (e-mail é o usuário) e já entra. Conta antiga sem senha recupera o acesso por "esqueci minha senha". */
+  async register(rawEmail: string, password: string, name?: string) {
+    const email = normalizeEmail(rawEmail);
+    if (!isEmail(email)) throw new BadRequestException({ message: 'Informe um e-mail válido.', fields: { email: 'E-mail inválido' } });
+    const problem = passwordProblem(password);
+    if (problem) throw new BadRequestException({ message: problem, fields: { password: problem } });
+    const existing = await this.prisma.candidateAccount.findUnique({ where: { email } });
+    if (existing) throw new ConflictException({ message: 'Este e-mail já tem conta. Entre com sua senha ou use "Esqueci minha senha".', fields: { email: 'E-mail já cadastrado' } });
+    const account = await this.prisma.candidateAccount.create({
+      data: { email, name: name?.replace(/\s+/g, ' ').trim().slice(0, 180) || null, passwordHash: hashPassword(password), lastLoginAt: new Date() },
+    });
+    return this.startSession(account.id);
+  }
+
+  async login(rawEmail: string, password: string) {
+    const email = normalizeEmail(rawEmail);
+    const fail = new UnauthorizedException('E-mail ou senha incorretos.');
+    const account = isEmail(email) ? await this.prisma.candidateAccount.findUnique({ where: { email } }) : null;
+    if (!account?.passwordHash) {
+      // Mesmo custo de uma conta real: não dá para descobrir quais e-mails existem pelo tempo da resposta.
+      verifyPassword(password, DUMMY_HASH);
+      throw fail;
+    }
+    if (account.lockedUntil && account.lockedUntil > new Date()) throw new HttpException('Muitas tentativas. Aguarde alguns minutos ou use "Esqueci minha senha".', HttpStatus.TOO_MANY_REQUESTS);
+    if (!verifyPassword(password, account.passwordHash)) {
+      const failures = account.failedLoginCount + 1;
+      await this.prisma.candidateAccount.update({
+        where: { id: account.id },
+        data: failures >= LOGIN_MAX_FAILURES ? { failedLoginCount: 0, lockedUntil: new Date(Date.now() + LOGIN_LOCK_MINUTES * 60_000) } : { failedLoginCount: failures },
+      });
+      throw fail;
+    }
+    await this.prisma.candidateAccount.update({ where: { id: account.id }, data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() } });
+    return this.startSession(account.id);
+  }
+
+  /** Resposta sempre igual: não revela se o e-mail tem conta. O código vai por e-mail (SMS fica para uma segunda fase). */
+  async requestPasswordReset(rawEmail: string) {
     const email = normalizeEmail(rawEmail);
     if (!isEmail(email)) return { sent: true };
+    const account = await this.prisma.candidateAccount.findUnique({ where: { email }, select: { id: true } });
+    if (!account) return { sent: true };
     const since = new Date(Date.now() - LOGIN_CODE_TTL_MINUTES * 60_000);
     const recent = await this.prisma.candidateLoginCode.count({ where: { email, createdAt: { gte: since } } });
     if (recent >= MAX_CODES_PER_WINDOW) return { sent: true };
     const code = generateLoginCode();
-    await this.prisma.candidateLoginCode.create({ data: { email, codeHash: hashSecret(`${email}:${code}`), expiresAt: new Date(Date.now() + LOGIN_CODE_TTL_MINUTES * 60_000) } });
+    await this.prisma.candidateLoginCode.create({ data: { email, purpose: 'RESET', codeHash: hashSecret(`${email}:${code}`), expiresAt: new Date(Date.now() + LOGIN_CODE_TTL_MINUTES * 60_000) } });
     try {
-      await this.mail.send(email, candidateLoginCodeEmail({ code, minutes: LOGIN_CODE_TTL_MINUTES }));
+      await this.mail.send(email, candidatePasswordResetEmail({ code, minutes: LOGIN_CODE_TTL_MINUTES }));
     } catch (error) {
-      this.logger.error(`Falha ao enviar código do candidato: ${error instanceof Error ? error.message : error}`);
+      this.logger.error(`Falha ao enviar código de recuperação do candidato: ${error instanceof Error ? error.message : error}`);
     }
     return { sent: true };
   }
 
-  async verifyCode(rawEmail: string, code: string) {
+  async resetPassword(rawEmail: string, code: string, password: string) {
     const email = normalizeEmail(rawEmail);
     const invalid = new BadRequestException('Código inválido ou expirado. Peça um novo código.');
     if (!isEmail(email) || !/^\d{6}$/.test(code)) throw invalid;
-    const row = await this.prisma.candidateLoginCode.findFirst({ where: { email, usedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'desc' } });
+    const problem = passwordProblem(password);
+    if (problem) throw new BadRequestException({ message: problem, fields: { password: problem } });
+    const row = await this.prisma.candidateLoginCode.findFirst({ where: { email, purpose: 'RESET', usedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'desc' } });
     if (!row || row.attempts >= LOGIN_CODE_MAX_ATTEMPTS) throw invalid;
     if (!safeEqualHex(row.codeHash, hashSecret(`${email}:${code}`))) {
       await this.prisma.candidateLoginCode.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
       throw invalid;
     }
     await this.prisma.candidateLoginCode.update({ where: { id: row.id }, data: { usedAt: new Date() } });
-    const account = await this.prisma.candidateAccount.upsert({ where: { email }, create: { email, verifiedAt: new Date() }, update: { verifiedAt: new Date() } });
-    const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 86_400_000);
-    await this.prisma.candidateSession.create({ data: { accountId: account.id, tokenHash: hashSecret(token), expiresAt } });
-    return { token, expiresAt };
+    const account = await this.prisma.candidateAccount.update({
+      where: { email },
+      data: { passwordHash: hashPassword(password), failedLoginCount: 0, lockedUntil: null, verifiedAt: new Date(), lastLoginAt: new Date() },
+    });
+    // Trocou a senha: derruba as sessões abertas em qualquer aparelho.
+    await this.prisma.candidateSession.deleteMany({ where: { accountId: account.id } });
+    return this.startSession(account.id);
   }
 
   async findAccountBySession(token: string) {
@@ -86,6 +137,10 @@ export class CandidateAccountService {
       name: account.name, cpf: account.cpf, phone: account.phone,
       cep: account.cep, street: account.street, streetNumber: account.streetNumber, addressComplement: account.addressComplement,
       neighborhood: account.neighborhood, city: account.city, state: account.state,
+      birthDate: account.birthDate ? account.birthDate.toISOString().slice(0, 10) : null,
+      profession: account.profession, skills: sanitizeSkills(account.skills),
+      hasDriverLicense: account.hasDriverLicense, driverLicenseCategory: account.driverLicenseCategory,
+      talentPoolConsent: Boolean(account.talentPoolConsentAt),
       education: sanitizeEducation(account.education),
       resume: account.resumeKey ? { name: account.resumeName, type: account.resumeType, size: account.resumeSize } : null,
       consent: Boolean(account.consentAt),
@@ -113,6 +168,26 @@ export class CandidateAccountService {
     if (dto.city !== undefined) data.city = text(dto.city, 160);
     if (dto.state !== undefined) data.state = text(dto.state, 2)?.toUpperCase() ?? null;
     if (dto.education !== undefined) data.education = sanitizeEducation(dto.education);
+    if (dto.birthDate !== undefined) {
+      const birth = parseBirthDate(dto.birthDate);
+      if (birth === undefined) throw new BadRequestException({ message: 'Data de nascimento inválida.', fields: { birthDate: 'Data inválida' } });
+      data.birthDate = birth;
+    }
+    if (dto.profession !== undefined) data.profession = text(dto.profession, 120);
+    if (dto.skills !== undefined) data.skills = sanitizeSkills(dto.skills);
+    if (dto.hasDriverLicense !== undefined) {
+      data.hasDriverLicense = dto.hasDriverLicense;
+      if (!dto.hasDriverLicense) data.driverLicenseCategory = null;
+    }
+    if (dto.driverLicenseCategory !== undefined && dto.hasDriverLicense !== false) {
+      const category = String(dto.driverLicenseCategory ?? '').trim().toUpperCase();
+      if (category && !(DRIVER_LICENSE_CATEGORIES as readonly string[]).includes(category)) throw new BadRequestException({ message: 'Categoria de habilitação inválida.', fields: { driverLicenseCategory: 'Categoria inválida' } });
+      data.driverLicenseCategory = category || null;
+    }
+    if (dto.talentPoolConsent !== undefined) {
+      if (dto.talentPoolConsent && !account.talentPoolConsentAt) data.talentPoolConsentAt = new Date();
+      if (!dto.talentPoolConsent) data.talentPoolConsentAt = null;
+    }
     if (dto.consent === true && !account.consentAt) { data.consentAt = new Date(); data.consentVersion = PRIVACY_VERSION; }
     if (dto.admissionShareConsent !== undefined) data.admissionShareConsent = dto.admissionShareConsent;
     const updated = await this.prisma.candidateAccount.update({ where: { id: account.id }, data });
@@ -181,6 +256,23 @@ export class CandidateAccountService {
     };
   }
 
+  // ---------- convites do banco de talentos ----------
+  async invites(account: Account) {
+    const rows = await this.prisma.candidateInvite.findMany({ where: { accountId: account.id }, orderBy: { createdAt: 'desc' }, take: 50 });
+    const jobs = rows.length ? await this.prisma.job.findMany({ where: { id: { in: rows.map((row) => row.jobId) } }, select: { id: true, title: true, status: true, companyId: true, company: { select: { name: true } } } }) : [];
+    const byId = new Map<string, { title: string; status: string; company: { name: string } }>(jobs.map((job) => [job.id, job]));
+    return rows.map((row) => {
+      const job = byId.get(row.jobId);
+      return { id: row.id, status: row.status, message: row.message, createdAt: row.createdAt, jobId: row.jobId, companyId: row.companyId, job: job?.title ?? 'Vaga', company: job?.company.name ?? 'Empresa', open: job?.status === 'OPEN' };
+    });
+  }
+
+  async declineInvite(account: Account, inviteId: string) {
+    const result = await this.prisma.candidateInvite.updateMany({ where: { id: inviteId, accountId: account.id, status: 'SENT' }, data: { status: 'DECLINED' } });
+    if (!result.count) throw new NotFoundException('Convite não encontrado.');
+    return { ok: true };
+  }
+
   // ---------- candidatura reaproveitando o perfil ----------
   /** O candidato escolheu "sim, reutilizar": envia nome, e-mail, telefone e o currículo salvo; as respostas às perguntas da vaga vêm do formulário. */
   async applyWithProfile(account: Account, jobId: string, dto: CandidateApplyDto) {
@@ -193,7 +285,7 @@ export class CandidateAccountService {
     } catch {
       throw new NotFoundException('Não encontramos o currículo salvo no seu perfil. Anexe-o novamente.');
     }
-    return this.jobs.apply(
+    const result = await this.jobs.apply(
       jobId,
       {
         name: account.name as string,
@@ -205,6 +297,9 @@ export class CandidateAccountService {
       },
       { buffer, filename: account.resumeName || 'curriculo.pdf', mimetype: account.resumeType || undefined },
     );
+    // Se veio de um convite do RH, o convite passa a "candidatou".
+    await this.prisma.candidateInvite.updateMany({ where: { accountId: account.id, jobId, status: 'SENT' }, data: { status: 'APPLIED' } }).catch(() => undefined);
+    return result;
   }
 
   requireAccount(account: Account | null | undefined): Account {

@@ -6,7 +6,7 @@ vi.mock('../../database/prisma.service', () => ({ PrismaService: class {} }));
 vi.mock('../mail/mail.service', () => ({ MailService: class {} }));
 vi.mock('./jobs-storage.service', () => ({ JobsStorageService: class {} }));
 import { CandidateAccountService } from './candidate-account.service';
-import { hashSecret } from './candidate-account.rules';
+import { hashPassword, hashSecret } from './candidate-account.rules';
 
 function build(overrides: Record<string, any> = {}) {
   const prisma: any = {
@@ -14,6 +14,8 @@ function build(overrides: Record<string, any> = {}) {
     candidateAccount: { upsert: vi.fn(async ({ where }: any) => ({ id: 'acc-1', email: where.email })), update: vi.fn(async ({ data }: any) => ({ id: 'acc-1', email: 'c@x.com', ...data })), delete: vi.fn(async () => ({})) },
     candidateSession: { create: vi.fn(async () => ({})), findUnique: vi.fn(async () => null), deleteMany: vi.fn(async () => ({})) },
     application: { findMany: vi.fn(async () => []), groupBy: vi.fn(async () => []) },
+    candidateInvite: { updateMany: vi.fn(async () => ({ count: 1 })), findMany: vi.fn(async () => []) },
+    job: { findMany: vi.fn(async () => []) },
     ...overrides,
   };
   const mail: any = { send: vi.fn(async () => ({ sent: true })) };
@@ -22,54 +24,85 @@ function build(overrides: Record<string, any> = {}) {
   return { svc: new CandidateAccountService(prisma, mail, storage, jobs), prisma, mail, storage, jobs };
 }
 
-describe('login por código', () => {
-  it('manda o código por e-mail e guarda só o hash', async () => {
-    const { svc, prisma, mail } = build();
-    expect(await svc.requestCode(' Camila@Exemplo.com ')).toEqual({ sent: true });
-    const saved = prisma.candidateLoginCode.create.mock.calls[0][0].data;
+describe('cadastro e login com senha', () => {
+  it('cria a conta com a senha só em hash e já devolve a sessão', async () => {
+    const { svc, prisma } = build({ candidateAccount: { findUnique: vi.fn(async () => null), create: vi.fn(async ({ data }: any) => ({ id: 'acc-1', ...data })), update: vi.fn(), upsert: vi.fn(), delete: vi.fn() } });
+    const result = await svc.register(' Camila@Exemplo.com ', 'segredo123', 'Camila');
+    const saved = prisma.candidateAccount.create.mock.calls[0][0].data;
     expect(saved.email).toBe('camila@exemplo.com');
+    expect(saved.passwordHash).toMatch(/^scrypt\$/);
+    expect(JSON.stringify(saved)).not.toContain('segredo123');
+    expect(result.token).toMatch(/^[a-f0-9]{64}$/);
+    expect(prisma.candidateSession.create.mock.calls[0][0].data.tokenHash).toBe(hashSecret(result.token));
+  });
+  it('recusa senha fraca e e-mail já cadastrado', async () => {
+    const { svc } = build({ candidateAccount: { findUnique: vi.fn(async () => ({ id: 'x' })), create: vi.fn(), update: vi.fn(), upsert: vi.fn(), delete: vi.fn() } });
+    await expect(svc.register('a@x.com', 'curta1')).rejects.toMatchObject({ response: { fields: { password: expect.any(String) } } });
+    await expect(svc.register('a@x.com', 'somenteletras')).rejects.toThrow();
+    await expect(svc.register('a@x.com', 'segredo123')).rejects.toMatchObject({ response: { fields: { email: 'E-mail já cadastrado' } } });
+  });
+  it('login certo zera falhas e abre sessão', async () => {
+    const account = { id: 'acc-1', email: 'c@x.com', passwordHash: hashPassword('segredo123'), failedLoginCount: 2, lockedUntil: null };
+    const { svc, prisma } = build({ candidateAccount: { findUnique: vi.fn(async () => account), update: vi.fn(async () => ({})), create: vi.fn(), upsert: vi.fn(), delete: vi.fn() } });
+    const result = await svc.login('C@x.com', 'segredo123');
+    expect(result.token).toMatch(/^[a-f0-9]{64}$/);
+    expect(prisma.candidateAccount.update.mock.calls[0][0].data).toMatchObject({ failedLoginCount: 0, lockedUntil: null });
+  });
+  it('senha errada e e-mail inexistente dão a mesma resposta', async () => {
+    const account = { id: 'acc-1', email: 'c@x.com', passwordHash: hashPassword('segredo123'), failedLoginCount: 0, lockedUntil: null };
+    const a = build({ candidateAccount: { findUnique: vi.fn(async () => account), update: vi.fn(async () => ({})), create: vi.fn(), upsert: vi.fn(), delete: vi.fn() } });
+    await expect(a.svc.login('c@x.com', 'errada999')).rejects.toThrow('E-mail ou senha incorretos.');
+    expect(a.prisma.candidateAccount.update.mock.calls[0][0].data).toEqual({ failedLoginCount: 1 });
+    const b = build({ candidateAccount: { findUnique: vi.fn(async () => null), update: vi.fn(), create: vi.fn(), upsert: vi.fn(), delete: vi.fn() } });
+    await expect(b.svc.login('naoexiste@x.com', 'qualquer123')).rejects.toThrow('E-mail ou senha incorretos.');
+  });
+  it('bloqueia depois de 5 erros, mesmo com a senha certa', async () => {
+    const hash = hashPassword('segredo123');
+    const a = build({ candidateAccount: { findUnique: vi.fn(async () => ({ id: 'a', email: 'c@x.com', passwordHash: hash, failedLoginCount: 4, lockedUntil: null })), update: vi.fn(async () => ({})), create: vi.fn(), upsert: vi.fn(), delete: vi.fn() } });
+    await expect(a.svc.login('c@x.com', 'errada999')).rejects.toThrow();
+    expect(a.prisma.candidateAccount.update.mock.calls[0][0].data.lockedUntil).toBeInstanceOf(Date);
+    const b = build({ candidateAccount: { findUnique: vi.fn(async () => ({ id: 'a', email: 'c@x.com', passwordHash: hash, failedLoginCount: 0, lockedUntil: new Date(Date.now() + 60_000) })), update: vi.fn(), create: vi.fn(), upsert: vi.fn(), delete: vi.fn() } });
+    await expect(b.svc.login('c@x.com', 'segredo123')).rejects.toMatchObject({ status: 429 });
+  });
+});
+
+describe('recuperar senha por código no e-mail', () => {
+  it('manda o código por e-mail, guarda só o hash e responde igual para e-mail sem conta', async () => {
+    const { svc, prisma, mail } = build({ candidateAccount: { findUnique: vi.fn(async () => ({ id: 'a' })), update: vi.fn(), create: vi.fn(), upsert: vi.fn(), delete: vi.fn() } });
+    expect(await svc.requestPasswordReset(' Camila@Exemplo.com ')).toEqual({ sent: true });
+    const saved = prisma.candidateLoginCode.create.mock.calls[0][0].data;
     const sentCode = /\b(\d{6})\b/.exec(mail.send.mock.calls[0][1].text)![1];
     expect(saved.codeHash).toBe(hashSecret(`camila@exemplo.com:${sentCode}`));
-    expect(JSON.stringify(saved)).not.toContain(sentCode);
+    expect(saved.purpose).toBe('RESET');
+    const none = build({ candidateAccount: { findUnique: vi.fn(async () => null), update: vi.fn(), create: vi.fn(), upsert: vi.fn(), delete: vi.fn() } });
+    expect(await none.svc.requestPasswordReset('x@x.com')).toEqual({ sent: true });
+    expect(none.mail.send).not.toHaveBeenCalled();
   });
-
-  it('não dispara e-mail demais e responde igual', async () => {
-    const { svc, mail } = build({ candidateLoginCode: { count: vi.fn(async () => 3), create: vi.fn(), findFirst: vi.fn(), update: vi.fn(), deleteMany: vi.fn() } });
-    expect(await svc.requestCode('camila@exemplo.com')).toEqual({ sent: true });
+  it('não dispara e-mail demais', async () => {
+    const { svc, mail } = build({ candidateAccount: { findUnique: vi.fn(async () => ({ id: 'a' })), update: vi.fn(), create: vi.fn(), upsert: vi.fn(), delete: vi.fn() }, candidateLoginCode: { count: vi.fn(async () => 3), create: vi.fn(), findFirst: vi.fn(), update: vi.fn(), deleteMany: vi.fn() } });
+    expect(await svc.requestPasswordReset('c@x.com')).toEqual({ sent: true });
     expect(mail.send).not.toHaveBeenCalled();
   });
-
-  it('e-mail inválido responde igual e não envia nada', async () => {
-    const { svc, mail } = build();
-    expect(await svc.requestCode('nao-e-email')).toEqual({ sent: true });
-    expect(mail.send).not.toHaveBeenCalled();
+  it('código errado soma tentativa; bloqueia depois de 5', async () => {
+    const row = { id: 'c1', codeHash: hashSecret('c@x.com:123456'), attempts: 0 };
+    const a = build({ candidateLoginCode: { count: vi.fn(), create: vi.fn(), findFirst: vi.fn(async () => row), update: vi.fn(async () => ({})), deleteMany: vi.fn() } });
+    await expect(a.svc.resetPassword('c@x.com', '000000', 'segredo123')).rejects.toThrow('Código inválido');
+    expect(a.prisma.candidateLoginCode.update).toHaveBeenCalledWith({ where: { id: 'c1' }, data: { attempts: { increment: 1 } } });
+    const b = build({ candidateLoginCode: { count: vi.fn(), create: vi.fn(), findFirst: vi.fn(async () => ({ ...row, attempts: 5 })), update: vi.fn(), deleteMany: vi.fn() } });
+    await expect(b.svc.resetPassword('c@x.com', '123456', 'segredo123')).rejects.toThrow('Código inválido');
   });
-
-  it('código errado soma tentativa e recusa', async () => {
-    const row = { id: 'c1', codeHash: hashSecret('camila@exemplo.com:123456'), attempts: 0 };
-    const { svc, prisma } = build({ candidateLoginCode: { count: vi.fn(), create: vi.fn(), findFirst: vi.fn(async () => row), update: vi.fn(async () => ({})), deleteMany: vi.fn() } });
-    await expect(svc.verifyCode('camila@exemplo.com', '000000')).rejects.toThrow('Código inválido');
-    expect(prisma.candidateLoginCode.update).toHaveBeenCalledWith({ where: { id: 'c1' }, data: { attempts: { increment: 1 } } });
-  });
-
-  it('bloqueia depois de 5 tentativas, mesmo com o código certo', async () => {
-    const row = { id: 'c1', codeHash: hashSecret('camila@exemplo.com:123456'), attempts: 5 };
-    const { svc } = build({ candidateLoginCode: { count: vi.fn(), create: vi.fn(), findFirst: vi.fn(async () => row), update: vi.fn(), deleteMany: vi.fn() } });
-    await expect(svc.verifyCode('camila@exemplo.com', '123456')).rejects.toThrow('Código inválido');
-  });
-
-  it('código certo cria a conta, usa o código uma vez e devolve a sessão (só o hash fica no banco)', async () => {
-    const row = { id: 'c1', codeHash: hashSecret('camila@exemplo.com:123456'), attempts: 1 };
+  it('código certo troca a senha, derruba as outras sessões e abre uma nova', async () => {
+    const row = { id: 'c1', codeHash: hashSecret('c@x.com:123456'), attempts: 1 };
     const { svc, prisma } = build({
       candidateLoginCode: { count: vi.fn(), create: vi.fn(), findFirst: vi.fn(async () => row), update: vi.fn(async () => ({})), deleteMany: vi.fn() },
+      candidateAccount: { update: vi.fn(async ({ data }: any) => ({ id: 'acc-1', email: 'c@x.com', ...data })), findUnique: vi.fn(), create: vi.fn(), upsert: vi.fn(), delete: vi.fn() },
     });
-    const result = await svc.verifyCode('camila@exemplo.com', '123456');
-    expect(result.token).toMatch(/^[a-f0-9]{64}$/);
+    const result = await svc.resetPassword('c@x.com', '123456', 'novaSenha1');
     expect(prisma.candidateLoginCode.update.mock.calls[0][0].data.usedAt).toBeInstanceOf(Date);
-    expect(prisma.candidateSession.create.mock.calls[0][0].data.tokenHash).toBe(hashSecret(result.token));
-    expect(prisma.candidateSession.create.mock.calls[0][0].data.tokenHash).not.toBe(result.token);
+    expect(prisma.candidateAccount.update.mock.calls[0][0].data.passwordHash).toMatch(/^scrypt\$/);
+    expect(prisma.candidateSession.deleteMany).toHaveBeenCalledWith({ where: { accountId: 'acc-1' } });
+    expect(result.token).toMatch(/^[a-f0-9]{64}$/);
   });
-
   it('sessão expirada ou token fora do formato não autentica', async () => {
     const { svc } = build({ candidateSession: { create: vi.fn(), findUnique: vi.fn(async () => ({ expiresAt: new Date(Date.now() - 1000), account: { id: 'a' } })), deleteMany: vi.fn() } });
     expect(await svc.findAccountBySession('lixo')).toBeNull();
@@ -89,6 +122,21 @@ describe('perfil mínimo', () => {
     const data = prisma.candidateAccount.update.mock.calls[0][0].data;
     expect(data).toMatchObject({ cpf: '52998224725', state: 'SP', cep: '06000000', education: [{ level: 'Ensino médio', status: 'Completo', course: '', school: '' }] });
     expect(data.consentAt).toBeInstanceOf(Date);
+  });
+  it('guarda nascimento, profissão, CNH e banco de talentos; sem CNH limpa a categoria', async () => {
+    const { svc, prisma } = build();
+    await svc.updateProfile(account, { birthDate: '1990-05-17', profession: ' Contador ', skills: ['Excel', 'excel', 'SPED'], hasDriverLicense: true, driverLicenseCategory: 'b', talentPoolConsent: true });
+    const data = prisma.candidateAccount.update.mock.calls[0][0].data;
+    expect(data).toMatchObject({ profession: 'Contador', skills: ['Excel', 'SPED'], hasDriverLicense: true, driverLicenseCategory: 'B' });
+    expect(data.birthDate.toISOString().slice(0, 10)).toBe('1990-05-17');
+    expect(data.talentPoolConsentAt).toBeInstanceOf(Date);
+    await svc.updateProfile({ ...account, talentPoolConsentAt: new Date() }, { hasDriverLicense: false, talentPoolConsent: false });
+    expect(prisma.candidateAccount.update.mock.calls[1][0].data).toMatchObject({ hasDriverLicense: false, driverLicenseCategory: null, talentPoolConsentAt: null });
+  });
+  it('recusa data de nascimento e categoria inválidas', async () => {
+    const { svc } = build();
+    await expect(svc.updateProfile(account, { birthDate: '2999-01-01' })).rejects.toMatchObject({ response: { fields: { birthDate: 'Data inválida' } } });
+    await expect(svc.updateProfile(account, { hasDriverLicense: true, driverLicenseCategory: 'Z' })).rejects.toMatchObject({ response: { fields: { driverLicenseCategory: 'Categoria inválida' } } });
   });
   it('rejeita currículo que não é PDF/DOCX de verdade', async () => {
     const { svc } = build();
@@ -137,8 +185,9 @@ describe('candidatura reaproveitando o perfil', () => {
     expect(jobs.apply).not.toHaveBeenCalled();
   });
   it('envia nome, e-mail, telefone e o currículo salvo; sem perguntas vai direto', async () => {
-    const { svc, jobs } = build();
+    const { svc, jobs, prisma } = build();
     const result = await svc.applyWithProfile(full, 'j1', { consent: true });
+    expect(prisma.candidateInvite.updateMany).toHaveBeenCalledWith({ where: { accountId: 'acc-1', jobId: 'j1', status: 'SENT' }, data: { status: 'APPLIED' } });
     expect(result).toEqual({ received: true, applicationId: 'app-1' });
     const [jobId, fields, file] = jobs.apply.mock.calls[0];
     expect(jobId).toBe('j1');
