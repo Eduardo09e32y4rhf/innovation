@@ -17,6 +17,14 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
   private transporter: nodemailer.Transporter | null = null;
 
+  /** Em produção, sem provedor ninguém recebe reset de senha, verificação nem convite: alerta alto no boot. */
+  onModuleInit() {
+    if (process.env.NODE_ENV !== 'production' || this.isConfigured()) return;
+    const message = 'NENHUM PROVEDOR DE E-MAIL CONFIGURADO EM PRODUCAO: recuperar senha, verificar e-mail e convites NAO serao entregues. Configure RESEND_API_KEY + MAIL_FROM (ou SES/SMTP) no .env.';
+    if (process.env.MAIL_REQUIRED === 'true') throw new Error(message);
+    this.logger.error(message);
+  }
+
   provider(): 'smtp' | 'resend' | 'ses' | 'none' {
     if (process.env.RESEND_API_KEY && process.env.MAIL_FROM) return 'resend';
     if (process.env.AWS_SES_REGION && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.MAIL_FROM) return 'ses';

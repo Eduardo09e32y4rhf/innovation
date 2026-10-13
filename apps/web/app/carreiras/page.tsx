@@ -4,7 +4,7 @@ import { GlobalCareersHub } from './global-careers-hub';
 export const metadata: Metadata = {
   title: 'Portal de Oportunidades & Carreiras | Innovation RH Connect',
   description:
-    'Encontre seu próximo desafio em empresas inovadoras de todo o Brasil. Processos seletivos transparentes, triagem inteligente com IA e admissão 100% digital.',
+    'Encontre seu próximo desafio em empresas inovadoras de todo o Brasil. Envie seu currículo, acompanhe a candidatura e, se contratado, mande os documentos pelo link.',
   openGraph: {
     title: 'Portal de Oportunidades & Carreiras | Innovation RH Connect',
     description:

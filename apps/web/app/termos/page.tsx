@@ -23,7 +23,7 @@ export default function TermosPage() {
           <h2 className="text-xl font-bold text-white mt-8 mb-4">2. Responsabilidade sobre os Dados</h2>
           <p>A Innovation RH Connect atua como operadora dos dados, processando as informações de acordo com as diretrizes da sua empresa (controladora). A exatidão e a validade legal das informações inseridas na plataforma são de inteira responsabilidade da empresa contratante.</p>
           <h2 className="text-xl font-bold text-white mt-8 mb-4">3. Disponibilidade e SLA</h2>
-          <p>Garantimos um Service Level Agreement (SLA) de 99.8% de disponibilidade (uptime) da plataforma, assegurando que o seu DP e os registros de ponto dos seus colaboradores operem sem interrupções em horários críticos.</p>
+          <p>Trabalhamos para manter a plataforma disponível de forma contínua, com monitoramento e cópias de segurança. Manutenções programadas são avisadas com antecedência. Níveis de serviço (SLA) com percentual garantido só valem quando previstos em contrato.</p>
         </div>
         <CompanyIdentity claro className="mt-8 text-center text-xs" />
       </div>

@@ -35,6 +35,16 @@ jobs:
       - run: npm run typecheck:api
       - run: npm run typecheck:web
 
+  secrets-scan:
+    name: Varredura de segredos (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # historico inteiro: segredo apagado num commit antigo continua exposto
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   unit:
     name: Testes unitarios, seguranca e cobertura
     runs-on: ubuntu-latest
@@ -117,7 +127,7 @@ jobs:
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [validate, unit, migrations-empty-db, integration, build, browser-e2e]
+    needs: [validate, secrets-scan, unit, migrations-empty-db, integration, build, browser-e2e]
     runs-on: ubuntu-latest
     steps:
       - run: |

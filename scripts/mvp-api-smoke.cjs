@@ -58,7 +58,8 @@ async function main() {
     document: String(10000000000000 + (now % 89999999999999)).padStart(14, '0'),
     name: 'Admin Teste',
     email: `admin.${now}@teste.com`,
-    password: 'Admin@123456',
+    // Nunca senha fixa no repositório: vem do ambiente ou é gerada a cada execução.
+    password: process.env.SMOKE_ADMIN_PASSWORD || `Smk-${require('node:crypto').randomBytes(9).toString('base64url')}9!a`,
   };
 
   const registered = await request('auth/register-company', '/auth/register-company', {

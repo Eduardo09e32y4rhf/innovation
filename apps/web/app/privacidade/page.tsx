@@ -19,11 +19,11 @@ export default function PrivacidadePage() {
             A <strong>Innovation RH Connect</strong> é uma plataforma do grupo <strong>{GRUPO.nome}</strong> (CNPJ {GRUPO.cnpj}, {GRUPO.endereco}). Na Innovation RH Connect, a privacidade e a segurança dos dados dos seus colaboradores são nossa prioridade máxima. Esta política descreve como coletamos, usamos e protegemos as informações pessoais no nosso sistema de gestão.
           </p>
           <h2 className="text-xl font-bold text-white mt-8 mb-4">1. Coleta de Dados</h2>
-          <p>Coletamos apenas as informações estritamente necessárias para a prestação dos nossos serviços de RH e controle de jornada, incluindo dados de geolocalização e biometria facial, quando habilitados e com o consentimento explícito, para garantir a autenticidade dos registros de ponto (em conformidade com a portaria 671/MTP).</p>
+          <p>Coletamos apenas as informações estritamente necessárias para a prestação dos nossos serviços de RH e controle de jornada, incluindo dados de geolocalização no registro de ponto, quando habilitada pela empresa, para garantir a autenticidade dos registros de ponto.</p>
           <h2 className="text-xl font-bold text-white mt-8 mb-4">2. Uso e Proteção</h2>
           <p>Seus dados são criptografados e armazenados em servidores seguros. Não compartilhamos, vendemos ou alugamos dados de colaboradores para terceiros. O acesso às informações é restrito aos gestores e administradores autorizados pela sua empresa.</p>
           <h2 className="text-xl font-bold text-white mt-8 mb-4">3. Conformidade com a LGPD</h2>
-          <p>Garantimos a total aderência à Lei Geral de Proteção de Dados (LGPD). Todos os colaboradores cadastrados possuem o direito de solicitar a exclusão, portabilidade ou revisão dos seus dados diretamente junto ao RH da empresa contratante.</p>
+          <p>Adotamos medidas técnicas e organizacionais para atender à Lei Geral de Proteção de Dados (LGPD). Todos os colaboradores cadastrados possuem o direito de solicitar a exclusão, portabilidade ou revisão dos seus dados diretamente junto ao RH da empresa contratante.</p>
         </div>
         <CompanyIdentity claro className="mt-8 text-center text-xs" />
       </div>
