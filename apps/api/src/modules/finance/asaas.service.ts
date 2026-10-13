@@ -185,6 +185,11 @@ export class AsaasService {
     });
   }
 
+  /** Estornos da cobrança. O GET /payments/{id} nem sempre traz a lista; este endpoint traz status e descrição de cada um. */
+  listRefunds(paymentId: string) {
+    return this.request<AsaasListResponse<{ id?: string; status: string; value: number; description?: string; transactionReceiptUrl?: string }>>(`/payments/${encodeURIComponent(paymentId)}/refunds`);
+  }
+
   getPaymentsBySubscription(subscriptionId: string) {
     return this.request<AsaasListResponse<AsaasPayment>>(`/payments?subscription=${encodeURIComponent(subscriptionId)}`);
   }

@@ -62,9 +62,9 @@ export class PaymentRefundService {
     const invoice = await this.prisma.platformInvoice.findUnique({ where: { id: invoiceId } });
     if (!invoice) throw new NotFoundException('Fatura não encontrada.');
     const provider = invoice.provider === 'MERCADOPAGO' ? 'MERCADOPAGO' : 'ASAAS';
-    const remote = provider === 'MERCADOPAGO'
+    const remote: any[] = provider === 'MERCADOPAGO'
       ? await this.mp.getRefunds(invoice.mpPaymentId!)
-      : (await this.asaas.getCharge(invoice.asaasPaymentId!)).refunds ?? [];
+      : await this.asaasRefunds(invoice.asaasPaymentId!);
     const done = (status: string) => provider === 'MERCADOPAGO' ? status === 'approved' : status === 'DONE';
     const total = remote.filter(r => done(r.status)).reduce((sum, r) => sum + cents('value' in r ? r.value : r.amount), 0);
     if (total > cents(invoice.amount)) throw new ConflictException('O total devolvido pelo provedor excede a fatura. Revisão necessária.');
@@ -73,8 +73,14 @@ export class PaymentRefundService {
       const locked = await tx.platformInvoice.findUniqueOrThrow({ where: { id: invoiceId } });
       const confirmedTotal = Math.max(total, cents(locked.refundedAmount));
       const operations = await tx.paymentRefund.findMany({ where: { invoiceId, status: { in: active } } });
+      const tagged = new Set(remote.filter(r => typeof r.description === 'string' && r.description.includes('[Innovation:')));
       for (const op of operations) {
-        const match = remote.find(r => provider === 'MERCADOPAGO' ? String(r.id) === op.providerRefundId : r.description?.includes(`[Innovation:${op.id}]`));
+        let match = remote.find(r => provider === 'MERCADOPAGO' ? String(r.id) === op.providerRefundId : r.description?.includes(`[Innovation:${op.id}]`));
+        // O Asaas nem sempre devolve a descrição do estorno: com uma única devolução pendente, casa pelo valor.
+        if (!match && provider === 'ASAAS' && operations.length === 1) {
+          const candidates = remote.filter(r => !tagged.has(r) && cents(r.value) === cents(op.amount));
+          if (candidates.length === 1) match = candidates[0];
+        }
         if (!match) continue;
         if (cents('value' in match ? match.value : match.amount) !== cents(op.amount)) throw new ConflictException('Valor da devolução não confere com a solicitação.');
         const confirmed = done(match.status);
@@ -88,6 +94,14 @@ export class PaymentRefundService {
       await tx.platformInvoice.update({ where: { id: invoiceId }, data: { refundedAmount: confirmedTotal / 100, refundStatus: status } });
       return { refundedAmount: confirmedTotal / 100, refundStatus: status };
     });
+  }
+
+  private async asaasRefunds(paymentId: string) {
+    try {
+      const list = await this.asaas.listRefunds(paymentId);
+      if (Array.isArray(list?.data) && list.data.length) return list.data;
+    } catch (error) { this.logger.warn(`Lista de estornos do Asaas indisponível (${paymentId}): ${String(error)}`); }
+    return (await this.asaas.getCharge(paymentId)).refunds ?? [];
   }
 
   @Cron('0 */5 * * * *')
