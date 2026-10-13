@@ -4,12 +4,12 @@ import Link from 'next/link';
 import { CompanyLogo } from '@/app/_components/company-logo';
 import type { PublicCompany } from '../_lib/public-jobs';
 
-export function CareersLogo({ company }: { company: PublicCompany }) {
-  return <CompanyLogo name={company.name} logoUrl={company.logoUrl} height={64} />;
+export function CareersLogo({ company, height = 44 }: { company: PublicCompany; height?: number }) {
+  return <CompanyLogo name={company.name} logoUrl={company.logoUrl} height={height} />;
 }
 export function CareersBrand({ company, companyId }: { company: PublicCompany; companyId: string; compact?: boolean }) {
   return <Link href={'/carreiras/' + encodeURIComponent(companyId)} className="inline-flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1" aria-label={'Vagas da ' + company.name}>
-    <CareersLogo company={company} /><span className="min-w-0"><span className="block break-words text-base font-semibold text-fg">{company.name}</span>
+    <CareersLogo company={company} height={40} /><span className="min-w-0"><span className="block break-words text-sm font-semibold leading-tight text-fg sm:text-base">{company.name}</span>
       <span className="block text-xs text-fg-mut">Portal de carreiras</span></span>
   </Link>;
 }export function CareersFooter({ company }: { company: PublicCompany }) {

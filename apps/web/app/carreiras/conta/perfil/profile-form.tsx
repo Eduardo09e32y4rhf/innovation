@@ -3,7 +3,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { validateResume } from '../../_lib/public-jobs';
-import { candidateApi, EDUCATION_LEVELS, EDUCATION_STATUS, type CandidateProfile, type EducationItem } from '../../_lib/candidate-api';
+import { candidateApi, EDUCATION_LEVELS, EDUCATION_STATUS, LICENSE_CATEGORIES, type CandidateProfile, type EducationItem } from '../../_lib/candidate-api';
 import { useCandidateSession } from '../_components/account-shell';
 
 const digits = (value: string) => value.replace(/\D/g, '');
@@ -25,7 +25,9 @@ function toForm(profile: CandidateProfile) {
     name: profile.name ?? '', cpf: profile.cpf ? maskCpf(profile.cpf) : '', phone: profile.phone ? maskPhone(profile.phone) : '',
     cep: profile.cep ? maskCep(profile.cep) : '', street: profile.street ?? '', streetNumber: profile.streetNumber ?? '', addressComplement: profile.addressComplement ?? '',
     neighborhood: profile.neighborhood ?? '', city: profile.city ?? '', state: profile.state ?? '',
-    consent: profile.consent, admissionShareConsent: profile.admissionShareConsent,
+    birthDate: profile.birthDate ?? '', profession: profile.profession ?? '', skills: (profile.skills ?? []).join(', '),
+    hasDriverLicense: profile.hasDriverLicense === null ? '' : profile.hasDriverLicense ? 'sim' : 'nao', driverLicenseCategory: profile.driverLicenseCategory ?? '',
+    consent: profile.consent, admissionShareConsent: profile.admissionShareConsent, talentPoolConsent: profile.talentPoolConsent,
   };
 }
 
@@ -50,7 +52,9 @@ export function ProfileForm() {
         name: form.name.trim(), cpf: digits(form.cpf), phone: digits(form.phone), cep: digits(form.cep),
         street: form.street.trim(), streetNumber: form.streetNumber.trim(), addressComplement: form.addressComplement.trim(),
         neighborhood: form.neighborhood.trim(), city: form.city.trim(), state: form.state.trim().toUpperCase(),
-        education, consent: form.consent, admissionShareConsent: form.admissionShareConsent,
+        birthDate: form.birthDate, profession: form.profession.trim(), skills: form.skills.split(',').map((item) => item.trim()).filter(Boolean),
+        ...(form.hasDriverLicense ? { hasDriverLicense: form.hasDriverLicense === 'sim', driverLicenseCategory: form.hasDriverLicense === 'sim' ? form.driverLicenseCategory : '' } : {}),
+        education, consent: form.consent, admissionShareConsent: form.admissionShareConsent, talentPoolConsent: form.talentPoolConsent,
       } as never);
       setProfile(updated);
       setMessage({ kind: 'ok', text: 'Perfil salvo.' });
@@ -101,7 +105,8 @@ export function ProfileForm() {
             <label className="block space-y-1"><span className="text-sm font-medium">CPF</span><input className={input} inputMode="numeric" placeholder="000.000.000-00" value={form.cpf} onChange={(e) => set('cpf', maskCpf(e.target.value))} />{err('cpf')}</label>
             <label className="block space-y-1"><span className="text-sm font-medium">Telefone / WhatsApp (contato)</span><input className={input} type="tel" autoComplete="tel" inputMode="tel" value={form.phone} onChange={(e) => set('phone', maskPhone(e.target.value))} />{err('phone')}</label>
           </div>
-          <label className="block space-y-1"><span className="text-sm font-medium">E-mail</span><input className={`${input} bg-[#f7f5fb]`} value={profile.email} readOnly aria-readonly="true" /></label>
+          <label className="block space-y-1"><span className="text-sm font-medium">Data de nascimento</span><input className={input} type="date" autoComplete="bday" max={new Date().toISOString().slice(0, 10)} value={form.birthDate} onChange={(e) => set('birthDate', e.target.value)} />{err('birthDate')}</label>
+          <label className="block space-y-1"><span className="text-sm font-medium">E-mail (seu usuário)</span><input className={`${input} bg-[#f7f5fb]`} value={profile.email} readOnly aria-readonly="true" /></label>
         </fieldset>
 
         <fieldset disabled={busy} className="space-y-4 rounded-[16px] border border-[#e4dff0] bg-white p-5">
@@ -136,10 +141,21 @@ export function ProfileForm() {
           {education.length < 8 && <button type="button" className="min-h-11 rounded-[10px] border border-[#d5cceb] px-4 text-sm font-semibold hover:bg-[#f1ecfb]" onClick={() => setEducation((list) => [...list, { level: 'Ensino médio', status: 'Completo', course: '', school: '' }])}>+ Adicionar formação</button>}
         </fieldset>
 
+        <fieldset disabled={busy} className="space-y-4 rounded-[16px] border border-[#e4dff0] bg-white p-5">
+          <legend className="px-1 text-sm font-bold">Profissão e habilitação</legend>
+          <label className="block space-y-1"><span className="text-sm font-medium">Profissão</span><input className={input} maxLength={120} placeholder="Ex.: Analista contábil" value={form.profession} onChange={(e) => set('profession', e.target.value)} /></label>
+          <label className="block space-y-1"><span className="text-sm font-medium">Conhecimentos técnicos (separe por vírgula)</span><input className={input} maxLength={400} placeholder="Ex.: SPED, Excel, Departamento pessoal" value={form.skills} onChange={(e) => set('skills', e.target.value)} /></label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block space-y-1"><span className="text-sm font-medium">Possui habilitação (CNH)?</span><select className={input} value={form.hasDriverLicense} onChange={(e) => set('hasDriverLicense', e.target.value)}><option value="">Prefiro não informar</option><option value="sim">Sim</option><option value="nao">Não</option></select></label>
+            {form.hasDriverLicense === 'sim' && <label className="block space-y-1"><span className="text-sm font-medium">Categoria</span><select className={input} value={form.driverLicenseCategory} onChange={(e) => set('driverLicenseCategory', e.target.value)}><option value="">Selecione</option>{LICENSE_CATEGORIES.map((category) => <option key={category}>{category}</option>)}</select>{err('driverLicenseCategory')}</label>}
+          </div>
+        </fieldset>
+
         <fieldset disabled={busy} className="space-y-3 rounded-[16px] border border-[#e4dff0] bg-white p-5">
           <legend className="px-1 text-sm font-bold">Autorizações</legend>
           <label className="flex min-h-11 items-start gap-3"><input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={form.consent} onChange={(e) => set('consent', e.target.checked)} /><span className="text-sm leading-6">Autorizo guardar estes dados para me candidatar mais rápido. Posso corrigir ou excluir a qualquer momento.</span></label>
           <label className="flex min-h-11 items-start gap-3"><input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={form.admissionShareConsent} onChange={(e) => set('admissionShareConsent', e.target.checked)} /><span className="text-sm leading-6">Se eu for contratado, autorizo a empresa a aproveitar estes dados no meu cadastro de funcionário (opcional).</span></label>
+          <label className="flex min-h-11 items-start gap-3"><input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={form.talentPoolConsent} onChange={(e) => set('talentPoolConsent', e.target.checked)} /><span className="text-sm leading-6">Quero aparecer no banco de talentos: o RH de empresas parceiras pode ver meu nome, profissão, cidade, formação e currículo e me convidar para vagas. Meu e-mail, telefone e CPF não são compartilhados. Posso desmarcar quando quiser (opcional).</span></label>
         </fieldset>
         <Button type="submit" isLoading={busy} className="!bg-[#6d28d9] hover:!bg-[#5b21b6]">Salvar perfil</Button>
       </form>

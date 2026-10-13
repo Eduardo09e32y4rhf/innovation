@@ -3597,10 +3597,62 @@ model CandidateAccount {
   /// Se contratado, a empresa pode preencher o cadastro de funcionario com estes dados (so com este aceite).
   admissionShareConsent Boolean   @default(false)
   verifiedAt            DateTime?
+  /// scrypt (salt + hash). Nunca volta em nenhuma resposta da API.
+  passwordHash          String?
+  failedLoginCount      Int       @default(0)
+  lockedUntil           DateTime?
+  lastLoginAt           DateTime?
+  birthDate             DateTime? @db.Date
+  profession            String?
+  /// Lista curta de conhecimentos tecnicos informados pelo proprio candidato.
+  skills                Json?
+  hasDriverLicense      Boolean?
+  driverLicenseCategory String?
+  /// Banco de talentos: so com este aceite o RH de outras empresas encontra o perfil (nome, profissao, cidade, formacao, curriculo).
+  talentPoolConsentAt   DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
   sessions CandidateSession[]
+  invites  CandidateInvite[]
+  views    CandidateProfileView[]
+
+  @@index([talentPoolConsentAt, city])
+}
+
+/// Convite do RH para um candidato do banco de talentos (reaproveitamento). O contato sai pela plataforma, nunca expoe e-mail/telefone.
+model CandidateInvite {
+  id        String   @id @default(uuid()) @db.Uuid
+  accountId String   @db.Uuid
+  companyId String   @db.Uuid
+  jobId     String   @db.Uuid
+  invitedBy String?  @db.Uuid
+  message   String?
+  /// SENT | APPLIED | DECLINED
+  status    String   @default("SENT")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account CandidateAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, jobId])
+  @@index([companyId, createdAt])
+}
+
+/// Registro de acesso (LGPD): quem de qual empresa abriu o perfil/curriculo de um candidato do banco de talentos.
+model CandidateProfileView {
+  id        String   @id @default(uuid()) @db.Uuid
+  accountId String   @db.Uuid
+  companyId String   @db.Uuid
+  userId    String?  @db.Uuid
+  /// PROFILE | RESUME | INVITE
+  kind      String
+  createdAt DateTime @default(now())
+
+  account CandidateAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, createdAt])
+  @@index([companyId, createdAt])
 }
 
 model CandidateLoginCode {
@@ -3608,6 +3660,8 @@ model CandidateLoginCode {
   email     String
   /// So o hash do codigo e gravado.
   codeHash  String
+  /// RESET (recuperar senha). Linhas antigas sao LOGIN.
+  purpose   String    @default("RESET")
   expiresAt DateTime
   attempts  Int       @default(0)
   usedAt    DateTime?

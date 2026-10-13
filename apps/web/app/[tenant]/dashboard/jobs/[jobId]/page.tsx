@@ -149,6 +149,7 @@ export default function JobCandidatesPage() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          {canEdit && job.data?.status === 'OPEN' && <Link href={`${base}/talentos?vaga=${jobId}`} className="btn btn-outline btn-md">Buscar talentos</Link>}
           {canEdit && <Link href={`${base}/${jobId}/edit`} className="btn btn-outline btn-md"><Pencil size={16} aria-hidden="true" /> Editar vaga</Link>}
           {jobData?.isInternal && jobData.lifecycle?.acceptsApplications && <Button variant="outline" onClick={() => setInternalOpen(true)}><UserPlus size={16} aria-hidden="true" /> Adicionar candidato interno</Button>}
           {jobData && !jobData.isInternal && <Button variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(`${window.location.origin}/carreiras/${jobData.companyId}/${jobData.id}`); toast.success('Link público copiado.'); } catch { toast.error('Não foi possível copiar.'); } }}><Copy size={16} aria-hidden="true" /> Copiar link</Button>}

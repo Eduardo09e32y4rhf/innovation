@@ -17,12 +17,17 @@ export const EDUCATION_STATUS = ['Completo', 'Cursando', 'Incompleto'] as const;
 export type CandidateProfile = {
   email: string; name: string | null; cpf: string | null; phone: string | null;
   cep: string | null; street: string | null; streetNumber: string | null; addressComplement: string | null; neighborhood: string | null; city: string | null; state: string | null;
+  birthDate: string | null; profession: string | null; skills: string[]; hasDriverLicense: boolean | null; driverLicenseCategory: string | null; talentPoolConsent: boolean;
   education: EducationItem[];
   resume: { name: string | null; type: string | null; size: number | null } | null;
   consent: boolean; admissionShareConsent: boolean;
   completeness: { percent: number; missing: string[]; complete: boolean };
   checklist: { key: string; label: string; done: boolean }[];
 };
+
+export const LICENSE_CATEGORIES = ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE'] as const;
+
+export type CandidateInvite = { id: string; status: 'SENT' | 'APPLIED' | 'DECLINED'; message: string | null; createdAt: string; jobId: string; companyId: string; job: string; company: string; open: boolean };
 
 export type CandidateApplication = {
   id: string; jobId: string; job: string; company: string; appliedAt: string; status: string; statusLabel: string; stage: string | null; closed: boolean;
@@ -40,13 +45,17 @@ async function authed<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const candidateApi = {
-  requestCode: (email: string) => authed<{ sent: boolean }>('/auth/request-code', { method: 'POST', body: JSON.stringify({ email }) }),
-  verify: (email: string, code: string) => authed<{ token: string; expiresAt: string }>('/auth/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
+  register: (email: string, password: string, name?: string) => authed<{ token: string; expiresAt: string }>('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name: name || undefined }) }),
+  login: (email: string, password: string) => authed<{ token: string; expiresAt: string }>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  forgotPassword: (email: string) => authed<{ sent: boolean }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (email: string, code: string, password: string) => authed<{ token: string; expiresAt: string }>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ email, code, password }) }),
   logout: () => authed<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
   me: () => authed<CandidateProfile>('/me'),
   update: (data: Partial<Omit<CandidateProfile, 'email' | 'resume' | 'completeness' | 'checklist'>>) => authed<CandidateProfile>('/me', { method: 'PUT', body: JSON.stringify(data) }),
   uploadResume: (file: File) => { const body = new FormData(); body.append('resume', file, file.name); return authed<CandidateProfile>('/me/resume', { method: 'PUT', body }); },
   remove: () => authed<{ deleted: boolean }>('/me', { method: 'DELETE' }),
+  invites: () => authed<CandidateInvite[]>('/invites'),
+  declineInvite: (id: string) => authed<{ ok: boolean }>(`/invites/${encodeURIComponent(id)}/decline`, { method: 'POST' }),
   applications: () => authed<{ applications: CandidateApplication[]; appliedJobIds: string[] }>('/applications'),
   applyWithProfile: (jobId: string, input: { answers: Record<string, string | string[]>; coverLetter?: string; consent: boolean }) =>
     authed<{ received: boolean; applicationId?: string }>(`/jobs/${encodeURIComponent(jobId)}/apply`, { method: 'POST', body: JSON.stringify(input) }),

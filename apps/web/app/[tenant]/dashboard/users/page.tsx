@@ -1,6 +1,7 @@
 'use client';
 
 import { Pencil, Plus, RefreshCw, Search } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button, PageHeader } from '@/app/components/ui';
@@ -67,6 +68,7 @@ export default function UsersPage() {
       <PageHeader title="Usuários" subtitle={isDev ? 'Todos os acessos da plataforma, por empresa.' : 'Quem acessa a sua empresa e com qual visão.'}
         actions={<div className="flex flex-wrap items-center gap-2">
           {usage.data && <span className={`rounded-full border px-3 py-1 text-xs font-medium ${seatsFull ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-border text-fg-sub'}`}>{usage.data.used} de {usage.data.max} licenças</span>}
+          {isDev && <Link href="users/candidatos" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-bg px-4 text-sm font-semibold text-fg hover:bg-bg-sub">Candidatos</Link>}
           <Button variant="outline" onClick={() => { void users.refetch(); void usage.refetch(); }} aria-label="Atualizar lista"><RefreshCw size={15} aria-hidden="true" /></Button>
           <Button onClick={() => setCreateOpen(true)}><Plus size={16} aria-hidden="true" /> Novo acesso</Button>
         </div>} />

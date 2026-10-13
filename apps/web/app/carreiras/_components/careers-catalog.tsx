@@ -82,23 +82,23 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
   return <div className="min-h-screen bg-[#fbfafc] text-[#241b38]">
     <a className="sr-only focus:not-sr-only focus:block focus:p-4" href="#career-content">Ir para as oportunidades</a>
     <div className="mx-auto max-w-[1200px] px-5 sm:px-9">
-      <header className="flex h-20 items-center justify-between gap-4 border-b border-[#e9e5f0] sm:h-[88px]">
+      <header className="flex min-h-[64px] flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[#e9e5f0] py-3 sm:min-h-[88px]">
         <Link href={companyId ? '/carreiras/' + encodeURIComponent(companyId) : '/carreiras'} className="flex items-center gap-3" aria-label="Portal de vagas Innovation RH">
           <span className="grid h-9 w-9 -rotate-[8deg] place-items-center rounded-xl bg-[#7240da] text-2xl font-bold text-white" aria-hidden="true">i</span>
-          <span className="text-xl font-extrabold tracking-tight">{companyId ? company.name : <>innovation<span className="text-[#7240da]">.</span></>}<small className="mt-0.5 block text-[10px] font-medium tracking-[2.4px] text-[#736d80]">{companyId ? 'PORTAL DE CARREIRAS' : 'RH · CARREIRAS'}</small></span>
+          <span className="text-lg font-extrabold tracking-tight sm:text-xl">{companyId ? company.name : <>innovation<span className="text-[#7240da]">.</span></>}<small className="mt-0.5 block text-[10px] font-medium tracking-[2.4px] text-[#736d80]">{companyId ? 'PORTAL DE CARREIRAS' : 'RH · CARREIRAS'}</small></span>
         </Link>
         <nav aria-label="Navegação" className="flex items-center gap-4 text-[13px] sm:gap-7">
           <a href="#career-content" className="hidden text-[#7240da] sm:inline">Explorar vagas</a>
           {companyId && <Link href="/carreiras" className="hidden sm:inline">Todas as empresas</Link>}
-          <Link href="/" className="rounded-lg border border-[#e9e5f0] px-4 py-3 hover:border-[#c7b0ed]">Conheça a plataforma ↗</Link>
+          <Link href="/carreiras/conta" className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 font-semibold text-white hover:bg-[#5b29be]">Entrar</Link>
         </nav>
       </header>
 
-      <section className="grid items-center gap-9 pb-10 pt-12 sm:pt-16 md:grid-cols-[1.25fr_1fr]">
+      <section className="grid items-center gap-6 pb-8 pt-8 sm:gap-9 sm:pb-10 sm:pt-16 md:grid-cols-[1.25fr_1fr]">
         <div>
           <p className="flex items-center gap-2 text-[11px] font-bold tracking-[2px] text-[#7240da]"><span className="h-[7px] w-[7px] rounded-full bg-[#8955e2]" /> NOVOS CAMINHOS COMEÇAM AQUI</p>
-          <h1 className="my-5 max-w-[590px] text-[clamp(40px,4.7vw,62px)] font-bold leading-[1.06] tracking-[-0.05em]">{companyId ? <>Venha trabalhar na <em className="relative not-italic text-[#7240da]">{company.name}<span aria-hidden="true" className="absolute -bottom-1.5 left-0 right-0 h-[5px] rounded-full bg-[#d5c1fb]" /></em></> : <>Seu talento merece<br />um <em className="relative not-italic text-[#7240da]">novo capítulo.<span aria-hidden="true" className="absolute -bottom-1.5 left-0 right-0 h-[5px] rounded-full bg-[#d5c1fb]" /></em></>}</h1>
-          <p className="mt-6 max-w-[430px] text-[15px] leading-[1.8] text-[#736d80]">{company.description || 'Encontre oportunidades que combinam com você. O próximo passo da sua carreira começa aqui.'}</p>
+          <h1 className="my-5 max-w-[590px] text-[clamp(32px,9vw,40px)] sm:text-[clamp(40px,4.7vw,62px)] font-bold leading-[1.06] tracking-[-0.05em]">{companyId ? <>Venha trabalhar na <em className="relative not-italic text-[#7240da]">{company.name}<span aria-hidden="true" className="absolute -bottom-1.5 left-0 right-0 h-[5px] rounded-full bg-[#d5c1fb]" /></em></> : <>Seu talento merece<br />um <em className="relative not-italic text-[#7240da]">novo capítulo.<span aria-hidden="true" className="absolute -bottom-1.5 left-0 right-0 h-[5px] rounded-full bg-[#d5c1fb]" /></em></>}</h1>
+          <p className="mt-4 max-w-[430px] text-[15px] leading-[1.7] text-[#736d80] sm:mt-6">{company.description || 'Encontre oportunidades que combinam com você. O próximo passo da sua carreira começa aqui.'}</p>
           {!loading && !error && <p className="mt-5 flex items-center gap-2.5 text-xs text-[#736d80]"><span className="text-[#7240da]">↗</span><span><b className="text-[#241b38]">{jobs.length} oportunidade{jobs.length === 1 ? '' : 's'}</b> para explorar. Qual será a sua?</span></p>}
         </div>
         <div aria-hidden="true" className="relative mx-auto hidden h-[290px] w-full max-w-[420px] place-items-center md:grid">
@@ -130,9 +130,9 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
         </div>
 
         <section aria-label="Vagas encontradas">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div><h2 className="text-[22px] font-semibold tracking-tight">Encontre seu lugar <span className="ml-1 rounded-md bg-[#eee5fc] px-2 py-1 align-middle text-[13px] text-[#7240da]">{filtered.length}</span></h2><p role="status" aria-live="polite" className="mt-1.5 text-xs text-[#736d80]">{loading ? 'Carregando oportunidades...' : filtered.length + ' oportunidade' + (filtered.length === 1 ? ' encontrada' : 's encontradas')}</p></div>
-            <button type="button" aria-pressed={onlySaved} onClick={() => setOnlySaved(value => !value)} className={'shrink-0 rounded-lg border bg-white px-3 py-2.5 text-[11px] ' + (onlySaved ? 'border-[#7240da] text-[#7240da]' : 'border-[#e9e5f0] text-[#736d80]')}>Vagas salvas {saved.length}</button>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0"><h2 className="text-[22px] font-semibold tracking-tight">Encontre seu lugar <span className="ml-1 rounded-md bg-[#eee5fc] px-2 py-1 align-middle text-[13px] text-[#7240da]">{filtered.length}</span></h2><p role="status" aria-live="polite" className="mt-1.5 text-xs text-[#736d80]">{loading ? 'Carregando oportunidades...' : filtered.length + ' oportunidade' + (filtered.length === 1 ? ' encontrada' : 's encontradas')}</p></div>
+            <button type="button" aria-pressed={onlySaved} onClick={() => setOnlySaved(value => !value)} className={'min-h-11 shrink-0 rounded-lg border bg-white px-3 text-[12px] ' + (onlySaved ? 'border-[#7240da] text-[#7240da]' : 'border-[#e9e5f0] text-[#736d80]')}>Vagas salvas {saved.length}</button>
           </div>
 
           {error ? <div className="space-y-3 rounded-2xl border border-[#e9e5f0] bg-white p-8 text-center"><p role="alert" className="text-sm">{error}</p><button type="button" onClick={() => setReload(value => value + 1)} className="rounded-lg bg-[#7240da] px-5 py-3 text-sm font-semibold text-white">Tentar novamente</button></div>
@@ -150,23 +150,23 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
                 <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#736d80]"><span className="inline-flex items-center gap-1"><MapPin size={13} aria-hidden="true" />{job.location || 'Local não informado'}</span><span className="inline-flex items-center gap-1"><Briefcase size={13} aria-hidden="true" />{employmentTypeLabel(job.employmentType)}</span></p>
                 <div className="my-4 flex flex-wrap gap-2">{mode && <span className={'rounded-md px-2 py-1 text-[11px] ' + (job.workMode === 'REMOTO' ? 'bg-[#eaf4ee] text-[#327450]' : 'bg-[#f0e8fd] text-[#7650ac]')}>{mode}</span>}{job.seniority && <span className={tag}>{job.seniority}</span>}{job.department && <span className={tag}>{job.department}</span>}</div>
                 <p className="line-clamp-3 max-w-[620px] text-xs leading-[1.7] text-[#736d80]">{job.description}</p>
-                <div className="mt-5 flex items-center justify-between gap-4 border-t border-[#f0edf5] pt-4">
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0edf5] pt-4">
                   <div className="text-[17px] font-bold">{salary || 'A combinar'}<small className="mt-1 block text-[10px] font-normal text-[#736d80]">Remuneração informada na vaga</small></div>
-                  <Link href={href} className="rounded-lg bg-[#f2ecfc] px-4 py-3 text-xs font-bold text-[#7240da] transition hover:bg-[#7240da] hover:text-white">Ver vaga e candidatar-se ↗</Link>
+                  <Link href={href} className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#f2ecfc] px-4 text-xs font-bold text-[#7240da] transition hover:bg-[#7240da] hover:text-white sm:w-auto">Ver vaga e candidatar-se ↗</Link>
                 </div>
               </article></li>;
             })}</ul>}
 
           {pages > 1 && <nav aria-label="Paginação das vagas" className="mt-5 flex flex-wrap items-center justify-between gap-2"><button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} className="min-h-11 rounded-lg border border-[#e9e5f0] bg-white px-5 text-xs font-semibold text-[#7240da] disabled:opacity-40">Anterior</button><span className="text-xs text-[#736d80]">Página {currentPage} de {pages}</span><button type="button" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)} className="min-h-11 rounded-lg border border-[#e9e5f0] bg-white px-5 text-xs font-semibold text-[#7240da] disabled:opacity-40">Próxima</button></nav>}
 
-          <div className="mt-6 flex items-center justify-between gap-5 rounded-xl bg-[#eee8f8] px-6 py-5"><div><h3 className="mb-1 text-[15px] font-semibold">Grandes histórias começam com um primeiro passo.</h3><p className="text-[11px] leading-relaxed text-[#736d80]">Explore os detalhes de cada vaga e encontre seu próximo desafio.</p></div><span aria-hidden="true" className="text-3xl text-[#7240da]">↗</span></div>
+          <div className="mt-6 flex items-center justify-between gap-5 rounded-xl bg-[#eee8f8] px-5 py-5 sm:px-6"><div><h3 className="mb-1 text-[15px] font-semibold">Grandes histórias começam com um primeiro passo.</h3><p className="text-[11px] leading-relaxed text-[#736d80]">Explore os detalhes de cada vaga e encontre seu próximo desafio.</p></div><span aria-hidden="true" className="text-3xl text-[#7240da]">↗</span></div>
         </section>
       </div>
 
-      <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-[#e9e5f0] py-6 text-[11px] text-[#736d80]">
+      <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-[#e9e5f0] pb-28 pt-6 text-[11px] text-[#736d80] sm:pb-6">
         <span><b className="text-[#241b38]">innovation.</b> RH · Carreiras</span>
         <span>Conectando pessoas a novas possibilidades.</span>
-        <nav aria-label="Informações" className="flex gap-4"><Link href="/carreiras/privacidade" className="hover:text-[#7240da]">Privacidade</Link><Link href="/termos?de=carreiras" className="hover:text-[#7240da]">Termos</Link><Link href="/suporte?de=carreiras" className="hover:text-[#7240da]">Suporte</Link></nav>
+        <nav aria-label="Informações" className="flex flex-wrap gap-x-4 gap-y-2"><Link href="/" className="hover:text-[#7240da]">Conheça a plataforma</Link><Link href="/carreiras/privacidade" className="hover:text-[#7240da]">Privacidade</Link><Link href="/termos?de=carreiras" className="hover:text-[#7240da]">Termos</Link><Link href="/suporte?de=carreiras" className="hover:text-[#7240da]">Suporte</Link></nav>
       </footer>
     </div>
   </div>;

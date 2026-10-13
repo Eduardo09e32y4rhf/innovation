@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { candidateApi, isUnauthorized, setCandidateToken, type CandidateApplication } from '../_lib/candidate-api';
+import { candidateApi, isUnauthorized, setCandidateToken, type CandidateApplication, type CandidateInvite } from '../_lib/candidate-api';
 import { useCandidateSession } from './_components/account-shell';
 
 const STEPS = ['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED'] as const;
@@ -50,11 +50,13 @@ export function ApplicationsView() {
   const [items, setItems] = useState<CandidateApplication[] | null>(null);
   const [error, setError] = useState('');
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [invites, setInvites] = useState<CandidateInvite[]>([]);
 
   const load = useCallback(async () => {
     try {
       const result = await candidateApi.applications();
       setItems(result.applications); setUpdatedAt(new Date()); setError('');
+      candidateApi.invites().then(setInvites).catch(() => undefined);
     } catch (cause) {
       if (isUnauthorized(cause)) { setCandidateToken(null); await signOut(); return; }
       setError(cause instanceof Error ? cause.message : 'Não foi possível carregar suas candidaturas.');
@@ -67,8 +69,13 @@ export function ApplicationsView() {
     return () => window.clearInterval(timer);
   }, [load]);
 
+  async function decline(id: string) {
+    try { await candidateApi.declineInvite(id); setInvites((list) => list.map((item) => (item.id === id ? { ...item, status: 'DECLINED' } : item))); } catch { /* tenta de novo no próximo ciclo */ }
+  }
+  const pendingInvites = invites.filter((item) => item.status === 'SENT');
+
   return (
-    <main className="mx-auto max-w-[1200px] space-y-6 px-6 py-8">
+    <main className="mx-auto max-w-[1200px] space-y-6 px-4 py-6 sm:px-6 sm:py-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div><h1 className="text-2xl font-bold tracking-tight">Minhas candidaturas</h1>
           <p className="text-sm text-[#5b5473]">Acompanhe o andamento em todas as empresas{updatedAt ? ` · atualizado às ${updatedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}.</p></div>
@@ -80,6 +87,21 @@ export function ApplicationsView() {
           <span>Seu perfil está {profile.completeness.percent}% completo. Complete para se candidatar com poucos cliques{profile.completeness.missing.length ? ` (falta: ${profile.completeness.missing.join(', ')})` : ''}.</span>
           <Link href="/carreiras/conta/perfil" className="min-h-11 content-center font-semibold text-[#6d28d9] underline">Completar perfil</Link>
         </div>
+      )}
+
+      {pendingInvites.length > 0 && (
+        <section aria-label="Convites" className="space-y-3 rounded-[16px] border border-[#d9ccf7] bg-[#f0eafa] p-4 sm:p-5">
+          <h2 className="text-base font-bold">Convites para vagas ({pendingInvites.length})</h2>
+          {pendingInvites.map((invite) => (
+            <div key={invite.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] bg-white p-3">
+              <div className="min-w-0"><p className="break-words font-semibold">{invite.job}</p><p className="text-sm text-[#5b5473]">{invite.company}{invite.message ? ` · “${invite.message}”` : ''}</p></div>
+              <div className="flex gap-2">
+                {invite.open && <Link href={`/carreiras/${invite.companyId}/${invite.jobId}`} className="inline-flex min-h-11 items-center rounded-[10px] bg-[#6d28d9] px-4 text-sm font-semibold text-white hover:bg-[#5b21b6]">Ver vaga</Link>}
+                <button type="button" onClick={() => void decline(invite.id)} className="min-h-11 rounded-[10px] border border-[#d5cceb] px-4 text-sm font-semibold hover:bg-[#f1ecfb]">Agora não</button>
+              </div>
+            </div>
+          ))}
+        </section>
       )}
 
       {error && <p role="alert" className="rounded-lg bg-rose-50 p-4 text-sm text-rose-800">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>Tentar de novo</button></p>}

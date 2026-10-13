@@ -1,4 +1,4 @@
-import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from 'node:crypto';
 
 /** Regras puras da Área do candidato (sem banco), para testar sem mock. */
 
@@ -125,5 +125,97 @@ export function admissionPrefill(account: AccountForAdmission | null | undefined
       state: text(account.state, 2)?.toUpperCase(),
       education: education ?? undefined,
     },
+  };
+}
+
+// ---------- senha ----------
+export const PASSWORD_MIN = 8;
+export const PASSWORD_MAX = 128;
+export const LOGIN_MAX_FAILURES = 5;
+export const LOGIN_LOCK_MINUTES = 15;
+
+/** scrypt com sal por senha. Formato: scrypt$<sal hex>$<hash hex>. */
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16);
+  return `scrypt$${salt.toString('hex')}$${scryptSync(password, salt, 64).toString('hex')}`;
+}
+
+export function verifyPassword(password: string, stored: string | null | undefined): boolean {
+  const [scheme, saltHex, hashHex] = String(stored ?? '').split('$');
+  if (scheme !== 'scrypt' || !saltHex || !hashHex) return false;
+  const expected = Buffer.from(hashHex, 'hex');
+  const actual = scryptSync(password, Buffer.from(saltHex, 'hex'), expected.length);
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+/** Devolve a mensagem de erro, ou null se a senha serve. */
+export function passwordProblem(password: unknown): string | null {
+  const value = String(password ?? '');
+  if (value.length < PASSWORD_MIN) return `A senha precisa ter pelo menos ${PASSWORD_MIN} caracteres.`;
+  if (value.length > PASSWORD_MAX) return `A senha pode ter no máximo ${PASSWORD_MAX} caracteres.`;
+  if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) return 'Use letras e números na senha.';
+  return null;
+}
+
+// ---------- perfil profissional ----------
+export const DRIVER_LICENSE_CATEGORIES = ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE'] as const;
+export const MAX_SKILLS = 15;
+
+/** "AAAA-MM-DD" válida, não futura e de quem tem pelo menos 14 anos. Vazio limpa o campo. */
+export function parseBirthDate(value: unknown, now = new Date()): Date | null | undefined {
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!match) return undefined;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  if (date.getUTCFullYear() !== Number(match[1]) || date.getUTCMonth() !== Number(match[2]) - 1 || date.getUTCDate() !== Number(match[3])) return undefined;
+  const youngest = new Date(Date.UTC(now.getUTCFullYear() - 14, now.getUTCMonth(), now.getUTCDate()));
+  if (date > youngest || date.getUTCFullYear() < 1900) return undefined;
+  return date;
+}
+
+export function sanitizeSkills(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of value) {
+    const text = String(item ?? '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    const key = text.toLocaleLowerCase('pt-BR');
+    if (text && !seen.has(key)) { seen.add(key); out.push(text); }
+    if (out.length >= MAX_SKILLS) break;
+  }
+  return out;
+}
+
+export const ageFrom = (birthDate: Date | null | undefined, now = new Date()) => {
+  if (!birthDate) return null;
+  let age = now.getUTCFullYear() - birthDate.getUTCFullYear();
+  if (now.getUTCMonth() < birthDate.getUTCMonth() || (now.getUTCMonth() === birthDate.getUTCMonth() && now.getUTCDate() < birthDate.getUTCDate())) age -= 1;
+  return age;
+};
+
+type TalentLike = ProfileLike & { id: string; birthDate?: Date | null; profession?: string | null; skills?: unknown; hasDriverLicense?: boolean | null; driverLicenseCategory?: string | null; updatedAt?: Date };
+
+/**
+ * O que o RH de OUTRA empresa enxerga de quem aceitou o banco de talentos.
+ * Sem CPF, e-mail, telefone, rua/número nem data de nascimento exata: o contato sai por convite pela plataforma.
+ */
+export function talentCard(account: TalentLike, now = new Date()) {
+  const education = sanitizeEducation(account.education);
+  return {
+    id: account.id,
+    name: String(account.name ?? '').trim(),
+    age: ageFrom(account.birthDate ?? null, now),
+    profession: account.profession ?? null,
+    skills: sanitizeSkills(account.skills),
+    city: account.city ?? null,
+    state: account.state ?? null,
+    neighborhood: account.neighborhood ?? null,
+    education,
+    highestEducation: highestEducation(education),
+    hasDriverLicense: account.hasDriverLicense ?? null,
+    driverLicenseCategory: account.hasDriverLicense ? account.driverLicenseCategory ?? null : null,
+    hasResume: Boolean(account.resumeKey),
+    updatedAt: account.updatedAt ?? null,
   };
 }

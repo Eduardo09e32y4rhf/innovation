@@ -2,25 +2,38 @@ import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Param, Pa
 import { Throttle } from '@nestjs/throttler';
 import { CandidateAuthGuard } from './candidate-account.guard';
 import { CandidateAccountService } from './candidate-account.service';
-import { CandidateApplyDto, CandidateRequestCodeDto, CandidateUpdateProfileDto, CandidateVerifyCodeDto } from './dto/candidate-account.dto';
+import { CandidateApplyDto, CandidateEmailDto, CandidateLoginDto, CandidateRegisterDto, CandidateResetPasswordDto, CandidateUpdateProfileDto } from './dto/candidate-account.dto';
 
 /** Área do candidato: conta única com perfil mínimo, reaproveitável em qualquer empresa. Rotas separadas do login de empresa. */
 @Controller('candidate-portal')
 export class CandidateAccountController {
   constructor(private readonly service: CandidateAccountService) {}
 
-  @Post('auth/request-code')
-  @HttpCode(200)
+  @Post('auth/register')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  requestCode(@Body() dto: CandidateRequestCodeDto) {
-    return this.service.requestCode(dto.email);
+  register(@Body() dto: CandidateRegisterDto) {
+    return this.service.register(dto.email, dto.password, dto.name);
   }
 
-  @Post('auth/verify')
+  @Post('auth/login')
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
-  verify(@Body() dto: CandidateVerifyCodeDto) {
-    return this.service.verifyCode(dto.email, dto.code);
+  login(@Body() dto: CandidateLoginDto) {
+    return this.service.login(dto.email, dto.password);
+  }
+
+  @Post('auth/forgot-password')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  forgot(@Body() dto: CandidateEmailDto) {
+    return this.service.requestPasswordReset(dto.email);
+  }
+
+  @Post('auth/reset-password')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  reset(@Body() dto: CandidateResetPasswordDto) {
+    return this.service.resetPassword(dto.email, dto.code, dto.password);
   }
 
   @UseGuards(CandidateAuthGuard)
@@ -73,6 +86,19 @@ export class CandidateAccountController {
   @Get('applications')
   applications(@Req() request: any) {
     return this.service.applications(request.candidateAccount);
+  }
+
+  @UseGuards(CandidateAuthGuard)
+  @Get('invites')
+  invites(@Req() request: any) {
+    return this.service.invites(request.candidateAccount);
+  }
+
+  @UseGuards(CandidateAuthGuard)
+  @Post('invites/:inviteId/decline')
+  @HttpCode(200)
+  declineInvite(@Req() request: any, @Param('inviteId', new ParseUUIDPipe()) inviteId: string) {
+    return this.service.declineInvite(request.candidateAccount, inviteId);
   }
 
   /** "Sim, reutilizar meus dados": envia o perfil salvo + respostas das perguntas da vaga (se houver). */

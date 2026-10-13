@@ -198,19 +198,19 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
   return (
     <div className="min-h-screen bg-[#fbfafc] text-[#241b38]">
       <a className="sr-only focus:not-sr-only focus:block focus:p-4" href="#application">Ir para a candidatura</a>
-      <header className="border-b border-[#e9e5f0]"><div className="mx-auto flex h-20 max-w-[1200px] items-center justify-between gap-3 px-5 sm:px-9">
+      <header className="border-b border-[#e9e5f0]"><div className="mx-auto flex min-h-[64px] max-w-[1200px] flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:px-9">
         <CareersBrand company={company} companyId={companyId} compact />
-        <nav className="flex items-center gap-3 text-[13px]"><Link className="rounded-lg border border-[#e9e5f0] px-4 py-3 text-[#7240da] hover:border-[#c7b0ed]" href={companyPath}>← Todas as oportunidades</Link></nav>
+        <nav className="flex items-center gap-2 text-[13px]"><Link className="inline-flex min-h-11 items-center rounded-lg border border-[#e9e5f0] px-3 text-[#7240da] hover:border-[#c7b0ed]" href={companyPath}>← Vagas</Link><Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 font-semibold text-white hover:bg-[#5b29be]" href={account ? '/carreiras/conta' : `/carreiras/conta/entrar?next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>{account ? 'Minha conta' : 'Entrar'}</Link></nav>
       </div></header>
 
-      <main className="mx-auto max-w-[1200px] space-y-5 px-5 py-6 sm:px-9">
-        <section className="relative overflow-hidden rounded-[18px] border border-[#e4d9f4] bg-[#f0eafa] px-6 py-7 sm:px-9">
-          <span aria-hidden="true" className="pointer-events-none absolute -top-10 right-4 text-[220px] leading-none text-[#e4d7f6]">↗</span>
+      <main className="mx-auto max-w-[1200px] space-y-5 px-4 pb-28 pt-5 sm:px-9 sm:py-6 sm:pb-6">
+        <section className="relative overflow-hidden rounded-[18px] border border-[#e4d9f4] bg-[#f0eafa] px-5 py-6 sm:px-9 sm:py-7">
+          <span aria-hidden="true" className="pointer-events-none absolute -top-6 right-2 text-[120px] leading-none text-[#e4d7f6] sm:-top-10 sm:right-4 sm:text-[220px]">↗</span>
           <div className="relative">
             <p className="text-xs text-[#736d80]">{company.name} · Carreiras</p>
-            <h1 className="my-5 max-w-[850px] break-words text-[28px] font-semibold leading-tight tracking-tight sm:text-4xl">{job.title}</h1>
-            <p className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[#6b5b80]"><span>{job.location || 'Local não informado'}</span><span>{employmentTypeLabel(job.employmentType)}</span>{workModeLabel(job.workMode) && <span>{workModeLabel(job.workMode)}</span>}{job.seniority && <span>{job.seniority}</span>}{salary && <span><b>{salary}</b></span>}</p>
-            <div className="mt-6"><a className="inline-flex min-h-12 items-center rounded-[9px] bg-[#7240da] px-6 text-[13px] font-semibold text-white transition hover:bg-[#5b29be]" href="#application">Candidatar-me ↗</a></div>
+            <h1 className="my-4 max-w-[850px] break-words text-[26px] font-semibold leading-tight tracking-tight sm:text-4xl">{job.title}</h1>
+            <p className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[#6b5b80]"><span>{job.location || 'Local não informado'}</span><span>{employmentTypeLabel(job.employmentType)}</span>{workModeLabel(job.workMode) && <span>{workModeLabel(job.workMode)}</span>}{job.seniority && <span>{job.seniority}</span>}{salary && <span><b>{salary}</b></span>}</p>
+            <div className="mt-6"><a className="inline-flex min-h-12 w-full items-center justify-center rounded-[9px] bg-[#7240da] px-6 text-[13px] sm:w-auto font-semibold text-white transition hover:bg-[#5b29be]" href="#application">Candidatar-me ↗</a></div>
           </div>
         </section>
 
@@ -345,7 +345,7 @@ function ShareBar({ title, companyName }: { title: string; companyName: string }
   }
   const text = (url: string) => `Vaga: ${title} na ${companyName}. Candidate-se: ${url}`;
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm" aria-label="Compartilhar vaga" role="group">
+    <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm" aria-label="Compartilhar vaga" role="group">
       <span className="text-fg-mut">Compartilhar:</span>
       <button type="button" className="btn btn-outline" onClick={() => open('whatsapp', (url) => `https://wa.me/?text=${encodeURIComponent(text(url))}`)}>WhatsApp</button>
       <button type="button" className="btn btn-outline" onClick={() => open('linkedin', (url) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`)}>LinkedIn</button>

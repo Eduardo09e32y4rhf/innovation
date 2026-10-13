@@ -75,6 +75,7 @@ export default function JobsPage() {
         subtitle="Gerencie oportunidades, acompanhe candidaturas e conduza cada processo seletivo."
         actions={<div className="flex flex-wrap items-center gap-2">
           <Link href="/carreiras" target="_blank" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-bg px-4 text-sm font-semibold text-fg transition hover:bg-bg-sub"><ExternalLink size={16} aria-hidden="true" /> Portal de carreiras</Link>
+          {canConfigure && <Link href={`${base}/talentos`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-bg px-4 text-sm font-semibold text-fg transition hover:bg-bg-sub"><Users size={16} aria-hidden="true" /> Banco de talentos</Link>}
           <Link href={`${base}/metrics`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-bg px-4 text-sm font-semibold text-fg transition hover:bg-bg-sub">Relatórios</Link>
           {canConfigure && <Link href={`${base}/settings`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-bg px-4 text-sm font-semibold text-fg transition hover:bg-bg-sub"><Settings2 size={16} aria-hidden="true" /> Configurar funil</Link>}
           {canManage && <Link href={`${base}/new`} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--color-brand)] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--color-brand-700)]"><Plus size={17} aria-hidden="true" /> Nova vaga</Link>}
