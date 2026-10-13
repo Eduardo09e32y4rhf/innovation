@@ -3606,6 +3606,10 @@ model CandidateAccount {
   profession            String?
   /// Lista curta de conhecimentos tecnicos informados pelo proprio candidato.
   skills                Json?
+  /// Resumo profissional curto escrito pelo candidato.
+  about                 String?
+  /// [{ role, company, start: "AAAA-MM", end: "AAAA-MM" | null, current, description }]
+  experience            Json?
   hasDriverLicense      Boolean?
   driverLicenseCategory String?
   /// Banco de talentos: so com este aceite o RH de outras empresas encontra o perfil (nome, profissao, cidade, formacao, curriculo).

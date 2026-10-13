@@ -187,14 +187,37 @@ export function sanitizeSkills(value: unknown): string[] {
   return out;
 }
 
-export const ageFrom = (birthDate: Date | null | undefined, now = new Date()) => {
+export const MAX_EXPERIENCE_ITEMS = 10;
+export type ExperienceItem = { role: string; company: string; start: string | null; end: string | null; current: boolean; description: string };
+
+const monthOrNull = (value: unknown) => { const text = String(value ?? '').trim(); return /^(19|20)\d{2}-(0[1-9]|1[0-2])$/.test(text) ? text : null; };
+
+/** Experiências profissionais: exige cargo, corta textos e aceita só meses "AAAA-MM". Mais recentes primeiro. */
+export function sanitizeExperience(raw: unknown): ExperienceItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, MAX_EXPERIENCE_ITEMS).map((item) => {
+    const row = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
+    const current = row.current === true;
+    return {
+      role: String(row.role ?? '').replace(/\s+/g, ' ').trim().slice(0, 120),
+      company: String(row.company ?? '').replace(/\s+/g, ' ').trim().slice(0, 120),
+      start: monthOrNull(row.start),
+      end: current ? null : monthOrNull(row.end),
+      current,
+      description: String(row.description ?? '').trim().slice(0, 600),
+    };
+  }).filter((item) => item.role)
+    .sort((a, b) => Number(b.current) - Number(a.current) || String(b.end ?? b.start ?? '').localeCompare(String(a.end ?? a.start ?? '')));
+}
+
+export const ageFrom =(birthDate: Date | null | undefined, now = new Date()) => {
   if (!birthDate) return null;
   let age = now.getUTCFullYear() - birthDate.getUTCFullYear();
   if (now.getUTCMonth() < birthDate.getUTCMonth() || (now.getUTCMonth() === birthDate.getUTCMonth() && now.getUTCDate() < birthDate.getUTCDate())) age -= 1;
   return age;
 };
 
-type TalentLike = ProfileLike & { id: string; birthDate?: Date | null; profession?: string | null; skills?: unknown; hasDriverLicense?: boolean | null; driverLicenseCategory?: string | null; updatedAt?: Date };
+type TalentLike = ProfileLike & { id: string; birthDate?: Date | null; profession?: string | null; skills?: unknown; about?: string | null; experience?: unknown; hasDriverLicense?: boolean | null; driverLicenseCategory?: string | null; updatedAt?: Date };
 
 /**
  * O que o RH de OUTRA empresa enxerga de quem aceitou o banco de talentos.
@@ -208,6 +231,8 @@ export function talentCard(account: TalentLike, now = new Date()) {
     age: ageFrom(account.birthDate ?? null, now),
     profession: account.profession ?? null,
     skills: sanitizeSkills(account.skills),
+    about: account.about ?? null,
+    experience: sanitizeExperience(account.experience).map(({ role, company, start, end, current }) => ({ role, company, start, end, current })),
     city: account.city ?? null,
     state: account.state ?? null,
     neighborhood: account.neighborhood ?? null,

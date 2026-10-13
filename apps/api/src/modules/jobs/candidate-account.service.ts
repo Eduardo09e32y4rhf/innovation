@@ -9,7 +9,7 @@ import { candidatePasswordResetEmail } from './recruitment-mails';
 import { PRIVACY_VERSION, STAGE_LABEL_FOR_CANDIDATE } from './recruitment-privacy';
 import {
   DRIVER_LICENSE_CATEGORIES, funnelCount, generateLoginCode, hashPassword, hashSecret, isEmail, isValidCpf, LOGIN_CODE_MAX_ATTEMPTS, LOGIN_CODE_TTL_MINUTES, LOGIN_LOCK_MINUTES, LOGIN_MAX_FAILURES,
-  normalizeEmail, onlyDigits, parseBirthDate, passwordProblem, profileChecklist, profileCompleteness, safeEqualHex, sanitizeEducation, sanitizeSkills, SESSION_TTL_DAYS, verifyPassword,
+  normalizeEmail, onlyDigits, parseBirthDate, passwordProblem, profileChecklist, profileCompleteness, safeEqualHex, sanitizeEducation, sanitizeExperience, sanitizeSkills, SESSION_TTL_DAYS, verifyPassword,
 } from './candidate-account.rules';
 import type { CandidateApplyDto, CandidateUpdateProfileDto } from './dto/candidate-account.dto';
 
@@ -139,6 +139,7 @@ export class CandidateAccountService {
       neighborhood: account.neighborhood, city: account.city, state: account.state,
       birthDate: account.birthDate ? account.birthDate.toISOString().slice(0, 10) : null,
       profession: account.profession, skills: sanitizeSkills(account.skills),
+      about: account.about, experience: sanitizeExperience(account.experience),
       hasDriverLicense: account.hasDriverLicense, driverLicenseCategory: account.driverLicenseCategory,
       talentPoolConsent: Boolean(account.talentPoolConsentAt),
       education: sanitizeEducation(account.education),
@@ -175,6 +176,8 @@ export class CandidateAccountService {
     }
     if (dto.profession !== undefined) data.profession = text(dto.profession, 120);
     if (dto.skills !== undefined) data.skills = sanitizeSkills(dto.skills);
+    if (dto.about !== undefined) data.about = dto.about.trim().slice(0, 1200) || null;
+    if (dto.experience !== undefined) data.experience = sanitizeExperience(dto.experience);
     if (dto.hasDriverLicense !== undefined) {
       data.hasDriverLicense = dto.hasDriverLicense;
       if (!dto.hasDriverLicense) data.driverLicenseCategory = null;

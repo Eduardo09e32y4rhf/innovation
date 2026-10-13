@@ -16,7 +16,7 @@ export function useCandidateSession() {
 }
 
 const NAV = [
-  { href: '/carreiras/conta', label: 'Minhas candidaturas' },
+  { href: '/carreiras/conta', label: 'Painel' },
   { href: '/carreiras', label: 'Vagas abertas' },
   { href: '/carreiras/conta/perfil', label: 'Meu perfil' },
 ];

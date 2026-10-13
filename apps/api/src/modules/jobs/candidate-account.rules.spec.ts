@@ -1,7 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
-  admissionPrefill, funnelCount, generateLoginCode, hashSecret, highestEducation, isEmail, isValidCpf, profileCompleteness, safeEqualHex, sanitizeEducation, hashPassword, verifyPassword, passwordProblem, parseBirthDate, sanitizeSkills, talentCard,
+  admissionPrefill, funnelCount, generateLoginCode, hashSecret, highestEducation, isEmail, isValidCpf, profileCompleteness, safeEqualHex, sanitizeEducation, hashPassword, verifyPassword, passwordProblem, parseBirthDate, sanitizeSkills, talentCard, sanitizeExperience,
 } from './candidate-account.rules';
+
+describe('experiência profissional', () => {
+  it('exige cargo, valida meses, limpa o fim do emprego atual e ordena do mais recente', () => {
+    const list = sanitizeExperience([
+      { role: 'Auxiliar', company: 'A', start: '2018-02', end: '2020-13' },
+      { role: '', company: 'sem cargo' },
+      { role: 'Analista', company: 'B', start: '2021-01', end: '2022-05', current: true },
+      'lixo',
+    ]);
+    expect(list.map((item) => item.role)).toEqual(['Analista', 'Auxiliar']);
+    expect(list[0]).toMatchObject({ current: true, end: null, start: '2021-01' });
+    expect(list[1]).toMatchObject({ end: null, start: '2018-02' });
+  });
+});
 
 describe('CPF', () => {
   it('aceita CPF válido com ou sem máscara', () => {

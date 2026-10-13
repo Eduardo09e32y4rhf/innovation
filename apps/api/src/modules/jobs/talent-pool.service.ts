@@ -3,7 +3,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { JobsStorageService } from './jobs-storage.service';
 import { candidateInviteEmail } from './recruitment-mails';
-import { highestEducation, sanitizeEducation, sanitizeSkills, talentCard, DRIVER_LICENSE_CATEGORIES, EDUCATION_LEVELS } from './candidate-account.rules';
+import { highestEducation, sanitizeEducation, sanitizeExperience, sanitizeSkills, talentCard, DRIVER_LICENSE_CATEGORIES, EDUCATION_LEVELS } from './candidate-account.rules';
 
 const appBase = () => (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
 /** Limite diário de convites por empresa: o banco de talentos não pode virar disparador de mensagens. */
@@ -39,7 +39,7 @@ export class TalentPoolService {
     const matched = rows.filter((row) => {
       if (education && !sanitizeEducation(row.education).some((item) => item.level === education)) return false;
       if (!q) return true;
-      const haystack = fold([row.name, row.profession, row.city, row.neighborhood, ...sanitizeSkills(row.skills), ...sanitizeEducation(row.education).map((item) => `${item.course} ${item.school} ${item.level}`)].join(' '));
+      const haystack = fold([row.name, row.profession, row.city, row.neighborhood, ...sanitizeSkills(row.skills), ...sanitizeEducation(row.education).map((item) => `${item.course} ${item.school} ${item.level}`), ...sanitizeExperience(row.experience).map((item) => `${item.role} ${item.company}`)].join(' '));
       return q.split(/\s+/).every((word) => haystack.includes(word));
     });
 

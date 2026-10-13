@@ -14,11 +14,14 @@ export type EducationItem = { level: string; status: string; course: string; sch
 export const EDUCATION_LEVELS = ['Ensino fundamental', 'Ensino médio', 'Técnico', 'Superior', 'Pós-graduação'] as const;
 export const EDUCATION_STATUS = ['Completo', 'Cursando', 'Incompleto'] as const;
 
+export type ExperienceItem = { role: string; company: string; start: string | null; end: string | null; current: boolean; description: string };
+
 export type CandidateProfile = {
   email: string; name: string | null; cpf: string | null; phone: string | null;
   cep: string | null; street: string | null; streetNumber: string | null; addressComplement: string | null; neighborhood: string | null; city: string | null; state: string | null;
   birthDate: string | null; profession: string | null; skills: string[]; hasDriverLicense: boolean | null; driverLicenseCategory: string | null; talentPoolConsent: boolean;
   education: EducationItem[];
+  about: string | null; experience: ExperienceItem[];
   resume: { name: string | null; type: string | null; size: number | null } | null;
   consent: boolean; admissionShareConsent: boolean;
   completeness: { percent: number; missing: string[]; complete: boolean };
