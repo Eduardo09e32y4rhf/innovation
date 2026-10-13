@@ -194,7 +194,7 @@ function normalizeJob(value: unknown, fallbackCompanyId: string): PublicJob | nu
   };
 }
 
-async function fetchPublic(path: string, init?: RequestInit): Promise<unknown> {
+export async function fetchPublic(path: string, init?: RequestInit): Promise<unknown> {
   let response: Response;
 
   try {

@@ -3571,3 +3571,60 @@ model CompanyPosition {
   @@unique([companyId, nameKey])
   @@index([companyId])
 }
+
+/// Conta do candidato (Area do candidato): perfil minimo (LGPD) reaproveitavel em varias empresas. Login por codigo no e-mail.
+model CandidateAccount {
+  id                    String    @id @default(uuid()) @db.Uuid
+  email                 String    @unique
+  name                  String?
+  cpf                   String?
+  phone                 String?
+  cep                   String?
+  street                String?
+  streetNumber          String?
+  addressComplement     String?
+  neighborhood          String?
+  city                  String?
+  state                 String?
+  /// [{ level, status, course, school }] - do ensino fundamental a pos-graduacao.
+  education             Json?
+  resumeKey             String?
+  resumeName            String?
+  resumeType            String?
+  resumeSize            Int?
+  consentAt             DateTime?
+  consentVersion        String?
+  /// Se contratado, a empresa pode preencher o cadastro de funcionario com estes dados (so com este aceite).
+  admissionShareConsent Boolean   @default(false)
+  verifiedAt            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  sessions CandidateSession[]
+}
+
+model CandidateLoginCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  email     String
+  /// So o hash do codigo e gravado.
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
+}
+
+model CandidateSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  accountId String   @db.Uuid
+  /// So o SHA-256 do token e gravado.
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  account CandidateAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}

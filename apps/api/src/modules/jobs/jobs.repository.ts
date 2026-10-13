@@ -1,3 +1,4 @@
+import { admissionPrefill } from './candidate-account.rules';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -286,8 +287,18 @@ export class JobsRepository {
           ? await tx.asoClinicPreset.findFirst({ where: { companyId, id: data.clinicPresetId, active: true } })
           : await tx.asoClinicPreset.findFirst({ where: { companyId, active: true }, orderBy: { createdAt: 'asc' } });
 
+        // Candidato com conta na Área do candidato e com o aceite de compartilhar na admissão: o RH não digita de novo o que ele já informou.
+        const account = application.candidate.email
+          ? await tx.candidateAccount.findFirst({ where: { email: { equals: application.candidate.email, mode: 'insensitive' }, admissionShareConsent: true, verifiedAt: { not: null } } })
+          : null;
+        const prefill: any = admissionPrefill(account);
+        const cpfTaken = prefill.cpfDigits
+          ? await tx.employee.findFirst({ where: { cpf: { in: [prefill.cpfDigits, prefill.cpfMasked] } }, select: { id: true } })
+          : null;
+
         const notes = [
           'Origem: Portal de Vagas / ATS.',
+          account ? 'Dados básicos (CPF, endereço e formação) preenchidos pelo próprio candidato na Área do candidato, com o aceite de compartilhar na admissão. Confira e complete o restante.' : null,
           application.coverLetter ? `Apresentacao: ${application.coverLetter}` : null,
         ]
           .filter(Boolean)
@@ -295,6 +306,8 @@ export class JobsRepository {
 
         const employee = await tx.employee.create({
           data: {
+            ...(prefill.secondaryData ? Object.fromEntries(Object.entries(prefill.secondaryData).filter(([, value]) => value !== undefined)) : {}),
+            ...(prefill.cpfMasked && !cpfTaken ? { cpf: prefill.cpfMasked } : {}),
             companyId,
             originCandidateId: application.candidate.id,
             name: application.candidate.name,

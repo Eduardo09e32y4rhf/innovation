@@ -1,5 +1,6 @@
 'use client';
 
+import { toWholeReais } from '../payloads';
 import { ArrowLeft, ArrowRight, Check, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -32,15 +33,6 @@ const EMPTY: Draft = {
 };
 
 const lines = (text: string) => text.split('\n').map((line) => line.trim()).filter(Boolean);
-
-/** "4500", "4500.50" ou "4.500,50" viram reais inteiros (a API guarda inteiro); vazio ou inválido = não informado. */
-function toWholeReais(value: string): number | undefined {
-  const raw = String(value ?? '').trim();
-  if (!raw) return undefined;
-  const normalized = raw.includes(',') ? raw.replace(/\./g, '').replace(',', '.') : raw;
-  const number = Number(normalized);
-  return Number.isFinite(number) && number >= 0 ? Math.round(number) : undefined;
-}
 
 function validate(draft: Draft): { step: number; message: string }[] {
   const issues: { step: number; message: string }[] = [];
@@ -123,8 +115,8 @@ export function JobWizard({ jobId }: { jobId?: string }) {
         salaryHidden: draft.salaryHidden, deadline: draft.deadline || null, status, isInternal: draft.isInternal, confidential: draft.confidential,
       };
       const saved = jobId ? await jobsApi.update(jobId, payload) : await jobsApi.create(payload);
-      await jobsApi.saveQuestions(saved.id, draft.questions.map((question) => ({ ...question, label: question.label.trim() })));
-      await jobsApi.saveCriteria(saved.id, draft.criteria.map((criterion) => ({ ...criterion, name: criterion.name.trim() })));
+      await jobsApi.saveQuestions(saved.id, draft.questions);
+      await jobsApi.saveCriteria(saved.id, draft.criteria);
       baseline.current = JSON.stringify(draft);
       toast.success(status === 'OPEN' ? 'Vaga publicada.' : 'Vaga salva.');
       router.push(base);

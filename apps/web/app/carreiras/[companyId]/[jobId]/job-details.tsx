@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, type DragEvent, type FormEven
 import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { CareersBrand, CareersFooter } from '../../_components/careers-brand';
+import { candidateApi, getCandidateToken, type CandidateProfile } from '../../_lib/candidate-api';
 import {
   applyToPublicJob, CareersApiError, employmentTypeLabel, getPublicJob, jobPostingJsonLd, publicSalaryLabel, readTrafficSource, trackedJobUrl, validateResume, workModeLabel,
   type PublicJob, type PublicQuestion,
@@ -79,6 +80,9 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [account, setAccount] = useState<CandidateProfile | null>(null);
+  const [reuse, setReuse] = useState<'ask' | 'yes' | 'no'>('ask');
+  const [reuseConsent, setReuseConsent] = useState(false);
   const pending = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const successRef = useRef<HTMLDivElement>(null);
@@ -91,6 +95,13 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [companyId, jobId, reload]);
+  useEffect(() => {
+    if (!getCandidateToken()) return;
+    let active = true;
+    candidateApi.me().then((result) => { if (active) setAccount(result); }).catch(() => { /* sem sessão válida: segue como visitante */ });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => { setReuse('ask'); setReuseConsent(false); }, [companyId, jobId]);
   useEffect(() => { setForm(EMPTY); setAnswers({}); setResume(null); setSuccess(''); setFileError(''); setError(''); setFieldErrors({}); }, [companyId, jobId]);
   useEffect(() => { if (success) successRef.current?.focus(); }, [success]);
   useEffect(() => { if (error) errorRef.current?.focus(); }, [error]);
@@ -146,6 +157,29 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
     } finally { pending.current = false; setSubmitting(false); }
   }
 
+  async function submitReuse(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending.current || !job) return;
+    setError(''); setFieldErrors({});
+    const errors: Record<string, string> = {};
+    for (const question of job.questions) {
+      const value = answers[question.id];
+      const empty = Array.isArray(value) ? value.length === 0 : !String(value ?? '').trim();
+      if (question.required && empty) errors[`question:${question.id}`] = 'Esta pergunta é obrigatória.';
+    }
+    if (Object.keys(errors).length) { setFieldErrors(errors); document.getElementById(`q-${Object.keys(errors)[0].split(':')[1]}`)?.focus(); return; }
+    if (!reuseConsent) return;
+    pending.current = true; setSubmitting(true);
+    try {
+      await candidateApi.applyWithProfile(job.id, { answers, coverLetter: form.coverLetter.trim() || undefined, consent: true });
+      setSuccess('Candidatura enviada com os dados do seu perfil.'); setAnswers({});
+    } catch (cause) {
+      const status = (cause as { status?: number }).status;
+      if (cause instanceof CareersApiError) setFieldErrors(cause.fields);
+      setError(status === 409 ? 'Você já se candidatou a esta vaga. Acompanhe em Minhas candidaturas.' : cause instanceof Error ? cause.message : 'Não foi possível enviar. Tente novamente.');
+    } finally { pending.current = false; setSubmitting(false); }
+  }
+
   const company = job?.company ?? { id: companyId, name: 'Portal de carreiras' };
   const companyPath = '/carreiras/' + encodeURIComponent(companyId);
   if (loading) return <main className="min-h-screen bg-bg p-6"><p role="status">Carregando oportunidade...</p></main>;
@@ -156,6 +190,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
     </div></main>
   );
 
+  const reuseReady = Boolean(account?.name && account.phone && account.resume?.name);
   const salary = publicSalaryLabel(job);
   const fieldError = (name: string) => fieldErrors[name];
   const input = 'input-v2 min-h-11 text-base sm:text-sm';
@@ -202,6 +237,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
 
           <section id="application" className="min-w-0 scroll-mt-4 rounded-[15px] border border-[#e3d8f1] bg-white p-5 shadow-[0_14px_36px_#51227708] sm:p-7 lg:sticky lg:top-4" aria-label="Candidatura">
             <h2 className="text-lg font-semibold">Enviar candidatura</h2><p className="mt-2 text-sm text-fg-mut">Campos com * são obrigatórios.</p>
+            {!account && !job.closed && !success && <p className="mt-2 text-sm">Já tem conta? <Link className="font-semibold text-[#7240da] underline" href={`/carreiras/conta/entrar?next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>Entre para reutilizar seus dados</Link>.</p>}
             {job.closed ? (
               <div role="status" className="mt-5 space-y-3"><p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Esta vaga foi encerrada{job.closedAt ? ` em ${new Date(job.closedAt).toLocaleDateString('pt-BR')}` : ''} e não recebe mais candidaturas.</p><Link className="btn btn-outline" href={companyPath}>Ver outras vagas desta empresa</Link></div>
             ) : success ? (
@@ -209,8 +245,33 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
                 <h3 className="text-lg font-semibold text-emerald-800">Candidatura recebida!</h3>
                 <p className="text-sm">{success}</p>
                 <p className="text-sm text-fg-mut">O RH analisará seu perfil e entrará em contato se houver aderência.</p>
-                <Link className="btn btn-outline" href={companyPath}>Ver outras vagas desta empresa</Link>{' '}<Link className="btn btn-ghost" href="/carreiras">Ver outras empresas</Link>
+                <Link className="btn btn-outline" href={companyPath}>Ver outras vagas desta empresa</Link>{' '}<Link className="btn btn-ghost" href="/carreiras">Ver outras empresas</Link>{' '}<Link className="btn btn-ghost" href="/carreiras/conta">Minhas candidaturas</Link>
               </div>
+            ) : reuseReady && reuse === 'ask' ? (
+              <div className="mt-5 space-y-4" role="group" aria-labelledby="reuse-title">
+                <h3 id="reuse-title" className="text-base font-semibold">Deseja reutilizar seus dados e currículo?</h3>
+                <p className="text-sm text-fg-mut">Usaremos nome, e-mail, telefone e o currículo salvos no seu perfil{job.questions.length ? '. Você só responde às perguntas da vaga' : ' e enviamos direto, sem formulário'}.</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" className="!bg-[#7240da] hover:!bg-[#5b29be]" onClick={() => setReuse('yes')}>Sim, reutilizar</Button>
+                  <Button type="button" variant="outline" onClick={() => setReuse('no')}>Não, preencher manualmente</Button>
+                </div>
+              </div>
+            ) : reuseReady && reuse === 'yes' ? (
+              <form onSubmit={submitReuse} className="mt-5 space-y-5" noValidate>
+                {error && <p ref={errorRef} tabIndex={-1} role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
+                <p className="rounded-lg bg-bg-sub p-3 text-sm">Enviando como <b>{account?.name}</b> ({account?.email}) com o currículo <b>{account?.resume?.name}</b>. <button type="button" className="underline" onClick={() => setReuse('no')}>Preencher manualmente</button></p>
+                {job.questions.length > 0 && (
+                  <fieldset disabled={submitting} className="min-w-0 space-y-4">
+                    <legend className="mb-1 text-sm font-semibold">Sobre você e a vaga</legend>
+                    {job.questions.map((question) => (
+                      <QuestionField key={question.id} question={question} value={answers[question.id]} error={fieldError(`question:${question.id}`)} onChange={(next) => setAnswers((current) => ({ ...current, [question.id]: next }))} />
+                    ))}
+                  </fieldset>
+                )}
+                <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg bg-bg-sub p-3"><input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={reuseConsent} onChange={(event) => setReuseConsent(event.target.checked)} />
+                  <span className="text-sm leading-6">Autorizo o tratamento dos dados do meu perfil para avaliação desta candidatura.</span></label>
+                <Button type="submit" className="w-full !bg-[#7240da] hover:!bg-[#5b29be]" isLoading={submitting} disabled={!reuseConsent}>Enviar candidatura</Button>
+              </form>
             ) : (
               <form onSubmit={submit} className="mt-5 space-y-5" noValidate>
                 <div className="sr-only" aria-hidden="true"><label htmlFor="candidate-website">Não preencha este campo</label><input id="candidate-website" name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => setForm((current) => ({ ...current, website: event.target.value }))} /></div>

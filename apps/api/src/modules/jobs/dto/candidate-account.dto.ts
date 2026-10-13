@@ -1,0 +1,56 @@
+import { Transform } from 'class-transformer';
+import { ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsObject, IsOptional, IsString, Length, MaxLength } from 'class-validator';
+
+export class CandidateRequestCodeDto {
+  @IsEmail()
+  @MaxLength(240)
+  email!: string;
+}
+
+export class CandidateVerifyCodeDto {
+  @IsEmail()
+  @MaxLength(240)
+  email!: string;
+
+  @IsString()
+  @Length(6, 6)
+  code!: string;
+}
+
+/** Perfil mínimo (LGPD): só o necessário para se candidatar. Sem RG, PIS, banco, estado civil ou dependentes. */
+export class CandidateUpdateProfileDto {
+  @IsOptional() @IsString() @MaxLength(180) name?: string;
+  @IsOptional() @IsString() @MaxLength(20) cpf?: string;
+  @IsOptional() @IsString() @MaxLength(40) phone?: string;
+  @IsOptional() @IsString() @MaxLength(12) cep?: string;
+  @IsOptional() @IsString() @MaxLength(160) street?: string;
+  @IsOptional() @IsString() @MaxLength(20) streetNumber?: string;
+  @IsOptional() @IsString() @MaxLength(160) addressComplement?: string;
+  @IsOptional() @IsString() @MaxLength(160) neighborhood?: string;
+  @IsOptional() @IsString() @MaxLength(160) city?: string;
+  @IsOptional() @IsString() @MaxLength(2) state?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(8)
+  education?: Record<string, unknown>[];
+
+  @IsOptional() @IsBoolean() consent?: boolean;
+  @IsOptional() @IsBoolean() admissionShareConsent?: boolean;
+}
+
+export class CandidateApplyDto {
+  /** Respostas às perguntas da empresa (questionId -> valor). Sem perguntas, vai vazio e a candidatura sai direto. */
+  @IsOptional()
+  @IsObject()
+  answers?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  coverLetter?: string;
+
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  consent!: boolean;
+}
