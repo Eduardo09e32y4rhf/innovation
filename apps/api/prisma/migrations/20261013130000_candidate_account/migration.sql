@@ -1,5 +1,6 @@
 -- Area do candidato: conta com perfil minimo (LGPD), login por codigo no e-mail e sessoes
-CREATE TABLE "CandidateAccount" (
+-- Idempotente: em producao as tabelas ja existiam e o deploy parava aqui.
+CREATE TABLE IF NOT EXISTS "CandidateAccount" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "email" TEXT NOT NULL,
     "name" TEXT,
@@ -25,9 +26,9 @@ CREATE TABLE "CandidateAccount" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "CandidateAccount_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "CandidateAccount_email_key" ON "CandidateAccount"("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "CandidateAccount_email_key" ON "CandidateAccount"("email");
 
-CREATE TABLE "CandidateLoginCode" (
+CREATE TABLE IF NOT EXISTS "CandidateLoginCode" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "email" TEXT NOT NULL,
     "codeHash" TEXT NOT NULL,
@@ -37,9 +38,9 @@ CREATE TABLE "CandidateLoginCode" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "CandidateLoginCode_pkey" PRIMARY KEY ("id")
 );
-CREATE INDEX "CandidateLoginCode_email_createdAt_idx" ON "CandidateLoginCode"("email", "createdAt");
+CREATE INDEX IF NOT EXISTS "CandidateLoginCode_email_createdAt_idx" ON "CandidateLoginCode"("email", "createdAt");
 
-CREATE TABLE "CandidateSession" (
+CREATE TABLE IF NOT EXISTS "CandidateSession" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "accountId" UUID NOT NULL,
     "tokenHash" TEXT NOT NULL,
@@ -47,6 +48,10 @@ CREATE TABLE "CandidateSession" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "CandidateSession_pkey" PRIMARY KEY ("id")
 );
-CREATE UNIQUE INDEX "CandidateSession_tokenHash_key" ON "CandidateSession"("tokenHash");
-CREATE INDEX "CandidateSession_accountId_idx" ON "CandidateSession"("accountId");
-ALTER TABLE "CandidateSession" ADD CONSTRAINT "CandidateSession_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "CandidateAccount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+CREATE UNIQUE INDEX IF NOT EXISTS "CandidateSession_tokenHash_key" ON "CandidateSession"("tokenHash");
+CREATE INDEX IF NOT EXISTS "CandidateSession_accountId_idx" ON "CandidateSession"("accountId");
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CandidateSession_accountId_fkey') THEN
+    ALTER TABLE "CandidateSession" ADD CONSTRAINT "CandidateSession_accountId_fkey" FOREIGN KEY ("accountId") REFERENCES "CandidateAccount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
