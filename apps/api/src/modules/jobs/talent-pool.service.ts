@@ -118,7 +118,10 @@ export class CandidateAdminService {
     const emails = rows.map((row) => row.email);
     const applications = emails.length ? await this.prisma.candidate.findMany({ where: { email: { in: emails, mode: 'insensitive' } }, select: { email: true, _count: { select: { applications: true } } } }) : [];
     const countByEmail = new Map<string, number>();
-    for (const item of applications) countByEmail.set(item.email.toLowerCase(), (countByEmail.get(item.email.toLowerCase()) ?? 0) + item._count.applications);
+    for (const item of applications) {
+      const key = (item.email ?? '').toLowerCase();
+      if (key) countByEmail.set(key, (countByEmail.get(key) ?? 0) + item._count.applications);
+    }
     return {
       total, page, pageSize: 25,
       items: rows.map((row) => ({
