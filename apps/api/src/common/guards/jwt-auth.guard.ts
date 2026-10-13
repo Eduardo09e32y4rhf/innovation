@@ -35,8 +35,13 @@ export class JwtAuthGuard implements CanActivate {
       if (!freshUser || !freshUser.isActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
       const role = freshUser.role;
-      const companyActive = freshUser.company && (freshUser.company.status ?? 'ACTIVE') === 'ACTIVE' && freshUser.company.billingStatus !== 'CANCELED';
-      if (role !== 'DEV' && !companyActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
+      // Mesma regra do login (canAccessCompany): o administrador de empresa suspensa/aguardando pagamento continua
+      // autenticado para conseguir pagar; o TenantGuard limita o que ele acessa (só auth e financeiro).
+      // Antes, aqui virava 401 e a tela de pagamento caía no login em loop.
+      const company = freshUser.company;
+      const companyActive = company && (company.status ?? 'ACTIVE') === 'ACTIVE' && company.billingStatus !== 'CANCELED';
+      const awaitingPayment = company && company.billingStatus !== 'CANCELED' && (role === 'ADMIN' || ['PAST_DUE', 'PENDING_PAYMENT'].includes(company.billingStatus));
+      if (role !== 'DEV' && !companyActive && !awaitingPayment) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
       const passwordChangedAt = freshUser.passwordChangedAt ? new Date(freshUser.passwordChangedAt).getTime() : 0;
       if (payload.passwordVersion !== passwordChangedAt || typeof payload.sessionFamily !== 'string') {

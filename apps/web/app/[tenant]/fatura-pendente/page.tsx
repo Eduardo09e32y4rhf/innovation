@@ -48,7 +48,8 @@ function FaturaPendentePage() {
     } catch (error) {
       const message = error instanceof ApiError ? error.message : 'Não foi possível verificar o pagamento.';
       if (manual) { setErrorMessage(message); toast.error(message); }
-      if (error instanceof ApiError && error.status === 401) router.replace('/login');
+      // Sessão realmente inválida: encerra antes de ir ao login, senão o login mostra "Continuar sessão" e volta para cá em loop.
+      if (error instanceof ApiError && error.status === 401) { await logout().catch(() => false); router.replace('/login'); }
     } finally {
       setChecking(false);
       setFirstLoad(false);
