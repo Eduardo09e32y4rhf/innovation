@@ -71,9 +71,16 @@ export const jobsApi = {
   savePipeline: (stages: Stage[], name?: string) => request<Pipeline>('/jobs/pipeline', { method: 'PUT', body: { name, stages: stages.map(({ id, name, color, kind }) => ({ id, name, color, kind })) } }),
 
   questions: (jobId: string) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`),
-  saveQuestions: (jobId: string, questions: Question[]) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`, { method: 'PUT', body: { questions } }),
+  // A API recusa campo desconhecido (jobId, position...): manda só o que o formulário edita, mesmo que a pergunta tenha vindo do banco.
+  saveQuestions: (jobId: string, questions: Question[]) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`, {
+    method: 'PUT',
+    body: { questions: questions.map(({ id, label, type, required, options, knockout, scoreRule }) => ({ ...(id ? { id } : {}), label, type, required, options: options ?? [], knockout: knockout ?? null, scoreRule: scoreRule ?? null })) },
+  }),
   criteria: (jobId: string) => request<(Criterion & { id: string })[]>(`/jobs/${enc(jobId)}/criteria`),
-  saveCriteria: (jobId: string, criteria: Criterion[]) => request<(Criterion & { id: string })[]>(`/jobs/${enc(jobId)}/criteria`, { method: 'PUT', body: { criteria } }),
+  saveCriteria: (jobId: string, criteria: Criterion[]) => request<(Criterion & { id: string })[]>(`/jobs/${enc(jobId)}/criteria`, {
+    method: 'PUT',
+    body: { criteria: criteria.map(({ id, name, weight }) => ({ ...(id ? { id } : {}), name, weight })) },
+  }),
 
   applications: (jobId: string, filters?: ApplicationFilters) => request<ApplicationsPayload>(`/jobs/${enc(jobId)}/applications${query(filters)}`),
   application: (id: string) => request<ApplicationDetail>(`/jobs/applications/${enc(id)}`),

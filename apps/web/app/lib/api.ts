@@ -796,6 +796,8 @@ export const api = {
   employees: {
     list: (page?: number, pageSize?: number, search?: string, status?: string) => request<Employee[]>('/employees' + makeQuery({ page, pageSize, search, status })),
     swapCandidates: () => request<any[]>('/employees/swap-candidates'),
+    positions: () => request<{ positions: string[] }>('/employees/positions'),
+    createPosition: (name: string) => request<{ id: string; name: string }>('/employees/positions', { method: 'POST', body: { name } }),
     get: (id: string) => request<Employee>(`/employees/${id}`),
     dossier: (id: string) => request<EmployeeDossier>(`/employees/${id}/dossier`),
     create: (input: CreateEmployeeInput) => request<Employee>('/employees', { method: 'POST', body: input }),

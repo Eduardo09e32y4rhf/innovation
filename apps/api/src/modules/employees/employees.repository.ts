@@ -308,6 +308,25 @@ export class EmployeesRepository {
     return this.prisma.employee.deleteMany({ where: { companyId, id } });
   }
 
+  listCustomPositions(companyId: string) {
+    return this.prisma.companyPosition.findMany({ where: { companyId }, orderBy: { name: 'asc' }, select: { id: true, name: true, createdAt: true } });
+  }
+
+  async listEmployeePositions(companyId: string) {
+    const rows = await this.prisma.employee.findMany({ where: { companyId }, distinct: ['position'], select: { position: true } });
+    return rows.map((row) => row.position).filter(Boolean);
+  }
+
+  /** Idempotente: o mesmo cargo (sem diferenciar maiuscula/acento) nao e cadastrado duas vezes. */
+  upsertPosition(companyId: string, name: string, nameKey: string, createdBy?: string) {
+    return this.prisma.companyPosition.upsert({
+      where: { companyId_nameKey: { companyId, nameKey } },
+      create: { companyId, name, nameKey, createdBy },
+      update: {},
+      select: { id: true, name: true, createdAt: true },
+    });
+  }
+
   createAuditLog(data: { companyId: string; userId?: string; action: string; entity: string; entityId?: string; metadata?: any }) {
     return this.prisma.auditLog.create({ data });
   }

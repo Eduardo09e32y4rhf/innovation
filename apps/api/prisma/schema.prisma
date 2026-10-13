@@ -374,6 +374,7 @@ model Company {
   conversations    Conversation[]
   messages         Message[]
   jobs             Job[]
+  positionsCatalog CompanyPosition[]
   candidates       Candidate[]
   applications     Application[]
   transactions     FinancialTransaction[]
@@ -3552,5 +3553,21 @@ model JobTemplate {
   createdBy String?  @db.Uuid
   createdAt DateTime @default(now())
 
+  @@index([companyId])
+}
+
+/// Catalogo de cargos da empresa: o RH cadastra cargos manuais e eles ficam no historico da empresa.
+model CompanyPosition {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  name      String
+  /// Nome normalizado (minusculo, sem acento) para nao duplicar "Motorista" e "motorista".
+  nameKey   String
+  createdBy String?  @db.Uuid
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, nameKey])
   @@index([companyId])
 }
