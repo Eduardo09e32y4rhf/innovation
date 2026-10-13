@@ -90,7 +90,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
         <nav aria-label="Navegação" className="flex items-center gap-4 text-[13px] sm:gap-7">
           <a href="#career-content" className="hidden text-[#7240da] sm:inline">Explorar vagas</a>
           {companyId && <Link href="/carreiras" className="hidden sm:inline">Todas as empresas</Link>}
-          <Link href="/carreiras/conta" className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 font-semibold text-white hover:bg-[#5b29be]">Entrar</Link>
+          <Link href="/carreiras/conta" className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 font-semibold text-white hover:bg-[#5b29be]">Login</Link>
         </nav>
       </header>
 
