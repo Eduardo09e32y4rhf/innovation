@@ -81,6 +81,8 @@ export class AsaasService {
     try {
       const response = await fetch(url, {
         ...options,
+        // Sem limite, uma resposta lenta do Asaas deixava a tela de pagamento girando para sempre.
+        signal: options.signal ?? AbortSignal.timeout(12_000),
         headers: {
           'Content-Type': 'application/json',
           access_token: this.apiKey,
