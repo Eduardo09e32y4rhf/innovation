@@ -15,7 +15,10 @@ echo "== 1/4 Comparando o banco com o schema =="
 "${api[@]}" sh -c 'npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script' > /tmp/migrate-diff.sql
 cat /tmp/migrate-diff.sql
 
-unexpected=$(grep -E '^(CREATE|ALTER|DROP)' /tmp/migrate-diff.sql | grep -Ev "\"($ALLOWED)\"|\"($ALLOWED)_" || true)
+# Diferencas "cosmeticas" ja existentes no banco (default de id/updatedAt, indices antigos, tabela _manual_migrations) nao bloqueiam.
+# Qualquer CREATE, ADD COLUMN ou DROP de coluna/tabela real fora das tabelas novas bloqueia.
+BENIGN='DROP INDEX|DROP DEFAULT|SET DEFAULT|DROP TABLE "_manual_migrations"'
+unexpected=$(grep -E '^(CREATE|ALTER|DROP)' /tmp/migrate-diff.sql | grep -Ev "\"($ALLOWED)\"|\"($ALLOWED)_" | grep -Ev "$BENIGN" || true)
 if [[ -n "$unexpected" ]]; then
   echo
   echo "ABORTADO: o banco difere do schema em outros pontos alem das tabelas novas:" >&2
