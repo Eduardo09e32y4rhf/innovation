@@ -2320,6 +2320,10 @@ model CompanySubscription {
   nextDueDate         DateTime?
   trialStartedAt      DateTime?
   trialEndsAt         DateTime?
+  /// Aviso de fim do teste gratis enviado ao administrador (uma vez).
+  trialNoticeAt       DateTime?
+  /// O administrador recusou continuar apos o teste: no fim dele a conta e cancelada e nada e cobrado.
+  trialDeclinedAt     DateTime?
   pricingVersion      String?
   baseMonthlyPrice    Decimal?  @db.Decimal(10, 2)
   userMonthlyPrice    Decimal?  @db.Decimal(10, 2)

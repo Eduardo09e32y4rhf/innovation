@@ -32,7 +32,7 @@ export function PendingNotificationsGate({ children }: { children: ReactNode }) 
     },
   );
 
-  const pending = (widget?.notifications ?? []).filter((n: any) => ['PENDING_RESPONSE', 'UNREAD'].includes(n.recipients?.[0]?.status) && n.source === 'MANUAL');
+  const pending = (widget?.notifications ?? []).filter((n: any) => ['PENDING_RESPONSE', 'UNREAD'].includes(n.recipients?.[0]?.status) && (n.source === 'MANUAL' || n.extraJson?.kind === 'TRIAL_END'));
   const current = [...pending].sort((a: any, b: any) => {
     const sa = a.recipients?.[0]?.status === 'PENDING_RESPONSE' ? 0 : 1;
     const sb = b.recipients?.[0]?.status === 'PENDING_RESPONSE' ? 0 : 1;
@@ -47,12 +47,13 @@ export function PendingNotificationsGate({ children }: { children: ReactNode }) 
   const isSuspension = current.type === 'SUSPENSION_NOTICE';
   const isPromotion = current.type === 'PROMOTION_NOTICE';
   const isPenalty = isWarning || isSuspension;
+  const isTrial = extra.kind === 'TRIAL_END';
   const busy = respondMut.loading;
-  const act = (action: 'ACKNOWLEDGE' | 'ACCEPT' | 'REFUSE' | 'READ') => { setError(''); respondMut.mutate({ id: current.id, action, reason: action === 'REFUSE' ? reason.trim() : undefined }).catch(() => undefined); };
+  const act = (action: 'ACKNOWLEDGE' | 'ACCEPT' | 'REFUSE' | 'READ') => { setError(''); respondMut.mutate({ id: current.id, action, reason: action === 'REFUSE' ? (isTrial ? 'Não quis continuar após o teste grátis' : reason.trim()) : undefined }).catch(() => undefined); };
 
   const Icon = isPenalty ? Gavel : isPromotion ? PartyPopper : Megaphone;
   const tone = isPenalty ? 'border-slate-900' : isPromotion ? 'border-emerald-500' : 'border-teal-600';
-  const heading = isWarning ? 'Advertência' : isSuspension ? 'Suspensão disciplinar' : isPromotion ? 'Parabéns pela promoção!' : 'Comunicado da empresa';
+  const heading = isTrial ? 'Seu teste grátis está acabando' : isWarning ? 'Advertência' : isSuspension ? 'Suspensão disciplinar' : isPromotion ? 'Parabéns pela promoção!' : 'Comunicado da empresa';
 
   return (
     <>
@@ -89,7 +90,7 @@ export function PendingNotificationsGate({ children }: { children: ReactNode }) 
         <div className={`my-auto w-full max-w-3xl border-t-8 bg-white p-6 text-slate-900 shadow-2xl sm:p-10 ${tone}`}>
           <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{isPenalty ? 'Documento disciplinar' : 'Mensagem da empresa'}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{isPenalty ? 'Documento disciplinar' : isTrial ? 'Aviso da Innovation' : 'Mensagem da empresa'}</p>
               <h1 className="mt-1 text-2xl font-black">{heading}</h1>
             </div>
             <Icon size={44} className={isPromotion ? 'text-emerald-600' : 'text-slate-800'} />
@@ -124,7 +125,7 @@ export function PendingNotificationsGate({ children }: { children: ReactNode }) 
                 <code className="text-2xl font-black tracking-[0.2em]">{extra.resetCode}</code>
               </div>
             )}
-            <p className="text-sm text-slate-500">Enviado por {current.createdByUser?.name || 'Recursos Humanos'} em {fmtDate(current.createdAt)}.</p>
+            <p className="text-sm text-slate-500">{isTrial ? `Aviso automático de ${fmtDate(current.createdAt)}.` : `Enviado por ${current.createdByUser?.name || 'Recursos Humanos'} em ${fmtDate(current.createdAt)}.`}</p>
           </div>
 
           {error && <p className="mt-5 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-800">{error}</p>}
@@ -143,11 +144,11 @@ export function PendingNotificationsGate({ children }: { children: ReactNode }) 
             ) : (
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                 {needsConfirm && current.allowsRefusal && (
-                  <button type="button" disabled={busy} onClick={() => setRefusing(true)} className="flex items-center justify-center gap-2 rounded-lg border-2 border-slate-900 bg-white px-6 py-3 text-sm font-black disabled:opacity-50"><X size={16} /> Recusar assinatura</button>
+                  <button type="button" disabled={busy} onClick={() => setRefusing(true)} className="flex items-center justify-center gap-2 rounded-lg border-2 border-slate-900 bg-white px-6 py-3 text-sm font-black disabled:opacity-50"><X size={16} /> {isTrial ? 'Não quero continuar' : 'Recusar assinatura'}</button>
                 )}
                 <button type="button" disabled={busy} onClick={() => act(!needsConfirm ? 'READ' : current.requiresAcceptance ? 'ACCEPT' : 'ACKNOWLEDGE')} className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-6 py-3 text-sm font-black text-white shadow-lg hover:bg-slate-800 disabled:opacity-50">
                   {busy ? <Loader2 size={16} className="animate-spin" /> : needsConfirm && isPenalty ? <FileText size={16} /> : <Check size={16} />}
-                  {!needsConfirm ? 'Entendi' : isPenalty ? 'Assinar e ficar ciente' : isPromotion ? 'Obrigado!' : current.requiresAcceptance ? 'Aceitar' : 'Estou ciente'}
+                  {!needsConfirm ? 'Entendi' : isPenalty ? 'Assinar e ficar ciente' : isPromotion ? 'Obrigado!' : isTrial ? 'Continuar com meu plano' : current.requiresAcceptance ? 'Aceitar' : 'Estou ciente'}
                 </button>
               </div>
             )}

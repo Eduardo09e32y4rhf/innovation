@@ -24,11 +24,13 @@ import { PlatformFinanceService } from './platform-finance.service';
 import { PaymentRefundService } from './payment-refund.service';
 import { PricingService } from './pricing.service';
 import { QueueModule } from '../queue/queue.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { TimeTrackModule } from '../time-track/time-track.module';
 
 @Module({
   imports: [
     TimeTrackModule,
+    NotificationsModule,
     forwardRef(() => QueueModule),
     BullModule.registerQueue(
       { name: 'whatsapp-send' },

@@ -62,6 +62,8 @@ export class NotificationsService {
   async createSystemNotice(companyId: string, input: {
     title: string; message: string; priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
     targetRoles: UserRole[]; excludeUserId?: string; extraJson?: Record<string, unknown>; expiresAt?: Date;
+    /** Pede resposta do destinatario (aceitar/recusar) em vez de so leitura. */
+    requiresAcceptance?: boolean; allowsRefusal?: boolean; targetUrl?: string; source?: string;
   }) {
     const users = await this.prisma.user.findMany({
       where: { companyId, isActive: true, role: { in: input.targetRoles }, ...(input.excludeUserId ? { id: { not: input.excludeUserId } } : {}) },
@@ -76,12 +78,16 @@ export class NotificationsService {
         title: input.title,
         message: input.message,
         priority: input.priority ?? 'NORMAL',
-        source: 'SYSTEM',
+        source: input.source ?? 'SYSTEM',
+        targetUrl: input.targetUrl,
+        requiresAcceptance: Boolean(input.requiresAcceptance),
+        allowsRefusal: Boolean(input.allowsRefusal),
+        requiresReadConfirmation: Boolean(input.requiresAcceptance),
         status: 'SENT',
         sentAt: new Date(),
         expiresAt: input.expiresAt,
         extraJson: (input.extraJson ?? undefined) as any,
-        recipients: { create: users.map((u) => ({ userId: u.id, employeeId: u.employee?.id ?? undefined, status: 'UNREAD' as const })) },
+        recipients: { create: users.map((u) => ({ userId: u.id, employeeId: u.employee?.id ?? undefined, status: input.requiresAcceptance ? ('PENDING_RESPONSE' as const) : ('UNREAD' as const) })) },
       },
     });
     return { count: users.length, id: notification.id };
@@ -374,7 +380,7 @@ export class NotificationsService {
       const observation = String(body.reason ?? '').trim() || null;
       const responseLabel = body.action === 'REFUSE' ? 'RECUSADO' : 'CIENTE';
 
-      return this.prisma.notificationRecipient.update({
+      const updated = await this.prisma.notificationRecipient.update({
         where: { id: recipient.id },
         data: {
           status,
@@ -391,10 +397,19 @@ export class NotificationsService {
           },
         },
       });
+      await this.applyTrialDecision(companyId, notification, body.action);
+      return updated;
     } catch (err) {
       this.safeLog('respond error', err);
       throw err;
     }
+  }
+
+  /** Resposta ao aviso de fim do teste gratis: recusar marca a decisao (a conta e cancelada no ultimo dia); aceitar desfaz uma recusa anterior. */
+  private async applyTrialDecision(companyId: string, notification: { source: string | null; extraJson: unknown }, action: string) {
+    const extra = (notification.extraJson ?? {}) as { kind?: string };
+    if (notification.source !== 'TRIAL_NOTICE' || extra.kind !== 'TRIAL_END') return;
+    await this.prisma.companySubscription.updateMany({ where: { companyId, status: 'TRIAL' }, data: { trialDeclinedAt: action === 'REFUSE' ? new Date() : null } });
   }
 
   async dashboardWidget(companyId: string, actor: JwtUser) {

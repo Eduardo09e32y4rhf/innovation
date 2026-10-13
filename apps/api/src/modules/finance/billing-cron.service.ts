@@ -12,6 +12,8 @@ import { PricingService } from './pricing.service';
 import { PlatformFinanceService } from './platform-finance.service';
 import { FaturasAcoesService } from './faturas-acoes.service';
 import { couponDiscount } from '../coupons/coupon-rules';
+import { NotificationsService } from '../notifications/notifications.service';
+import { shouldSendTrialNotice, trialNoticeContent, trialOutcome } from './trial-lifecycle';
 
 @Injectable()
 export class BillingCronService {
@@ -26,6 +28,7 @@ export class BillingCronService {
     private readonly faturasAcoes: FaturasAcoesService,
     private readonly redis: RedisService,
     private readonly fiscal: AsaasFiscalService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Notas fiscais: agenda as que faltam e puxa número/PDF/XML das que ainda não chegaram pelo webhook. */
@@ -261,6 +264,39 @@ export class BillingCronService {
     if (companies.length) this.logger.log(`Rotina de conversão de trial analisou ${companies.length} empresa(s).`);
   }
 
+  /** 9º dia do teste grátis: avisa o administrador (aba Notificações) e pede a decisão: continuar ou recusar. */
+  @Cron('0 * * * *')
+  @CronLock('billing.sendTrialEndNotices', 3000)
+  async sendTrialEndNotices() {
+    const now = new Date();
+    const subscriptions = await this.prisma.companySubscription.findMany({
+      where: {
+        status: 'TRIAL', trialNoticeAt: null, trialDeclinedAt: null,
+        trialEndsAt: { gt: now, lte: new Date(now.getTime() + 2 * 86_400_000) },
+        company: { isActive: true, billingStatus: 'TRIAL' },
+      },
+      include: { plan: true, company: { select: { id: true, slug: true } } },
+      take: 200,
+    });
+    for (const subscription of subscriptions) {
+      if (!shouldSendTrialNotice({ trialEndsAt: subscription.trialEndsAt, trialNoticeAt: subscription.trialNoticeAt, now })) continue;
+      try {
+        const plan = subscription.plan;
+        const amount = plan ? this.pricing.calculate((plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, subscription.seatQuantity || 1, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price, includedUnits: plan.includedUnits }).total : 0;
+        const content = trialNoticeContent({ trialEndsAt: subscription.trialEndsAt as Date, planName: plan?.name ?? 'contratado', amount });
+        const sent = await this.notifications.createSystemNotice(subscription.companyId, {
+          ...content, priority: 'URGENT', targetRoles: ['ADMIN'], source: 'TRIAL_NOTICE', requiresAcceptance: true, allowsRefusal: true,
+          targetUrl: `/${subscription.company.slug || subscription.company.id}/dashboard/faturas`, expiresAt: subscription.trialEndsAt as Date,
+          extraJson: { kind: 'TRIAL_END', trialEndsAt: subscription.trialEndsAt, planName: plan?.name ?? null, amount },
+        });
+        // Marca como avisado mesmo sem administrador ativo para nao repetir a cada hora.
+        await this.prisma.companySubscription.update({ where: { id: subscription.id }, data: { trialNoticeAt: new Date() } });
+        this.logger.log(`Aviso de fim do teste enviado (${subscription.companyId}): ${sent.count} destinatario(s).`);
+      } catch (error) {
+        this.logger.error(`Falha ao avisar o fim do teste da empresa ${subscription.companyId}: ${String(error)}`);
+      }
+    }
+  }
   // ─── Expiração de Trial — 04:00 diariamente ────────────────────────
   @Cron('0 4 * * *')
   @CronLock('billing.checkExpiredTrials', 3600)
@@ -274,17 +310,30 @@ export class BillingCronService {
           trialEndsAt: { lt: today },
           isActive: true,
         },
+        include: { subscription: { select: { trialDeclinedAt: true } } },
       });
 
       for (const company of expiredCompanies) {
-        this.logger.log(`Trial expirado para a empresa ${company.id}. Bloqueando acesso...`);
+        if (trialOutcome({ trialDeclinedAt: company.subscription?.trialDeclinedAt ?? null }) === 'CANCEL') {
+          // O administrador recusou no aviso do 9º dia: cancela a recorrência no Asaas (nada é cobrado) e bloqueia o acesso.
+          this.logger.log(`Teste recusado pelo administrador (${company.id}). Cancelando e bloqueando...`);
+          try {
+            await this.faturasAcoes.finalizeCancellation(company.id, 'Teste grátis recusado pelo administrador');
+            await this.prisma.company.update({ where: { id: company.id }, data: { suspensionReason: 'trial_recusado' } });
+          } catch (error) {
+            this.logger.error(`Falha ao cancelar o teste recusado da empresa ${company.id}: ${String(error)}`);
+          }
+          continue;
+        }
+        // Sem recusa: a assinatura continua. O Asaas gera a cobrança no vencimento e a empresa paga pela aba Faturas / tela de pagamento.
+        this.logger.log(`Trial encerrado para a empresa ${company.id}. Aguardando o primeiro pagamento...`);
         await this.prisma.company.update({
           where: { id: company.id },
           data: {
             status: 'SUSPENDED',
-            billingStatus: 'PAST_DUE',
+            billingStatus: 'PENDING_PAYMENT',
             isActive: false,
-            suspensionReason: 'trial_expirado',
+            suspensionReason: 'trial_aguardando_pagamento',
           },
         });
       }
