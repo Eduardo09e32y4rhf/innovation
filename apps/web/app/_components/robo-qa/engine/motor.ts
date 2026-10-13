@@ -385,7 +385,14 @@ export function criarMotor(anfitriao: Anfitriao): Motor {
     async continuar() {
       if (emExecucao) return; // ja esta rodando: nunca troca o estado em memoria por uma copia antiga do armazenamento
       e = carregar() ?? e;
-      if (e?.ativo) await executar();
+      if (!e?.ativo) return;
+      // Um teste esquecido aberto neste navegador não pode sequestrar a navegação de quem está usando o sistema
+      // (era o que derrubava a tela de pagamento para o login): parado há mais de 20 min, encerra.
+      const ultimo = e.passos.at(-1)?.quando ?? e.inicio;
+      if (Date.now() - ultimo > 20 * 60_000) { finalizar('encerrado: teste parado há mais de 20 minutos'); return; }
+      // Nas telas de pagamento e cadastro o robô nunca assume o controle sozinho.
+      if (/\/(fatura-pendente|pagamento)(\/|$|\?)/.test(anfitriao.caminhoAtual())) return;
+      await executar();
     },
     estado: () => e,
     aoMudar(ouvinte) { ouvintes.add(ouvinte); return () => ouvintes.delete(ouvinte); },
