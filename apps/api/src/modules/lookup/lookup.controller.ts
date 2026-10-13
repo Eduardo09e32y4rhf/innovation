@@ -41,25 +41,30 @@ function prettyName(raw: unknown): string {
   }).join(' ');
 }
 
+/** Endereço pelo CEP (BrasilAPI, com ViaCEP de reserva). Compartilhado com a Área do candidato. */
+export async function lookupCep(raw: string) {
+  const cep = String(raw ?? '').replace(/\D/g, '');
+  if (cep.length !== 8) throw new BadRequestException('CEP inválido. Informe os 8 números.');
+
+  const brasil = await getJson(`https://brasilapi.com.br/api/cep/v1/${cep}`);
+  if (brasil?.street || brasil?.city) {
+    return { cep, street: brasil.street ?? '', neighborhood: brasil.neighborhood ?? '', city: brasil.city ?? '', state: brasil.state ?? '' };
+  }
+  const via = await getJson(`https://viacep.com.br/ws/${cep}/json/`);
+  if (via && !via.erro) {
+    return { cep, street: via.logradouro ?? '', neighborhood: via.bairro ?? '', city: via.localidade ?? '', state: via.uf ?? '' };
+  }
+  throw new NotFoundException('CEP não encontrado. Preencha o endereço manualmente.');
+}
+
 /** Consulta CEP e CNPJ pelo servidor: o navegador não depende de serviços externos (CORS/bloqueios). */
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR')
 @Controller('lookup')
 export class LookupController {
   @Get('cep/:cep')
-  async cep(@Param('cep') raw: string) {
-    const cep = raw.replace(/\D/g, '');
-    if (cep.length !== 8) throw new BadRequestException('CEP inválido. Informe os 8 números.');
-
-    const brasil = await getJson(`https://brasilapi.com.br/api/cep/v1/${cep}`);
-    if (brasil?.street || brasil?.city) {
-      return { cep, street: brasil.street ?? '', neighborhood: brasil.neighborhood ?? '', city: brasil.city ?? '', state: brasil.state ?? '' };
-    }
-    const via = await getJson(`https://viacep.com.br/ws/${cep}/json/`);
-    if (via && !via.erro) {
-      return { cep, street: via.logradouro ?? '', neighborhood: via.bairro ?? '', city: via.localidade ?? '', state: via.uf ?? '' };
-    }
-    throw new NotFoundException('CEP não encontrado. Preencha o endereço manualmente.');
+  cep(@Param('cep') raw: string) {
+    return lookupCep(raw);
   }
 
   @Get('cnpj/:cnpj')

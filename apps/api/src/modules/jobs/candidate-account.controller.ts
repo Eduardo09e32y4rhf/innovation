@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { lookupCep } from '../lookup/lookup.controller';
 import { CandidateAuthGuard } from './candidate-account.guard';
 import { CandidateAccountService } from './candidate-account.service';
 import { CandidateApplyDto, CandidateEmailDto, CandidateLoginDto, CandidateRegisterDto, CandidateResetPasswordDto, CandidateUpdateProfileDto } from './dto/candidate-account.dto';
@@ -47,6 +48,14 @@ export class CandidateAccountController {
   @Get('me')
   me(@Req() request: any) {
     return this.service.profile(request.candidateAccount);
+  }
+
+  /** Preenche rua, bairro, cidade e UF pelo CEP. */
+  @UseGuards(CandidateAuthGuard)
+  @Get('cep/:cep')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  cep(@Param('cep') cep: string) {
+    return lookupCep(cep);
   }
 
   @UseGuards(CandidateAuthGuard)

@@ -54,6 +54,7 @@ export const candidateApi = {
   resetPassword: (email: string, code: string, password: string) => authed<{ token: string; expiresAt: string }>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ email, code, password }) }),
   logout: () => authed<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
   me: () => authed<CandidateProfile>('/me'),
+  cep: (cep: string) => authed<{ street: string; neighborhood: string; city: string; state: string }>(`/cep/${encodeURIComponent(cep.replace(/\D/g, ''))}`),
   update: (data: Partial<Omit<CandidateProfile, 'email' | 'resume' | 'completeness' | 'checklist'>>) => authed<CandidateProfile>('/me', { method: 'PUT', body: JSON.stringify(data) }),
   uploadResume: (file: File) => { const body = new FormData(); body.append('resume', file, file.name); return authed<CandidateProfile>('/me/resume', { method: 'PUT', body }); },
   remove: () => authed<{ deleted: boolean }>('/me', { method: 'DELETE' }),

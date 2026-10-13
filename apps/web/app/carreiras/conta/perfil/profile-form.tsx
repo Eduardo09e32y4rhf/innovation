@@ -124,6 +124,29 @@ export function ProfileForm() {
     if (event.key === 'Enter' || event.key === ',') { event.preventDefault(); addSkill(skillDraft); }
     if (event.key === 'Backspace' && !skillDraft && skills.length) { setSkills((list) => list.slice(0, -1)); setDirty(true); }
   };
+  const [cepState, setCepState] = useState<'idle' | 'loading' | 'ok' | 'notfound'>('idle');
+  const numberInput = useRef<HTMLInputElement>(null);
+  const lastCep = useRef(digits(profile.cep ?? ''));
+  async function onCepChange(value: string) {
+    const masked = maskCep(value);
+    set('cep', masked);
+    const cep = digits(masked);
+    if (cep.length < 8) { setCepState('idle'); return; }
+    if (cep === lastCep.current) return;
+    lastCep.current = cep;
+    setCepState('loading');
+    try {
+      const found = await candidateApi.cep(cep);
+      if (lastCep.current !== cep) return;
+      setForm((current) => ({
+        ...current,
+        street: found.street || current.street, neighborhood: found.neighborhood || current.neighborhood,
+        city: found.city || current.city, state: (found.state || current.state).toUpperCase(),
+      }));
+      setDirty(true); setCepState('ok');
+      window.setTimeout(() => numberInput.current?.focus(), 0);
+    } catch { if (lastCep.current === cep) setCepState('notfound'); }
+  }
   const err = (key: string) => fieldErrors[key] && <span role="alert" className="text-sm text-rose-700">{fieldErrors[key]}</span>;
 
   const nav = [
@@ -263,11 +286,12 @@ export function ProfileForm() {
             <Section id="endereco" title="Endereço" description="Com sua cidade, priorizamos vagas perto de você." done={doneKeys.has('address')}>
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-[160px_1fr]">
-                  <label className="block space-y-1"><span className={label}>CEP</span><input form="profile-form" className={input} inputMode="numeric" autoComplete="postal-code" value={form.cep} onChange={(e) => set('cep', maskCep(e.target.value))} />{err('cep')}</label>
+                  <label className="block space-y-1"><span className={label}>CEP</span><input form="profile-form" className={input} inputMode="numeric" autoComplete="postal-code" value={form.cep} onChange={(e) => void onCepChange(e.target.value)} />{err('cep')}
+                    <span className={`block text-xs ${cepState === 'notfound' ? 'text-amber-700' : 'text-[#7a7290]'}`} role="status">{cepState === 'loading' ? 'Buscando endereço…' : cepState === 'ok' ? '✓ Endereço preenchido' : cepState === 'notfound' ? 'CEP não encontrado. Preencha à mão.' : 'Digite o CEP e preenchemos o resto.'}</span></label>
                   <label className="block space-y-1"><span className={label}>Rua</span><input form="profile-form" className={input} autoComplete="address-line1" maxLength={160} value={form.street} onChange={(e) => set('street', e.target.value)} /></label>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <label className="block space-y-1"><span className={label}>Número</span><input form="profile-form" className={input} maxLength={20} value={form.streetNumber} onChange={(e) => set('streetNumber', e.target.value)} /></label>
+                  <label className="block space-y-1"><span className={label}>Número</span><input ref={numberInput} form="profile-form" className={input} maxLength={20} value={form.streetNumber} onChange={(e) => set('streetNumber', e.target.value)} /></label>
                   <label className="block space-y-1 sm:col-span-2"><span className={label}>Complemento</span><input form="profile-form" className={input} maxLength={80} value={form.addressComplement} onChange={(e) => set('addressComplement', e.target.value)} /></label>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-[1fr_1fr_90px]">
