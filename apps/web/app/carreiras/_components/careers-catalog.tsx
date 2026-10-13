@@ -4,6 +4,7 @@ import { ArrowUpRight, Bookmark, Briefcase, MapPin, Search, SlidersHorizontal, S
 import Link from 'next/link';
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { CareersLogo } from './careers-brand';
+import { PortalFooter } from './portal-chrome';
 import { getAllPublicJobs, getPublicJobs, employmentTypeLabel, publicSalaryLabel, workModeLabel, type PublicCompany, type PublicJob } from '../_lib/public-jobs';
 
 const SAVED_KEY = 'innovation-careers-saved';
@@ -163,12 +164,9 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
         </section>
       </div>
 
-      <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-[#e9e5f0] pb-28 pt-6 text-[11px] text-[#736d80] sm:pb-6">
-        <span><b className="text-[#241b38]">innovation.</b> RH · Carreiras</span>
-        <span>Conectando pessoas a novas possibilidades.</span>
-        <nav aria-label="Informações" className="flex flex-wrap gap-x-4 gap-y-2"><Link href="/" className="hover:text-[#7240da]">Conheça a plataforma</Link><Link href="/carreiras/privacidade" className="hover:text-[#7240da]">Privacidade</Link><Link href="/termos?de=carreiras" className="hover:text-[#7240da]">Termos</Link><Link href="/suporte?de=carreiras" className="hover:text-[#7240da]">Suporte</Link></nav>
-      </footer>
+
     </div>
+    <PortalFooter />
   </div>;
 }
 

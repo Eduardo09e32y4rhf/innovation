@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/app/components/ui/button';
+import { PortalFooter, PortalHeader } from '../../_components/portal-chrome';
 import { candidateApi, getCandidateToken, setCandidateToken } from '../../_lib/candidate-api';
 
 type Mode = 'login' | 'register' | 'forgot' | 'reset';
@@ -64,11 +65,24 @@ export function LoginForm() {
     }
   }
 
-  const linkBtn = 'min-h-11 font-semibold text-[#6d28d9] underline';
+  const linkBtn = 'min-h-11 font-semibold text-[#7240da] underline';
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f7f5fb] px-4 py-8 text-[#17122b]">
-      <div className="w-full max-w-md space-y-5 rounded-[20px] border border-[#e4dff0] bg-white p-6 shadow-[0_12px_32px_#1e114514] sm:p-8">
-        <Link href="/carreiras" className="inline-flex min-h-11 items-center text-sm font-semibold text-[#6d28d9]">← Voltar para as vagas</Link>
+    <div className="min-h-screen bg-[#fbfafc] text-[#241b38]">
+    <PortalHeader><Link href="/carreiras" className="inline-flex min-h-11 items-center rounded-lg border border-[#e9e5f0] px-4 text-[13px] font-semibold text-[#7240da] hover:border-[#c7b0ed]">← Vagas</Link></PortalHeader>
+    <main className="mx-auto grid max-w-[1200px] items-center gap-6 px-4 py-6 sm:px-9 md:grid-cols-[1.1fr_1fr] md:gap-12 md:py-14 pb-20">
+      <section aria-label="Área do candidato" className="relative overflow-hidden rounded-[18px] border border-[#e4d9f4] bg-[#f0eafa] px-6 py-7 sm:px-9 sm:py-10">
+        <span aria-hidden="true" className="pointer-events-none absolute -right-2 -top-6 text-[140px] leading-none text-[#e4d7f6] sm:text-[240px]">↗</span>
+        <div className="relative">
+          <p className="flex items-center gap-2 text-[11px] font-bold tracking-[2px] text-[#7240da]"><span className="h-[7px] w-[7px] rounded-full bg-[#8955e2]" /> ÁREA DO CANDIDATO</p>
+          <h2 className="my-4 max-w-[480px] text-[28px] font-bold leading-[1.1] tracking-[-0.03em] sm:text-[40px]">Seu próximo <em className="not-italic text-[#7240da]">capítulo</em> começa aqui.</h2>
+          <ul className="space-y-2.5 text-sm text-[#5d5470]">
+            <li className="flex gap-2.5"><span className="text-[#7240da]">↗</span>Acompanhe cada etapa das suas candidaturas.</li>
+            <li className="flex gap-2.5"><span className="text-[#7240da]">↗</span>Veja quantas pessoas estão em cada fase.</li>
+            <li className="flex gap-2.5"><span className="text-[#7240da]">↗</span>Candidate-se em poucos cliques, quando quiser reutilizar seus dados.</li>
+          </ul>
+        </div>
+      </section>
+      <div className="w-full max-w-md space-y-5 justify-self-center rounded-[18px] border border-[#e9e5f0] bg-white p-6 shadow-[0_14px_36px_#51227708] sm:p-8 md:justify-self-start">
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">{TITLE[mode]}</h1>
           <p className="text-sm leading-6 text-[#5b5473]">
@@ -100,7 +114,7 @@ export function LoginForm() {
               {mode !== 'login' && <span className="block text-xs text-[#5b5473]">Mínimo de 8 caracteres, com letras e números.</span>}
             </label>
           )}
-          <Button type="submit" className="w-full !bg-[#6d28d9] hover:!bg-[#5b21b6]" isLoading={busy}>{mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar conta' : mode === 'forgot' ? 'Enviar código' : 'Salvar nova senha'}</Button>
+          <Button type="submit" className="w-full !bg-[#7240da] hover:!bg-[#5b29be]" isLoading={busy}>{mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar conta' : mode === 'forgot' ? 'Enviar código' : 'Salvar nova senha'}</Button>
         </form>
         <div className="flex flex-wrap justify-between gap-x-4 text-sm">
           {mode === 'login' && <><button type="button" className={linkBtn} onClick={() => go('register')}>Criar conta</button><button type="button" className={linkBtn} onClick={() => go('forgot')}>Esqueci minha senha</button></>}
@@ -108,8 +122,10 @@ export function LoginForm() {
           {(mode === 'forgot' || mode === 'reset') && <button type="button" className={linkBtn} onClick={() => go('login')}>Voltar para entrar</button>}
           {mode === 'reset' && <button type="button" className={linkBtn} onClick={() => go('forgot')}>Enviar outro código</button>}
         </div>
-        <p className="text-xs leading-5 text-[#5b5473]">Não pedimos RG, PIS nem dados bancários. Veja os <Link className="underline" href="/carreiras/privacidade">termos de privacidade</Link> do portal.</p>
+        <p className="text-xs leading-5 text-[#5b5473]">Ao continuar, você concorda com a <Link className="underline" href="/carreiras/privacidade">Política de privacidade</Link> do portal.</p>
       </div>
     </main>
+    <PortalFooter />
+    </div>
   );
 }
