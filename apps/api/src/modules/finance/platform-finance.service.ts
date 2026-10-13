@@ -12,6 +12,7 @@ import { MercadoPagoService } from './mercadopago.service';
 import { couponDiscount } from '../coupons/coupon-rules';
 import { PaymentProviderService } from './payment-provider.service';
 import { PaymentRefundService } from './payment-refund.service';
+import { cancelRedundantSignupCharges } from './signup-charges';
 import { CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
 
 const STATEMENT_STATUS: Record<string, { label: string; color: string }> = {
@@ -569,6 +570,7 @@ export class PlatformFinanceService {
             this.prisma.company.update({ where: { id: companyId }, data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null } }),
           ]);
           invoice = updatedInvoice;
+          await cancelRedundantSignupCharges(this.prisma, this.asaas, this.logger, companyId, updatedInvoice.id).catch(() => 0);
           // Não precisamos recarregar todos os includes da company aqui para o polling fallback
           company.status = updatedCompany.status;
           company.billingStatus = updatedCompany.billingStatus;

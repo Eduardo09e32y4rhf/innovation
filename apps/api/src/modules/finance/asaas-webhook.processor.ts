@@ -8,6 +8,7 @@ import { FinanceNotificationService, FinanceNotificationType } from './finance-n
 import { PricingService } from './pricing.service';
 import { PaymentRefundService } from './payment-refund.service';
 import { AsaasFiscalService } from './asaas-fiscal.service';
+import { cancelRedundantSignupCharges } from './signup-charges';
 
 type InvoiceStatus = 'OPEN' | 'PAID' | 'OVERDUE' | 'CANCELED';
 
@@ -151,7 +152,8 @@ export class AsaasWebhookProcessorService {
       ? { billingStatus: 'ACTIVE', status: 'ACTIVE', isActive: true, suspensionReason: null }
       : status === 'OVERDUE'
         ? { billingStatus: 'PAST_DUE' }
-        : status === 'CANCELED'
+        // Só suspende se a cobrança cancelada já estava paga (estorno). Cancelar uma cobrança em aberto (duplicada) não bloqueia a empresa.
+        : status === 'CANCELED' && existing?.status === 'PAID'
           ? { billingStatus: 'PAST_DUE', status: 'SUSPENDED', isActive: false, suspensionReason: 'pagamento_cancelado_ou_estornado' }
           : {};
 
@@ -164,6 +166,7 @@ export class AsaasWebhookProcessorService {
 
     if (status === 'PAID' && existing?.status !== 'PAID') {
       await this.advanceCouponCycle(company.id);
+      await cancelRedundantSignupCharges(this.prisma, this.asaas, this.logger, company.id, invoice.id).catch((error) => this.logger.warn(`Limpeza de cobrancas avulsas falhou: ${String(error)}`));
       // Nota fiscal: agenda no Asaas (não lança; se falhar, a rotina diária tenta de novo).
       if (this.fiscal) await this.fiscal.ensureForInvoice(invoice.id);
     }
