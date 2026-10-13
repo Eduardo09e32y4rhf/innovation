@@ -200,7 +200,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
       <a className="sr-only focus:not-sr-only focus:block focus:p-4" href="#application">Ir para a candidatura</a>
       <header className="border-b border-[#e9e5f0]"><div className="mx-auto flex min-h-[64px] max-w-[1200px] flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:px-9">
         <CareersBrand company={company} companyId={companyId} compact />
-        <nav className="flex items-center gap-2 text-[13px]"><Link className="inline-flex min-h-11 items-center rounded-lg border border-[#e9e5f0] px-3 text-[#7240da] hover:border-[#c7b0ed]" href={companyPath}>← Vagas</Link><Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 font-semibold text-white hover:bg-[#5b29be]" href={account ? '/carreiras/conta' : `/carreiras/conta/entrar?next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>{account ? 'Minha conta' : 'Entrar'}</Link></nav>
+        <nav className="flex items-center gap-2 text-[13px]"><Link className="inline-flex min-h-11 items-center rounded-lg border border-[#e9e5f0] px-3 text-[#7240da] hover:border-[#c7b0ed]" href={companyPath}>← Vagas</Link><Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 font-semibold text-white hover:bg-[#5b29be]" href={account ? '/carreiras/conta' : `/carreiras/conta/entrar?next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>{account ? 'Minha conta' : 'Login'}</Link></nav>
       </div></header>
 
       <main className="mx-auto max-w-[1200px] space-y-5 px-4 pb-28 pt-5 sm:px-9 sm:py-6 sm:pb-6">

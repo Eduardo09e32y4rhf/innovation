@@ -234,7 +234,15 @@ function EmployeeForm() {
       return true;
     }).sort((a, b) => a.localeCompare(b, 'pt-BR'));
   }, [positionsQuery.data, extraPositions]);
-  const canRegisterPosition = ['CEO', 'DEV', 'ADMIN', 'RH'].includes(user?.profile?.toUpperCase() ?? '');
+  const departmentOptions = useMemo(() => {
+    const seen = new Set<string>();
+    return [...DEPARTMENT_OPTIONS, ...((employeesQuery.data ?? []) as { department?: string | null }[]).map((item) => item.department ?? '')].map((name) => name.trim()).filter((name) => {
+      const key = name.toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [employeesQuery.data]);
   const registerPosition = async (name: string) => {
     try {
       const saved = await api.employees.createPosition(name);
@@ -655,8 +663,8 @@ function EmployeeForm() {
             <Field label="Data de admissão" type="date" value={form.admissionDate} onChange={(v) => set('admissionDate', v)} required />
             <Select label="Status" value={form.status ?? 'ACTIVE'} onChange={(v) => set('status', v as EmployeeStatus)} options={STATUS_OPTIONS} />
             {form.status === 'TERMINATED' && <Field label="Data de demissão" type="date" value={form.terminationDate ?? ''} onChange={(v) => set('terminationDate', v)} />}
-            <ComboField label="Departamento" value={form.department} onChange={(v) => set('department', v)} suggestions={DEPARTMENT_OPTIONS} placeholder="Escolha ou digite o departamento" />
-            <ComboField label="Cargo" value={form.position} onChange={(v) => set('position', v)} suggestions={positionSuggestions} placeholder="Escolha ou digite o cargo" onRegister={canRegisterPosition ? registerPosition : undefined} hint="Cargo novo digitado aqui fica salvo no histórico da empresa." />
+            <SelectWithAdd label="Departamento" value={form.department} onChange={(v) => set('department', v)} options={departmentOptions} addLabel="Adicionar outro departamento" />
+            <SelectWithAdd label="Cargo" value={form.position} onChange={(v) => set('position', v)} options={positionSuggestions} addLabel="Adicionar outro cargo" onRegister={registerPosition} hint="Não achou? Adicione. O cargo novo fica no histórico da empresa." />
             <ManagerSelect employees={managerOptions} value={form.managerId ?? ''} onChange={(v) => set('managerId', v)} loading={employeesQuery.loading} />
             <Select label="Operação / unidade" value={form.unit ?? 'Matriz'} onChange={(v) => set('unit', v)} options={UNIT_OPTIONS.map((value) => ({ value, label: value }))} />
           </div>
@@ -828,20 +836,36 @@ function Field({ label, value, onChange, type = 'text', placeholder, required }:
   );
 }
 
-/** Campo com sugestões, mas aceita qualquer texto digitado. O RH pode salvar um cargo novo no histórico da empresa. */
-function ComboField({ label, value, onChange, suggestions, placeholder, hint, onRegister }: { label: string; value: string; onChange: (value: string) => void; suggestions: string[]; placeholder?: string; hint?: string; onRegister?: (name: string) => void | Promise<void> }) {
+/** Lista de opções (como antes) com "Adicionar outro…" no fim: se o RH não achar, digita e salva. Cargo novo fica no histórico da empresa. */
+function SelectWithAdd({ label, value, onChange, options, addLabel, onRegister, hint }: { label: string; value: string; onChange: (value: string) => void; options: string[]; addLabel: string; onRegister?: (name: string) => void | Promise<void>; hint?: string }) {
   const id = useId();
-  const typed = value.trim();
-  const isNew = typed.length >= 2 && !suggestions.some((item) => item.toLowerCase() === typed.toLowerCase());
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+  const list = value && !options.some((item) => item.toLowerCase() === value.toLowerCase()) ? [value, ...options] : options;
+  const confirm = async () => {
+    const name = draft.trim().replace(/\s+/g, ' ');
+    if (name.length < 2) return;
+    const existing = list.find((item) => item.toLowerCase() === name.toLowerCase());
+    if (!existing) await onRegister?.(name);
+    onChange(existing ?? name);
+    setAdding(false); setDraft('');
+  };
   return (
     <div className="space-y-1 text-sm font-medium text-fg">
       <label htmlFor={id}>{label}</label>
-      <input id={id} list={`${id}-list`} value={value} maxLength={80} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="input-v2 text-base sm:text-sm" autoComplete="off" />
-      <datalist id={`${id}-list`}>{suggestions.map((item) => <option key={item} value={item} />)}</datalist>
-      {onRegister && isNew && (
-        <button type="button" onClick={() => onRegister(typed)} className="text-xs font-semibold text-violet-700 underline underline-offset-2">Salvar "{typed}" como novo cargo da empresa</button>
+      <select id={id} className="input-v2 text-base sm:text-sm" value={adding ? '__add__' : value} onChange={(e) => { if (e.target.value === '__add__') setAdding(true); else { setAdding(false); onChange(e.target.value); } }}>
+        <option value="">Selecione</option>
+        {list.map((item) => <option key={item} value={item}>{item}</option>)}
+        <option value="__add__">+ {addLabel}</option>
+      </select>
+      {adding && (
+        <div className="flex gap-2">
+          <input autoFocus value={draft} maxLength={80} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void confirm(); } }} placeholder="Digite o nome" aria-label={addLabel} className="input-v2 min-h-11 flex-1 text-base sm:text-sm" />
+          <button type="button" onClick={() => void confirm()} disabled={draft.trim().length < 2} className="min-h-11 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white disabled:opacity-50">Adicionar</button>
+          <button type="button" onClick={() => { setAdding(false); setDraft(''); }} className="min-h-11 rounded-lg border border-border px-3 text-sm">Cancelar</button>
+        </div>
       )}
-      {hint && !isNew && <p className="text-xs font-normal text-fg-sub">{hint}</p>}
+      {hint && !adding && <p className="text-xs font-normal text-fg-sub">{hint}</p>}
     </div>
   );
 }
