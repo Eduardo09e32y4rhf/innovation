@@ -112,7 +112,8 @@ function CadastroForm() {
       };
       persistAuthSession(response.access_token, sessionUser, response.company as Company, Boolean(response.passwordChangeRequired), false);
       const tenant = response.company.slug || response.company.id;
-      router.replace(response.trial || plan.isFree ? `/${tenant}/dashboard` : `/${tenant}/fatura-pendente?autoCheckout=1`);
+      // Navegação completa: o contexto de login só lê a sessão recém-criada ao carregar (o cookie renova o acesso). Com router.replace a página ficava em branco.
+      window.location.assign(response.trial || plan.isFree ? `/${tenant}/dashboard` : `/${tenant}/fatura-pendente?autoCheckout=1`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível criar a conta. Tente novamente.');
       pending.current = false; setLoading(false);

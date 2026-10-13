@@ -98,7 +98,8 @@ function FaturaPendentePage() {
   const invoiceLink = paymentLinkFrom(billing);
   const invoiceAmount = Number(invoice?.amount ?? 0);
   const safeAmount = Number.isFinite(invoiceAmount) ? invoiceAmount : 0;
-  if (loading || !user) return null;
+  if (loading) return <div role="status" className="flex min-h-screen items-center justify-center bg-slate-950 text-white"><Loader2 className="animate-spin" /><span className="ml-3 text-sm">Carregando sua conta…</span></div>;
+  if (!user) return <main className="flex min-h-screen items-center justify-center bg-slate-950 p-6"><div className="max-w-md space-y-4 text-center text-white"><AlertTriangle className="mx-auto text-amber-400" size={40} /><h1 className="text-xl font-black">Não conseguimos abrir sua conta agora</h1><p className="text-sm text-slate-300">Sua empresa foi criada. Entre com seu e-mail e senha para continuar o pagamento.</p><a href="/login" className="inline-flex h-11 items-center rounded-xl bg-[var(--color-brand)] px-5 text-sm font-bold text-white">Entrar</a></div></main>;
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 p-6">
