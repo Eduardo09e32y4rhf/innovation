@@ -223,6 +223,27 @@ function EmployeeForm() {
   const { user } = useAuth();
   const canEdit = ['DEV', 'ADMIN', 'RH'].includes(user?.profile?.toUpperCase() ?? '');
   const employeesQuery = useQuery(() => api.employees.list(), [], { enabled: canEdit });
+  const positionsQuery = useQuery(() => api.employees.positions(), [], { enabled: canEdit });
+  const [extraPositions, setExtraPositions] = useState<string[]>([]);
+  const positionSuggestions = useMemo(() => {
+    const seen = new Set<string>();
+    return [...(positionsQuery.data?.positions ?? []), ...extraPositions, ...POSITION_OPTIONS].filter((name) => {
+      const key = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [positionsQuery.data, extraPositions]);
+  const canRegisterPosition = ['CEO', 'DEV', 'ADMIN', 'RH'].includes(user?.profile?.toUpperCase() ?? '');
+  const registerPosition = async (name: string) => {
+    try {
+      const saved = await api.employees.createPosition(name);
+      setExtraPositions((current) => [...current, saved.name]);
+      toast.success(`Cargo "${saved.name}" salvo no histórico da empresa.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Não foi possível salvar o cargo.');
+    }
+  };
 
   const [form, setForm] = useState<EmployeeFormState>(EMPTY);
   const [activeTab, setActiveTab] = useState<TabName>('Dados pessoais');
@@ -634,8 +655,8 @@ function EmployeeForm() {
             <Field label="Data de admissão" type="date" value={form.admissionDate} onChange={(v) => set('admissionDate', v)} required />
             <Select label="Status" value={form.status ?? 'ACTIVE'} onChange={(v) => set('status', v as EmployeeStatus)} options={STATUS_OPTIONS} />
             {form.status === 'TERMINATED' && <Field label="Data de demissão" type="date" value={form.terminationDate ?? ''} onChange={(v) => set('terminationDate', v)} />}
-            <Select label="Departamento" value={form.department} onChange={(v) => set('department', v)} options={DEPARTMENT_OPTIONS.map((value) => ({ value, label: value }))} />
-            <Select label="Cargo" value={form.position} onChange={(v) => set('position', v)} options={POSITION_OPTIONS.map((value) => ({ value, label: value }))} />
+            <ComboField label="Departamento" value={form.department} onChange={(v) => set('department', v)} suggestions={DEPARTMENT_OPTIONS} placeholder="Escolha ou digite o departamento" />
+            <ComboField label="Cargo" value={form.position} onChange={(v) => set('position', v)} suggestions={positionSuggestions} placeholder="Escolha ou digite o cargo" onRegister={canRegisterPosition ? registerPosition : undefined} hint="Cargo novo digitado aqui fica salvo no histórico da empresa." />
             <ManagerSelect employees={managerOptions} value={form.managerId ?? ''} onChange={(v) => set('managerId', v)} loading={employeesQuery.loading} />
             <Select label="Operação / unidade" value={form.unit ?? 'Matriz'} onChange={(v) => set('unit', v)} options={UNIT_OPTIONS.map((value) => ({ value, label: value }))} />
           </div>
@@ -804,6 +825,24 @@ function Field({ label, value, onChange, type = 'text', placeholder, required }:
       <span>{label}{required && <span className="text-rose-500"> *</span>}</span>
       <input id={id} data-field={label} required={required} type={type} value={value} placeholder={placeholder} step={type === 'number' ? '0.01' : undefined} min={type === 'number' ? '0' : undefined} onChange={(e) => onChange(e.target.value)} className="input-v2 text-base sm:text-sm" />
     </label>
+  );
+}
+
+/** Campo com sugestões, mas aceita qualquer texto digitado. O RH pode salvar um cargo novo no histórico da empresa. */
+function ComboField({ label, value, onChange, suggestions, placeholder, hint, onRegister }: { label: string; value: string; onChange: (value: string) => void; suggestions: string[]; placeholder?: string; hint?: string; onRegister?: (name: string) => void | Promise<void> }) {
+  const id = useId();
+  const typed = value.trim();
+  const isNew = typed.length >= 2 && !suggestions.some((item) => item.toLowerCase() === typed.toLowerCase());
+  return (
+    <div className="space-y-1 text-sm font-medium text-fg">
+      <label htmlFor={id}>{label}</label>
+      <input id={id} list={`${id}-list`} value={value} maxLength={80} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="input-v2 text-base sm:text-sm" autoComplete="off" />
+      <datalist id={`${id}-list`}>{suggestions.map((item) => <option key={item} value={item} />)}</datalist>
+      {onRegister && isNew && (
+        <button type="button" onClick={() => onRegister(typed)} className="text-xs font-semibold text-violet-700 underline underline-offset-2">Salvar "{typed}" como novo cargo da empresa</button>
+      )}
+      {hint && !isNew && <p className="text-xs font-normal text-fg-sub">{hint}</p>}
+    </div>
   );
 }
 

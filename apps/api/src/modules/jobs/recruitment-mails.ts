@@ -25,3 +25,11 @@ export function candidateRequestAnsweredEmail(input: { company: string; type: st
     text: `${input.company} respondeu ao seu pedido de ${label[input.type] ?? 'privacidade'}:\n\n${input.response}`,
   };
 }
+
+export function candidateLoginCodeEmail(input: { code: string; minutes: number }): MailContent {
+  return {
+    subject: `Seu código de acesso: ${input.code}`,
+    html: layout('Seu código de acesso', `<p>Use o código abaixo para entrar na Área do candidato:</p><p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:18px 0">${escapeHtml(input.code)}</p><p style="font-size:13px;color:#666">O código vale por ${input.minutes} minutos e só pode ser usado uma vez. Se não foi você, ignore este e-mail.</p>`),
+    text: `Seu código de acesso à Área do candidato: ${input.code}\nValido por ${input.minutes} minutos. Se não foi você, ignore este e-mail.`,
+  };
+}

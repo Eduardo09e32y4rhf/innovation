@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { CreateEmployeeAccessDto, LinkEmployeeAccessDto, BulkEmployeeAccessDto } from './dto/employee-access.dto';
 import { EmployeesService } from './employees.service';
@@ -33,6 +34,18 @@ export class EmployeesController {
     const pageNum = Math.max(1, parseInt(page || '1', 10));
     const pageSizeNum = Math.min(100, Math.max(1, parseInt(pageSize || '50', 10)));
     return this.service.list(companyId, actor, pageNum, pageSizeNum, search, status);
+  }
+
+  @Get('positions')
+  listPositions(@CurrentCompany() companyId: string) {
+    return this.service.listPositions(companyId);
+  }
+
+  /** O RH cadastra cargos manuais; ficam no histórico da empresa. */
+  @Roles('CEO', 'ADMIN', 'RH', 'DEV')
+  @Post('positions')
+  createPosition(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreatePositionDto) {
+    return this.service.createPosition(companyId, actor, dto.name);
   }
 
   @Get(':id/dossier')

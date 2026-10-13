@@ -13,6 +13,15 @@ const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN
 /** Perfis que ocupam licença (igual ao countByCompany do repositório). */
 const SEAT_ROLES: UserRole[] = ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 
+/** Espaços colapsados e aparado; mantém a grafia que o RH digitou. */
+export function normalizePositionName(value: string): string {
+  return String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, 80);
+}
+/** Chave de comparação: minúsculo e sem acento ("Motorista" == "motorista" == "Motorísta"). */
+export function positionKey(value: string): string {
+  return normalizePositionName(value).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
 @Injectable()
 export class EmployeesService {
   constructor(private readonly repository: EmployeesRepository, private readonly asoService: AsoService) {}
@@ -79,6 +88,36 @@ export class EmployeesService {
     return dossier;
   }
 
+  /** Cargos da empresa: os cadastrados pelo RH + os que ja estao nos funcionarios (historico da empresa). */
+  async listPositions(companyId: string) {
+    const [custom, used] = await Promise.all([this.repository.listCustomPositions(companyId), this.repository.listEmployeePositions(companyId)]);
+    const seen = new Set<string>();
+    const names: string[] = [];
+    for (const name of [...custom.map((row) => row.name), ...used]) {
+      const key = positionKey(name);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      names.push(name);
+    }
+    return { positions: names.sort((a, b) => a.localeCompare(b, 'pt-BR')) };
+  }
+
+  /** O RH cadastra um cargo manual; ele fica no historico da empresa e aparece nas proximas vezes. */
+  async createPosition(companyId: string, actor: JwtUser, rawName: string) {
+    const name = normalizePositionName(rawName);
+    if (name.length < 2) throw new BadRequestException('Informe o nome do cargo (mínimo 2 caracteres).');
+    const created = await this.repository.upsertPosition(companyId, name, positionKey(name), actor.sub);
+    await this.repository.createAuditLog({ companyId, userId: actor.sub, action: 'POSITION_CREATED', entity: 'CompanyPosition', entityId: created.id, metadata: { name } }).catch(() => undefined);
+    return created;
+  }
+
+  /** Cargo digitado no cadastro do funcionario entra sozinho no historico da empresa (nunca derruba o cadastro). */
+  private async rememberPosition(companyId: string, actorId: string | undefined, position?: string | null) {
+    const name = normalizePositionName(position ?? '');
+    if (name.length < 2 || name === 'A definir') return;
+    try { await this.repository.upsertPosition(companyId, name, positionKey(name), actorId); } catch { /* catalogo e conveniencia, nao regra */ }
+  }
+
   async create(companyId: string, dto: CreateEmployeeDto) {
     if (dto.cpf) {
       const existing = await this.repository.findByCpf(dto.cpf);
@@ -97,6 +136,7 @@ export class EmployeesService {
       status: 'PENDING'
     });
 
+    await this.rememberPosition(companyId, undefined, dto.position);
     await this.syncPanelAccess(companyId, employee, dto);
     return this.repository.findById(companyId, employee.id);
   }
@@ -125,6 +165,7 @@ export class EmployeesService {
       }
     }
 
+    await this.rememberPosition(companyId, actor.sub, dto.position);
     await this.syncPanelAccess(companyId, employee, dto);
     return this.get(companyId, actor, id);
   }

@@ -1,5 +1,6 @@
 'use client';
 
+import { toWholeReais } from '../payloads';
 import { ArrowLeft, ArrowRight, Check, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -37,8 +38,8 @@ function validate(draft: Draft): { step: number; message: string }[] {
   const issues: { step: number; message: string }[] = [];
   if (!draft.title.trim()) issues.push({ step: 0, message: 'Informe o título da vaga.' });
   if (!draft.description.trim()) issues.push({ step: 1, message: 'Descreva a vaga.' });
-  const min = draft.salaryMin ? Number(draft.salaryMin) : null;
-  const max = draft.salaryMax ? Number(draft.salaryMax) : null;
+  const min = toWholeReais(draft.salaryMin) ?? null;
+  const max = toWholeReais(draft.salaryMax) ?? null;
   if (min !== null && max !== null && min > max) issues.push({ step: 2, message: 'A faixa salarial mínima não pode ser maior que a máxima.' });
   draft.questions.forEach((question, index) => {
     if (!question.label.trim()) issues.push({ step: 3, message: `A pergunta ${index + 1} está sem texto.` });
@@ -77,7 +78,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
           description: job.description, requirementsText: (job.requirements ?? []).join('\n'), benefitsText: (job.benefits ?? []).join('\n'),
           salaryMin: job.salaryMin != null ? String(job.salaryMin) : '', salaryMax: job.salaryMax != null ? String(job.salaryMax) : '',
           salaryHidden: job.salaryHidden, deadline: job.deadline ? job.deadline.slice(0, 10) : '', status: job.status, isInternal: Boolean(job.isInternal), confidential: Boolean((job as { confidential?: boolean }).confidential),
-          questions: questions.map((question) => ({ ...question, options: question.options ?? [] })),
+          questions: questions.map(({ id, label, type, required, options, knockout, scoreRule }) => ({ id, label, type, required, options: options ?? [], knockout: knockout ?? null, scoreRule: scoreRule ?? null })),
           criteria: criteria.map(({ id, name, weight }) => ({ id, name, weight })),
         };
         setDraft(loaded); baseline.current = JSON.stringify(loaded);
@@ -109,12 +110,13 @@ export function JobWizard({ jobId }: { jobId?: string }) {
         workMode: draft.workMode || undefined, employmentType: draft.employmentType || undefined, seniority: draft.seniority || undefined,
         openings: Math.max(1, Number(draft.openings) || 1),
         requirements: lines(draft.requirementsText), benefits: lines(draft.benefitsText),
-        salaryMin: draft.salaryMin ? Number(draft.salaryMin) : undefined, salaryMax: draft.salaryMax ? Number(draft.salaryMax) : undefined,
+        // A API guarda salário em reais inteiros: aceita "4500,50" ou "4500.5" sem dar erro e arredonda.
+        salaryMin: toWholeReais(draft.salaryMin), salaryMax: toWholeReais(draft.salaryMax),
         salaryHidden: draft.salaryHidden, deadline: draft.deadline || null, status, isInternal: draft.isInternal, confidential: draft.confidential,
       };
       const saved = jobId ? await jobsApi.update(jobId, payload) : await jobsApi.create(payload);
-      await jobsApi.saveQuestions(saved.id, draft.questions.map((question) => ({ ...question, label: question.label.trim() })));
-      await jobsApi.saveCriteria(saved.id, draft.criteria.map((criterion) => ({ ...criterion, name: criterion.name.trim() })));
+      await jobsApi.saveQuestions(saved.id, draft.questions);
+      await jobsApi.saveCriteria(saved.id, draft.criteria);
       baseline.current = JSON.stringify(draft);
       toast.success(status === 'OPEN' ? 'Vaga publicada.' : 'Vaga salva.');
       router.push(base);
@@ -162,7 +164,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                 </label>
                 <Field label="Título da vaga" required className="sm:col-span-2"><input className={inputClass} value={draft.title} maxLength={160} placeholder="Ex.: Analista de RH Sênior" onChange={(event) => set('title', event.target.value)} /></Field>
                 <Field label="Departamento"><input className={inputClass} value={draft.department} maxLength={120} placeholder="Ex.: Recursos Humanos" onChange={(event) => set('department', event.target.value)} /></Field>
-                <Field label="Senioridade"><select className={inputClass} value={draft.seniority} onChange={(event) => set('seniority', event.target.value)}><option value="">Não informar</option>{SENIORITY.map((item) => <option key={item}>{item}</option>)}</select></Field>
+                <Field label="Senioridade"><input className={inputClass} list="seniority-options" value={draft.seniority} maxLength={60} placeholder="Ex.: Pleno (ou digite o que quiser)" onChange={(event) => set('seniority', event.target.value)} /><datalist id="seniority-options">{SENIORITY.map((item) => <option key={item} value={item} />)}</datalist></Field>
                 <Field label="Local"><input className={inputClass} value={draft.location} maxLength={180} placeholder="Cidade, estado ou remoto" onChange={(event) => set('location', event.target.value)} /></Field>
                 <Field label="Modalidade"><select className={inputClass} value={draft.workMode} onChange={(event) => set('workMode', event.target.value)}><option value="">Não informar</option>{Object.entries(WORK_MODE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
                 <Field label="Tipo de contratação"><select className={inputClass} value={draft.employmentType} onChange={(event) => set('employmentType', event.target.value)}>{EMPLOYMENT_OPTIONS.map((value) => <option key={value} value={value}>{EMPLOYMENT_TYPE_LABEL[value]}</option>)}</select></Field>
@@ -184,8 +186,8 @@ export function JobWizard({ jobId }: { jobId?: string }) {
           {step === 2 && (
             <SectionCard title="Condições" description="Remuneração e prazo das inscrições.">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Salário mínimo (R$)"><input type="number" min={0} className={inputClass} value={draft.salaryMin} onChange={(event) => set('salaryMin', event.target.value)} /></Field>
-                <Field label="Salário máximo (R$)"><input type="number" min={0} className={inputClass} value={draft.salaryMax} onChange={(event) => set('salaryMax', event.target.value)} /></Field>
+                <Field label="Salário mínimo (R$)"><input type="number" min={0} step="any" className={inputClass} value={draft.salaryMin} onChange={(event) => set('salaryMin', event.target.value)} /></Field>
+                <Field label="Salário máximo (R$)"><input type="number" min={0} step="any" className={inputClass} value={draft.salaryMax} onChange={(event) => set('salaryMax', event.target.value)} /></Field>
                 <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={draft.salaryHidden} onChange={(event) => set('salaryHidden', event.target.checked)} /> Não divulgar a faixa salarial no portal (exibir &quot;A combinar&quot;)</label>
                 <Field label="Inscrições até" hint="Depois desta data a vaga sai do portal automaticamente. Deixe em branco para não ter prazo."><input type="date" className={inputClass} value={draft.deadline} onChange={(event) => set('deadline', event.target.value)} /></Field>
               </div>

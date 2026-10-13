@@ -1,3 +1,4 @@
+import { criterionPayload, questionPayload } from './payloads';
 import { API_URL, ApiError, request } from '@/app/lib/api';
 import { readAuthSession } from '@/app/lib/auth-session';
 
@@ -71,9 +72,9 @@ export const jobsApi = {
   savePipeline: (stages: Stage[], name?: string) => request<Pipeline>('/jobs/pipeline', { method: 'PUT', body: { name, stages: stages.map(({ id, name, color, kind }) => ({ id, name, color, kind })) } }),
 
   questions: (jobId: string) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`),
-  saveQuestions: (jobId: string, questions: Question[]) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`, { method: 'PUT', body: { questions } }),
+  saveQuestions: (jobId: string, questions: Question[]) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`, { method: 'PUT', body: { questions: questions.map(questionPayload) } }),
   criteria: (jobId: string) => request<(Criterion & { id: string })[]>(`/jobs/${enc(jobId)}/criteria`),
-  saveCriteria: (jobId: string, criteria: Criterion[]) => request<(Criterion & { id: string })[]>(`/jobs/${enc(jobId)}/criteria`, { method: 'PUT', body: { criteria } }),
+  saveCriteria: (jobId: string, criteria: Criterion[]) => request<(Criterion & { id: string })[]>(`/jobs/${enc(jobId)}/criteria`, { method: 'PUT', body: { criteria: criteria.map(criterionPayload) } }),
 
   applications: (jobId: string, filters?: ApplicationFilters) => request<ApplicationsPayload>(`/jobs/${enc(jobId)}/applications${query(filters)}`),
   application: (id: string) => request<ApplicationDetail>(`/jobs/applications/${enc(id)}`),

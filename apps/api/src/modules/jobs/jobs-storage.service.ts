@@ -17,6 +17,10 @@ export class JobsStorageService {
     return key;
   }
 
+  async read(key: string) {
+    return fs.readFile(this.resolveKey(key));
+  }
+
   async remove(key: string) {
     await fs.unlink(this.resolveKey(key)).catch(() => undefined);
   }
