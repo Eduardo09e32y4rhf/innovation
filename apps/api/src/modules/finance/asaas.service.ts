@@ -95,7 +95,7 @@ export class AsaasService {
         const message = Array.isArray((data as any)?.errors)
           ? (data as any).errors.map((item: any) => item.description).filter(Boolean).join('; ')
           : response.statusText;
-        this.logger.error(`Asaas ${response.status}: ${JSON.stringify(data)}`);
+        this.logger.error(`Asaas ${response.status} em ${options.method || 'GET'} ${endpoint.split('?')[0]}: ${JSON.stringify(data)}`);
         // 400/404/422 com lista de erros = recusa definitiva. 401/403 (chave errada), 429 e 5xx continuam como indisponibilidade.
         if ([400, 404, 422].includes(response.status) && Array.isArray((data as any)?.errors) && message) throw new AsaasRejectedException(`Asaas recusou: ${message}`);
         throw new ServiceUnavailableException(`Asaas: ${message || 'falha na requisicao'}`);
