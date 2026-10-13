@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/page-header';
-import { CareersBrand, CareersFooter } from '../../_components/careers-brand';
+import { CareersBrand } from '../../_components/careers-brand';
+import { PortalFooter } from '../../_components/portal-chrome';
 import { candidateApi, getCandidateToken, type CandidateProfile } from '../../_lib/candidate-api';
 import {
   applyToPublicJob, CareersApiError, employmentTypeLabel, getPublicJob, jobPostingJsonLd, publicSalaryLabel, readTrafficSource, trackedJobUrl, validateResume, workModeLabel,
@@ -330,7 +331,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
           </section>
         </div>
       </main>
-      <CareersFooter company={company} />
+      <PortalFooter />
     </div>
   );
 }

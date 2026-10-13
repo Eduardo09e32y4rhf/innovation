@@ -89,16 +89,16 @@ export function ProfileForm() {
       <div><h1 className="text-2xl font-bold tracking-tight">Meu perfil</h1>
         <p className="text-sm text-[#5b5473]">Guardamos só o necessário para se candidatar. Você escolhe a cada vaga se quer reutilizar estes dados.</p></div>
 
-      <div className="rounded-[14px] border border-[#e4dff0] bg-white p-4" aria-label="Progresso do perfil">
+      <div className="rounded-[14px] border border-[#e9e5f0] bg-white p-4" aria-label="Progresso do perfil">
         <div className="flex items-center justify-between text-sm font-semibold"><span>Perfil {profile.completeness.percent}% completo</span></div>
-        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-[#ece8f5]"><div className="h-full rounded-full bg-[#6d28d9]" style={{ width: `${profile.completeness.percent}%` }} /></div>
+        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-[#ece8f5]"><div className="h-full rounded-full bg-[#7240da]" style={{ width: `${profile.completeness.percent}%` }} /></div>
         <ul className="mt-3 flex flex-wrap gap-2 text-xs">{profile.checklist.map((item) => <li key={item.key} className={`rounded-full px-3 py-1 ${item.done ? 'bg-emerald-50 text-emerald-800' : 'bg-[#f1ecfb] text-[#5b5473]'}`}>{item.done ? '✓ ' : ''}{item.label}</li>)}</ul>
       </div>
 
       {message && <p role={message.kind === 'error' ? 'alert' : 'status'} className={`rounded-lg p-3 text-sm font-medium ${message.kind === 'error' ? 'bg-rose-50 text-rose-800' : 'bg-emerald-50 text-emerald-800'}`}>{message.text}</p>}
 
       <form onSubmit={save} className="space-y-6" noValidate>
-        <fieldset disabled={busy} className="space-y-4 rounded-[16px] border border-[#e4dff0] bg-white p-5">
+        <fieldset disabled={busy} className="space-y-4 rounded-[16px] border border-[#e9e5f0] bg-white p-5">
           <legend className="px-1 text-sm font-bold">Dados pessoais</legend>
           <label className="block space-y-1"><span className="text-sm font-medium">Nome completo</span><input className={input} autoComplete="name" maxLength={120} value={form.name} onChange={(e) => set('name', e.target.value)} />{err('name')}</label>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -106,10 +106,10 @@ export function ProfileForm() {
             <label className="block space-y-1"><span className="text-sm font-medium">Telefone / WhatsApp (contato)</span><input className={input} type="tel" autoComplete="tel" inputMode="tel" value={form.phone} onChange={(e) => set('phone', maskPhone(e.target.value))} />{err('phone')}</label>
           </div>
           <label className="block space-y-1"><span className="text-sm font-medium">Data de nascimento</span><input className={input} type="date" autoComplete="bday" max={new Date().toISOString().slice(0, 10)} value={form.birthDate} onChange={(e) => set('birthDate', e.target.value)} />{err('birthDate')}</label>
-          <label className="block space-y-1"><span className="text-sm font-medium">E-mail (seu usuário)</span><input className={`${input} bg-[#f7f5fb]`} value={profile.email} readOnly aria-readonly="true" /></label>
+          <label className="block space-y-1"><span className="text-sm font-medium">E-mail (seu usuário)</span><input className={`${input} bg-[#fbfafc]`} value={profile.email} readOnly aria-readonly="true" /></label>
         </fieldset>
 
-        <fieldset disabled={busy} className="space-y-4 rounded-[16px] border border-[#e4dff0] bg-white p-5">
+        <fieldset disabled={busy} className="space-y-4 rounded-[16px] border border-[#e9e5f0] bg-white p-5">
           <legend className="px-1 text-sm font-bold">Endereço</legend>
           <div className="grid gap-4 sm:grid-cols-[160px_1fr]">
             <label className="block space-y-1"><span className="text-sm font-medium">CEP</span><input className={input} inputMode="numeric" autoComplete="postal-code" value={form.cep} onChange={(e) => set('cep', maskCep(e.target.value))} />{err('cep')}</label>
@@ -126,11 +126,11 @@ export function ProfileForm() {
           </div>
         </fieldset>
 
-        <fieldset disabled={busy} className="space-y-4 rounded-[16px] border border-[#e4dff0] bg-white p-5">
+        <fieldset disabled={busy} className="space-y-4 rounded-[16px] border border-[#e9e5f0] bg-white p-5">
           <legend className="px-1 text-sm font-bold">Formação</legend>
           {education.length === 0 && <p className="text-sm text-[#5b5473]">Adicione seu ensino fundamental, médio, técnico, superior ou pós.</p>}
           {education.map((item, index) => (
-            <div key={index} className="grid gap-3 rounded-[12px] bg-[#f7f5fb] p-3 sm:grid-cols-2">
+            <div key={index} className="grid gap-3 rounded-[12px] bg-[#fbfafc] p-3 sm:grid-cols-2">
               <label className="block space-y-1"><span className="text-sm font-medium">Nível</span><select className={input} value={item.level} onChange={(e) => updateEdu(index, { level: e.target.value })}>{EDUCATION_LEVELS.map((level) => <option key={level}>{level}</option>)}</select></label>
               <label className="block space-y-1"><span className="text-sm font-medium">Situação</span><select className={input} value={item.status} onChange={(e) => updateEdu(index, { status: e.target.value })}>{EDUCATION_STATUS.map((status) => <option key={status}>{status}</option>)}</select></label>
               <label className="block space-y-1"><span className="text-sm font-medium">Curso (opcional)</span><input className={input} maxLength={120} value={item.course} onChange={(e) => updateEdu(index, { course: e.target.value })} /></label>
@@ -141,7 +141,7 @@ export function ProfileForm() {
           {education.length < 8 && <button type="button" className="min-h-11 rounded-[10px] border border-[#d5cceb] px-4 text-sm font-semibold hover:bg-[#f1ecfb]" onClick={() => setEducation((list) => [...list, { level: 'Ensino médio', status: 'Completo', course: '', school: '' }])}>+ Adicionar formação</button>}
         </fieldset>
 
-        <fieldset disabled={busy} className="space-y-4 rounded-[16px] border border-[#e4dff0] bg-white p-5">
+        <fieldset disabled={busy} className="space-y-4 rounded-[16px] border border-[#e9e5f0] bg-white p-5">
           <legend className="px-1 text-sm font-bold">Profissão e habilitação</legend>
           <label className="block space-y-1"><span className="text-sm font-medium">Profissão</span><input className={input} maxLength={120} placeholder="Ex.: Analista contábil" value={form.profession} onChange={(e) => set('profession', e.target.value)} /></label>
           <label className="block space-y-1"><span className="text-sm font-medium">Conhecimentos técnicos (separe por vírgula)</span><input className={input} maxLength={400} placeholder="Ex.: SPED, Excel, Departamento pessoal" value={form.skills} onChange={(e) => set('skills', e.target.value)} /></label>
@@ -151,16 +151,16 @@ export function ProfileForm() {
           </div>
         </fieldset>
 
-        <fieldset disabled={busy} className="space-y-3 rounded-[16px] border border-[#e4dff0] bg-white p-5">
+        <fieldset disabled={busy} className="space-y-3 rounded-[16px] border border-[#e9e5f0] bg-white p-5">
           <legend className="px-1 text-sm font-bold">Autorizações</legend>
           <label className="flex min-h-11 items-start gap-3"><input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={form.consent} onChange={(e) => set('consent', e.target.checked)} /><span className="text-sm leading-6">Autorizo guardar estes dados para me candidatar mais rápido. Posso corrigir ou excluir a qualquer momento.</span></label>
           <label className="flex min-h-11 items-start gap-3"><input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={form.admissionShareConsent} onChange={(e) => set('admissionShareConsent', e.target.checked)} /><span className="text-sm leading-6">Se eu for contratado, autorizo a empresa a aproveitar estes dados no meu cadastro de funcionário (opcional).</span></label>
           <label className="flex min-h-11 items-start gap-3"><input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={form.talentPoolConsent} onChange={(e) => set('talentPoolConsent', e.target.checked)} /><span className="text-sm leading-6">Quero aparecer no banco de talentos: o RH de empresas parceiras pode ver meu nome, profissão, cidade, formação e currículo e me convidar para vagas. Meu e-mail, telefone e CPF não são compartilhados. Posso desmarcar quando quiser (opcional).</span></label>
         </fieldset>
-        <Button type="submit" isLoading={busy} className="!bg-[#6d28d9] hover:!bg-[#5b21b6]">Salvar perfil</Button>
+        <Button type="submit" isLoading={busy} className="!bg-[#7240da] hover:!bg-[#5b29be]">Salvar perfil</Button>
       </form>
 
-      <section className="space-y-3 rounded-[16px] border border-[#e4dff0] bg-white p-5" aria-label="Currículo">
+      <section className="space-y-3 rounded-[16px] border border-[#e9e5f0] bg-white p-5" aria-label="Currículo">
         <h2 className="text-sm font-bold">Currículo</h2>
         {profile.resume?.name ? <p className="text-sm">✓ {profile.resume.name}{profile.resume.size ? ` · ${(profile.resume.size / 1024 / 1024).toFixed(2)} MB` : ''}</p> : <p className="text-sm text-[#5b5473]">Nenhum currículo salvo.</p>}
         <label className="inline-flex min-h-11 cursor-pointer items-center rounded-[10px] border border-[#d5cceb] px-4 text-sm font-semibold hover:bg-[#f1ecfb]">

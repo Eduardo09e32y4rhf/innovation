@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { PortalFooter, PortalLogo } from '../../_components/portal-chrome';
 import { candidateApi, getCandidateToken, isUnauthorized, setCandidateToken, type CandidateProfile } from '../../_lib/candidate-api';
 
 type Session = { profile: CandidateProfile; setProfile: (profile: CandidateProfile) => void; signOut: () => Promise<void> };
@@ -53,15 +54,15 @@ export function AccountShell({ children }: { children: ReactNode }) {
   const initials = (profile?.name || profile?.email || '?').trim().slice(0, 2).toUpperCase();
   return (
     <SessionContext.Provider value={value}>
-      <div className="min-h-screen bg-[#f7f5fb] text-[#17122b]">
-        <header className="border-b border-[#e4dff0] bg-white">
-          <div className="mx-auto flex min-h-[72px] max-w-[1200px] flex-wrap items-center justify-between gap-3 px-6">
-            <div className="flex flex-wrap items-center gap-7">
-              <span className="text-lg font-bold">Área do candidato</span>
+      <div className="min-h-screen bg-[#fbfafc] text-[#241b38]">
+        <header className="border-b border-[#e9e5f0] bg-white">
+          <div className="mx-auto flex min-h-[64px] max-w-[1200px] flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:min-h-[80px] sm:px-9">
+            <div className="flex flex-wrap items-center gap-x-7 gap-y-2">
+              <PortalLogo />
               <nav aria-label="Área do candidato" className="flex flex-wrap gap-1.5">
                 {NAV.map((item) => {
                   const active = item.href === '/carreiras' ? false : pathname === item.href;
-                  return <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} className={`inline-flex min-h-11 items-center rounded-[10px] px-4 text-sm font-semibold ${active ? 'bg-[#eee8fd] text-[#4c1d95]' : 'hover:bg-[#f1ecfb]'}`}>{item.label}</Link>;
+                  return <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} className={`inline-flex min-h-11 items-center rounded-[10px] px-4 text-sm font-semibold ${active ? 'bg-[#f0eafa] text-[#5b29be]' : 'hover:bg-[#f1ecfb]'}`}>{item.label}</Link>;
                 })}
               </nav>
             </div>
@@ -73,6 +74,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         {children}
+        <PortalFooter />
       </div>
     </SessionContext.Provider>
   );
