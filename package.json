@@ -2,7 +2,7 @@
   "name": "innovation-rh-connect",
   "version": "1.0.1",
   "private": true,
-  "description": "Sistema de RH com controle de ponto e comunica\u00e7\u00e3o via WhatsApp para pequenas e m\u00e9dias empresas",
+  "description": "Sistema de RH com controle de ponto e comunicação via WhatsApp para pequenas e médias empresas",
   "scripts": {
     "dev": "npm run dev:web",
     "dev:web": "npm --prefix apps/web run dev",
@@ -67,13 +67,17 @@
     "apps/api"
   ],
   "include-workspace-root": true,
+  "overrides": {
+    "fastify": "$fastify"
+  },
   "dependencies": {
-    "@fastify/static": "10.1.0",
+    "@fastify/static": "10.1.6",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",
     "bcryptjs": "3.0.3",
     "class-transformer": "0.5.1",
     "class-validator": "0.14.1",
+    "fastify": "5.12.5",
     "jimp": "1.6.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

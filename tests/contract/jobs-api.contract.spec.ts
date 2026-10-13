@@ -49,7 +49,9 @@ describe('Jobs API contract', () => {
 
   it('registers static recruitment routes before the /jobs/:id controller', () => {
     const module = readFileSync(resolve('apps/api/src/modules/jobs/jobs.module.ts'), 'utf8');
-    expect(module.indexOf('RecruitmentController, JobsController')).toBeGreaterThan(-1);
+    const recruitment = module.indexOf('RecruitmentController,');
+    expect(recruitment).toBeGreaterThan(-1);
+    expect(recruitment).toBeLessThan(module.indexOf(' JobsController,'));
   });
 
   it('does not ship AI scoring in the public application flow', () => {

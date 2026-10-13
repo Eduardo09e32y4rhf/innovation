@@ -1,4 +1,3 @@
-import { PerformanceModule } from './modules/performance/performance.module';
 import { Module } from '@nestjs/common';
 import { PartnersModule } from './modules/partners/partners.module';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
@@ -63,7 +62,6 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
 
 @Module({
   imports: [
-    PerformanceModule,
     PartnersModule,
     PrometheusModule.register(),
     CacheModule.registerAsync({
