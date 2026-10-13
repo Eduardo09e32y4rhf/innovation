@@ -52,8 +52,10 @@ export class PaymentRefundService {
       await this.reconcile(invoiceId);
     } catch (error) {
       // Timeout e falha de persistência também podem ocorrer após o provedor aceitar. Não liberar reserva nem repetir.
-      await this.prisma.paymentRefund.updateMany({ where: { id: operation.id, status: { in: active } }, data: { status: 'UNKNOWN', errorMessage: 'Confirmação pendente. Sincronize com o provedor.' } }).catch(() => undefined);
-      this.logger.warn(`Devolução ${operation.id} precisa de conciliação: ${error instanceof Error ? error.name : 'erro externo'}`);
+      // Guarda o motivo real (ex.: "Asaas recusou: saldo insuficiente") para aparecer na tela e no log.
+      const detail = error instanceof Error ? error.message : String(error);
+      await this.prisma.paymentRefund.updateMany({ where: { id: operation.id, status: { in: active } }, data: { status: 'UNKNOWN', errorMessage: detail.slice(0, 500) } }).catch(() => undefined);
+      this.logger.warn(`Devolução ${operation.id} precisa de conciliação: ${detail}`);
     }
     return this.prisma.paymentRefund.findUniqueOrThrow({ where: { id: operation.id } });
   }
@@ -81,7 +83,17 @@ export class PaymentRefundService {
           const candidates = remote.filter(r => !tagged.has(r) && cents(r.value) === cents(op.amount));
           if (candidates.length === 1) match = candidates[0];
         }
-        if (!match) continue;
+        if (!match) {
+          // O pedido deu erro e o Asaas/MP não tem nenhum estorno com esse valor 10 min depois: nunca chegou lá.
+          // Marca como falha (com o motivo) para liberar um novo pedido, em vez de ficar "aguardando" para sempre.
+          const stale = Date.now() - new Date(op.createdAt).getTime() > 10 * 60_000;
+          const sameValue = remote.some(r => cents('value' in r ? r.value : r.amount) === cents(op.amount));
+          if (op.status === 'UNKNOWN' && stale && !sameValue) {
+            await tx.paymentRefund.update({ where: { id: op.id }, data: { status: 'FAILED', errorMessage: op.errorMessage && !op.errorMessage.startsWith('Confirmação pendente') ? op.errorMessage : 'O provedor não registrou esta devolução. Nada foi devolvido; solicite de novo.' } });
+            await tx.auditLog.create({ data: { companyId: invoice.companyId, userId: op.actorId, action: 'REFUND_FAILED', entity: 'PaymentRefund', entityId: op.id, metadata: { invoiceId, amount: Number(op.amount), reason: 'nao_encontrada_no_provedor' } } });
+          }
+          continue;
+        }
         if (cents('value' in match ? match.value : match.amount) !== cents(op.amount)) throw new ConflictException('Valor da devolução não confere com a solicitação.');
         const confirmed = done(match.status);
         const failed = ['CANCELLED', 'cancelled', 'rejected'].includes(match.status);
