@@ -40,6 +40,8 @@ export default function LoginPage() {
     if (!slug) return '/login';
     if (user?.mfaEnrollmentRequired) return '/mfa';
     const base = `/${encodeURIComponent(slug)}`;
+    // Voltou do pagamento no Asaas (cobranças antigas apontam para cá): confirma o pagamento e segue para o painel.
+    if (new URLSearchParams(window.location.search).get('payment') === 'success') return '/pagamento/retorno';
     if (mustPay) return `${base}/fatura-pendente?autoCheckout=1`;
     return safeReturn(base) ?? `${base}/dashboard`;
   }
@@ -49,6 +51,10 @@ export default function LoginPage() {
     // O destino depende da sessão recém-criada.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submitted, isAuthenticated, company, user, router]);
+
+  useEffect(() => {
+    if (isAuthenticated && company && !submitted && new URLSearchParams(window.location.search).get('payment') === 'success') router.replace('/pagamento/retorno');
+  }, [isAuthenticated, company, submitted, router]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();

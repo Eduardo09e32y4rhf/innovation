@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { AlertTriangle, CheckCircle2, CreditCard, Loader2, LogOut, RefreshCw, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CreditCard, LifeBuoy, Loader2, LogOut, RefreshCw, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import api, { ApiError, type CompanyBillingResult } from '@/app/lib/api';
 import { readAuthSession } from '@/app/lib/auth-session';
@@ -55,7 +55,7 @@ function FaturaPendentePage() {
     }
   }
 
-  async function generateCheckout() {
+  async function generateCheckout(redirect = true) {
     if (creatingRef.current) return; // clique duplo ou recarga: nunca pede uma segunda cobrança
     creatingRef.current = true;
     setCreating(true);
@@ -66,9 +66,11 @@ function FaturaPendentePage() {
       const link = paymentLinkFrom(result);
       if (link) {
         // Abre o pagamento já; copiar o link é só um extra e nunca deve atrasar a ida ao Asaas.
-        void navigator.clipboard?.writeText(link).catch(() => undefined);
-        toast.success('Link de pagamento gerado.');
-        window.location.assign(link);
+        if (redirect) {
+          void navigator.clipboard?.writeText(link).catch(() => undefined);
+          toast.success('Link de pagamento gerado.');
+          window.location.assign(link);
+        }
       } else if (result.active) {
         await refreshUser();
         window.location.assign(dashboardUrl);
@@ -109,7 +111,10 @@ function FaturaPendentePage() {
     if (searchParams.get('autoCheckout') !== '1' || !billing || billing.active || paymentLinkFrom(billing) || autoCheckoutStarted.current) return;
     if (!isAdmin) return;
     autoCheckoutStarted.current = true;
-    void generateCheckout();
+    // Logo após o cadastro só prepara a cobrança e mostra as formas de pagamento aqui; não joga a pessoa para fora da página.
+    // Tira o parâmetro da URL para que recarregar não repita o pedido.
+    window.history.replaceState(null, '', window.location.pathname);
+    void generateCheckout(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [billing, searchParams, isAdmin]);
 
@@ -176,6 +181,17 @@ function FaturaPendentePage() {
               </button>
             )}
 
+            {invoiceLink && (
+              <div className="rounded-2xl border border-[#e9e5f0] bg-white p-4 text-left">
+                <p className="text-sm font-bold">Pagamento não passou?</p>
+                <p className="mt-1 text-xs leading-relaxed text-[#736d80]">Tente outra forma de pagamento. Na página do Asaas você escolhe entre Pix, boleto ou cartão de crédito, sem gerar outra cobrança.</p>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {['Pix', 'Boleto', 'Cartão'].map((label) => <button key={label} type="button" onClick={() => window.location.assign(invoiceLink)} className="min-h-10 rounded-lg border border-[#e1d9ee] text-xs font-semibold text-[#7240da] hover:border-[#c7b0ed] hover:bg-[#f6f1fd]">{label}</button>)}
+                </div>
+                <p className="mt-3 text-xs text-[#736d80]">Se continuar sem funcionar, <a href="/suporte" className="font-semibold text-[#7240da] underline">fale com o suporte</a>.</p>
+              </div>
+            )}
+
             <button type="button" onClick={() => loadStatus(true)} disabled={checking} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#e1d9ee] bg-white text-sm font-semibold text-[#7240da] transition hover:border-[#c7b0ed] disabled:opacity-60">
               {checking ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Já paguei, verificar agora
             </button>
@@ -186,7 +202,7 @@ function FaturaPendentePage() {
           <p className="mt-7 rounded-xl border border-[#e9e5f0] bg-[#fbfafc] p-4 text-center text-sm text-[#736d80]">Nada para fazer por aqui: apenas o administrador consegue regularizar o pagamento.</p>
         )}
 
-        <div className="mt-6 text-center"><button type="button" onClick={logout} className="inline-flex items-center gap-2 text-xs font-semibold text-[#736d80] hover:text-[#7240da]"><LogOut size={15} /> Sair da conta</button></div>
+        <div className="mt-6 flex items-center justify-center gap-5 text-center"><a href="/suporte" className="inline-flex items-center gap-2 text-xs font-semibold text-[#736d80] hover:text-[#7240da]"><LifeBuoy size={15} /> Suporte</a><button type="button" onClick={logout} className="inline-flex items-center gap-2 text-xs font-semibold text-[#736d80] hover:text-[#7240da]"><LogOut size={15} /> Sair da conta</button></div>
       </div>
     </main>
   );

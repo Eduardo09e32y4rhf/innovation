@@ -185,6 +185,8 @@ export class PlatformFinanceService {
       description: 'Mensalidade Innovation RH - avulsa',
       billingType: 'UNDEFINED',
       externalReference: `signup:${company.id}`,
+      // Depois de pagar, o Asaas devolve o cliente para a página que confirma o pagamento e segue para o painel (termo, boas-vindas, passo a passo).
+      successPath: '/pagamento/retorno',
     });
     
     if (!payment.id || !payment.invoiceUrl) {
