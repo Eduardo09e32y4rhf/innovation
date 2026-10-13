@@ -267,7 +267,35 @@ export class PlatformFinanceService {
     return null;
   }
 
+  /** Uma chamada por empresa de cada vez: clique duplo, recarga da página ou duas abas não geram cobranças duplicadas. */
+  private readonly onboardingLocks = new Map<string, Promise<unknown>>();
+
   async ensureCompanyOnboardingBilling(companyId: string, actor?: JwtUser) {
+    const previous = this.onboardingLocks.get(companyId) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(() => this.ensureCompanyOnboardingBillingLocked(companyId, actor));
+    this.onboardingLocks.set(companyId, run);
+    try { return await run; } finally { if (this.onboardingLocks.get(companyId) === run) this.onboardingLocks.delete(companyId); }
+  }
+
+  /** Pix copia-e-cola e QR Code da fatura aberta da empresa (para mostrar na tela de pagamento sem abrir outra cobrança). */
+  async getCompanyPix(companyId: string) {
+    const invoice = await this.prisma.platformInvoice.findFirst({
+      where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] }, asaasPaymentId: { not: null } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, asaasPaymentId: true },
+    });
+    if (!invoice?.asaasPaymentId || !this.asaas.isConfigured()) return { available: false };
+    try {
+      const pix = await this.asaas.getPixQrCode(invoice.asaasPaymentId);
+      if (!pix?.payload) return { available: false };
+      return { available: true, invoiceId: invoice.id, payload: pix.payload, encodedImage: pix.encodedImage ?? null, expirationDate: pix.expirationDate ?? null };
+    } catch (error) {
+      this.logger.warn(`Pix da fatura ${invoice.id} indisponivel: ${String(error)}`);
+      return { available: false };
+    }
+  }
+
+  private async ensureCompanyOnboardingBillingLocked(companyId: string, actor?: JwtUser) {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
       select: {

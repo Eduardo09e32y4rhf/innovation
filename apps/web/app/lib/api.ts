@@ -1030,6 +1030,7 @@ export const api = {
 
   companyBilling: {
     status: () => request<CompanyBillingResult>('/finance/company/status', { silent: true, keepSessionOn401: true, timeoutMs: 10000 }),
+    pix: () => request<{ available: boolean; invoiceId?: string; payload?: string; encodedImage?: string | null; expirationDate?: string | null }>('/finance/company/pix', { silent: true, keepSessionOn401: true, timeoutMs: 15000 }),
     invoices: () => request<PlatformInvoice[]>('/finance/company/invoices', { silent: true, keepSessionOn401: true }),
     checkout: () => request<CompanyBillingResult>('/finance/company/checkout', { method: 'POST', silent: true, keepSessionOn401: true, timeoutMs: 25000 }),
     changeSeats: (seatQuantity: number) => request<{ changed: boolean; scheduled: boolean; seatQuantity: number; pendingSeatQuantity?: number | null; effectiveAt?: string | null }>('/finance/company/change-seats', { method: 'POST', body: { seatQuantity } }),

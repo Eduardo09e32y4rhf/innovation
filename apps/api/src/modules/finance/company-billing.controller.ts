@@ -22,6 +22,11 @@ export class CompanyBillingController {
     return this.service.getCompanyBilling(companyId);
   }
 
+  @Get('pix')
+  pix(@CurrentCompany() companyId: string) {
+    return this.service.getCompanyPix(companyId);
+  }
+
   @Get('invoices')
   invoices(@CurrentCompany() companyId: string) {
     return this.service.listCompanyInvoices(companyId);

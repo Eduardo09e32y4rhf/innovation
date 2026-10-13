@@ -15,6 +15,9 @@ function FaturaPendentePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const autoCheckoutStarted = useRef(false);
+  const creatingRef = useRef(false);
+  const pixLoadedFor = useRef<string | null>(null);
+  const [pix, setPix] = useState<{ payload?: string; encodedImage?: string | null } | null>(null);
   const { user, company, logout, loading, isAuthenticated, refreshUser } = useAuth();
   const [billing, setBilling] = useState<CompanyBillingResult>();
   const [firstLoad, setFirstLoad] = useState(true);
@@ -53,6 +56,8 @@ function FaturaPendentePage() {
   }
 
   async function generateCheckout() {
+    if (creatingRef.current) return; // clique duplo ou recarga: nunca pede uma segunda cobrança
+    creatingRef.current = true;
     setCreating(true);
     setErrorMessage(null);
     try {
@@ -75,8 +80,15 @@ function FaturaPendentePage() {
       setErrorMessage(message);
       toast.error(message);
     } finally {
+      creatingRef.current = false;
       setCreating(false);
     }
+  }
+
+  async function copyPix() {
+    if (!pix?.payload) return;
+    try { await navigator.clipboard.writeText(pix.payload); toast.success('Código Pix copiado.'); }
+    catch { toast.error('Não foi possível copiar. Selecione o código e copie manualmente.'); }
   }
 
   useEffect(() => {
@@ -102,6 +114,13 @@ function FaturaPendentePage() {
   }, [billing, searchParams, isAdmin]);
 
   const invoice = billing?.invoice || billing?.currentInvoice;
+  const invoiceId = invoice?.id ?? null;
+  useEffect(() => {
+    // Mostra o QR Code do Pix da fatura que já existe; carrega uma vez por fatura.
+    if (!isAdmin || !invoiceId || billing?.active || pixLoadedFor.current === invoiceId) return;
+    pixLoadedFor.current = invoiceId;
+    api.companyBilling.pix().then((result) => { if (result.available) setPix(result); }).catch(() => undefined);
+  }, [isAdmin, invoiceId, billing?.active]);
   const invoiceLink = paymentLinkFrom(billing);
   const invoiceAmount = Number(invoice?.amount ?? 0);
   const safeAmount = Number.isFinite(invoiceAmount) ? invoiceAmount : 0;
@@ -134,6 +153,16 @@ function FaturaPendentePage() {
                   <span className="text-2xl font-extrabold">{safeAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                   {invoice.dueDate && <span className="text-xs text-[#736d80]">Vence em {new Date(invoice.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</span>}
                 </div>
+              </div>
+            )}
+
+            {pix?.payload && (
+              <div className="rounded-2xl border border-[#e3d8f1] bg-[#f6f1fd] p-4 text-center">
+                <p className="text-xs font-bold uppercase tracking-[1.5px] text-[#7240da]">Pague com Pix</p>
+                {pix.encodedImage && <img src={`data:image/png;base64,${pix.encodedImage}`} alt="QR Code do Pix" width={176} height={176} className="mx-auto mt-3 h-44 w-44 rounded-xl bg-white p-2" />}
+                <p className="mt-3 text-[11px] text-[#736d80]">Ou copie o código e cole no app do seu banco:</p>
+                <p className="mx-auto mt-1 max-h-14 max-w-full overflow-hidden break-all rounded-lg bg-white px-3 py-2 text-left font-mono text-[10px] text-[#736d80]">{pix.payload}</p>
+                <button type="button" onClick={copyPix} className="mt-3 inline-flex min-h-10 items-center rounded-lg border border-[#c7b0ed] bg-white px-4 text-xs font-semibold text-[#7240da] hover:bg-[#f0e8fd]">Copiar código Pix</button>
               </div>
             )}
 
