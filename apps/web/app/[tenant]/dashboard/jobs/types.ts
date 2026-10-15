@@ -154,7 +154,7 @@ export interface ApplicationDetail extends ApplicationItem {
   criteria: (Criterion & { id: string })[];
   evaluations: { id: string; criterionId: string; userId: string; score: number; comment?: string | null }[];
   notes: { id: string; authorName?: string | null; body: string; createdAt: string }[];
-  interviews: { id: string; scheduledAt: string; kind: string; location?: string | null; interviewer?: string | null; notes?: string | null }[];
+  interviews: InterviewItem[];
   events: { id: string; type: string; fromStage?: string | null; toStage?: string | null; note?: string | null; createdAt: string }[];
 }
 
@@ -268,4 +268,20 @@ export function salaryLabel(job: Pick<Job, 'salaryMin' | 'salaryMax' | 'salaryRa
 
 export function daysSince(date: string) {
   return Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 86_400_000));
+}
+
+export type InterviewMode = 'PRESENCIAL' | 'ONLINE';
+export interface InterviewItem {
+  id: string; scheduledAt: string; kind: string; mode?: InterviewMode | null;
+  location?: string | null; meetingUrl?: string | null; durationMinutes?: number | null;
+  interviewerRole?: 'RH' | 'GESTOR' | null; interviewer?: string | null; notes?: string | null;
+  candidateMessage?: string | null; notifiedAt?: string | null;
+}
+export interface InterviewPayload {
+  scheduledAt: string; kind?: string; mode?: InterviewMode; location?: string; meetingUrl?: string; durationMinutes?: number;
+  interviewerRole?: 'RH' | 'GESTOR'; interviewer?: string; notes?: string; candidateMessage?: string; notifyCandidate?: boolean;
+}
+export interface InterviewDefaults {
+  mode: InterviewMode | null; location: string | null; meetingUrl: string | null; durationMinutes: number;
+  interviewerRole: 'RH' | 'GESTOR' | null; interviewer: string | null;
 }

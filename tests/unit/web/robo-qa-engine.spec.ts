@@ -43,7 +43,8 @@ describe('modos do teste', () => {
     expect(rapido.some((n) => n.startsWith('Bloqueio'))).toBe(false);
     expect(completo.some((n) => n.startsWith('Bloqueio'))).toBe(true);
   });
-  it('RH_RS: so painel e Vagas permitidos', () => {
-    expect(esperadoPara('RH_RS').permitidos.map((i) => i.id).sort()).toEqual(['dashboard', 'jobs']);
+  it('RH_RS: painel, Vagas e Configuracoes permitidos; Gestao (so Agenda) depende da tela', () => {
+    expect(esperadoPara('RH_RS').permitidos.map((i) => i.id).sort()).toEqual(['dashboard', 'jobs', 'settings']);
+    expect(esperadoPara('RH_RS').negados.map((i) => i.id)).not.toContain('management');
   });
 });

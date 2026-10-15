@@ -142,6 +142,12 @@ export class RecruitmentController {
     return this.service.addInterview(companyId, actor.sub, id, dto);
   }
 
+  @Get('applications/:id/interview-defaults')
+  async interviewDefaults(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+    await this.scope.assertApplication(companyId, actor, id);
+    return this.service.interviewDefaults(companyId, id);
+  }
+
   @Delete('applications/:id/interviews/:interviewId')
   async removeInterview(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Param('interviewId') interviewId: string) {
     await this.scope.assertApplication(companyId, actor, id);

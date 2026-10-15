@@ -1,4 +1,6 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Patch, UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { JwtUser } from '../../common/types/auth.types';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -17,9 +19,13 @@ export class CompaniesController {
     return this.service.me(companyId);
   }
 
-  @Roles('ADMIN', 'RH')
+  /** RH - R&S so altera o cadastro quando a conta e autonoma de R&S (o proprio CNPJ/CPF e logo); numa empresa completa, nao. */
+  @Roles('ADMIN', 'RH', 'RH_RS')
   @Patch('me')
-  updateMe(@CurrentCompany() companyId: string, @Body() dto: UpdateCompanyDto) {
+  async updateMe(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: UpdateCompanyDto) {
+    if (actor.role === 'RH_RS' && !(await this.service.isRecruiterOnly(companyId))) {
+      throw new ForbiddenException('Seu perfil não altera os dados da empresa. Peça ao administrador.');
+    }
     return this.service.updateMe(companyId, dto);
   }
 

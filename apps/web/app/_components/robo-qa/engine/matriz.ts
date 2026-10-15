@@ -20,8 +20,8 @@ export const MENU: ItemMenu[] = [
   { id: 'platform', nome: 'Plataforma', caminho: '/dashboard/platform', perfis: ['DEV', 'CEO', 'COMERCIAL', 'CONTABIL'], incerto: true },
 ];
 
-// RH - R&S: so o painel inicial e Vagas (regra de rota do front: shell-v2/rs-route-access.ts).
-const SO_RS = new Set(['dashboard', 'jobs']);
+// RH - R&S: painel inicial, Vagas, Configuracoes (senha) e Gestao reduzida a Agenda (regra de rota: shell-v2/rs-route-access.ts).
+const SO_RS = new Set(['dashboard', 'jobs', 'settings', 'management']);
 
 export function podeAcessar(perfil: string, item: ItemMenu): boolean {
   if (perfil === 'RH_RS') return SO_RS.has(item.id);

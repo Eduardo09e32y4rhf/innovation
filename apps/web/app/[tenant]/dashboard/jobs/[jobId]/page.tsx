@@ -14,12 +14,13 @@ import { Pill } from '../_components/bits';
 import { CandidateDrawer } from '../_components/candidate-drawer';
 import { CandidatesTable, KanbanBoard } from '../_components/candidate-views';
 import { HireDialog, RejectDialog } from '../_components/dialogs';
+import { InterviewDialog } from '../_components/interview-dialog';
 import { InternalCandidateForm } from '../_components/internal-candidate';
 import { JobRecruiters } from '../_components/job-recruiters';
 import { selectableStages } from '../stage-access';
 import { FiltersBar } from '../_components/filters-bar';
 import { jobsApi } from '../jobs-api';
-import { JOB_STATUS_LABEL, WORK_MODE_LABEL, type ApplicationFilters, type ApplicationsPayload } from '../types';
+import { JOB_STATUS_LABEL, WORK_MODE_LABEL, type ApplicationFilters, type ApplicationsPayload, type InterviewPayload } from '../types';
 
 const ALLOWED_ROLES = new Set(['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR']);
 const message = (cause: unknown, fallback: string) => (cause instanceof ApiError ? cause.message : fallback);
@@ -42,6 +43,7 @@ export default function JobCandidatesPage() {
   const [reject, setReject] = useState<{ ids: string[] } | null>(null);
   const [rejectStageId, setRejectStageId] = useState('');
   const [hire, setHire] = useState<{ id: string; name: string } | null>(null);
+  const [interviewMove, setInterviewMove] = useState<{ id: string; stageId: string; stageName: string; name: string } | null>(null);
   const [bulkStage, setBulkStage] = useState('');
   const [bulkTag, setBulkTag] = useState('');
   const [cache, setCache] = useState<ApplicationsPayload>();
@@ -75,7 +77,31 @@ export default function JobCandidatesPage() {
       setHire({ id: applicationId, name: app?.candidate?.name ?? 'Candidato' }); return;
     }
     if (stage.kind === 'REJECTED') { setRejectStageId(stageId); setReject({ ids: [applicationId] }); return; }
+    // Entrevista: o RH define na hora se e presencial (local) ou online (link) e o candidato recebe o convite por e-mail.
+    if (stage.kind === 'INTERVIEW' && app?.stageId !== stageId) { setInterviewMove({ id: applicationId, stageId, stageName: stage.name, name: app?.candidate?.name ?? 'Candidato' }); return; }
     try { await jobsApi.move(applicationId, { stageId }); toast.success(`Movido para ${stage.name}.`); refresh(); }
+    catch (cause) { toast.error(message(cause, 'Não foi possível mover o candidato.')); }
+  }
+
+  async function confirmInterview(payload: InterviewPayload) {
+    if (!interviewMove) return;
+    try {
+      await jobsApi.move(interviewMove.id, { stageId: interviewMove.stageId });
+    } catch (cause) { toast.error(message(cause, 'Não foi possível mover o candidato.')); return; }
+    try {
+      const result = await jobsApi.addInterview(interviewMove.id, payload);
+      if (!result.emailRequested) toast.success(`Movido para ${interviewMove.stageName} e entrevista agendada.`);
+      else if (result.emailed) toast.success(`Entrevista agendada. ${interviewMove.name} recebeu o convite por e-mail.`);
+      else toast.warning('Entrevista agendada, mas o e-mail não saiu (candidato sem e-mail ou envio indisponível). Avise o candidato por telefone.');
+      setInterviewMove(null);
+    } catch (cause) {
+      toast.error(message(cause, 'O candidato foi movido, mas a entrevista não foi agendada. Tente pela aba Entrevistas.'));
+    } finally { refresh(); }
+  }
+
+  async function moveWithoutInterview() {
+    if (!interviewMove) return;
+    try { await jobsApi.move(interviewMove.id, { stageId: interviewMove.stageId }); toast.success(`Movido para ${interviewMove.stageName}. Agende a entrevista quando quiser pela ficha do candidato.`); setInterviewMove(null); refresh(); }
     catch (cause) { toast.error(message(cause, 'Não foi possível mover o candidato.')); }
   }
 
@@ -197,6 +223,7 @@ export default function JobCandidatesPage() {
       <CandidateDrawer applicationId={openId} pipeline={movablePipeline} tags={tags.data ?? []} onClose={() => setOpenId(null)} onChanged={refresh} onRequestMove={moveOne} />
       <RejectDialog isOpen={Boolean(reject)} count={reject?.ids.length ?? 0} onClose={() => setReject(null)} onConfirm={confirmReject} />
       <HireDialog isOpen={Boolean(hire)} name={hire?.name ?? ''} onClose={() => setHire(null)} onConfirm={confirmHire} />
+      <InterviewDialog isOpen={Boolean(interviewMove)} applicationId={interviewMove?.id ?? null} candidateName={interviewMove?.name ?? 'Candidato'} title={`Mover para ${interviewMove?.stageName ?? 'Entrevista'} e agendar`} onClose={() => setInterviewMove(null)} onSubmit={confirmInterview} onSkip={moveWithoutInterview} />
     </div>
   );
 }

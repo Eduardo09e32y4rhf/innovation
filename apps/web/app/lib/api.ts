@@ -661,6 +661,7 @@ export interface ManagementEvent {
   eventType: string; startDateTime: string; endDateTime?: string | null;
   responsibleUserId?: string | null; employeeId?: string | null;
   status: string; priority: string; createdBy?: string | null;
+  meetingUrl?: string | null; location?: string | null;
   createdAt: string; updatedAt: string;
   employee?: { id: string; name: string } | null;
 }
@@ -668,12 +669,14 @@ export interface CreateManagementEventInput {
   title: string; description?: string; eventType: string;
   startDateTime: string; endDateTime?: string;
   responsibleUserId?: string; employeeId?: string; priority?: string;
+  meetingUrl?: string | null; location?: string | null;
 }
 export interface UpdateManagementEventInput {
   title?: string; description?: string; eventType?: string;
   startDateTime?: string; endDateTime?: string;
   responsibleUserId?: string; employeeId?: string;
   status?: string; priority?: string;
+  meetingUrl?: string | null; location?: string | null;
 }
 
 export type AsoType = 'ADMISSIONAL' | 'DEMISSIONAL' | 'PERIODICO' | 'RETORNO_AO_TRABALHO' | 'MUDANCA_DE_FUNCAO' | 'COMPLEMENTAR';

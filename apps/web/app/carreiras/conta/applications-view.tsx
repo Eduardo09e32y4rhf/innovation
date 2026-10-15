@@ -12,6 +12,25 @@ const STEP_LABEL: Record<string, string> = { APPLIED: 'Recebida', SCREENING: 'Em
 const POLL_MS = 30_000;
 const card = 'rounded-[18px] border border-[#ebe6f3] bg-white shadow-[0_1px_2px_rgba(30,17,69,0.04)]';
 
+/** Entrevista marcada: data (fuso de quem esta vendo), formato e o que fazer (entrar no link ou ver o mapa). */
+function InterviewCard({ interview }: { interview: NonNullable<CandidateApplication['interview']> }) {
+  const date = new Date(interview.scheduledAt);
+  const online = interview.mode === 'ONLINE';
+  const when = date.toLocaleString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
+  return (
+    <div className="rounded-[14px] border border-[#e4d9f4] bg-[#f8f5fd] p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-[#5b29be]">Entrevista marcada · {online ? 'online' : 'presencial'}</p>
+      <p className="mt-1 text-base font-bold capitalize text-[#1e1145]">{when}</p>
+      {interview.durationMinutes ? <p className="text-sm text-[#5b5473]">Cerca de {interview.durationMinutes} minutos.</p> : null}
+      {!online && interview.location ? <p className="mt-1 break-words text-sm text-[#241b38]">{interview.location}</p> : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {online && interview.meetingUrl ? <a href={interview.meetingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-[10px] bg-[#7240da] px-4 text-sm font-semibold text-white hover:bg-[#5b29be]">Entrar na reunião</a> : null}
+        {!online && interview.location ? <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(interview.location)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-[10px] border border-[#d9cdee] bg-white px-4 text-sm font-semibold text-[#5b29be] hover:bg-[#f0eafa]">Como chegar</a> : null}
+      </div>
+    </div>
+  );
+}
+
 function Stepper({ status }: { status: string }) {
   const rejected = status === 'REJECTED';
   const current = STEPS.indexOf(status as (typeof STEPS)[number]);
@@ -225,6 +244,7 @@ export function ApplicationsView() {
                   <span className={`rounded-full px-3 py-1 text-xs font-bold ${item.status === 'REJECTED' ? 'bg-rose-50 text-rose-800' : item.status === 'HIRED' ? 'bg-emerald-50 text-emerald-800' : 'bg-[#f0eafa] text-[#5b29be]'}`}>{item.statusLabel}{item.stage && item.stage !== item.statusLabel ? ` · ${item.stage}` : ''}</span>
                 </div>
                 <Stepper status={item.status} />
+                {item.interview && <InterviewCard interview={item.interview} />}
                 {item.closed && <p className="text-xs text-[#5b5473]">Esta vaga foi encerrada.</p>}
                 {item.funnel && <Funnel rows={item.funnel} status={item.status} />}
                 {item.timeline.length > 0 && (

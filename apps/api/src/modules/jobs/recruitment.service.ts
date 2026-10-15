@@ -1,3 +1,4 @@
+import { formatInterviewDate, interviewerLabel, normalizeInterview } from './interview-rules';
 import { visibleEvaluations } from './blind-evaluation';
 import { REJECTION_CODES } from './recruitment-privacy';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
@@ -491,28 +492,88 @@ export class RecruitmentService {
     return this.getApplication(companyId, id);
   }
 
+  /**
+   * Agenda a entrevista (presencial com endereco ou online com link), cria o compromisso na Agenda (Gestao) de quem
+   * agendou e envia o convite por e-mail ao candidato. Falha de e-mail nao desfaz o agendamento: o retorno diz se saiu.
+   */
   async addInterview(companyId: string, userId: string, id: string, dto: InterviewDto) {
     await this.assertApplication(companyId, id);
+    const input = normalizeInterview(dto);
+    const app = await this.prisma.application.findUnique({ where: { id }, select: { candidate: { select: { name: true } }, job: { select: { title: true } } } });
+    const candidateName = app?.candidate.name ?? 'Candidato';
+    const jobTitle = app?.job.title ?? 'Vaga';
+    const agenda = await this.prisma.managementEvent.create({
+      data: {
+        companyId,
+        title: `Entrevista: ${candidateName} · ${jobTitle}`.slice(0, 200),
+        description: [`Candidato(a): ${candidateName}`, `Vaga: ${jobTitle}`, `Com: ${interviewerLabel(input.interviewerRole, input.interviewer)}`, input.notes ? `Observações: ${input.notes}` : ''].filter(Boolean).join('\n'),
+        eventType: 'ENTREVISTA',
+        startDateTime: input.scheduledAt,
+        endDateTime: new Date(input.scheduledAt.getTime() + input.durationMinutes * 60_000),
+        responsibleUserId: userId,
+        createdBy: userId,
+        meetingUrl: input.meetingUrl,
+        location: input.location,
+        priority: 'ALTA',
+      },
+      select: { id: true },
+    });
     const interview = await this.prisma.applicationInterview.create({
       data: {
         applicationId: id,
-        scheduledAt: new Date(dto.scheduledAt),
-        kind: dto.kind?.trim() || 'ENTREVISTA',
-        location: dto.location?.trim() || null,
-        interviewer: dto.interviewer?.trim() || null,
-        notes: dto.notes?.trim() || null,
+        scheduledAt: input.scheduledAt,
+        kind: input.kind,
+        mode: input.mode,
+        location: input.location,
+        meetingUrl: input.meetingUrl,
+        durationMinutes: input.durationMinutes,
+        interviewerRole: input.interviewerRole,
+        interviewer: input.interviewer,
+        notes: input.notes,
+        candidateMessage: input.candidateMessage,
+        agendaEventId: agenda.id,
+        createdById: userId,
       },
     });
+    const when = formatInterviewDate(input.scheduledAt).short;
     await this.prisma.applicationEvent.create({
-      data: { applicationId: id, userId, type: 'INTERVIEW', note: `Entrevista agendada para ${new Date(dto.scheduledAt).toLocaleString('pt-BR')}` },
+      data: { applicationId: id, userId, type: 'INTERVIEW', note: `Entrevista ${input.mode === 'ONLINE' ? 'online' : input.mode === 'PRESENCIAL' ? 'presencial' : ''} agendada para ${when}`.replace(/\s+/g, ' ') },
     });
-    return interview;
+    const emailed = input.notifyCandidate ? await this.privacy.sendInterviewEmail(id, interview, 'SCHEDULED') : false;
+    if (emailed) await this.prisma.applicationInterview.update({ where: { id: interview.id }, data: { notifiedAt: new Date() } });
+    return { ...interview, notifiedAt: emailed ? new Date() : null, emailed, emailRequested: input.notifyCandidate };
   }
 
+  /** Cancela: avisa o candidato (se ele tinha sido convidado e a entrevista ainda nao passou) e tira da Agenda. */
   async deleteInterview(companyId: string, id: string, interviewId: string) {
     await this.assertApplication(companyId, id);
-    await this.prisma.applicationInterview.deleteMany({ where: { id: interviewId, applicationId: id } });
-    return { deleted: true };
+    const interview = await this.prisma.applicationInterview.findFirst({ where: { id: interviewId, applicationId: id } });
+    if (!interview) return { deleted: false };
+    await this.prisma.applicationInterview.delete({ where: { id: interview.id } });
+    if (interview.agendaEventId) await this.prisma.managementEvent.deleteMany({ where: { id: interview.agendaEventId, companyId } });
+    await this.prisma.applicationEvent.create({ data: { applicationId: id, type: 'INTERVIEW_CANCELED', note: `Entrevista de ${formatInterviewDate(interview.scheduledAt).short} cancelada` } });
+    const emailed = interview.notifiedAt && interview.scheduledAt.getTime() > Date.now() ? await this.privacy.sendInterviewEmail(id, interview, 'CANCELED') : false;
+    return { deleted: true, emailed };
+  }
+
+  /** Sugestao para o formulario: formato, endereco/link, duracao e entrevistador da ultima entrevista desta vaga. */
+  async interviewDefaults(companyId: string, id: string) {
+    const app = await this.assertApplication(companyId, id);
+    const last = await this.prisma.applicationInterview.findFirst({
+      where: { mode: { not: null }, application: { jobId: app.jobId, companyId } },
+      orderBy: { createdAt: 'desc' },
+      select: { mode: true, location: true, meetingUrl: true, durationMinutes: true, interviewerRole: true, interviewer: true },
+    });
+    const lastOnline = last?.mode === 'ONLINE' ? last : await this.prisma.applicationInterview.findFirst({ where: { mode: 'ONLINE', application: { jobId: app.jobId, companyId } }, orderBy: { createdAt: 'desc' }, select: { meetingUrl: true } });
+    const lastPresencial = last?.mode === 'PRESENCIAL' ? last : await this.prisma.applicationInterview.findFirst({ where: { mode: 'PRESENCIAL', application: { jobId: app.jobId, companyId } }, orderBy: { createdAt: 'desc' }, select: { location: true } });
+    return {
+      mode: last?.mode ?? null,
+      location: lastPresencial?.location ?? null,
+      meetingUrl: lastOnline?.meetingUrl ?? null,
+      durationMinutes: last?.durationMinutes ?? 60,
+      interviewerRole: last?.interviewerRole ?? null,
+      interviewer: last?.interviewer ?? null,
+    };
   }
 
   // ─── Tags ───────────────────────────────────────────────────────

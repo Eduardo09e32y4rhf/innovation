@@ -36,6 +36,8 @@ export type CandidateApplication = {
   id: string; jobId: string; job: string; company: string; appliedAt: string; status: string; statusLabel: string; stage: string | null; closed: boolean;
   timeline: { at: string; label: string }[];
   funnel: { status: string; stage: string; count: number | null; label: string }[] | null;
+  /** Proxima entrevista ja enviada por e-mail ao candidato. */
+  interview?: { scheduledAt: string; mode: 'PRESENCIAL' | 'ONLINE' | null; location: string | null; meetingUrl: string | null; durationMinutes: number | null } | null;
 };
 
 async function authed<T>(path: string, init: RequestInit = {}): Promise<T> {

@@ -231,6 +231,8 @@ export class CandidateAccountService {
         job: { select: { id: true, title: true, confidential: true, company: { select: { name: true } } } },
         stage: { select: { name: true } },
         events: { where: { type: { in: ['APPLIED', 'STAGE_CHANGED', 'REJECTED'] } }, orderBy: { createdAt: 'asc' }, select: { type: true, toStage: true, createdAt: true } },
+        // So a entrevista que o candidato ja recebeu por e-mail (agendamento interno nao aparece).
+        interviews: { where: { notifiedAt: { not: null }, scheduledAt: { gte: new Date(Date.now() - 3 * 3_600_000) } }, orderBy: { scheduledAt: 'asc' }, take: 1, select: { scheduledAt: true, mode: true, location: true, meetingUrl: true, durationMinutes: true } },
       },
     });
     const jobIds = [...new Set(apps.map((app) => app.jobId))];
@@ -251,6 +253,7 @@ export class CandidateAccountService {
         statusLabel: STAGE_LABEL_FOR_CANDIDATE[app.status] ?? app.status,
         stage: app.stage?.name ?? null,
         closed: app.status === 'REJECTED' || app.status === 'HIRED',
+        interview: app.status === 'REJECTED' || app.status === 'HIRED' ? null : (app.interviews?.[0] ?? null),
         timeline: app.events.map((event) => ({ at: event.createdAt, label: event.type === 'APPLIED' ? 'Candidatura recebida' : event.type === 'REJECTED' ? 'Processo encerrado para esta vaga' : `Etapa: ${event.toStage ?? ''}` })),
         // Só totais por etapa; abaixo de 5 vira "menos de 5". Vaga confidencial não mostra o funil.
         funnel: app.job.confidential ? null : FUNNEL_STATUSES.map((status) => ({ status, stage: STAGE_LABEL_FOR_CANDIDATE[status] ?? status, ...funnelCount(counts.get(`${app.jobId}:${status}`) ?? 0) })),

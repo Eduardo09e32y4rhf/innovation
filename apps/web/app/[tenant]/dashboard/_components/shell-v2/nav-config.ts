@@ -6,6 +6,7 @@ import type { User } from '../../../../contexts/AuthContext';
 import { hasPermission, type Permission } from '../../../../lib/permissions';
 import { resolveUserRole } from '../../../../lib/user-role';
 import { hasScheduleModule } from '../../../../lib/schedule-access';
+import { usesRecruiterAgenda } from '../../../../lib/recruiter-account';
 
 export type NavGroup = 'Trabalho' | 'Administração' | 'Operação global';
 export type NavItem = {
@@ -34,7 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'internal-jobs', label: 'Vagas internas', href: '/dashboard/jobs/internas', icon: Briefcase, group: 'Trabalho', roles: ['FUNCIONARIO'], moduleKey: 'recruitment' },
   { id: 'users', label: 'Usuários', href: '/dashboard/users', icon: UserRoundCog, group: 'Administração', roles: ['DEV', 'ADMIN', 'RH'], anyPermission: ['users.manage_employees'] },
   { id: 'faturas', label: 'Faturas', href: '/dashboard/faturas', icon: Receipt, group: 'Administração', roles: ['DEV', 'CEO', 'CONTABIL', 'ADMIN', 'RH'], anyPermission: ['faturas.ver'] },
-  { id: 'settings', label: 'Configurações', href: '/dashboard/settings', icon: Settings2, group: 'Administração', roles: ALL_ROLES },
+  { id: 'settings', label: 'Configurações', href: '/dashboard/settings', icon: Settings2, group: 'Administração', roles: [...ALL_ROLES, 'RH_RS'] },
   { id: 'support', label: 'Suporte', href: '/dashboard/support', icon: HelpCircle, group: 'Administração', roles: ALL_ROLES },
   { id: 'platform', label: 'Plataforma', href: '/dashboard/platform', icon: Building2, group: 'Operação global', roles: ['DEV', 'CEO', 'COMERCIAL', 'CONTABIL'], anyPermission: ['platform.manage', 'platform.view_finance'] },
   { id: 'accounting', label: 'Contabilidade', href: '/dashboard/contabilidade', icon: Calculator, group: 'Operação global', roles: ['DEV', 'CEO', 'CONTABIL'] },
@@ -43,9 +44,15 @@ export const NAV_ITEMS: NavItem[] = [
 export function getVisibleNavItems(user: User | null, activeModules: readonly string[] = []): NavItem[] {
   if (!user) return [];
   const role = resolveUserRole(user);
-  return NAV_ITEMS.filter((item) => item.roles.includes(role) &&
-    (!item.moduleKey || activeModules.includes(item.moduleKey)) &&
-    (!item.anyPermission || item.anyPermission.some((permission) => hasPermission(user, permission))));
+  const agendaOnly = usesRecruiterAgenda(role, activeModules) && activeModules.includes('recruitment');
+  return NAV_ITEMS.flatMap((item) => {
+    // R&S (perfil RH_RS ou conta autonoma so de Recrutamento): Gestao aparece reduzida a Agenda (kanban + reunioes).
+    if (item.id === 'management' && agendaOnly) return [{ ...item, href: '/dashboard/management/agenda' }];
+    const visible = item.roles.includes(role) &&
+      (!item.moduleKey || activeModules.includes(item.moduleKey)) &&
+      (!item.anyPermission || item.anyPermission.some((permission) => hasPermission(user, permission)));
+    return visible ? [item] : [];
+  });
 }
 
 export function tenantRoute(tenant: string, href: string): string {

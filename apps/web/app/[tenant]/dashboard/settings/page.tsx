@@ -7,6 +7,8 @@ import { Suspense } from 'react';
 import { LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { resolveUserRole } from '@/app/lib/user-role';
+import { isRecruiterOnlyAccount } from '@/app/lib/recruiter-account';
+import { useWorkspace } from '../_components/shell-v2/workspace-context';
 import { CompanySection } from './_hub/company-section';
 import { DataSection } from './_hub/data-section';
 import { DeductionsSection } from './_hub/deductions-section';
@@ -14,23 +16,25 @@ import { HolidaysSection } from './_hub/holidays-section';
 import { OvertimeSection } from './_hub/overtime-section';
 import { AccountSection } from './_hub/profile-section';
 import { SecuritySection } from './_hub/security-section';
-import { cardClass, ROLE_LABELS, SECTION_GROUPS, SECTION_META, SECTION_POLICY, type SettingsSection } from './_hub/types';
+import { canEditCompanyFor, cardClass, ROLE_LABELS, SECTION_GROUPS, SECTION_META, sectionsFor, type SettingsSection } from './_hub/types';
 
 const ALIASES: Record<string, SettingsSection> = { security: 'seguranca', geral: 'conta', rh: 'acessos' };
 
 function Hub() {
   const { user, company } = useAuth();
+  const workspace = useWorkspace();
   const router = useRouter();
   const params = useSearchParams();
   const { tenant = '' } = useParams<{ tenant: string }>();
 
   if (!user) return <LoadingState label="Carregando configurações…" />;
   const role = resolveUserRole(user);
-  const allowed = SECTION_POLICY[role] ?? ['conta', 'seguranca'];
+  const recruiterOnly = isRecruiterOnlyAccount(workspace.company?.activeModules);
+  const allowed = sectionsFor(role, recruiterOnly);
   const raw = params.get('section') ?? '';
   const requested = (ALIASES[raw] ?? raw) as SettingsSection;
   const active = allowed.includes(requested) ? requested : allowed[0];
-  const canEditCompany = ['DEV', 'ADMIN', 'RH'].includes(role);
+  const canEditCompany = canEditCompanyFor(role, recruiterOnly);
   const go = (section: SettingsSection) => router.replace(`?section=${section}`, { scroll: false });
   const meta = SECTION_META[active];
   const initials = (user.name ?? '?').split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join('');

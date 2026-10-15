@@ -5,7 +5,8 @@ import { CronLock } from '../../common/redis/cron-lock.decorator';
 import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { JobsStorageService } from './jobs-storage.service';
-import { applicationReceivedEmail, applicationRejectedEmail, candidateRequestAnsweredEmail } from './recruitment-mails';
+import { formatInterviewDate, googleCalendarUrl, interviewerLabel, mapsUrl, meetingProvider } from './interview-rules';
+import { applicationReceivedEmail, applicationRejectedEmail, candidateInterviewCanceledEmail, candidateInterviewEmail, candidateRequestAnsweredEmail } from './recruitment-mails';
 import {
   clampRetention, DEFAULT_RETENTION_MONTHS, phoneKey, GENDER_OPTIONS, newTrackingToken, parsePcd, pickOption, PRIVACY_VERSION, RACE_OPTIONS, REJECTION_CODES,
   REQUEST_TYPES, retentionDate, STAGE_LABEL_FOR_CANDIDATE, type RequestType,
@@ -78,6 +79,58 @@ export class RecruitmentPrivacyService {
       if (result.sent) await this.prisma.applicationEvent.create({ data: { applicationId, type: 'REJECTION_EMAIL_SENT', note: 'Feedback de reprovação enviado ao candidato' } });
     } catch (error) {
       this.logger.error(`E-mail de reprovação falhou (${applicationId}): ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  // ---------- entrevista ----------
+  /**
+   * Convite (ou cancelamento) de entrevista por e-mail. Nunca derruba o agendamento: devolve se o e-mail saiu.
+   * Registra na linha do tempo do candidato para o RH saber que ele foi avisado.
+   */
+  async sendInterviewEmail(
+    applicationId: string,
+    interview: { scheduledAt: Date; mode: string | null; location: string | null; meetingUrl: string | null; durationMinutes: number | null; interviewerRole: string | null; interviewer: string | null; candidateMessage: string | null },
+    kind: 'SCHEDULED' | 'CANCELED',
+  ): Promise<boolean> {
+    try {
+      if (interview.mode !== 'PRESENCIAL' && interview.mode !== 'ONLINE') return false;
+      const app = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { candidate: true, job: { include: { company: { select: { name: true } } } } } });
+      if (!app || app.anonymizedAt || !app.candidate.email) return false;
+      const when = formatInterviewDate(interview.scheduledAt);
+      const base = { name: app.candidate.name, company: app.job.company.name, jobTitle: app.job.title, when };
+      if (kind === 'CANCELED') {
+        const result = await this.mail.send(app.candidate.email, candidateInterviewCanceledEmail(base));
+        if (result.sent) await this.prisma.applicationEvent.create({ data: { applicationId, type: 'INTERVIEW_CANCEL_EMAIL_SENT', note: `Candidato avisado do cancelamento da entrevista de ${when.short}` } });
+        return result.sent;
+      }
+      const minutes = interview.durationMinutes ?? 60;
+      const provider = interview.meetingUrl ? meetingProvider(interview.meetingUrl) : null;
+      const where = interview.mode === 'ONLINE' ? interview.meetingUrl : interview.location;
+      const calendarUrl = googleCalendarUrl({
+        title: `Entrevista: ${app.job.title} (${app.job.company.name})`,
+        start: interview.scheduledAt,
+        minutes,
+        details: interview.mode === 'ONLINE' ? `Entrevista online${provider ? ` (${provider})` : ''}: ${interview.meetingUrl}` : `Entrevista presencial: ${interview.location}`,
+        location: where,
+      });
+      const result = await this.mail.send(app.candidate.email, candidateInterviewEmail({
+        ...base,
+        durationMinutes: minutes,
+        mode: interview.mode,
+        location: interview.location,
+        mapsUrl: interview.mode === 'PRESENCIAL' && interview.location ? mapsUrl(interview.location) : null,
+        meetingUrl: interview.meetingUrl,
+        meetingProvider: provider,
+        interviewer: interviewerLabel(interview.interviewerRole, interview.interviewer),
+        message: interview.candidateMessage,
+        calendarUrl,
+        statusUrl: app.trackingToken && appBase() ? `${appBase()}/carreiras/acompanhar/${app.trackingToken}` : null,
+      }));
+      if (result.sent) await this.prisma.applicationEvent.create({ data: { applicationId, type: 'INTERVIEW_EMAIL_SENT', note: `Convite de entrevista enviado ao candidato (${when.short}, ${interview.mode === 'ONLINE' ? 'online' : 'presencial'})` } });
+      return result.sent;
+    } catch (error) {
+      this.logger.error(`E-mail de entrevista falhou (${applicationId}): ${error instanceof Error ? error.message : error}`);
+      return false;
     }
   }
 

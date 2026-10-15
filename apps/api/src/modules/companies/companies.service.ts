@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { isRecruiterOnlyAccount } from '../../common/utils/recruiter-account';
 import { emptyToNull, normalizeDisplayName } from '../../common/utils/text-normalization';
 import { CompaniesRepository } from './companies.repository';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -13,6 +14,11 @@ export class CompaniesService {
 
   me(companyId: string) {
     return this.repository.findMe(companyId);
+  }
+
+  async isRecruiterOnly(companyId: string) {
+    const company = await this.repository.findMe(companyId);
+    return isRecruiterOnlyAccount(company.activeModules);
   }
 
   async updateMe(companyId: string, dto: UpdateCompanyDto) {
