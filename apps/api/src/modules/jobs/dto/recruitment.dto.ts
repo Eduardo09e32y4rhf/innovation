@@ -204,10 +204,31 @@ export class InterviewDto {
   @MaxLength(60)
   kind?: string;
 
+  /** PRESENCIAL (endereco obrigatorio) ou ONLINE (link obrigatorio). */
+  @IsOptional()
+  @IsIn(['PRESENCIAL', 'ONLINE'])
+  mode?: 'PRESENCIAL' | 'ONLINE';
+
   @IsOptional()
   @IsString()
-  @MaxLength(200)
+  @MaxLength(300)
   location?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  meetingUrl?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(10)
+  @Max(480)
+  durationMinutes?: number;
+
+  @IsOptional()
+  @IsIn(['RH', 'GESTOR'])
+  interviewerRole?: 'RH' | 'GESTOR';
 
   @IsOptional()
   @IsString()
@@ -218,6 +239,17 @@ export class InterviewDto {
   @IsString()
   @MaxLength(1000)
   notes?: string;
+
+  /** Recado que vai no e-mail do candidato. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  candidateMessage?: string;
+
+  /** Envia o convite por e-mail (padrao: sim, quando ha formato definido). */
+  @IsOptional()
+  @IsBoolean()
+  notifyCandidate?: boolean;
 }
 
 export class TagDto {

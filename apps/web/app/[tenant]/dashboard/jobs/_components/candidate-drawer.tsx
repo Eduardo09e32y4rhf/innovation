@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, ExternalLink, Mail, Phone, Star, Trash2 } from 'lucide-react';
+import { Building2, CalendarPlus, Download, ExternalLink, Mail, MailCheck, Phone, Star, Trash2, Video } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
@@ -12,10 +12,12 @@ import { jobsApi } from '../jobs-api';
 import type { Pipeline, Tag } from '../types';
 import { Field, Pill, TagChip, inputClass } from './bits';
 import { CandidateDocuments } from './candidate-documents';
+import { InterviewDialog } from './interview-dialog';
+import { meetingLabel } from '../../management/agenda/meeting-link';
 
 const TABS = [['summary', 'Resumo'], ['evaluation', 'Avaliação'], ['notes', 'Notas'], ['interviews', 'Entrevistas'], ['history', 'Histórico'], ['documents', 'Documentos']] as const;
 type TabKey = (typeof TABS)[number][0];
-const EVENT_LABEL: Record<string, string> = { APPLIED: 'Candidatura recebida', STAGE_CHANGED: 'Mudou de etapa', REJECTED: 'Reprovado', HIRED: 'Contratado', EVALUATED: 'Avaliado', INTERVIEW: 'Entrevista' };
+const EVENT_LABEL: Record<string, string> = { APPLIED: 'Candidatura recebida', STAGE_CHANGED: 'Mudou de etapa', REJECTED: 'Reprovado', HIRED: 'Contratado', EVALUATED: 'Avaliado', INTERVIEW: 'Entrevista', INTERVIEW_EMAIL_SENT: 'Convite de entrevista enviado', INTERVIEW_CANCELED: 'Entrevista cancelada', INTERVIEW_CANCEL_EMAIL_SENT: 'Cancelamento avisado ao candidato' };
 
 const fail = (cause: unknown, fallback: string) => toast.error(cause instanceof ApiError ? cause.message : fallback);
 
@@ -30,7 +32,7 @@ export function CandidateDrawer({
   const [tab, setTab] = useState<TabKey>('summary');
   const [ratings, setRatings] = useState<Record<string, { score: number; comment: string }>>({});
   const [note, setNote] = useState('');
-  const [interview, setInterview] = useState({ scheduledAt: '', kind: 'Entrevista', location: '', interviewer: '' });
+  const [scheduling, setScheduling] = useState(false);
   const [busy, setBusy] = useState(false);
   const data = detail.data;
   const canSeeDocuments = ['DEV', 'ADMIN', 'RH', 'RH_RS'].includes(String(user?.profile ?? '').toUpperCase());
@@ -170,26 +172,40 @@ export function CandidateDrawer({
 
           {tab === 'interviews' && (
             <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Data e hora" required><input type="datetime-local" className={inputClass} value={interview.scheduledAt} onChange={(event) => setInterview({ ...interview, scheduledAt: event.target.value })} /></Field>
-                <Field label="Tipo"><input className={inputClass} value={interview.kind} onChange={(event) => setInterview({ ...interview, kind: event.target.value })} /></Field>
-                <Field label="Local / link"><input className={inputClass} value={interview.location} onChange={(event) => setInterview({ ...interview, location: event.target.value })} /></Field>
-                <Field label="Entrevistador"><input className={inputClass} value={interview.interviewer} onChange={(event) => setInterview({ ...interview, interviewer: event.target.value })} /></Field>
-              </div>
-              <Button isLoading={busy} disabled={!interview.scheduledAt}
-                onClick={() => run(async () => { await jobsApi.addInterview(data.id, { ...interview, scheduledAt: new Date(interview.scheduledAt).toISOString() }); setInterview({ scheduledAt: '', kind: 'Entrevista', location: '', interviewer: '' }); }, 'Entrevista agendada.')}>Agendar entrevista</Button>
+              <Button onClick={() => setScheduling(true)} className="inline-flex items-center gap-2"><CalendarPlus size={16} aria-hidden="true" /> Agendar entrevista</Button>
               <ul className="space-y-2">
-                {data.interviews.map((item) => (
-                  <li key={item.id} className="flex items-start justify-between gap-2 rounded-lg border border-border p-3 text-sm">
-                    <div>
-                      <p className="font-medium">{item.kind} · {new Date(item.scheduledAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
-                      <p className="text-fg-sub">{[item.location, item.interviewer].filter(Boolean).join(' · ') || 'Sem detalhes'}</p>
-                    </div>
-                    <button type="button" className="btn-icon text-rose-600" aria-label="Cancelar entrevista" onClick={() => run(() => jobsApi.removeInterview(data.id, item.id))}><Trash2 size={15} /></button>
-                  </li>
-                ))}
-                {data.interviews.length === 0 && <li className="text-sm text-fg-sub">Nenhuma entrevista agendada.</li>}
+                {data.interviews.map((item) => {
+                  const future = new Date(item.scheduledAt).getTime() > Date.now();
+                  return (
+                    <li key={item.id} className="flex items-start justify-between gap-2 rounded-xl border border-border p-3 text-sm">
+                      <div className="min-w-0 space-y-1">
+                        <p className="font-semibold text-fg">{new Date(item.scheduledAt).toLocaleString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}{item.durationMinutes ? ` · ${item.durationMinutes} min` : ''}</p>
+                        <p className="flex flex-wrap items-center gap-1.5 text-fg-sub">
+                          {item.mode === 'ONLINE' ? <Pill tone="info"><Video size={12} aria-hidden="true" /> Online</Pill> : item.mode === 'PRESENCIAL' ? <Pill tone="brand"><Building2 size={12} aria-hidden="true" /> Presencial</Pill> : <Pill>{item.kind}</Pill>}
+                          {item.interviewerRole && <span>com {item.interviewerRole === 'GESTOR' ? 'o gestor' : 'o RH'}{item.interviewer ? ` (${item.interviewer})` : ''}</span>}
+                          {!item.interviewerRole && item.interviewer && <span>{item.interviewer}</span>}
+                        </p>
+                        {item.meetingUrl && <a href={item.meetingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline"><Video size={13} aria-hidden="true" /> Entrar · {meetingLabel(item.meetingUrl)}</a>}
+                        {item.location && <p className="break-words text-fg-sub">{item.location}</p>}
+                        {item.notifiedAt ? <p className="flex items-center gap-1 text-xs text-emerald-700"><MailCheck size={13} aria-hidden="true" /> Convite enviado em {new Date(item.notifiedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p> : item.mode ? <p className="text-xs text-amber-700">Candidato não foi avisado por e-mail.</p> : null}
+                      </div>
+                      <button type="button" className="btn-icon text-rose-600" aria-label="Cancelar entrevista" title={item.notifiedAt && future ? 'Cancelar e avisar o candidato' : 'Cancelar entrevista'}
+                        onClick={() => { if (window.confirm(item.notifiedAt && future ? 'Cancelar esta entrevista? O candidato recebe um e-mail avisando.' : 'Cancelar esta entrevista?')) run(() => jobsApi.removeInterview(data.id, item.id), 'Entrevista cancelada.'); }}><Trash2 size={15} /></button>
+                    </li>
+                  );
+                })}
+                {data.interviews.length === 0 && <li className="text-sm text-fg-sub">Nenhuma entrevista agendada. Ao mover o candidato para a etapa de entrevista, o agendamento abre sozinho.</li>}
               </ul>
+              <InterviewDialog isOpen={scheduling} applicationId={data.id} candidateName={data.candidate?.name ?? 'Candidato'} onClose={() => setScheduling(false)}
+                onSubmit={async (payload) => {
+                  try {
+                    const result = await jobsApi.addInterview(data.id, payload);
+                    if (!result.emailRequested) toast.success('Entrevista agendada.');
+                    else if (result.emailed) toast.success('Entrevista agendada e convite enviado por e-mail.');
+                    else toast.warning('Entrevista agendada, mas o e-mail não saiu. Avise o candidato por telefone.');
+                    setScheduling(false); detail.refetch(); onChanged();
+                  } catch (cause) { fail(cause, 'Não foi possível agendar a entrevista.'); }
+                }} />
             </div>
           )}
 

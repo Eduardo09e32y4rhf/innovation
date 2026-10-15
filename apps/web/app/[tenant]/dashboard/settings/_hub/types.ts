@@ -29,11 +29,31 @@ export const SECTION_POLICY: Record<string, SettingsSection[]> = {
   GESTOR: ['conta', 'seguranca'],
   FUNCIONARIO: ['conta', 'seguranca'],
   CONSULTA: ['conta', 'seguranca'],
+  RH_RS: ['conta', 'seguranca'],
 };
+
+/** Conta autonoma de R&S (so Recrutamento): sem ferias, ponto, folha nem planilhas de funcionarios. */
+const RECRUITER_ONLY_POLICY: Record<string, SettingsSection[]> = {
+  DEV: ['conta', 'seguranca', 'empresa', 'acessos'],
+  ADMIN: ['conta', 'seguranca', 'empresa', 'acessos'],
+  RH: ['conta', 'seguranca', 'empresa', 'acessos'],
+  // Recrutador autonomo administra o proprio cadastro: CNPJ/CPF, endereco e logo.
+  RH_RS: ['conta', 'seguranca', 'empresa'],
+};
+
+/** Toda pessoa logada ve pelo menos Meu perfil (trocar senha) e Seguranca. */
+export function sectionsFor(role: string, recruiterOnly: boolean): SettingsSection[] {
+  if (recruiterOnly && RECRUITER_ONLY_POLICY[role]) return RECRUITER_ONLY_POLICY[role];
+  return SECTION_POLICY[role] ?? ['conta', 'seguranca'];
+}
+
+export function canEditCompanyFor(role: string, recruiterOnly: boolean): boolean {
+  return ['DEV', 'ADMIN', 'RH'].includes(role) || (role === 'RH_RS' && recruiterOnly);
+}
 
 export const ROLE_LABELS: Record<string, string> = {
   DEV: 'Desenvolvedor', CEO: 'CEO', CONTABIL: 'Contabilidade', COMERCIAL: 'Comercial', ADMIN: 'Administrador',
-  RH: 'RH', GESTOR: 'Gestor', FUNCIONARIO: 'Funcionário', CONSULTA: 'Consulta',
+  RH: 'RH', RH_RS: 'RH - R&S', GESTOR: 'Gestor', FUNCIONARIO: 'Funcionário', CONSULTA: 'Consulta',
 };
 
 export const inputClass = 'input-v2 mt-1 w-full text-sm';

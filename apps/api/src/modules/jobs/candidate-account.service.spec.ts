@@ -171,6 +171,18 @@ describe('minhas candidaturas', () => {
     const { svc } = build({ application: { findMany: vi.fn(async () => [app]), groupBy: vi.fn(async () => []) } });
     expect(((await svc.applications({ id: 'a', email: 'c@x.com' } as any)).applications[0] as any).funnel).toBeNull();
   });
+  it('mostra a entrevista ja enviada por e-mail e pede so as avisadas', async () => {
+    const interview = { scheduledAt: new Date('2026-10-16T17:30:00Z'), mode: 'ONLINE', location: null, meetingUrl: 'https://meet.google.com/x', durationMinutes: 45 };
+    const app = { id: 'a1', jobId: 'j1', createdAt: new Date(), status: 'INTERVIEW', stage: null, events: [], interviews: [interview], job: { id: 'j1', title: 'X', confidential: true, company: { name: 'P' } } };
+    const findMany = vi.fn(async () => [app]);
+    const { svc } = build({ application: { findMany, groupBy: vi.fn(async () => []) } });
+    const item = (await svc.applications({ id: 'a', email: 'c@x.com' } as any)).applications[0] as any;
+    expect(item.interview).toEqual(interview);
+    expect((findMany.mock.calls[0] as any)[0].include.interviews.where.notifiedAt).toEqual({ not: null });
+    const rejected = { ...app, status: 'REJECTED' };
+    const { svc: svc2 } = build({ application: { findMany: vi.fn(async () => [rejected]), groupBy: vi.fn(async () => []) } });
+    expect(((await svc2.applications({ id: 'a', email: 'c@x.com' } as any)).applications[0] as any).interview).toBeNull();
+  });
 });
 
 describe('candidatura reaproveitando o perfil', () => {

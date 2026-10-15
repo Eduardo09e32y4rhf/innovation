@@ -979,6 +979,10 @@ model ManagementEvent {
   employeeId        String?   @db.Uuid
   status            String    @default("PENDENTE")
   priority          String    @default("MEDIA")
+  /// Link da reuniao online (Teams, Meet, Zoom...).
+  meetingUrl        String?
+  /// Local do compromisso presencial.
+  location          String?
   createdBy         String?   @db.Uuid
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -1490,9 +1494,21 @@ model ApplicationInterview {
   applicationId String   @db.Uuid
   scheduledAt   DateTime
   kind          String   @default("ENTREVISTA")
+  /// PRESENCIAL (usa location) ou ONLINE (usa meetingUrl). Nulo em entrevistas antigas.
+  mode          String?
   location      String?
+  meetingUrl    String?
+  durationMinutes Int?
+  /// RH ou GESTOR: com quem e a entrevista.
+  interviewerRole String?
   interviewer   String?
   notes         String?
+  /// Recado do RH que vai no e-mail do candidato.
+  candidateMessage String?
+  notifiedAt    DateTime?
+  /// Compromisso criado na Agenda (Gestao) de quem agendou.
+  agendaEventId String?  @db.Uuid
+  createdById   String?  @db.Uuid
   createdAt     DateTime @default(now())
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)

@@ -10,6 +10,8 @@ import type {
   Criterion,
   HirePayload,
   HireResult,
+  InterviewDefaults,
+  InterviewPayload,
   InternalJob,
   InternalLookup,
   Job,
@@ -97,9 +99,10 @@ export const jobsApi = {
   addNote: (id: string, body: string) => request<unknown>(`/jobs/applications/${enc(id)}/notes`, { method: 'POST', body: { body } }),
   saveEvaluations: (id: string, evaluations: { criterionId: string; score: number; comment?: string }[]) =>
     request<ApplicationDetail>(`/jobs/applications/${enc(id)}/evaluations`, { method: 'PUT', body: { evaluations } }),
-  addInterview: (id: string, body: { scheduledAt: string; kind?: string; location?: string; interviewer?: string; notes?: string }) =>
-    request<unknown>(`/jobs/applications/${enc(id)}/interviews`, { method: 'POST', body }),
-  removeInterview: (id: string, interviewId: string) => request<unknown>(`/jobs/applications/${enc(id)}/interviews/${enc(interviewId)}`, { method: 'DELETE' }),
+  addInterview: (id: string, body: InterviewPayload) =>
+    request<{ id: string; emailed: boolean; emailRequested: boolean }>(`/jobs/applications/${enc(id)}/interviews`, { method: 'POST', body }),
+  removeInterview: (id: string, interviewId: string) => request<{ deleted: boolean; emailed?: boolean }>(`/jobs/applications/${enc(id)}/interviews/${enc(interviewId)}`, { method: 'DELETE' }),
+  interviewDefaults: (id: string) => request<InterviewDefaults>(`/jobs/applications/${enc(id)}/interview-defaults`),
   setTags: (id: string, tagIds: string[]) => request<unknown>(`/jobs/applications/${enc(id)}/tags`, { method: 'PUT', body: { tagIds } }),
   hire: (applicationId: string, payload: HirePayload) => request<HireResult>(`/jobs/applications/${enc(applicationId)}/hire`, { method: 'POST', body: payload }),
 

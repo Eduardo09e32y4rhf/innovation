@@ -7,17 +7,21 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery, useMutation } from '@/app/hooks/use-data';
 import { api, type Employee, type ManagementEvent } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
-import { Check, XCircle, X } from 'lucide-react';
+import { Check, MapPin, Video, XCircle } from 'lucide-react';
+import { usesRecruiterAgenda } from '@/app/lib/recruiter-account';
+import { useWorkspace } from '../../_components/shell-v2/workspace-context';
+import { meetingLabel, normalizeMeetingInput } from './meeting-link';
 import { LoadingState, ErrorState } from '@/app/components/ui';
 import { Drawer, ConfirmDialog, Badge } from '@/app/components/ui';
 
 type ColumnKey = 'OVERDUE' | 'TODAY' | 'THIS_WEEK' | 'UPCOMING' | 'COMPLETED';
-type EventType = 'REUNIAO' | 'CHAMADA' | 'TAREFA_INTERNA' | 'PRAZO_ADMINISTRATIVO' | 'RETORNO_COLABORADOR' | 'DOCUMENTO_PENDENTE' | 'OUTROS';
+type EventType = 'REUNIAO' | 'ENTREVISTA' | 'CHAMADA' | 'TAREFA_INTERNA' | 'PRAZO_ADMINISTRATIVO' | 'RETORNO_COLABORADOR' | 'DOCUMENTO_PENDENTE' | 'OUTROS';
 type EventStatus = 'PENDENTE' | 'EM_ANDAMENTO' | 'CONCLUIDO' | 'CANCELADO';
 type EventPriority = 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE';
 
 const EVENT_TYPES: { value: EventType; label: string }[] = [
   { value: 'REUNIAO', label: 'Reunião' },
+  { value: 'ENTREVISTA', label: 'Entrevista' },
   { value: 'CHAMADA', label: 'Ligação' },
   { value: 'TAREFA_INTERNA', label: 'Tarefa interna' },
   { value: 'PRAZO_ADMINISTRATIVO', label: 'Prazo administrativo' },
@@ -40,6 +44,15 @@ const EVENT_PRIORITIES: { value: EventPriority; label: string }[] = [
   { value: 'URGENTE', label: 'Urgente' },
 ];
 
+/** ISO (UTC) -> valor do <input type="datetime-local"> no fuso de quem esta usando (sem isso cada edicao deslocava o horario). */
+function toLocalInput(iso?: string | null) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function fmtDateTime(v?: string | null) {
   if (!v) return '---';
   const d = new Date(v);
@@ -60,14 +73,17 @@ function getStatusBadge(status: string): { label: string; cls: string } {
 export default function AgendaPage() {
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
-  const canView = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH' || profile === 'GESTOR';
-  const canManage = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
+  const { company } = useWorkspace();
+  // R&S: agenda pessoal, sem funcionarios vinculados (conta autonoma nao tem cadastro de funcionarios).
+  const recruiterMode = usesRecruiterAgenda(profile, company?.activeModules);
+  const canView = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH' || profile === 'GESTOR' || profile === 'RH_RS';
+  const canManage = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH' || profile === 'RH_RS';
 
   const [eventForm, setEventForm] = useState<{ open: boolean; edit?: ManagementEvent }>({ open: false });
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id?: string }>({ open: false });
 
   const kanbanQuery = useQuery(() => api.management.events.kanban(), [], { enabled: canView });
-  const employeesQuery = useQuery(() => api.employees.list(), [], { enabled: canView });
+  const employeesQuery = useQuery(() => api.employees.list(), [recruiterMode], { enabled: canView && !recruiterMode });
 
   const eventsMut = useMutation((input: { id?: string; data: any }) => {
     if (input.id) return api.management.events.update(input.id, input.data);
@@ -80,7 +96,7 @@ export default function AgendaPage() {
     () => (kanbanQuery.data as any) ?? { OVERDUE: [], TODAY: [], THIS_WEEK: [], UPCOMING: [], COMPLETED: [] },
     [kanbanQuery.data],
   );
-  const employees = useMemo(() => (employeesQuery.data as Employee[] | undefined) ?? [], [employeesQuery.data]);
+  const employees = useMemo(() => (recruiterMode ? [] : (employeesQuery.data as Employee[] | undefined) ?? []), [employeesQuery.data, recruiterMode]);
 
   // Notifications logic
   useEffect(() => {
@@ -150,6 +166,7 @@ export default function AgendaPage() {
         columns={columns}
         employees={employees}
         canManage={canManage}
+        showEmployees={!recruiterMode}
         onOpenForm={(edit) => setEventForm({ open: true, edit })}
         onSave={(data, id) => eventsMut.mutate({ id, data }).catch(() => {})}
         onDelete={(id) => setDeleteConfirm({ open: true, id })}
@@ -176,6 +193,7 @@ export default function AgendaPage() {
         <EventModal
           event={eventForm.edit}
           employees={employees}
+          showEmployees={!recruiterMode}
           onClose={() => setEventForm({ open: false })}
           onSave={(data) => eventsMut.mutate({ id: eventForm.edit?.id, data }).catch(() => {})}
           saving={eventsMut.loading}
@@ -185,8 +203,8 @@ export default function AgendaPage() {
   );
 }
 
-function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDelete, saving }: {
-  columns: Record<ColumnKey, ManagementEvent[]>; employees: Employee[]; canManage: boolean;
+function AgendaKanban({ columns, employees, canManage, showEmployees, onOpenForm, onSave, onDelete, saving }: {
+  columns: Record<ColumnKey, ManagementEvent[]>; employees: Employee[]; canManage: boolean; showEmployees: boolean;
   onOpenForm: (edit?: ManagementEvent) => void; onSave: (data: any, id?: string) => void;
   onDelete: (id: string) => void; saving: boolean;
 }) {
@@ -243,9 +261,11 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
         <select aria-label="Filtrar por tipo" value={filterType} onChange={e => setFilterType(e.target.value)} className="input-v2">
           <option value="">TODOS TIPOS</option>{EVENT_TYPES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
-        <select aria-label="Filtrar por funcion?rio" value={filterEmp} onChange={e => setFilterEmp(e.target.value)} className="input-v2">
-          <option value="">TODOS FUNCIONÁRIOS</option>{employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
-        </select>
+        {showEmployees && (
+          <select aria-label="Filtrar por funcionário" value={filterEmp} onChange={e => setFilterEmp(e.target.value)} className="input-v2">
+            <option value="">TODOS FUNCIONÁRIOS</option>{employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
+          </select>
+        )}
       </div>
 
       {viewMode === 'calendar' ? (
@@ -270,15 +290,18 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
             ))}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
-              const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().slice(0, 10);
-              const dayEvents = allEvents.filter(e => e.startDateTime && e.startDateTime.startsWith(dateStr));
+              const dayEvents = allEvents.filter(e => {
+                if (!e.startDateTime) return false;
+                const d = new Date(e.startDateTime);
+                return d.getFullYear() === currentDate.getFullYear() && d.getMonth() === currentDate.getMonth() && d.getDate() === day;
+              });
               return (
-                <div key={day} onClick={() => onOpenForm({ startDateTime: `${dateStr}T09:00:00Z` } as any)} className="group relative min-h-[100px] border-b border-r border-slate-100 p-2 hover:bg-slate-50 cursor-pointer">
+                <div key={day} onClick={() => { if (canManage) onOpenForm({ startDateTime: new Date(currentDate.getFullYear(), currentDate.getMonth(), day, 9, 0).toISOString() } as any); }} className="group relative min-h-[100px] border-b border-r border-slate-100 p-2 hover:bg-slate-50 cursor-pointer">
                   <span className={`text-xs font-semibold ${day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() ? 'flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand)] text-white' : 'text-slate-600'}`}>{day}</span>
                   <div className="mt-1 flex flex-col gap-1">
                     {dayEvents.map(e => (
                       <div key={e.id} onClick={(ev) => { ev.stopPropagation(); onOpenForm(e); }} className={`truncate rounded px-1.5 py-1 text-xs font-bold text-white shadow-sm ${e.status === 'CONCLUIDO' ? 'bg-emerald-500' : 'bg-[var(--color-brand)]'}`}>
-                        {e.title}
+                        {e.meetingUrl ? '● ' : ''}{e.title}
                       </div>
                     ))}
                   </div>
@@ -312,9 +335,15 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
                       </div>
                       <p className="text-xs font-bold text-slate-700">{fmtDateTime(ev.startDateTime)}</p>
                       <div className="space-y-1 text-xs font-semibold text-slate-600 bg-slate-50 p-2 rounded-lg">
-                        <p><span className="text-slate-400 ">Func:</span> {empName(ev.employeeId)}</p>
-                        <p><span className="text-slate-400 ">Tipo:</span> {ev.eventType}</p>
+                        {showEmployees && <p><span className="text-slate-400 ">Func:</span> {empName(ev.employeeId)}</p>}
+                        <p><span className="text-slate-400 ">Tipo:</span> {EVENT_TYPES.find((t) => t.value === ev.eventType)?.label ?? ev.eventType}</p>
+                        {ev.location && <p className="flex items-start gap-1"><MapPin size={12} className="mt-0.5 shrink-0 text-slate-400" aria-hidden="true" /> <span className="break-words">{ev.location}</span></p>}
                       </div>
+                      {ev.meetingUrl && (
+                        <a href={ev.meetingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-[var(--color-brand)] px-3 text-xs font-semibold text-white hover:opacity-90">
+                          <Video size={13} aria-hidden="true" /> Entrar · {meetingLabel(ev.meetingUrl)}
+                        </a>
+                      )}
                       <div className="mt-1 flex flex-wrap gap-2">
                         <Button variant="outline" type="button" onClick={() => onOpenForm(ev)} disabled={saving} className=" px-2 text-xs font-bold">Editar</Button>
                         {ev.status !== 'CONCLUIDO' && canManage && (
@@ -334,8 +363,8 @@ function AgendaKanban({ columns, employees, canManage, onOpenForm, onSave, onDel
   );
 }
 
-function EventModal({ event, employees, onClose, onSave, saving }: {
-  event?: ManagementEvent; employees: Employee[]; onClose: () => void; onSave: (data: any) => void; saving: boolean;
+function EventModal({ event, employees, showEmployees, onClose, onSave, saving }: {
+  event?: ManagementEvent; employees: Employee[]; showEmployees: boolean; onClose: () => void; onSave: (data: any) => void; saving: boolean;
 }) {
   const { user } = useAuth();
   const init = {
@@ -353,12 +382,15 @@ function EventModal({ event, employees, onClose, onSave, saving }: {
   const [eventType, setEventType] = useState<EventType>(init.eventType as EventType);
   const [status, setStatus] = useState<EventStatus>(init.status as EventStatus);
   const [priority, setPriority] = useState<EventPriority>(init.priority as EventPriority);
-  const [start, setStart] = useState(init.startDateTime?.slice(0, 16) ?? '');
-  const [end, setEnd] = useState(init.endDateTime?.slice(0, 16) ?? '');
+  const [start, setStart] = useState(toLocalInput(init.startDateTime));
+  const [end, setEnd] = useState(toLocalInput(init.endDateTime));
   const [employeeId, setEmployeeId] = useState(init.employeeId ?? '');
   const [desc, setDesc] = useState(init.description ?? '');
+  const [meetingUrl, setMeetingUrl] = useState(event?.meetingUrl ?? '');
+  const [location, setLocation] = useState(event?.location ?? '');
+  const meeting = normalizeMeetingInput(meetingUrl);
 
-  const ok = title.trim() && start;
+  const ok = title.trim() && start && meeting.ok;
   const save = () => {
     if (!ok) return;
     onSave({
@@ -368,7 +400,9 @@ function EventModal({ event, employees, onClose, onSave, saving }: {
       startDateTime: new Date(start).toISOString(),
       endDateTime: end ? new Date(end).toISOString() : null,
       responsibleUserId: event?.responsibleUserId ?? user?.id ?? null,
-      employeeId: employeeId || null,
+      employeeId: showEmployees ? (employeeId || null) : undefined,
+      meetingUrl: meeting.value,
+      location: location.trim() || null,
       status,
       priority,
     });
@@ -413,12 +447,23 @@ function EventModal({ event, employees, onClose, onSave, saving }: {
             <input type="datetime-local" value={end} onChange={e => setEnd(e.target.value)} className="input-v2" />
           </label>
           <label className="form-group sm:col-span-2">
-            <span className="text-sm font-semibold text-zinc-700">Funcionário Vinculado</span>
-            <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="input-v2">
-              <option value="">Nenhum...</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
-            </select>
+            <span className="text-sm font-semibold text-zinc-700">Link da reunião</span>
+            <input type="url" inputMode="url" value={meetingUrl} onChange={e => setMeetingUrl(e.target.value)} placeholder="Cole o link do Teams, Meet ou Zoom" className="input-v2" aria-invalid={!meeting.ok} />
+            <span className={`text-xs ${meeting.ok ? 'text-slate-500' : 'text-rose-600'}`}>{meeting.ok ? (meeting.value ? `${meetingLabel(meeting.value)} · o botão "Entrar" aparece no card.` : 'Opcional. Para reunião online.') : meeting.error}</span>
           </label>
+          <label className="form-group sm:col-span-2">
+            <span className="text-sm font-semibold text-zinc-700">Local</span>
+            <input value={location} onChange={e => setLocation(e.target.value)} maxLength={300} placeholder="Endereço ou sala, se for presencial" className="input-v2" />
+          </label>
+          {showEmployees && (
+            <label className="form-group sm:col-span-2">
+              <span className="text-sm font-semibold text-zinc-700">Funcionário Vinculado</span>
+              <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="input-v2">
+                <option value="">Nenhum...</option>
+                {employees.map(e => <option key={e.id} value={e.id}>{normalizeDisplayName(e.name)}</option>)}
+              </select>
+            </label>
+          )}
           <label className="form-group sm:col-span-2">
             <span className="text-sm font-semibold text-zinc-700">Descrição</span>
             <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} className="input-v2 resize-none" />

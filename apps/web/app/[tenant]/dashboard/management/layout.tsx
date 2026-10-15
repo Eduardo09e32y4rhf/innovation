@@ -2,10 +2,14 @@
 
 import { usePathname, useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useEffect } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Award, Bell, CalendarDays, FileClock, HardHat, HeartPulse, LayoutDashboard, UserRoundPlus } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { cn } from '@/app/lib/cn';
+import { usesRecruiterAgenda } from '@/app/lib/recruiter-account';
+import { useWorkspace } from '../_components/shell-v2/workspace-context';
+import { isAgendaPath } from '../_components/shell-v2/rs-route-access';
 import styles from '../escalas/_components/operational-ui.module.css';
 
 interface NavItem { name: string; href: string; icon: LucideIcon; exact?: boolean }
@@ -20,8 +24,15 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
   const profile = String(user?.profile ?? user?.role ?? '').toUpperCase();
   const canManage = ['DEV', 'ADMIN', 'RH'].includes(profile);
   const base = `/${tenant}/dashboard/management`;
+  const { company } = useWorkspace();
+  // R&S (perfil RH_RS ou conta autonoma so de Recrutamento): Gestao e so a Agenda.
+  const agendaOnly = usesRecruiterAgenda(profile, company?.activeModules);
+  const outsideAgenda = agendaOnly && !isAgendaPath(pathname, base);
+  useEffect(() => { if (outsideAgenda) router.replace(`${base}/agenda`); }, [outsideAgenda, base, router]);
 
-  const groups: NavGroup[] = [
+  const groups: NavGroup[] = agendaOnly ? [
+    { title: 'Agenda', items: [{ name: 'Agenda e reuniões', href: `${base}/agenda`, icon: CalendarDays }] },
+  ] : [
     { title: 'Visão geral', items: [{ name: 'Central de Gestão', href: base, icon: LayoutDashboard, exact: true }] },
     { title: 'Agenda', items: [{ name: 'Agenda de compromissos', href: `${base}/agenda`, icon: CalendarDays }] },
     {
@@ -49,9 +60,10 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
     <div className={`${styles.surface} w-full min-w-0`}>
       <header className="mb-5">
         <h1 className="text-xl font-semibold text-fg">Gestão</h1>
-        <p className="mt-0.5 text-sm text-fg-mut">Pendências, agenda, segurança do trabalho e rotinas de pessoas em um só lugar.</p>
+        <p className="mt-0.5 text-sm text-fg-mut">{agendaOnly ? 'Organize seu dia e seu mês: compromissos, entrevistas e links de reunião (Teams, Meet, Zoom).' : 'Pendências, agenda, segurança do trabalho e rotinas de pessoas em um só lugar.'}</p>
       </header>
 
+      {!agendaOnly && (
       <label className="mb-4 block lg:hidden">
         <span className="mb-1 block text-sm font-medium">Área</span>
         <select className="input-v2 w-full" value={current.href} onChange={(event) => router.push(event.target.value)}>
@@ -62,8 +74,10 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
           ))}
         </select>
       </label>
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <div className={agendaOnly ? '' : 'grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]'}>
+        {!agendaOnly && (
         <nav className="hidden lg:block" aria-label="Áreas de gestão">
           <div className="card-v2 sticky top-4 space-y-4 p-3">
             {groups.map((group) => (
@@ -97,8 +111,9 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
             ))}
           </div>
         </nav>
+        )}
 
-        <div className="min-w-0">{children}</div>
+        <div className="min-w-0">{outsideAgenda ? null : children}</div>
       </div>
     </div>
   );

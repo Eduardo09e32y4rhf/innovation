@@ -50,3 +50,66 @@ export function candidateInviteEmail(input: { name: string; company: string; job
     text: `Olá, ${input.name}.\n\n${input.company} convida você para a vaga ${input.jobTitle}.${note ? `\n\n${note}` : ''}\n\nVer a vaga: ${input.jobUrl}\nSeus contatos não foram compartilhados. Sair do banco de talentos: ${input.accountUrl}`,
   };
 }
+
+export interface InterviewMailInput {
+  name: string;
+  company: string;
+  jobTitle: string;
+  when: { long: string; short: string };
+  durationMinutes: number;
+  mode: 'PRESENCIAL' | 'ONLINE';
+  location?: string | null;
+  mapsUrl?: string | null;
+  meetingUrl?: string | null;
+  meetingProvider?: string | null;
+  interviewer: string;
+  message?: string | null;
+  calendarUrl: string;
+  statusUrl?: string | null;
+}
+
+const row = (label: string, valueHtml: string) => `<tr><td style="padding:8px 0;width:110px;vertical-align:top;font-size:13px;color:#6b6478">${escapeHtml(label)}</td><td style="padding:8px 0;font-size:15px;color:#241b38;font-weight:600">${valueHtml}</td></tr>`;
+
+/** Convite de entrevista: data no horario de Brasilia, presencial (endereco + mapa) ou online (botao da reuniao). */
+export function candidateInterviewEmail(input: InterviewMailInput): MailContent {
+  const online = input.mode === 'ONLINE';
+  const where = online
+    ? `${escapeHtml(input.meetingProvider || 'Reunião online')}<br><a href="${escapeHtml(input.meetingUrl ?? '')}" style="color:#5b29be;font-weight:600;word-break:break-all">${escapeHtml(input.meetingUrl ?? '')}</a>`
+    : `${escapeHtml(input.location ?? '')}${input.mapsUrl ? `<br><a href="${escapeHtml(input.mapsUrl)}" style="color:#5b29be;font-weight:600">Ver no mapa</a>` : ''}`;
+  const details = `<table cellpadding="0" cellspacing="0" role="presentation" style="width:100%;margin:6px 0 18px;background:#f8f5fd;border:1px solid #e4d9f4;border-radius:12px;padding:6px 18px">${row('Quando', escapeHtml(input.when.long))}${row('Duração', `cerca de ${input.durationMinutes} min`)}${row('Formato', online ? 'Online' : 'Presencial')}${row(online ? 'Link' : 'Endereço', where)}${row('Com', escapeHtml(input.interviewer))}</table>`;
+  const note = (input.message ?? '').trim();
+  const tips = online
+    ? 'Entre no link alguns minutos antes, teste câmera e microfone e escolha um lugar silencioso.'
+    : 'Chegue com 10 minutos de antecedência e leve um documento com foto.';
+  const action = online && input.meetingUrl ? { label: 'Entrar na reunião', url: input.meetingUrl } : input.mapsUrl ? { label: 'Como chegar', url: input.mapsUrl } : null;
+  const button = action ? `<p style="margin:0 0 18px"><a href="${escapeHtml(action.url)}" style="background:#7240da;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block">${escapeHtml(action.label)}</a></p>` : '';
+  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p><p style="margin:0 0 14px">Boa notícia: a <strong>${escapeHtml(input.company)}</strong> quer conversar com você sobre a vaga <strong>${escapeHtml(input.jobTitle)}</strong>.</p>${details}${button}${note ? `<p style="margin:0 0 14px;border-left:3px solid #7240da;padding-left:12px">${escapeHtml(note).replace(/\n/g, '<br>')}</p>` : ''}<p style="margin:0 0 6px;font-size:13px;color:#6b6478">${escapeHtml(tips)}</p><p style="margin:14px 0 0;font-size:13px"><a href="${escapeHtml(input.calendarUrl)}" style="color:#5b29be;font-weight:600">+ Adicionar ao Google Agenda</a>${input.statusUrl ? ` &nbsp;·&nbsp; <a href="${escapeHtml(input.statusUrl)}" style="color:#5b29be;font-weight:600">Acompanhar candidatura</a>` : ''}</p><p style="margin:14px 0 0;font-size:12px;color:#6b6478">Não vai conseguir ir? Avise a empresa o quanto antes para remarcar.</p>`;
+  return {
+    subject: `Entrevista agendada: ${input.jobTitle} · ${input.when.short}`,
+    html: portalLayout('Sua entrevista está marcada', body),
+    text: [
+      `Olá, ${input.name}.`,
+      '',
+      `A ${input.company} quer conversar com você sobre a vaga ${input.jobTitle}.`,
+      '',
+      `Quando: ${input.when.long} (cerca de ${input.durationMinutes} min)`,
+      `Formato: ${online ? 'Online' : 'Presencial'}`,
+      online ? `Link: ${input.meetingUrl ?? ''}` : `Endereço: ${input.location ?? ''}`,
+      `Com: ${input.interviewer}`,
+      note ? `\nRecado da empresa: ${note}` : '',
+      '',
+      tips,
+      `Adicionar à agenda: ${input.calendarUrl}`,
+      input.statusUrl ? `Acompanhar candidatura: ${input.statusUrl}` : '',
+    ].filter((line) => line !== null).join('\n'),
+  };
+}
+
+export function candidateInterviewCanceledEmail(input: { name: string; company: string; jobTitle: string; when: { long: string; short: string } }): MailContent {
+  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p><p style="margin:0 0 12px">A entrevista da vaga <strong>${escapeHtml(input.jobTitle)}</strong> na ${escapeHtml(input.company)}, marcada para <strong>${escapeHtml(input.when.long)}</strong>, foi cancelada.</p><p style="margin:0;font-size:13px;color:#6b6478">Se houver um novo horário, você recebe outro e-mail com os detalhes. Sua candidatura continua no processo.</p>`;
+  return {
+    subject: `Entrevista cancelada: ${input.jobTitle} · ${input.when.short}`,
+    html: portalLayout('Entrevista cancelada', body),
+    text: `Olá, ${input.name}.\n\nA entrevista da vaga ${input.jobTitle} na ${input.company}, marcada para ${input.when.long}, foi cancelada.\nSe houver novo horário, você recebe outro e-mail. Sua candidatura continua no processo.`,
+  };
+}
