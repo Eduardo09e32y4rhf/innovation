@@ -173,17 +173,21 @@ export function recruiterNoticeEmail(input: { title: string; lines: string[]; ur
   };
 }
 
-/** Contratacao: parabens + (quando houver) link para enviar os documentos da admissao. */
+/** Cartao de boas-vindas (inline, funciona em qualquer cliente de e-mail): contratado pela empresa X, marca no rodape. */
+function hiredCard(input: { name: string; company: string; jobTitle: string; startDate?: string | null }) {
+  return `<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 22px;border-radius:18px;overflow:hidden;background:#4c1d95;background-image:linear-gradient(135deg,#4c1d95,#7240da)"><tr><td align="center" style="padding:34px 22px 22px;color:#ffffff"><div style="display:inline-block;background:#ffffff;color:#5b29be;border-radius:999px;padding:6px 18px;font-size:12px;font-weight:800;letter-spacing:3px">VOCÊ FOI CONTRATADO(A)</div><div style="font-size:15px;margin-top:22px;opacity:.9">Parabéns, ${escapeHtml(input.name)}!</div><div style="font-size:30px;line-height:1.15;font-weight:900;margin:8px 0 6px;letter-spacing:-.5px">Bem-vindo(a) à ${escapeHtml(input.company)}</div><div style="font-size:16px;opacity:.95">Cargo: <strong>${escapeHtml(input.jobTitle)}</strong></div>${input.startDate ? `<div style="margin-top:14px;display:inline-block;border:1px solid rgba(255,255,255,.5);border-radius:12px;padding:8px 16px;font-size:14px">Início em <strong>${escapeHtml(input.startDate)}</strong></div>` : ''}</td></tr><tr><td align="center" style="background:#1e1145;padding:16px 22px"><table cellpadding="0" cellspacing="0" role="presentation"><tr><td style="width:34px;height:34px;background:#7240da;border-radius:9px;text-align:center;color:#ffffff;font-size:22px;font-weight:700;line-height:34px;font-family:Arial,Helvetica,sans-serif">i</td><td style="padding-left:10px;text-align:left;color:#ffffff;font-size:17px;font-weight:800;letter-spacing:-.3px">innovation<span style="color:#a78bfa">.</span> <span style="font-weight:600">connect RH</span></td></tr></table></td></tr></table>`;
+}
+
+/** Contratacao: cartao de boas-vindas + (quando houver) link para enviar os documentos da admissao. */
 export function candidateHiredEmail(input: { name: string; company: string; jobTitle: string; startDate?: string | null; documentsUrl?: string | null; items?: string[]; expires?: string | null }): MailContent {
   const items = (input.items ?? []).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
   const docs = input.documentsUrl
     ? `<p style="margin:0 0 8px">Para concluir sua admissão, envie seus documentos pelo link seguro abaixo (foto ou PDF, até 5 MB cada):</p>${items ? `<ul style="margin:0 0 14px;padding-left:20px">${items}</ul>` : ''}<p style="margin:0 0 12px">${button('Enviar meus documentos', input.documentsUrl)}</p><p style="margin:0;font-size:12px;color:#6b6478">O link é pessoal${input.expires ? ` e vale até ${escapeHtml(input.expires)}` : ''}. Não compartilhe com ninguém.</p>`
     : '<p style="margin:0">O RH vai entrar em contato com os próximos passos da admissão.</p>';
-  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p><p style="margin:0 0 14px">Parabéns! Você foi <strong>contratado(a)</strong> pela <strong>${escapeHtml(input.company)}</strong> para a vaga de <strong>${escapeHtml(input.jobTitle)}</strong>.${input.startDate ? ` Data de início: <strong>${escapeHtml(input.startDate)}</strong>.` : ''}</p>${docs}`;
   return {
-    subject: `Parabéns! Você foi contratado(a): ${input.jobTitle} · ${input.company}`,
-    html: portalLayout('Bem-vindo(a) à equipe!', body),
-    text: `Olá, ${input.name}.\n\nParabéns! Você foi contratado(a) pela ${input.company} para a vaga ${input.jobTitle}.${input.startDate ? `\nInício: ${input.startDate}.` : ''}${input.documentsUrl ? `\n\nEnvie seus documentos: ${input.documentsUrl}${(input.items ?? []).length ? `\nDocumentos: ${(input.items ?? []).join(', ')}` : ''}` : '\nO RH entrará em contato com os próximos passos.'}`,
+    subject: `Parabéns! Você foi contratado(a) pela ${input.company}`,
+    html: portalLayout('Boas-vindas ao time!', `${hiredCard(input)}${docs}`),
+    text: `Parabéns, ${input.name}!\n\nVocê foi contratado(a) pela ${input.company} para a vaga ${input.jobTitle}.${input.startDate ? `\nInício: ${input.startDate}.` : ''}${input.documentsUrl ? `\n\nEnvie seus documentos: ${input.documentsUrl}${(input.items ?? []).length ? `\nDocumentos: ${(input.items ?? []).join(', ')}` : ''}` : '\nO RH entrará em contato com os próximos passos.'}\n\ninnovation. connect RH`,
   };
 }
 

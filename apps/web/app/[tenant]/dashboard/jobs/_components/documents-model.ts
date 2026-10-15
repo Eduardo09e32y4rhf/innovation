@@ -27,7 +27,7 @@ export function parseItemsInput(text: string): string[] {
     seen.add(key);
     out.push(label);
   }
-  return out.slice(0, 15);
+  return out.slice(0, 80);
 }
 
 /** Versao vigente de cada item: a mais recente que nao foi substituida. */
@@ -54,3 +54,22 @@ export function forwardReadiness(requests: RequestRow[], documents: DocumentRow[
 export function publicDocumentsUrl(origin: string, path: string): string {
   return `${origin.replace(/\/+$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
 }
+export type DocGroup = { key: string; title: string; hint?: string; items: string[] };
+
+/** Catalogo completo de documentos que o RH pode pedir (CLT, PJ, estagio e extras). Rotulos com no maximo 60 caracteres. */
+export const DOCUMENT_CATALOG: DocGroup[] = [
+  { key: 'clt-pessoais', title: 'CLT · Documentos pessoais', items: ['RG ou CNH', 'CPF', 'Título de eleitor', 'Comprovante de quitação eleitoral', 'Certificado de reservista (homens)', 'Carteira de trabalho (CTPS)', 'PIS/PASEP/NIS', 'Certidão de nascimento ou casamento', 'Comprovante de residência', 'Foto 3x4', 'Cartão de vacinação (adulto)'] },
+  { key: 'clt-formacao', title: 'CLT · Formação e experiência', items: ['Comprovante de escolaridade', 'Certificados e cursos', 'Diploma', 'Registro em conselho de classe (CRM/CREA/OAB)', 'CNH categoria exigida pela vaga', 'Currículo atualizado', 'Carta de referência'] },
+  { key: 'clt-admissao', title: 'CLT · Admissão e saúde', items: ['Dados bancários (comprovante de conta)', 'ASO admissional (atestado de saúde)', 'Exames admissionais', 'Declaração de vale-transporte', 'Certidão de antecedentes criminais', 'Declaração de dependentes para IR', 'Comprovante de conta salário'] },
+  { key: 'clt-dependentes', title: 'CLT · Dependentes', items: ['Documentos dos dependentes (se houver)', 'CPF dos dependentes', 'Certidão de nascimento dos filhos', 'Cartão de vacinação dos filhos', 'Comprovante de frequência escolar dos filhos', 'Certidão de casamento ou união estável'] },
+  { key: 'pj', title: 'PJ · Empresa e sócio', items: ['Cartão CNPJ', 'Contrato social ou certificado MEI (CCMEI)', 'Alteração contratual', 'Inscrição municipal', 'Inscrição estadual', 'Alvará de funcionamento', 'Comprovante de endereço da empresa', 'RG ou CNH do sócio', 'CPF do sócio', 'Comprovante de residência do sócio'] },
+  { key: 'pj-fiscal', title: 'PJ · Fiscal e financeiro', items: ['Dados bancários da empresa (PJ)', 'Certidão negativa de débitos federais', 'Certidão negativa de débitos estaduais', 'Certidão negativa de débitos municipais', 'Certidão de regularidade do FGTS', 'Comprovante de opção pelo Simples Nacional', 'Última guia DAS paga', 'Declaração anual do MEI (DASN)', 'Nota fiscal modelo ou dados para emissão'] },
+  { key: 'pj-contrato', title: 'PJ · Contrato e portfólio', items: ['Contrato de prestação de serviços assinado', 'Portfólio ou trabalhos anteriores', 'Seguro de responsabilidade (se aplicável)', 'Termo de confidencialidade (NDA) assinado', 'Certificações profissionais'] },
+  { key: 'estagio', title: 'Estágio e aprendiz', items: ['Declaração de matrícula da instituição de ensino', 'Termo de compromisso de estágio', 'Histórico escolar', 'Autorização dos responsáveis (menor de 18)', 'Documento do responsável legal', 'Carteira de vacinação'] },
+];
+
+export const DOCUMENT_KITS: { key: string; title: string; items: string[] }[] = [
+  { key: 'clt', title: 'Kit CLT completo', items: [...DOCUMENT_CATALOG[0].items.slice(0, 10), 'Comprovante de escolaridade', 'Dados bancários (comprovante de conta)', 'ASO admissional (atestado de saúde)', 'Documentos dos dependentes (se houver)'] },
+  { key: 'pj', title: 'Kit PJ completo', items: ['Cartão CNPJ', 'Contrato social ou certificado MEI (CCMEI)', 'Inscrição municipal', 'Comprovante de endereço da empresa', 'RG ou CNH do sócio', 'CPF do sócio', 'Dados bancários da empresa (PJ)', 'Certidão negativa de débitos federais', 'Contrato de prestação de serviços assinado'] },
+  { key: 'estagio', title: 'Kit estágio', items: ['RG ou CNH', 'CPF', 'Comprovante de residência', 'Foto 3x4', ...DOCUMENT_CATALOG[7].items.slice(0, 3)] },
+];

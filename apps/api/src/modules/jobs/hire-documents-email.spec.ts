@@ -7,6 +7,8 @@ describe('e-mail de contratação', () => {
     const mail = candidateHiredEmail({ name: 'Ana', company: 'Acme', jobTitle: 'Vendedor', documentsUrl: 'https://x.test/carreiras/documentos/abc', items: ['CPF'], expires: '01/01/2027' });
     expect(mail.html).toContain('https://x.test/carreiras/documentos/abc');
     expect(mail.text).toContain('CPF');
+    expect(mail.html).toContain('Bem-vindo(a) à Acme');
+    expect(mail.html).toContain('connect RH');
   });
   it('sendHireWelcome cria o link, envia e registra na linha do tempo', async () => {
     process.env.APP_URL = 'https://x.test';

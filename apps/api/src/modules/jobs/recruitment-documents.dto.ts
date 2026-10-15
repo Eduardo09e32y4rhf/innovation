@@ -3,7 +3,7 @@ import { ArrayMaxSize, IsBoolean, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional
 export class CreateDocumentRequestDto {
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(15)
+  @ArrayMaxSize(80)
   @IsString({ each: true })
   @MaxLength(60, { each: true })
   items!: string[];

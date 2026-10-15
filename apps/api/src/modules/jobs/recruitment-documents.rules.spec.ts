@@ -31,7 +31,7 @@ describe('itens do pedido', () => {
   it('normaliza, remove duplicados (sem diferenciar caixa), controles e itens invalidos', () => {
     expect(normalizeItems([' RG ', 'rg', 'Comprovante  de\nresidência', 'x', 'a'.repeat(61), 7, ''])).toEqual(['RG', 'Comprovante de residência']);
     expect(normalizeItems('RG')).toEqual([]);
-    expect(normalizeItems(Array.from({ length: 40 }, (_, i) => `Documento ${i}`))).toHaveLength(15);
+    expect(normalizeItems(Array.from({ length: 100 }, (_, i) => `Documento ${i}`))).toHaveLength(80);
   });
 });
 
