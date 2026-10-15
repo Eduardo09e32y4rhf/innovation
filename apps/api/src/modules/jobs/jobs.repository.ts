@@ -108,6 +108,20 @@ export class JobsRepository {
     return this.prisma.job.deleteMany({ where: { companyId, id } });
   }
 
+  /** Antes de apagar a vaga de vez: quantos contratados, e os arquivos (curriculos e documentos) a remover do disco. */
+  async permanentDeletePlan(companyId: string, jobId: string) {
+    const [hired, apps, docs] = await Promise.all([
+      this.prisma.application.count({ where: { companyId, jobId, status: 'HIRED' } }),
+      this.prisma.application.findMany({ where: { companyId, jobId, resumeUrl: { not: null } }, select: { resumeUrl: true } }),
+      this.prisma.recruitmentDocument.findMany({ where: { companyId, application: { jobId } }, select: { fileKey: true } }),
+    ]);
+    return { hired, resumeKeys: apps.map((row) => row.resumeUrl as string), documentKeys: docs.map((row) => row.fileKey) };
+  }
+
+  audit(companyId: string, userId: string, action: string, entityId: string, metadata: Record<string, unknown>) {
+    return this.prisma.auditLog.create({ data: { companyId, userId, action, entity: 'Job', entityId, metadata: metadata as any } });
+  }
+
   application(companyId: string, id: string) {
     return this.prisma.application.findFirst({
       where: { companyId, id },
