@@ -7,6 +7,7 @@ import { meetingLabel, normalizeMeetingInput } from '../../management/agenda/mee
 import { jobsApi } from '../jobs-api';
 import type { InterviewMode, InterviewPayload } from '../types';
 import { Field, inputClass } from './bits';
+import { FreeLinkButton } from './candidate-process';
 
 const DURATIONS = [30, 45, 60, 90, 120];
 
@@ -124,8 +125,11 @@ export function InterviewDialog({
         </div>
 
         {form.mode === 'ONLINE' ? (
-          <Field label="Link da reunião" required hint={meeting.ok ? (meeting.value ? `${meetingLabel(meeting.value)} · o candidato recebe um botão "Entrar na reunião".` : 'Teams, Google Meet, Zoom ou outro link https.') : meeting.error}>
-            <input type="url" inputMode="url" className={inputClass} value={form.meetingUrl} placeholder="https://teams.microsoft.com/... ou https://meet.google.com/..." aria-invalid={!meeting.ok} onChange={(event) => set('meetingUrl', event.target.value)} />
+          <Field label="Link da reunião" required hint={meeting.ok ? (meeting.value ? `${meetingLabel(meeting.value)} · o candidato recebe um botão "Entrar na reunião".` : 'Teams, Google Meet, Zoom ou gere um link grátis. O e-mail leva também o convite para a agenda (.ics).') : meeting.error}>
+            <div className="flex flex-wrap items-center gap-2">
+              <input type="url" inputMode="url" className={`${inputClass} min-w-0 flex-1`} value={form.meetingUrl} placeholder="https://teams.microsoft.com/... ou https://meet.google.com/..." aria-invalid={!meeting.ok} onChange={(event) => set('meetingUrl', event.target.value)} />
+              <FreeLinkButton onLink={(url) => set('meetingUrl', url)} />
+            </div>
           </Field>
         ) : (
           <Field label="Endereço" required hint="Rua, número, bairro, cidade e, se tiver, andar ou sala. O e-mail leva um link do mapa.">

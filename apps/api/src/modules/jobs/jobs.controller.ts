@@ -38,6 +38,8 @@ export class JobsController {
     return this.service.list(companyId, this.scope.scope(actor));
   }
 
+  /** Gestor acompanha e avalia; criar, editar, excluir e duplicar vaga e com RH. */
+  @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Post()
   async create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreateJobDto) {
     const job = await this.service.create(companyId, dto);
@@ -57,18 +59,24 @@ export class JobsController {
     return this.service.get(companyId, id);
   }
 
+  /** Gestor acompanha e avalia; criar, editar, excluir e duplicar vaga e com RH. */
+  @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Patch(':id')
   async update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateJobDto) {
     await this.scope.assertJob(companyId, actor, id);
     return this.service.update(companyId, id, dto);
   }
 
+  /** Gestor acompanha e avalia; criar, editar, excluir e duplicar vaga e com RH. */
+  @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Delete(':id')
   async delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
     await this.scope.assertJob(companyId, actor, id);
     return this.service.delete(companyId, id);
   }
 
+  /** Gestor acompanha e avalia; criar, editar, excluir e duplicar vaga e com RH. */
+  @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Post(':id/duplicate')
   async duplicate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
     await this.scope.assertJob(companyId, actor, id);

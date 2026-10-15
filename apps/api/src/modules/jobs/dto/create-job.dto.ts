@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsDateString,
@@ -76,6 +77,14 @@ class JobFieldsDto {
   @IsInt()
   @Min(0)
   salaryMax?: number;
+
+  /** Roteiro de entrevista: perguntas sugeridas para quem entrevista. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(30)
+  @IsString({ each: true })
+  @MaxLength(300, { each: true })
+  interviewGuide?: string[];
 
   @IsOptional()
   @IsBoolean()

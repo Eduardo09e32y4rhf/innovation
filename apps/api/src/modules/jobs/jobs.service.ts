@@ -59,7 +59,8 @@ export class JobsService {
   private async assertJobQuota(companyId: string) {
     const quota = await this.repository.monthlyJobQuota(companyId);
     if (quota && quota.used >= quota.limit) {
-      throw new BadRequestException({ code: 'JOB_QUOTA_REACHED', message: `Seu plano R&S inclui ${quota.limit} vagas por mês e todas já foram abertas. Aumente a quantidade contratada em Faturas (cada vaga extra custa R$ 2,00 por mês) para abrir mais.` });
+      const price = quota.extraPrice ? ` (cada vaga extra custa ${quota.extraPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} por mês)` : '';
+      throw new BadRequestException({ code: 'JOB_QUOTA_REACHED', message: `Seu plano R&S inclui ${quota.limit} vagas por mês e todas já foram abertas. Aumente a quantidade contratada em Faturas${price} para abrir mais.` });
     }
   }
 
@@ -106,6 +107,7 @@ export class JobsService {
       salaryMax: job.salaryMax,
       salaryHidden: job.salaryHidden,
       pipelineId: job.pipelineId,
+      interviewGuide: (job as { interviewGuide?: string[] }).interviewGuide ?? [],
       status: 'DRAFT',
     });
     if (questions.length) {
@@ -291,7 +293,7 @@ export class JobsService {
         throw new ConflictException('Voce ja se inscreveu nesta vaga. Sua candidatura esta em analise.');
       }
       await this.privacy.afterApply(result.application.id, { gender: dto.gender, race: dto.race, pcd: dto.pcd });
-      if (result.application.status === 'REJECTED') await this.privacy.afterRejected(result.application.id);
+      // Reprovado por pergunta eliminatoria: o retorno ao candidato sai 24h depois (InterviewFollowupService.sendDelayedKnockoutFeedback).
       return { received: true, applicationId: result.application.id };
     } catch (error) {
       if (!(error instanceof ConflictException)) await this.storage.remove(storageKey);
@@ -311,6 +313,8 @@ export class JobsService {
 
   private normalizeJob(dto: CreateJobDto | UpdateJobDto) {
     const { deadline, salaryMin, salaryMax, ...rest } = dto;
+    // Campo apagado na edicao chega vazio/null e precisa limpar o banco (antes o valor antigo voltava).
+    const optional = (value: string | null | undefined) => (value === undefined ? undefined : String(value ?? '').trim() || null);
     if (salaryMin != null && salaryMax != null && salaryMin > salaryMax) {
       throw new BadRequestException('A faixa salarial minima nao pode ser maior que a maxima.');
     }
@@ -318,12 +322,14 @@ export class JobsService {
       ...rest,
       title: dto.title?.trim(),
       description: dto.description?.trim(),
-      location: dto.location?.trim() || undefined,
-      employmentType: dto.employmentType?.trim() || undefined,
-      salaryRange: dto.salaryRange?.trim() || undefined,
-      department: dto.department?.trim() || undefined,
-      seniority: dto.seniority?.trim() || undefined,
+      location: optional(dto.location),
+      employmentType: optional(dto.employmentType),
+      salaryRange: optional(dto.salaryRange),
+      department: optional(dto.department),
+      seniority: optional(dto.seniority),
+      ...('workMode' in dto ? { workMode: optional((dto as { workMode?: string | null }).workMode) } : {}),
       benefits: dto.benefits?.map((item) => item.trim()).filter(Boolean),
+      interviewGuide: dto.interviewGuide?.map((item) => item.trim()).filter(Boolean),
       requirements: dto.requirements?.map((item) => item.trim()).filter(Boolean),
       salaryMin,
       salaryMax,
@@ -336,14 +342,8 @@ export class JobsService {
     if (head.includes('%PDF')) {
       return { extension: 'pdf', mime: 'application/pdf' };
     }
-    if (buffer[0] === 0x50 && buffer[1] === 0x4b) {
-      return {
-        extension: 'docx',
-        mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      };
-    }
-    const ext = filename?.split('.').pop()?.toLowerCase();
-    if (ext === 'docx') {
+    // ZIP qualquer (xlsx, zip, apk) nao e curriculo: o DOCX tem a pasta word/ dentro.
+    if (buffer[0] === 0x50 && buffer[1] === 0x4b && buffer.includes(Buffer.from('word/'))) {
       return {
         extension: 'docx',
         mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

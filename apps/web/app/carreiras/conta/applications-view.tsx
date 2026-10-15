@@ -20,7 +20,7 @@ function InterviewCard({ interview }: { interview: NonNullable<CandidateApplicat
   return (
     <div className="rounded-[14px] border border-[#e4d9f4] bg-[#f8f5fd] p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-[#5b29be]">Entrevista marcada · {online ? 'online' : 'presencial'}</p>
-      <p className="mt-1 text-base font-bold capitalize text-[#1e1145]">{when}</p>
+      <p className="mt-1 text-base font-bold text-[#1e1145]">{when.charAt(0).toUpperCase() + when.slice(1)}</p>
       {interview.durationMinutes ? <p className="text-sm text-[#5b5473]">Cerca de {interview.durationMinutes} minutos.</p> : null}
       {!online && interview.location ? <p className="mt-1 break-words text-sm text-[#241b38]">{interview.location}</p> : null}
       <div className="mt-3 flex flex-wrap gap-2">

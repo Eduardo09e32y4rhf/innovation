@@ -7,7 +7,8 @@ export class CompaniesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findMe(companyId: string) {
-    const company = await this.prisma.company.findUnique({ where: { id: companyId } });
+    // Notas internas da plataforma e ids do gateway de cobranca nao saem para os usuarios da empresa.
+    const company = await this.prisma.company.findUnique({ where: { id: companyId }, omit: { internalNotes: true, asaasCustomerId: true, asaasSubscriptionId: true, commercialOwnerId: true } });
     if (!company) throw new NotFoundException('Company not found');
     return company;
   }

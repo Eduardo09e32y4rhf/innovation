@@ -1,4 +1,5 @@
 import { formatInterviewDate, interviewerLabel, normalizeInterview } from './interview-rules';
+import { newPublicToken } from './recruitment-tokens';
 import { visibleEvaluations } from './blind-evaluation';
 import { REJECTION_CODES } from './recruitment-privacy';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
@@ -233,12 +234,15 @@ export class RecruitmentService {
     if (filters.knockedOut === 'false') where.knockedOut = false;
     if (filters.source) where.source = filters.source;
     if (filters.minScore && Number.isFinite(Number(filters.minScore))) where.score = { gte: Number(filters.minScore) };
-    if (filters.from || filters.to) {
-      where.createdAt = {
-        ...(filters.from ? { gte: new Date(filters.from) } : {}),
-        ...(filters.to ? { lte: new Date(`${filters.to}T23:59:59.999Z`) } : {}),
-      };
-    }
+    // Datas do filtro no horario de Brasilia; data invalida e ignorada (antes virava erro 500).
+    const day = (value: string | undefined, end: boolean) => {
+      if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+      const date = new Date(`${value}T${end ? '23:59:59.999' : '00:00:00.000'}-03:00`);
+      return Number.isNaN(date.getTime()) ? null : date;
+    };
+    const from = day(filters.from, false);
+    const to = day(filters.to, true);
+    if (from || to) where.createdAt = { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) };
     const and: any[] = [];
     if (filters.q?.trim()) {
       const q = filters.q.trim();
@@ -354,7 +358,7 @@ export class RecruitmentService {
         notes: { orderBy: { createdAt: 'desc' } },
         interviews: { orderBy: { scheduledAt: 'asc' } },
         events: { orderBy: { createdAt: 'desc' }, take: 100 },
-        job: { select: { id: true, title: true } },
+        job: { select: { id: true, title: true, interviewGuide: true } },
       },
     });
     if (!app) throw new NotFoundException('Candidatura nao encontrada.');
@@ -373,7 +377,7 @@ export class RecruitmentService {
     };
   }
 
-  private async moveInTx(tx: Tx, companyId: string, userId: string, id: string, dto: { stageId: string; note?: string; rejectionReason?: string; rejectionCode?: string }) {
+  private async moveInTx(tx: Tx, companyId: string, userId: string | null, id: string, dto: { stageId: string; note?: string; rejectionReason?: string; rejectionCode?: string }) {
     const app = await tx.application.findFirst({ where: { id, companyId }, include: { stage: true } });
     if (!app) throw new NotFoundException('Candidatura nao encontrada.');
     if (app.status === 'HIRED') throw new BadRequestException('Candidato já contratado não pode mudar de etapa.');
@@ -411,7 +415,7 @@ export class RecruitmentService {
     return updated;
   }
 
-  moveApplication(companyId: string, userId: string, id: string, dto: MoveApplicationDto) {
+  moveApplication(companyId: string, userId: string | null, id: string, dto: MoveApplicationDto) {
     return this.prisma.$transaction((tx) => this.moveInTx(tx, companyId, userId, id, dto)).then((result) => {
       if (result.status === 'REJECTED') void this.privacy.afterRejected(id);
       return result;
@@ -496,7 +500,7 @@ export class RecruitmentService {
    * Agenda a entrevista (presencial com endereco ou online com link), cria o compromisso na Agenda (Gestao) de quem
    * agendou e envia o convite por e-mail ao candidato. Falha de e-mail nao desfaz o agendamento: o retorno diz se saiu.
    */
-  async addInterview(companyId: string, userId: string, id: string, dto: InterviewDto) {
+  async addInterview(companyId: string, userId: string | null, id: string, dto: InterviewDto) {
     await this.assertApplication(companyId, id);
     const input = normalizeInterview(dto);
     const app = await this.prisma.application.findUnique({ where: { id }, select: { candidate: { select: { name: true } }, job: { select: { title: true } } } });
@@ -533,6 +537,7 @@ export class RecruitmentService {
         candidateMessage: input.candidateMessage,
         agendaEventId: agenda.id,
         createdById: userId,
+        responseToken: newPublicToken(),
       },
     });
     const when = formatInterviewDate(input.scheduledAt).short;

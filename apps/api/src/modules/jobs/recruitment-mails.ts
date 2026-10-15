@@ -66,6 +66,10 @@ export interface InterviewMailInput {
   message?: string | null;
   calendarUrl: string;
   statusUrl?: string | null;
+  /** Pagina para confirmar presenca ou avisar que nao pode. */
+  responseUrl?: string | null;
+  /** Lembrete da vespera (mesmo conteudo, outro assunto). */
+  reminder?: boolean;
 }
 
 const row = (label: string, valueHtml: string) => `<tr><td style="padding:8px 0;width:110px;vertical-align:top;font-size:13px;color:#6b6478">${escapeHtml(label)}</td><td style="padding:8px 0;font-size:15px;color:#241b38;font-weight:600">${valueHtml}</td></tr>`;
@@ -83,10 +87,14 @@ export function candidateInterviewEmail(input: InterviewMailInput): MailContent 
     : 'Chegue com 10 minutos de antecedência e leve um documento com foto.';
   const action = online && input.meetingUrl ? { label: 'Entrar na reunião', url: input.meetingUrl } : input.mapsUrl ? { label: 'Como chegar', url: input.mapsUrl } : null;
   const button = action ? `<p style="margin:0 0 18px"><a href="${escapeHtml(action.url)}" style="background:#7240da;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block">${escapeHtml(action.label)}</a></p>` : '';
-  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p><p style="margin:0 0 14px">Boa notícia: a <strong>${escapeHtml(input.company)}</strong> quer conversar com você sobre a vaga <strong>${escapeHtml(input.jobTitle)}</strong>.</p>${details}${button}${note ? `<p style="margin:0 0 14px;border-left:3px solid #7240da;padding-left:12px">${escapeHtml(note).replace(/\n/g, '<br>')}</p>` : ''}<p style="margin:0 0 6px;font-size:13px;color:#6b6478">${escapeHtml(tips)}</p><p style="margin:14px 0 0;font-size:13px"><a href="${escapeHtml(input.calendarUrl)}" style="color:#5b29be;font-weight:600">+ Adicionar ao Google Agenda</a>${input.statusUrl ? ` &nbsp;·&nbsp; <a href="${escapeHtml(input.statusUrl)}" style="color:#5b29be;font-weight:600">Acompanhar candidatura</a>` : ''}</p><p style="margin:14px 0 0;font-size:12px;color:#6b6478">Não vai conseguir ir? Avise a empresa o quanto antes para remarcar.</p>`;
+  const confirm = input.responseUrl ? `<table cellpadding="0" cellspacing="0" role="presentation" style="margin:0 0 18px"><tr><td style="padding:0 8px 8px 0"><a href="${escapeHtml(input.responseUrl)}?r=sim" style="background:#0f9d58;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;font-size:14px;display:inline-block">Confirmo presença</a></td><td style="padding:0 0 8px 0"><a href="${escapeHtml(input.responseUrl)}?r=nao" style="background:#ffffff;color:#5b29be;border:1px solid #d9cdee;text-decoration:none;padding:11px 18px;border-radius:10px;font-weight:700;font-size:14px;display:inline-block">Não vou conseguir</a></td></tr></table>` : '';
+  const intro = input.reminder
+    ? `<p style="margin:0 0 14px">Passando para lembrar da sua entrevista com a <strong>${escapeHtml(input.company)}</strong> para a vaga <strong>${escapeHtml(input.jobTitle)}</strong>.</p>`
+    : `<p style="margin:0 0 14px">Boa notícia: a <strong>${escapeHtml(input.company)}</strong> quer conversar com você sobre a vaga <strong>${escapeHtml(input.jobTitle)}</strong>.</p>`;
+  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p>${intro}${details}${button}${confirm}${note ? `<p style="margin:0 0 14px;border-left:3px solid #7240da;padding-left:12px">${escapeHtml(note).replace(/\n/g, '<br>')}</p>` : ''}<p style="margin:0 0 6px;font-size:13px;color:#6b6478">${escapeHtml(tips)}</p><p style="margin:14px 0 0;font-size:13px"><a href="${escapeHtml(input.calendarUrl)}" style="color:#5b29be;font-weight:600">+ Adicionar ao Google Agenda</a>${input.statusUrl ? ` &nbsp;·&nbsp; <a href="${escapeHtml(input.statusUrl)}" style="color:#5b29be;font-weight:600">Acompanhar candidatura</a>` : ''}</p>${input.responseUrl ? '' : '<p style="margin:14px 0 0;font-size:12px;color:#6b6478">Não vai conseguir ir? Avise a empresa o quanto antes para remarcar.</p>'}`;
   return {
-    subject: `Entrevista agendada: ${input.jobTitle} · ${input.when.short}`,
-    html: portalLayout('Sua entrevista está marcada', body),
+    subject: input.reminder ? `Lembrete: entrevista ${input.when.short} · ${input.jobTitle}` : `Entrevista agendada: ${input.jobTitle} · ${input.when.short}`,
+    html: portalLayout(input.reminder ? 'Sua entrevista está chegando' : 'Sua entrevista está marcada', body),
     text: [
       `Olá, ${input.name}.`,
       '',
@@ -101,6 +109,7 @@ export function candidateInterviewEmail(input: InterviewMailInput): MailContent 
       tips,
       `Adicionar à agenda: ${input.calendarUrl}`,
       input.statusUrl ? `Acompanhar candidatura: ${input.statusUrl}` : '',
+      input.responseUrl ? `Confirmar presença ou avisar que não pode: ${input.responseUrl}` : '',
     ].filter((line) => line !== null).join('\n'),
   };
 }
@@ -111,5 +120,55 @@ export function candidateInterviewCanceledEmail(input: { name: string; company: 
     subject: `Entrevista cancelada: ${input.jobTitle} · ${input.when.short}`,
     html: portalLayout('Entrevista cancelada', body),
     text: `Olá, ${input.name}.\n\nA entrevista da vaga ${input.jobTitle} na ${input.company}, marcada para ${input.when.long}, foi cancelada.\nSe houver novo horário, você recebe outro e-mail. Sua candidatura continua no processo.`,
+  };
+}
+
+
+const button = (label: string, url: string, tone: 'primary' | 'outline' = 'primary') => tone === 'primary'
+  ? `<a href="${escapeHtml(url)}" style="background:#7240da;color:#ffffff;text-decoration:none;padding:14px 24px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block">${escapeHtml(label)}</a>`
+  : `<a href="${escapeHtml(url)}" style="background:#ffffff;color:#5b29be;border:1px solid #d9cdee;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block">${escapeHtml(label)}</a>`;
+const note = (text?: string | null) => (text ?? '').trim() ? `<p style="margin:0 0 14px;border-left:3px solid #7240da;padding-left:12px">${escapeHtml(String(text).trim()).replace(/\n/g, '<br>')}</p>` : '';
+
+/** Autoagendamento: o candidato escolhe um dos horarios oferecidos. */
+export function interviewSlotsEmail(input: { name: string; company: string; jobTitle: string; mode: 'PRESENCIAL' | 'ONLINE'; slots: string[]; durationMinutes: number; url: string; expires: string; message?: string | null }): MailContent {
+  const list = input.slots.map((slot) => `<li style="margin:0 0 4px">${escapeHtml(slot)}</li>`).join('');
+  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p><p style="margin:0 0 14px">A <strong>${escapeHtml(input.company)}</strong> quer marcar uma entrevista ${input.mode === 'ONLINE' ? 'online' : 'presencial'} com você para a vaga <strong>${escapeHtml(input.jobTitle)}</strong> (cerca de ${input.durationMinutes} min). Escolha o horário que fica melhor:</p><ul style="margin:0 0 16px;padding-left:20px;font-weight:600">${list}</ul>${note(input.message)}<p style="margin:0 0 16px">${button('Escolher meu horário', input.url)}</p><p style="margin:0;font-size:12px;color:#6b6478">Os horários ficam disponíveis até ${escapeHtml(input.expires)}. Depois de escolher, você recebe a confirmação com ${input.mode === 'ONLINE' ? 'o link da reunião' : 'o endereço'}.</p>`;
+  return {
+    subject: `Escolha o horário da sua entrevista: ${input.jobTitle}`,
+    html: portalLayout('Escolha o horário da entrevista', body),
+    text: `Olá, ${input.name}.\n\nA ${input.company} quer marcar uma entrevista para a vaga ${input.jobTitle}. Horários:\n${input.slots.map((slot) => `- ${slot}`).join('\n')}\n\nEscolha aqui: ${input.url}\nDisponível até ${input.expires}.`,
+  };
+}
+
+/** Proposta de emprego enviada ao candidato, com aceite online. */
+export function jobOfferEmail(input: { name: string; company: string; positionTitle: string; url: string; expires?: string | null; message?: string | null }): MailContent {
+  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p><p style="margin:0 0 14px">Temos uma ótima notícia: a <strong>${escapeHtml(input.company)}</strong> preparou uma proposta para você ocupar a vaga de <strong>${escapeHtml(input.positionTitle)}</strong>.</p>${note(input.message)}<p style="margin:0 0 16px">${button('Ver a proposta', input.url)}</p><p style="margin:0;font-size:12px;color:#6b6478">Na página você vê salário, benefícios, data de início e pode aceitar ou recusar.${input.expires ? ` A proposta vale até ${escapeHtml(input.expires)}.` : ''}</p>`;
+  return {
+    subject: `Proposta de emprego: ${input.positionTitle} · ${input.company}`,
+    html: portalLayout('Você recebeu uma proposta', body),
+    text: `Olá, ${input.name}.\n\nA ${input.company} preparou uma proposta para a vaga ${input.positionTitle}.\nVeja e responda: ${input.url}${input.expires ? `\nVálida até ${input.expires}.` : ''}`,
+  };
+}
+
+/** Teste online (tecnico ou comportamental). */
+export function assessmentInviteEmail(input: { name: string; company: string; jobTitle: string; kind: 'TECHNICAL' | 'BEHAVIORAL'; title: string; url: string; expires: string; minutes?: number | null }): MailContent {
+  const what = input.kind === 'BEHAVIORAL'
+    ? 'um questionário rápido sobre seu jeito de trabalhar. Não existe resposta certa ou errada: responda como você é no dia a dia.'
+    : `o teste <strong>${escapeHtml(input.title)}</strong>${input.minutes ? ` (tempo: ${input.minutes} min a partir do início)` : ''}. Escolha um momento tranquilo para fazer.`;
+  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p><p style="margin:0 0 14px">Sua candidatura para <strong>${escapeHtml(input.jobTitle)}</strong> na ${escapeHtml(input.company)} avançou. O próximo passo é ${what}</p><p style="margin:0 0 16px">${button(input.kind === 'BEHAVIORAL' ? 'Responder questionário' : 'Fazer o teste', input.url)}</p><p style="margin:0;font-size:12px;color:#6b6478">O link vale até ${escapeHtml(input.expires)} e só pode ser respondido uma vez.</p>`;
+  return {
+    subject: `${input.kind === 'BEHAVIORAL' ? 'Questionário' : 'Teste'} da sua candidatura: ${input.jobTitle}`,
+    html: portalLayout(input.kind === 'BEHAVIORAL' ? 'Conte como você trabalha' : 'Hora do teste', body),
+    text: `Olá, ${input.name}.\n\nSua candidatura para ${input.jobTitle} na ${input.company} avançou. Acesse: ${input.url}\nVálido até ${input.expires}.`,
+  };
+}
+
+/** Aviso para quem conduz o processo (RH/recrutador): resposta do candidato, proposta para aprovar etc. */
+export function recruiterNoticeEmail(input: { title: string; lines: string[]; url?: string | null; cta?: string }): MailContent {
+  const body = `${input.lines.map((line) => `<p style="margin:0 0 10px">${escapeHtml(line)}</p>`).join('')}${input.url ? `<p style="margin:16px 0 0">${button(input.cta ?? 'Abrir no Innovation', input.url)}</p>` : ''}`;
+  return {
+    subject: input.title,
+    html: layout(input.title, body),
+    text: `${input.lines.join('\n')}${input.url ? `\n\n${input.url}` : ''}`,
   };
 }
