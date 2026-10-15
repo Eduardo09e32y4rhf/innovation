@@ -3,10 +3,10 @@
 import { ArrowUpRight, Briefcase, CalendarClock, Check, Copy, ExternalLink, MapPin, Plus, QrCode, Search, Settings2, Users, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
-import { Button, ConfirmDialog, Modal, PageHeader } from '@/app/components/ui';
+import { Button, Modal, PageHeader } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
@@ -22,7 +22,7 @@ const STATUS_TONE = { OPEN: 'success', DRAFT: 'warning', CLOSED: 'default', PEND
 const STATUS_FILTERS: { value: JobStatus | ''; label: string }[] = [
   { value: '', label: 'Todas' }, { value: 'OPEN', label: 'Abertas' },
   { value: 'PENDING_APPROVAL', label: 'Em aprovação' }, { value: 'PAUSED', label: 'Pausadas' }, { value: 'FILLED', label: 'Preenchidas' },
-  { value: 'DRAFT', label: 'Rascunhos' }, { value: 'CLOSED', label: 'Encerradas' },
+  { value: 'DRAFT', label: 'Rascunhos' }, { value: 'CLOSED', label: 'Arquivadas' },
 ];
 const errorMessage = (cause: unknown) => cause instanceof ApiError ? cause.message : 'Não foi possível concluir a ação.';
 
@@ -117,12 +117,7 @@ export default function JobsPage() {
         )}
       </Modal>
       <JobShareDialog job={sharing} isOpen={Boolean(sharing)} onClose={() => setSharing(null)} />
-      <ConfirmDialog isOpen={!!toDelete} onClose={() => setToDelete(null)} title="Excluir vaga" description={toDelete && (toDelete._count?.applications ?? 0) > 0 ? 'Esta vaga tem candidaturas. Ela será encerrada e o histórico dos candidatos, preservado.' : 'A vaga será removida definitivamente.'} confirmText="Excluir vaga" onConfirm={async () => {
-        if (!toDelete) return;
-        const job = toDelete;
-        try { await jobsApi.remove(job.id); setToDelete(null); toast.success('Vaga removida ou encerrada conforme suas candidaturas.'); jobs.refetch(); stats.refetch(); }
-        catch (cause) { toast.error(errorMessage(cause)); }
-      }} />
+      <DeleteJobDialog job={toDelete} onClose={() => setToDelete(null)} onDone={(message) => { setToDelete(null); toast.success(message); jobs.refetch(); stats.refetch(); }} />
     </div>
   );
 }
@@ -163,4 +158,45 @@ function StatusActions({ job, busy, onRun }: { job: Job; busy: boolean; onRun: (
   if (job.status === 'PAUSED') return <>{set('OPEN', 'Vaga retomada.', 'Retomar')}{set('CLOSED', 'Vaga encerrada.', 'Encerrar')}</>;
   if (job.status === 'CLOSED' || job.status === 'FILLED') return set('OPEN', 'Vaga reativada (não conta como vaga nova no plano).', 'Reativar');
   return set('OPEN', 'Vaga enviada para publicação.', 'Publicar');
+}
+
+/** Excluir vaga: arquivar (reversivel por 30 dias) ou excluir de vez (apaga tudo, pede confirmacao digitada). */
+function DeleteJobDialog({ job, onClose, onDone }: { job: Job | null; onClose: () => void; onDone: (message: string) => void }) {
+  const [busy, setBusy] = useState<'archive' | 'permanent' | null>(null);
+  const [typed, setTyped] = useState('');
+  useEffect(() => { setTyped(''); setBusy(null); }, [job?.id]);
+  if (!job) return null;
+  const applications = job._count?.applications ?? 0;
+  const closed = job.status === 'CLOSED' || job.status === 'FILLED';
+  const needsTyping = applications > 0;
+  const confirmed = !needsTyping || typed.trim().toUpperCase() === 'EXCLUIR';
+  async function go(mode: 'archive' | 'permanent') {
+    if (busy) return;
+    setBusy(mode);
+    try {
+      await jobsApi.remove(job!.id, mode);
+      onDone(mode === 'permanent' ? 'Vaga excluída permanentemente.' : 'Vaga arquivada. Ela saiu das abertas e pode ser reativada em até 30 dias.');
+    } catch (cause) { toast.error(errorMessage(cause)); setBusy(null); }
+  }
+  return (
+    <Modal isOpen onClose={busy ? () => undefined : onClose} title="O que fazer com esta vaga?" description={job.title} maxWidth="max-w-lg">
+      <div className="space-y-3">
+        {!closed && (
+          <div className="rounded-xl border border-border p-4">
+            <p className="font-semibold text-fg">Arquivar</p>
+            <p className="mt-1 text-sm text-fg-sub">A vaga sai de &quot;Abertas&quot; e deixa de receber candidatos. Candidaturas e histórico ficam guardados e você pode reativá-la em até 30 dias, sem contar como vaga nova no plano.</p>
+            <Button className="mt-3" variant="outline" isLoading={busy === 'archive'} disabled={Boolean(busy)} onClick={() => go('archive')}>Arquivar vaga</Button>
+          </div>
+        )}
+        {closed && <p className="rounded-xl bg-bg-sub p-3 text-sm text-fg-sub">Esta vaga já está arquivada. Para voltar a usá-la, use &quot;Reativar&quot; no cartão (até 30 dias depois de encerrada).</p>}
+        <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-4">
+          <p className="font-semibold text-rose-800">Excluir permanentemente</p>
+          <p className="mt-1 text-sm text-rose-900">Apaga a vaga{applications > 0 ? `, as ${applications} candidatura(s)` : ''}, avaliações, entrevistas, currículos e documentos. <strong>Não tem como desfazer.</strong> Vaga com candidato contratado não pode ser excluída de vez.</p>
+          {needsTyping && <label className="mt-3 block text-sm font-medium text-rose-900">Digite <strong>EXCLUIR</strong> para confirmar<input className="input-v2 mt-1 w-full" value={typed} onChange={(event) => setTyped(event.target.value)} autoComplete="off" /></label>}
+          <Button className="mt-3" variant="danger" isLoading={busy === 'permanent'} disabled={Boolean(busy) || !confirmed} onClick={() => go('permanent')}>Excluir de vez</Button>
+        </div>
+        <div className="flex justify-end"><Button variant="ghost" onClick={onClose} disabled={Boolean(busy)}>Cancelar</Button></div>
+      </div>
+    </Modal>
+  );
 }

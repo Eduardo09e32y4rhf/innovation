@@ -154,15 +154,27 @@ export class JobsService {
     return { titles };
   }
 
-  async delete(companyId: string, id: string) {
+  /**
+   * Arquivar (padrao): encerra a vaga, sai das abertas e pode ser reativada em ate 30 dias; candidaturas preservadas.
+   * Permanente: apaga a vaga, candidaturas, avaliacoes, entrevistas e arquivos. Nao tem volta; bloqueia se houver contratado.
+   */
+  async delete(companyId: string, id: string, actorId?: string, mode: 'archive' | 'permanent' = 'archive') {
     const job = await this.get(companyId, id);
-    if (job._count.applications > 0) {
-      await this.repository.update(companyId, id, { status: 'CLOSED', closedAt: new Date() });
-      return { deleted: false, archived: true };
+    if (mode === 'permanent') {
+      const plan = await this.repository.permanentDeletePlan(companyId, id);
+      if (plan.hired > 0) throw new BadRequestException('Esta vaga tem candidato contratado e não pode ser excluída de vez, para manter o histórico da admissão. Arquive a vaga.');
+      const result = await this.repository.delete(companyId, id);
+      if (!result.count) throw new NotFoundException('Vaga nao encontrada.');
+      for (const key of [...plan.resumeKeys, ...plan.documentKeys]) await this.storage.remove(key).catch(() => undefined);
+      if (actorId) await this.repository.audit(companyId, actorId, 'JOB_DELETED_PERMANENTLY', id, { title: job.title, applications: job._count.applications }).catch(() => undefined);
+      return { deleted: true, archived: false };
     }
-    const result = await this.repository.delete(companyId, id);
-    if (!result.count) throw new NotFoundException('Vaga nao encontrada.');
-    return { deleted: true };
+    if (job._count.applications === 0 && job.status === 'DRAFT') {
+      await this.repository.delete(companyId, id);
+      return { deleted: true, archived: false };
+    }
+    if (job.status !== 'CLOSED' && job.status !== 'FILLED') await this.repository.update(companyId, id, { status: 'CLOSED', closedAt: new Date() });
+    return { deleted: false, archived: true };
   }
 
   async hire(companyId: string, applicationId: string, actorId: string, dto: HireCandidateDto) {

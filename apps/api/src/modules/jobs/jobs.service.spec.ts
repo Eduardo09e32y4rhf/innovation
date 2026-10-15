@@ -10,8 +10,10 @@ function setup() {
     update: vi.fn(),
     delete: vi.fn(),
     hire: vi.fn(),
+    permanentDeletePlan: vi.fn(),
+    audit: vi.fn().mockResolvedValue({}),
   } as any;
-  const storage = {} as any;
+  const storage = { remove: vi.fn().mockResolvedValue(undefined) } as any;
   return { service: new JobsService(repository, storage, {} as any, {} as any, {} as any, { sendHireWelcome: vi.fn() } as any), repository };
 }
 
@@ -64,6 +66,31 @@ describe('JobsService', () => {
     });
     expect(repository.delete).not.toHaveBeenCalled();
     expect(repository.update).toHaveBeenCalledWith('company-1', 'job-1', { status: 'CLOSED', closedAt: expect.any(Date) });
+  });
+
+  it('exclusão permanente apaga a vaga, os arquivos e registra auditoria', async () => {
+    const { service, repository } = setup();
+    repository.find.mockResolvedValue({ id: 'job-1', title: 'Vaga', _count: { applications: 2 } });
+    repository.permanentDeletePlan.mockResolvedValue({ hired: 0, resumeKeys: ['r1'], documentKeys: ['d1'] });
+    repository.delete.mockResolvedValue({ count: 1 });
+    await expect(service.delete('company-1', 'job-1', 'user-1', 'permanent')).resolves.toEqual({ deleted: true, archived: false });
+    expect(repository.delete).toHaveBeenCalledWith('company-1', 'job-1');
+    expect(repository.audit).toHaveBeenCalledWith('company-1', 'user-1', 'JOB_DELETED_PERMANENTLY', 'job-1', expect.any(Object));
+  });
+
+  it('exclusão permanente é bloqueada quando há contratado', async () => {
+    const { service, repository } = setup();
+    repository.find.mockResolvedValue({ id: 'job-1', title: 'Vaga', _count: { applications: 2 } });
+    repository.permanentDeletePlan.mockResolvedValue({ hired: 1, resumeKeys: [], documentKeys: [] });
+    await expect(service.delete('company-1', 'job-1', 'user-1', 'permanent')).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.delete).not.toHaveBeenCalled();
+  });
+
+  it('arquivar vaga já encerrada não muda a data de encerramento', async () => {
+    const { service, repository } = setup();
+    repository.find.mockResolvedValue({ id: 'job-1', status: 'CLOSED', _count: { applications: 1 } });
+    await expect(service.delete('company-1', 'job-1')).resolves.toEqual({ deleted: false, archived: true });
+    expect(repository.update).not.toHaveBeenCalled();
   });
 
   it('does not expose the internal resume storage key', async () => {

@@ -23,9 +23,8 @@ html,body{margin:0;background:#e9e5f0}body{font-family:'Plus Jakarta Sans','Sego
 .hero{position:absolute;inset:0 0 auto 0;height:188mm;color:#fff;overflow:hidden;background:radial-gradient(900px 600px at 78% 8%,#7c4ae6 0%,rgba(124,74,230,0) 60%),linear-gradient(160deg,#1b0f4a 0%,#2a1470 55%,#120a33 100%)}
 .stripe{position:absolute;top:-20mm;bottom:-20mm;width:34mm;transform:skewX(-18deg);background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.02))}
 .grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:100% 24mm}
-.top{position:absolute;left:18mm;right:18mm;top:15mm;display:flex;justify-content:space-between;align-items:center}
-.brand{font-weight:800;font-size:23px;letter-spacing:-.6px}.brand i{font-style:normal;color:#b79cff}
-.company{font-size:12px;letter-spacing:4px;text-transform:uppercase;font-weight:700;opacity:.85;text-align:right}
+.top{position:absolute;left:18mm;right:18mm;top:15mm}
+.company span{display:inline-block;background:#fff;color:#2a1470;border-radius:14px;padding:12px 26px;font-size:26px;font-weight:800;letter-spacing:-.6px;box-shadow:0 8px 28px rgba(0,0,0,.25)}
 .copy{position:absolute;left:18mm;right:18mm;top:50mm}
 .tag{display:flex;align-items:center;gap:14px;font-size:13px;letter-spacing:5px;text-transform:uppercase;font-weight:700;opacity:.95}.tag:before{content:"";width:18mm;height:2px;background:#9b7bff}
 h1{margin:9mm 0 9mm;font-size:${size}px;line-height:.98;font-weight:800;letter-spacing:-3px;max-width:165mm}
@@ -42,14 +41,14 @@ h1 em{display:block;font-family:'Instrument Serif',Georgia,'Times New Roman',ser
 .qrbox{width:78mm;flex:none;text-align:center}.qr{background:#f6f2ff;border:1.5px solid #e4dcef;border-radius:28px;padding:14px;box-shadow:0 14px 40px rgba(76,29,149,.16)}
 .qr img{display:block;width:100%;aspect-ratio:1;border-radius:14px}.cap{margin-top:12px;font-size:13px;letter-spacing:1.2px;color:#5b5473;font-weight:700;text-transform:uppercase}
 .foot{display:flex;justify-content:space-between;align-items:center;border-top:1.5px solid #ece7f5;padding:6mm 0 9mm;font-size:13px;color:#5b5473;font-weight:600}
-.foot strong{color:#1e1145;font-size:17px;letter-spacing:-.4px;font-weight:800}.foot strong i{font-style:normal;color:#7240da}
+.foot .mark{display:flex;align-items:baseline;gap:6px;color:#5b5473}.foot strong{color:#1e1145;font-size:17px;letter-spacing:-.4px;font-weight:800}.foot strong i{font-style:normal;color:#7240da}
 @media screen{.page{margin:0 auto}}
 </style></head><body><div class="page">
 <div class="hero"><div class="grid"></div>${[28, 68, 108, 148, 188].map((x, i) => `<div class="stripe" style="left:${x}mm;opacity:${i === 2 ? 1 : 0.7}"></div>`).join('')}
-<div class="top"><div class="brand">innovation<i>.</i></div>${company ? `<div class="company">${esc(company)}</div>` : ''}</div>
+${company ? `<div class="top"><div class="company"><span>${esc(company)}</span></div></div>` : ''}
 <div class="copy"><div class="tag">${tag}</div><h1>${head}${last ? `<em>${esc(last)}</em>` : ''}</h1>${meta.length ? `<div class="chips">${meta.map((item) => `<span>${esc(item)}</span>`).join('')}</div>` : ''}</div></div>
 <div class="sheet"><div class="bar"></div><div class="cols"><div class="left"><p class="cta">Candidate-se <em>agora</em></p><p class="hint">${sub}</p>${steps.map((text, i) => `<div class="step"><b>0${i + 1}</b><span>${text}</span></div>`).join('')}</div>
 <div class="qrbox"><div class="qr"><img src="${qr}" alt="QR code"/></div><div class="cap">Escaneie e candidate-se</div></div></div>
-<div class="foot"><span><strong>innovation<i>.</i></strong> connect RH · Carreiras</span><span>innovationia.com.br</span></div></div>
+<div class="foot"><span>innovationia.com.br</span><span class="mark"><strong>innovation<i>.</i></strong> connect RH</span></div></div>
 </div><script>(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>setTimeout(()=>window.print(),500))</script></body></html>`;
 }

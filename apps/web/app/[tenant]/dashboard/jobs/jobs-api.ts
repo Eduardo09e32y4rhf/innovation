@@ -73,7 +73,7 @@ export const jobsApi = {
   titleSuggestions: () => request<{ titles: { title: string; source: 'company' | 'job'; department?: string | null }[] }>('/jobs/title-suggestions'),
   create: (payload: JobPayload) => request<Job>('/jobs', { method: 'POST', body: payload }),
   update: (id: string, payload: Partial<JobPayload>) => request<Job>(`/jobs/${enc(id)}`, { method: 'PATCH', body: payload }),
-  remove: (id: string) => request<{ deleted: boolean; archived?: boolean }>(`/jobs/${enc(id)}`, { method: 'DELETE' }),
+  remove: (id: string, mode: 'archive' | 'permanent' = 'archive') => request<{ deleted: boolean; archived?: boolean }>(`/jobs/${enc(id)}?mode=${mode}`, { method: 'DELETE' }),
   duplicate: (id: string) => request<Job>(`/jobs/${enc(id)}/duplicate`, { method: 'POST', body: {} }),
 
   internalJobs: () => request<InternalJob[]>('/internal-jobs'),

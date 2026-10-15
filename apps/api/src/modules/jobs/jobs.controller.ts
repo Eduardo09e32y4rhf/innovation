@@ -1,6 +1,7 @@
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import {
   Body,
+  Query,
   Controller,
   Delete,
   Get,
@@ -75,9 +76,9 @@ export class JobsController {
   /** Gestor acompanha e avalia; criar, editar, excluir e duplicar vaga e com RH. */
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Delete(':id')
-  async delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  async delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Query('mode') mode?: string) {
     await this.scope.assertJob(companyId, actor, id);
-    return this.service.delete(companyId, id);
+    return this.service.delete(companyId, id, actor.sub, mode === 'permanent' ? 'permanent' : 'archive');
   }
 
   /** Gestor acompanha e avalia; criar, editar, excluir e duplicar vaga e com RH. */

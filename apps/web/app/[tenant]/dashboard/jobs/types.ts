@@ -218,7 +218,7 @@ export interface HirePayload {
 
 export const JOB_STATUS_LABEL: Record<JobStatus, string> = {
   OPEN: 'Aberta',
-  CLOSED: 'Encerrada',
+  CLOSED: 'Arquivada',
   DRAFT: 'Rascunho',
   PENDING_APPROVAL: 'Aguardando aprovação',
   PAUSED: 'Pausada',
