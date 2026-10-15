@@ -166,6 +166,7 @@ export class RecruitmentController {
     return this.service.getQuestions(companyId, jobId);
   }
 
+  @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Put(':jobId/questions')
   async saveQuestions(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string, @Body() dto: SaveQuestionsDto) {
     await this.scope.assertJob(companyId, actor, jobId);
@@ -178,6 +179,7 @@ export class RecruitmentController {
     return this.service.getCriteria(companyId, jobId);
   }
 
+  @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Put(':jobId/criteria')
   async saveCriteria(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string, @Body() dto: SaveCriteriaDto) {
     await this.scope.assertJob(companyId, actor, jobId);

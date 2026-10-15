@@ -107,3 +107,62 @@ export function interviewerLabel(role: string | null | undefined, name: string |
 }
 
 export { meetingProvider };
+
+const icsText = (value: string) => String(value ?? '').replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+
+/** Linhas do .ics tem no maximo 75 bytes; o resto continua na linha seguinte comecando com espaco. */
+function foldIcs(line: string): string {
+  const bytes = Buffer.from(line, 'utf8');
+  if (bytes.length <= 75) return line;
+  const parts: string[] = [];
+  let current = '';
+  for (const char of line) {
+    if (Buffer.byteLength(current + char, 'utf8') > (parts.length ? 74 : 75)) { parts.push(current); current = ''; }
+    current += char;
+  }
+  parts.push(current);
+  return parts.join('\r\n ');
+}
+
+/**
+ * Convite de agenda (.ics) anexado ao e-mail: Gmail, Outlook e iPhone mostram "Adicionar a agenda" e tratam o
+ * cancelamento (mesmo UID com METHOD:CANCEL). Sem integracao paga nem login no Google/Microsoft.
+ */
+export function buildInterviewIcs(input: {
+  uid: string; start: Date; minutes: number; title: string; description: string; location?: string | null; url?: string | null;
+  organizerEmail?: string | null; attendeeEmail?: string | null; cancel?: boolean; sequence?: number;
+}): string {
+  const end = new Date(input.start.getTime() + input.minutes * 60_000);
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Innovation RH//Entrevistas//PT-BR',
+    'CALSCALE:GREGORIAN',
+    `METHOD:${input.cancel ? 'CANCEL' : 'REQUEST'}`,
+    'BEGIN:VEVENT',
+    `UID:${input.uid}@innovationia.com.br`,
+    `SEQUENCE:${input.sequence ?? (input.cancel ? 1 : 0)}`,
+    `DTSTAMP:${icsStamp(new Date())}`,
+    `DTSTART:${icsStamp(input.start)}`,
+    `DTEND:${icsStamp(end)}`,
+    `SUMMARY:${icsText(input.title)}`,
+    `DESCRIPTION:${icsText(input.description)}`,
+    ...(input.location ? [`LOCATION:${icsText(input.location)}`] : []),
+    ...(input.url ? [`URL:${input.url}`] : []),
+    ...(input.organizerEmail ? [`ORGANIZER;CN=Innovation RH:mailto:${input.organizerEmail}`] : []),
+    ...(input.attendeeEmail ? [`ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=FALSE:mailto:${input.attendeeEmail}`] : []),
+    `STATUS:${input.cancel ? 'CANCELLED' : 'CONFIRMED'}`,
+    ...(input.cancel ? [] : ['BEGIN:VALARM', 'TRIGGER:-PT60M', 'ACTION:DISPLAY', `DESCRIPTION:${icsText(input.title)}`, 'END:VALARM']),
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ];
+  return lines.map(foldIcs).join('\r\n') + '\r\n';
+}
+
+/** Endereco puro do remetente (MAIL_FROM pode vir como "Nome <email>"). */
+export function mailFromAddress(): string | null {
+  const raw = process.env.MAIL_FROM ?? '';
+  const match = raw.match(/<([^>]+)>/);
+  const address = (match ? match[1] : raw).trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address) ? address : null;
+}

@@ -175,7 +175,8 @@ export default function JobCandidatesPage() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          {canEdit && job.data?.status === 'OPEN' && <Link href={`${base}/talentos?vaga=${jobId}`} className="btn btn-outline btn-md">Buscar talentos</Link>}
+          {['DEV', 'ADMIN', 'RH'].includes(role) && job.data?.status === 'OPEN' && <Link href={`${base}/talentos?vaga=${jobId}`} className="btn btn-outline btn-md">Buscar talentos</Link>}
+          {canEdit && <Link href={`${base}/${jobId}/teste`} className="btn btn-outline btn-md">Teste técnico</Link>}
           {canEdit && <Link href={`${base}/${jobId}/edit`} className="btn btn-outline btn-md"><Pencil size={16} aria-hidden="true" /> Editar vaga</Link>}
           {jobData?.isInternal && jobData.lifecycle?.acceptsApplications && <Button variant="outline" onClick={() => setInternalOpen(true)}><UserPlus size={16} aria-hidden="true" /> Adicionar candidato interno</Button>}
           {jobData && !jobData.isInternal && <Button variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(`${window.location.origin}/carreiras/${jobData.companyId}/${jobData.id}`); toast.success('Link público copiado.'); } catch { toast.error('Não foi possível copiar.'); } }}><Copy size={16} aria-hidden="true" /> Copiar link</Button>}
@@ -222,7 +223,7 @@ export default function JobCandidatesPage() {
 
       <CandidateDrawer applicationId={openId} pipeline={movablePipeline} tags={tags.data ?? []} onClose={() => setOpenId(null)} onChanged={refresh} onRequestMove={moveOne} />
       <RejectDialog isOpen={Boolean(reject)} count={reject?.ids.length ?? 0} onClose={() => setReject(null)} onConfirm={confirmReject} />
-      <HireDialog isOpen={Boolean(hire)} name={hire?.name ?? ''} onClose={() => setHire(null)} onConfirm={confirmHire} />
+      <HireDialog isOpen={Boolean(hire)} name={hire?.name ?? ''} applicationId={hire?.id ?? null} onClose={() => setHire(null)} onConfirm={confirmHire} />
       <InterviewDialog isOpen={Boolean(interviewMove)} applicationId={interviewMove?.id ?? null} candidateName={interviewMove?.name ?? 'Candidato'} title={`Mover para ${interviewMove?.stageName ?? 'Entrevista'} e agendar`} onClose={() => setInterviewMove(null)} onSubmit={confirmInterview} onSkip={moveWithoutInterview} />
     </div>
   );

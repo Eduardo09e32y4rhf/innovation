@@ -14,20 +14,28 @@ import { EMPLOYMENT_TYPE_LABEL, WORK_MODE_LABEL, salaryLabel, type Criterion, ty
 import { Field, Pill, SectionCard, inputClass } from './bits';
 import { QuestionEditor } from './question-editor';
 
+const GUIDE_TEMPLATE = [
+  'Conte um pouco da sua trajetória e do que você faz hoje.',
+  'Por que esta vaga chamou sua atenção?',
+  'Conte uma situação difícil no trabalho e como você resolveu.',
+  'Como você organiza seu dia quando tem muitas tarefas ao mesmo tempo?',
+  'O que um gestor precisa saber para tirar o melhor de você?',
+  'Qual sua disponibilidade de início e pretensão salarial?',
+].join('\n');
 const STEPS = ['Básico', 'Descrição', 'Condições', 'Formulário', 'Avaliação', 'Revisão'] as const;
 const EMPLOYMENT_OPTIONS = ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO', 'JOVEM_APRENDIZ'];
 const SENIORITY = ['Estágio', 'Júnior', 'Pleno', 'Sênior', 'Especialista', 'Liderança'];
 
 interface Draft {
   title: string; department: string; location: string; workMode: string; employmentType: string; seniority: string; openings: number;
-  description: string; requirementsText: string; benefitsText: string;
+  description: string; requirementsText: string; benefitsText: string; interviewGuideText: string;
   salaryMin: string; salaryMax: string; salaryHidden: boolean; deadline: string; status: JobStatus; isInternal: boolean; confidential: boolean;
   questions: Question[]; criteria: Criterion[];
 }
 
 const EMPTY: Draft = {
   title: '', department: '', location: '', workMode: '', employmentType: 'CLT', seniority: '', openings: 1,
-  description: '', requirementsText: '', benefitsText: '',
+  description: '', requirementsText: '', benefitsText: '', interviewGuideText: '',
   salaryMin: '', salaryMax: '', salaryHidden: false, deadline: '', status: 'DRAFT', isInternal: false, confidential: false,
   questions: [], criteria: [],
 };
@@ -75,7 +83,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
         const loaded: Draft = {
           title: job.title, department: job.department ?? '', location: job.location ?? '', workMode: job.workMode ?? '',
           employmentType: job.employmentType ?? '', seniority: job.seniority ?? '', openings: job.openings ?? 1,
-          description: job.description, requirementsText: (job.requirements ?? []).join('\n'), benefitsText: (job.benefits ?? []).join('\n'),
+          description: job.description, requirementsText: (job.requirements ?? []).join('\n'), benefitsText: (job.benefits ?? []).join('\n'), interviewGuideText: ((job as { interviewGuide?: string[] }).interviewGuide ?? []).join('\n'),
           salaryMin: job.salaryMin != null ? String(job.salaryMin) : '', salaryMax: job.salaryMax != null ? String(job.salaryMax) : '',
           salaryHidden: job.salaryHidden, deadline: job.deadline ? job.deadline.slice(0, 10) : '', status: job.status, isInternal: Boolean(job.isInternal), confidential: Boolean((job as { confidential?: boolean }).confidential),
           questions: questions.map(({ id, label, type, required, options, knockout, scoreRule }) => ({ id, label, type, required, options: options ?? [], knockout: knockout ?? null, scoreRule: scoreRule ?? null })),
@@ -106,12 +114,13 @@ export function JobWizard({ jobId }: { jobId?: string }) {
     try {
       const payload = {
         title: draft.title.trim(), description: draft.description.trim(),
-        department: draft.department.trim() || undefined, location: draft.location.trim() || undefined,
-        workMode: draft.workMode || undefined, employmentType: draft.employmentType || undefined, seniority: draft.seniority || undefined,
+        // null (e nao undefined) para o campo apagado na edicao ser limpo no banco.
+        department: draft.department.trim() || null, location: draft.location.trim() || null,
+        workMode: draft.workMode || null, employmentType: draft.employmentType || null, seniority: draft.seniority || null,
         openings: Math.max(1, Number(draft.openings) || 1),
-        requirements: lines(draft.requirementsText), benefits: lines(draft.benefitsText),
+        requirements: lines(draft.requirementsText), benefits: lines(draft.benefitsText), interviewGuide: lines(draft.interviewGuideText).slice(0, 30),
         // A API guarda salário em reais inteiros: aceita "4500,50" ou "4500.5" sem dar erro e arredonda.
-        salaryMin: toWholeReais(draft.salaryMin), salaryMax: toWholeReais(draft.salaryMax),
+        salaryMin: toWholeReais(draft.salaryMin) ?? null, salaryMax: toWholeReais(draft.salaryMax) ?? null,
         salaryHidden: draft.salaryHidden, deadline: draft.deadline || null, status, isInternal: draft.isInternal, confidential: draft.confidential,
       };
       const saved = jobId ? await jobsApi.update(jobId, payload) : await jobsApi.create(payload);
@@ -219,6 +228,14 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                   </li>
                 ))}
               </ul>
+            </SectionCard>
+          )}
+          {step === 4 && (
+            <SectionCard title="Roteiro de entrevista" description="Perguntas que quem entrevista deve fazer (uma por linha). Aparecem na ficha do candidato e na hora de avaliar a entrevista." actions={
+              !draft.interviewGuideText.trim() ? <Button variant="outline" size="sm" onClick={() => set('interviewGuideText', GUIDE_TEMPLATE)}>Usar modelo</Button> : undefined
+            }>
+              <textarea className={`${inputClass} min-h-36`} aria-label="Roteiro de entrevista" value={draft.interviewGuideText} placeholder={'Conte sobre uma situação difícil no trabalho e como resolveu.\nPor que você quer trabalhar aqui?'} onChange={(event) => set('interviewGuideText', event.target.value)} />
+              {jobId ? <p className="text-sm text-fg-sub">Quer aplicar um teste técnico com nota de corte? <Link className="font-semibold text-brand-700 underline" href={`${base}/${jobId}/teste`}>Montar teste técnico</Link></p> : <p className="text-sm text-fg-sub">Depois de salvar a vaga, você pode montar o teste técnico dela.</p>}
             </SectionCard>
           )}
 

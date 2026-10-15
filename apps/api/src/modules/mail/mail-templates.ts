@@ -1,5 +1,7 @@
 /** Templates de e-mail transacional (HTML simples, compatível com clientes antigos + versão texto). */
-export interface MailContent { subject: string; html: string; text: string }
+/** Anexo de texto (ex.: convite de agenda .ics). SES simples nao leva anexo: o e-mail sai sem ele. */
+export interface MailAttachment { filename: string; content: string; contentType: string }
+export interface MailContent { subject: string; html: string; text: string; attachments?: MailAttachment[] }
 
 const BRAND = '#8b00c5';
 export const escapeHtml = (value: string) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] as string));

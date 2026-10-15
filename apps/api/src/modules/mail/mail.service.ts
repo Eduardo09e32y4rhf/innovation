@@ -59,7 +59,10 @@ export class MailService {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: process.env.MAIL_FROM, to: [to], subject: content.subject, html: content.html, text: content.text }),
+      body: JSON.stringify({
+        from: process.env.MAIL_FROM, to: [to], subject: content.subject, html: content.html, text: content.text,
+        ...(content.attachments?.length ? { attachments: content.attachments.map((file) => ({ filename: file.filename, content: Buffer.from(file.content, 'utf8').toString('base64'), content_type: file.contentType })) } : {}),
+      }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`Resend ${response.status}: ${(await response.text()).slice(0, 200)}`);
@@ -74,7 +77,10 @@ export class MailService {
       connectionTimeout: 8000,
       socketTimeout: 12000,
     });
-    await this.transporter.sendMail({ from: process.env.MAIL_FROM, to, subject: content.subject, html: content.html, text: content.text });
+    await this.transporter.sendMail({
+      from: process.env.MAIL_FROM, to, subject: content.subject, html: content.html, text: content.text,
+      attachments: content.attachments?.map((file) => ({ filename: file.filename, content: file.content, contentType: file.contentType })),
+    });
   }
 
   private async viaSes(to: string, content: MailContent) {

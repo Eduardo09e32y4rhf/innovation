@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button, Modal } from '@/app/components/ui';
 import { Field, inputClass } from './bits';
 import type { HirePayload } from '../types';
+import { processApi } from '../process-api';
 
 /** Motivos padronizados de reprovação (mesma lista do servidor): permitem relatório por motivo. */
 export const REJECTION_CODE_LIST: Array<[string, string]> = [['PERFIL', 'Perfil não aderente à vaga'], ['EXPERIENCIA', 'Experiência insuficiente'], ['SALARIO', 'Pretensão salarial acima da faixa'], ['LOCALIZACAO', 'Localização incompatível'], ['DISPONIBILIDADE', 'Disponibilidade incompatível'], ['COMPORTAMENTAL', 'Perfil comportamental não aderente'], ['DESISTENCIA', 'Candidato desistiu'], ['VAGA_CANCELADA', 'Vaga cancelada ou preenchida'], ['OUTRO', 'Outro motivo']];
@@ -41,11 +42,31 @@ export function RejectDialog({
 }
 
 export function HireDialog({
-  isOpen, name, onClose, onConfirm,
-}: { isOpen: boolean; name: string; onClose: () => void; onConfirm: (payload: HirePayload) => Promise<void> }) {
+  isOpen, name, applicationId, onClose, onConfirm,
+}: { isOpen: boolean; name: string; applicationId?: string | null; onClose: () => void; onConfirm: (payload: HirePayload) => Promise<void> }) {
   const [form, setForm] = useState({ department: '', contractType: 'CLT', admissionDate: '', salary: '' });
+  const [fromOffer, setFromOffer] = useState(false);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (isOpen) setForm({ department: '', contractType: 'CLT', admissionDate: '', salary: '' }); }, [isOpen]);
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm({ department: '', contractType: 'CLT', admissionDate: '', salary: '' });
+    setFromOffer(false);
+    if (!applicationId) return;
+    let alive = true;
+    // Proposta aceita: contrato, salario e inicio ja vem preenchidos (o RH so confere e informa o departamento).
+    processApi.offers(applicationId).then((offers) => {
+      const accepted = offers.find((offer) => offer.status === 'ACCEPTED');
+      if (!alive || !accepted) return;
+      setFromOffer(true);
+      setForm((current) => ({
+        ...current,
+        contractType: accepted.contractType === 'APRENDIZ' ? 'JOVEM_APRENDIZ' : ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO'].includes(accepted.contractType) ? accepted.contractType : current.contractType,
+        admissionDate: accepted.startDate ? accepted.startDate.slice(0, 10) : current.admissionDate,
+        salary: accepted.salary !== null ? String(accepted.salary) : current.salary,
+      }));
+    }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [isOpen, applicationId]);
   const valid = form.department.trim() && form.contractType && form.admissionDate;
 
   async function submit() {
@@ -58,6 +79,7 @@ export function HireDialog({
 
   return (
     <Modal isOpen={isOpen} onClose={busy ? () => undefined : onClose} title="Contratar candidato" description={`${name} será cadastrado como funcionário em admissão. O ASO admissional será gerado automaticamente.`}>
+      {fromOffer && <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Contrato, salário e início vieram da proposta aceita pelo candidato.</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Departamento" required><input className={inputClass} value={form.department} onChange={(event) => setForm({ ...form, department: event.target.value })} /></Field>
         <Field label="Tipo de contrato" required>

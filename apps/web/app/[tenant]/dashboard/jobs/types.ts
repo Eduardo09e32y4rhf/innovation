@@ -35,18 +35,19 @@ export interface Job {
 export interface JobPayload {
   title: string;
   description: string;
-  location?: string;
-  employmentType?: string;
-  salaryRange?: string;
+  location?: string | null;
+  employmentType?: string | null;
+  salaryRange?: string | null;
   benefits?: string[];
   requirements?: string[];
+  interviewGuide?: string[];
   status?: JobStatus;
-  department?: string;
-  workMode?: string;
-  seniority?: string;
+  department?: string | null;
+  workMode?: string | null;
+  seniority?: string | null;
   openings?: number;
-  salaryMin?: number;
-  salaryMax?: number;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
   salaryHidden?: boolean;
   deadline?: string | null;
   isInternal?: boolean;
@@ -150,7 +151,7 @@ export interface ApplicationsPayload {
 }
 
 export interface ApplicationDetail extends ApplicationItem {
-  job: { id: string; title: string };
+  job: { id: string; title: string; interviewGuide?: string[] };
   criteria: (Criterion & { id: string })[];
   evaluations: { id: string; criterionId: string; userId: string; score: number; comment?: string | null }[];
   notes: { id: string; authorName?: string | null; body: string; createdAt: string }[];
@@ -276,6 +277,7 @@ export interface InterviewItem {
   location?: string | null; meetingUrl?: string | null; durationMinutes?: number | null;
   interviewerRole?: 'RH' | 'GESTOR' | null; interviewer?: string | null; notes?: string | null;
   candidateMessage?: string | null; notifiedAt?: string | null;
+  candidateResponse?: 'CONFIRMED' | 'DECLINED' | null; declineReason?: string | null; respondedAt?: string | null; reminderSentAt?: string | null;
 }
 export interface InterviewPayload {
   scheduledAt: string; kind?: string; mode?: InterviewMode; location?: string; meetingUrl?: string; durationMinutes?: number;

@@ -13,11 +13,13 @@ import type { Pipeline, Tag } from '../types';
 import { Field, Pill, TagChip, inputClass } from './bits';
 import { CandidateDocuments } from './candidate-documents';
 import { InterviewDialog } from './interview-dialog';
+import { AssessmentsPanel, FeedbackDialog, FeedbackSummary, OffersPanel, ResponseBadge, SlotOfferDialog, SlotOffersList } from './candidate-process';
+import { processApi } from '../process-api';
 import { meetingLabel } from '../../management/agenda/meeting-link';
 
-const TABS = [['summary', 'Resumo'], ['evaluation', 'Avaliação'], ['notes', 'Notas'], ['interviews', 'Entrevistas'], ['history', 'Histórico'], ['documents', 'Documentos']] as const;
+const TABS = [['summary', 'Resumo'], ['evaluation', 'Avaliação'], ['notes', 'Notas'], ['interviews', 'Entrevistas'], ['assessments', 'Testes'], ['offer', 'Proposta'], ['history', 'Histórico'], ['documents', 'Documentos']] as const;
 type TabKey = (typeof TABS)[number][0];
-const EVENT_LABEL: Record<string, string> = { APPLIED: 'Candidatura recebida', STAGE_CHANGED: 'Mudou de etapa', REJECTED: 'Reprovado', HIRED: 'Contratado', EVALUATED: 'Avaliado', INTERVIEW: 'Entrevista', INTERVIEW_EMAIL_SENT: 'Convite de entrevista enviado', INTERVIEW_CANCELED: 'Entrevista cancelada', INTERVIEW_CANCEL_EMAIL_SENT: 'Cancelamento avisado ao candidato' };
+const EVENT_LABEL: Record<string, string> = { APPLIED: 'Candidatura recebida', STAGE_CHANGED: 'Mudou de etapa', REJECTED: 'Reprovado', HIRED: 'Contratado', EVALUATED: 'Avaliado', INTERVIEW: 'Entrevista', INTERVIEW_EMAIL_SENT: 'Convite de entrevista enviado', INTERVIEW_CANCELED: 'Entrevista cancelada', INTERVIEW_CANCEL_EMAIL_SENT: 'Cancelamento avisado ao candidato', INTERVIEW_REMINDER_SENT: 'Lembrete de entrevista enviado', INTERVIEW_CONFIRMED: 'Candidato confirmou a entrevista', INTERVIEW_DECLINED: 'Candidato não pode na entrevista', INTERVIEW_SLOTS_SENT: 'Horários oferecidos', INTERVIEW_FEEDBACK: 'Avaliação de entrevista', OFFER_CREATED: 'Proposta criada', OFFER_APPROVED: 'Proposta aprovada', OFFER_RETURNED: 'Proposta devolvida', OFFER_SENT: 'Proposta enviada', OFFER_ACCEPTED: 'Proposta aceita', OFFER_DECLINED: 'Proposta recusada', OFFER_CANCELED: 'Proposta cancelada', ASSESSMENT_SENT: 'Teste enviado', ASSESSMENT_COMPLETED: 'Teste respondido', REJECTION_EMAIL_SENT: 'Feedback de reprovação enviado' };
 
 const fail = (cause: unknown, fallback: string) => toast.error(cause instanceof ApiError ? cause.message : fallback);
 
@@ -33,9 +35,16 @@ export function CandidateDrawer({
   const [ratings, setRatings] = useState<Record<string, { score: number; comment: string }>>({});
   const [note, setNote] = useState('');
   const [scheduling, setScheduling] = useState(false);
+  const [offeringSlots, setOfferingSlots] = useState(false);
+  const [slotsKey, setSlotsKey] = useState(0);
+  const [feedbackFor, setFeedbackFor] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const data = detail.data;
-  const canSeeDocuments = ['DEV', 'ADMIN', 'RH', 'RH_RS'].includes(String(user?.profile ?? '').toUpperCase());
+  const role = String(user?.profile ?? '').toUpperCase();
+  const canSeeDocuments = ['DEV', 'ADMIN', 'RH', 'RH_RS'].includes(role);
+  // Gestor avalia entrevistas e ve testes/propostas; quem conduz (RH) agenda, envia testes e monta proposta.
+  const canConduct = ['DEV', 'ADMIN', 'RH', 'RH_RS'].includes(role);
+  const feedback = useQuery(() => processApi.feedback(applicationId ?? ''), [applicationId], { enabled: Boolean(applicationId) && tab === 'interviews' });
 
   useEffect(() => { setTab('summary'); setNote(''); }, [applicationId]);
   useEffect(() => {
@@ -172,7 +181,19 @@ export function CandidateDrawer({
 
           {tab === 'interviews' && (
             <div className="space-y-4">
-              <Button onClick={() => setScheduling(true)} className="inline-flex items-center gap-2"><CalendarPlus size={16} aria-hidden="true" /> Agendar entrevista</Button>
+              {canConduct && data.status !== 'HIRED' && data.status !== 'REJECTED' && (
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => setScheduling(true)} className="inline-flex items-center gap-2"><CalendarPlus size={16} aria-hidden="true" /> Agendar entrevista</Button>
+                  <Button variant="outline" onClick={() => setOfferingSlots(true)}>Oferecer horários</Button>
+                </div>
+              )}
+              <SlotOffersList applicationId={data.id} refreshKey={slotsKey} onChanged={() => detail.refetch()} />
+              {(data.job.interviewGuide?.length ?? 0) > 0 && (
+                <details className="rounded-xl border border-border bg-bg-sub/50 p-3 text-sm">
+                  <summary className="cursor-pointer font-semibold text-fg">Roteiro da entrevista ({data.job.interviewGuide!.length})</summary>
+                  <ol className="mt-2 list-decimal space-y-1 pl-5 text-fg-sub">{data.job.interviewGuide!.map((question, index) => <li key={index}>{question}</li>)}</ol>
+                </details>
+              )}
               <ul className="space-y-2">
                 {data.interviews.map((item) => {
                   const future = new Date(item.scheduledAt).getTime() > Date.now();
@@ -188,6 +209,9 @@ export function CandidateDrawer({
                         {item.meetingUrl && <a href={item.meetingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-brand-700 hover:underline"><Video size={13} aria-hidden="true" /> Entrar · {meetingLabel(item.meetingUrl)}</a>}
                         {item.location && <p className="break-words text-fg-sub">{item.location}</p>}
                         {item.notifiedAt ? <p className="flex items-center gap-1 text-xs text-emerald-700"><MailCheck size={13} aria-hidden="true" /> Convite enviado em {new Date(item.notifiedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p> : item.mode ? <p className="text-xs text-amber-700">Candidato não foi avisado por e-mail.</p> : null}
+                        <ResponseBadge interview={item} />
+                        <FeedbackSummary items={(feedback.data?.items ?? []).filter((row) => row.interviewId === item.id)} />
+                        <button type="button" className="inline-flex min-h-9 items-center text-xs font-semibold text-brand-700 hover:underline" onClick={() => setFeedbackFor(item.id)}>{(feedback.data?.items ?? []).some((row) => row.interviewId === item.id && row.userId === user?.id) ? 'Editar minha avaliação' : 'Avaliar entrevista'}</button>
                       </div>
                       <button type="button" className="btn-icon text-rose-600" aria-label="Cancelar entrevista" title={item.notifiedAt && future ? 'Cancelar e avisar o candidato' : 'Cancelar entrevista'}
                         onClick={() => { if (window.confirm(item.notifiedAt && future ? 'Cancelar esta entrevista? O candidato recebe um e-mail avisando.' : 'Cancelar esta entrevista?')) run(() => jobsApi.removeInterview(data.id, item.id), 'Entrevista cancelada.'); }}><Trash2 size={15} /></button>
@@ -196,6 +220,11 @@ export function CandidateDrawer({
                 })}
                 {data.interviews.length === 0 && <li className="text-sm text-fg-sub">Nenhuma entrevista agendada. Ao mover o candidato para a etapa de entrevista, o agendamento abre sozinho.</li>}
               </ul>
+              {(feedback.data?.hidden ?? 0) > 0 && <p className="text-xs text-fg-sub">{feedback.data!.hidden} avaliação(ões) de colegas aparecem depois que você enviar a sua.</p>}
+              <SlotOfferDialog isOpen={offeringSlots} applicationId={data.id} candidateName={data.candidate?.name ?? 'Candidato'} onClose={() => setOfferingSlots(false)} onDone={() => { setOfferingSlots(false); setSlotsKey((key) => key + 1); detail.refetch(); onChanged(); }} />
+              <FeedbackDialog isOpen={Boolean(feedbackFor)} applicationId={data.id} interviewId={feedbackFor} criteria={data.criteria.map((criterion) => ({ id: criterion.id, name: criterion.name }))} guide={data.job.interviewGuide ?? []}
+                mine={(feedback.data?.items ?? []).find((row) => row.interviewId === feedbackFor && row.userId === user?.id) ?? null}
+                onClose={() => setFeedbackFor(null)} onSaved={() => { setFeedbackFor(null); feedback.refetch(); detail.refetch(); }} />
               <InterviewDialog isOpen={scheduling} applicationId={data.id} candidateName={data.candidate?.name ?? 'Candidato'} onClose={() => setScheduling(false)}
                 onSubmit={async (payload) => {
                   try {
@@ -208,6 +237,10 @@ export function CandidateDrawer({
                 }} />
             </div>
           )}
+
+          {tab === 'assessments' && <AssessmentsPanel applicationId={data.id} canSend={canConduct} closed={data.status === 'HIRED' || data.status === 'REJECTED'} onChanged={() => detail.refetch()} />}
+
+          {tab === 'offer' && <OffersPanel applicationId={data.id} jobTitle={data.job.title} canCreate={canConduct} closed={data.status === 'HIRED' || data.status === 'REJECTED'} onChanged={() => { detail.refetch(); onChanged(); }} />}
 
           {tab === 'documents' && canSeeDocuments && <CandidateDocuments applicationId={data.id} onChanged={onChanged} />}
 
