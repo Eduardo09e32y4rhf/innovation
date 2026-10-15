@@ -155,7 +155,11 @@ export class InterviewFollowupService {
    */
   async sendDelayedKnockoutFeedback(now = new Date()) {
     const pending = await this.prisma.application.findMany({
-      where: { status: 'REJECTED', knockedOut: true, anonymizedAt: null, createdAt: { lte: new Date(now.getTime() - 24 * HOUR), gte: new Date(now.getTime() - 7 * 24 * HOUR) }, events: { none: { type: 'REJECTION_EMAIL_SENT' } } },
+      where: { status: 'REJECTED', anonymizedAt: null, events: { none: { type: 'REJECTION_EMAIL_SENT' } }, OR: [
+        { knockedOut: true, createdAt: { lte: new Date(now.getTime() - 24 * HOUR), gte: new Date(now.getTime() - 7 * 24 * HOUR) } },
+        // Reprovacao manual cujo e-mail nao saiu (provedor fora do ar etc.): tenta de novo ate 7 dias.
+        { knockedOut: false, stageMovedAt: { lte: new Date(now.getTime() - 10 * 60_000), gte: new Date(now.getTime() - 7 * 24 * HOUR) } },
+      ] },
       select: { id: true },
       take: 200,
     });

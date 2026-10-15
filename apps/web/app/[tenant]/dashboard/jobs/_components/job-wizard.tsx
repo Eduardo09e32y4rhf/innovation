@@ -235,10 +235,9 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                   {(Object.keys(KIND) as Kind[]).map((kind) => {
                     const meta = KIND[kind];
                     const on = draft.kind === kind;
-                    const locked = Boolean(jobId) && (kind === 'INTERNAL' || draft.kind === 'INTERNAL') && !on;
-                    return (
-                      <button key={kind} type="button" role="radio" aria-checked={on} disabled={locked} onClick={() => set('kind', kind)}
-                        className={`flex flex-col items-start gap-1.5 rounded-2xl border p-4 text-left transition disabled:opacity-40 ${on ? 'border-purple-600 bg-purple-50 ring-2 ring-purple-200' : 'border-border hover:bg-bg-sub'}`}>
+                                        return (
+                      <button key={kind} type="button" role="radio" aria-checked={on} onClick={() => set('kind', kind)}
+                        className={`flex flex-col items-start gap-1.5 rounded-2xl border p-4 text-left transition ${on ? 'border-purple-600 bg-purple-50 ring-2 ring-purple-200' : 'border-border hover:bg-bg-sub'}`}>
                         <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${on ? 'bg-purple-600 text-white' : 'bg-bg-sub text-fg-sub'}`}><meta.icon size={18} aria-hidden="true" /></span>
                         <span className="font-semibold text-fg">{meta.title}</span>
                         <span className="text-xs text-fg-sub">{meta.text}</span>
@@ -246,7 +245,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                     );
                   })}
                 </div>
-                {jobId && <p className="text-xs text-fg-sub">Vaga interna não vira externa depois de criada (e vice-versa), porque os candidatos já entraram por caminhos diferentes.</p>}
+                {jobId && <p className="text-xs text-fg-sub">Você pode mudar o público a qualquer momento. O link muda junto (divulgue o novo link/QR code) e quem já se candidatou continua no processo.</p>}
               </SectionCard>
 
               <SectionCard title="Cargo" description="Digite ou escolha. Cargos conhecidos já trazem descrição, perguntas e critérios prontos.">

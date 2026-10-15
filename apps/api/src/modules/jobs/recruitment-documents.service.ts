@@ -1,6 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, PayloadTooLargeException, UnprocessableEntityException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
+import { MailService } from '../mail/mail.service';
+import { candidateDocumentsEmail, candidateHiredEmail } from './recruitment-mails';
 import { CandidateDocumentScanner } from './candidate-document-scanner.service';
 import { JobScopeService } from './job-scope.service';
 import { JobsStorageService } from './jobs-storage.service';
@@ -29,11 +31,30 @@ export class RecruitmentDocumentsService {
     private readonly storage: JobsStorageService,
     private readonly scanner: CandidateDocumentScanner,
     private readonly scope: JobScopeService,
+    private readonly mail: MailService,
   ) {}
+
+  private appBase() { return (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); }
+
+  /** Contratacao: cria o link de documentos da admissao e manda o e-mail de parabens com ele. Nunca derruba a contratacao. */
+  async sendHireWelcome(companyId: string, actorId: string, applicationId: string, startDate?: Date | string | null): Promise<boolean> {
+    try {
+      const app = await this.prisma.application.findFirst({ where: { id: applicationId, companyId }, select: { anonymizedAt: true, candidate: { select: { name: true, email: true } }, job: { select: { title: true, company: { select: { name: true } } } } } });
+      if (!app || app.anonymizedAt || !app.candidate.email) return false;
+      const items = ['Documento de identificação (RG ou CNH)', 'CPF', 'Comprovante de residência', 'Carteira de trabalho', 'Foto 3x4'];
+      const { token, hash } = generateAccessToken();
+      const expiresAt = new Date(Date.now() + 14 * 86_400_000);
+      await this.prisma.recruitmentDocumentRequest.create({ data: { companyId, applicationId, tokenHash: hash, items, expiresAt, createdById: actorId } });
+      const fmt = (date: Date) => date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+      const result = await this.mail.send(app.candidate.email, candidateHiredEmail({ name: app.candidate.name, company: app.job.company.name, jobTitle: app.job.title, startDate: startDate ? fmt(new Date(startDate)) : null, documentsUrl: this.appBase() ? `${this.appBase()}/carreiras/documentos/${token}` : null, items, expires: fmt(expiresAt) }));
+      await this.prisma.applicationEvent.create({ data: { applicationId, userId: actorId, type: 'HIRED_EMAIL', note: result.sent ? 'E-mail de contratação enviado ao candidato, com o link de documentos' : 'E-mail de contratação NÃO foi enviado (verifique o e-mail do candidato e o provedor de e-mail)' } });
+      return result.sent;
+    } catch { return false; }
+  }
 
   // ─── Area interna (empresa + escopo da vaga) ────────────────────────────
 
-  async createRequest(companyId: string, actor: Actor, applicationId: string, dto: { items: string[]; expiresInDays?: number }) {
+  async createRequest(companyId: string, actor: Actor, applicationId: string, dto: { items: string[]; expiresInDays?: number; sendEmail?: boolean }) {
     await this.scope.assertApplication(companyId, actor, applicationId);
     const items = normalizeItems(dto.items);
     if (!items.length) throw new BadRequestException('Informe ao menos um documento a solicitar.');
@@ -49,7 +70,15 @@ export class RecruitmentDocumentsService {
     });
     await this.audit(companyId, actor.sub, 'RECRUITMENT_DOCUMENT_LINK_CREATED', applicationId, { requestId: request.id, items, expiresAt });
     // O token bruto sai somente aqui; depois disso so o hash existe.
-    return { ...request, token, path: `/carreiras/documentos/${token}` };
+    let emailed = false;
+    if (dto.sendEmail && this.appBase()) {
+      const app = await this.prisma.application.findFirst({ where: { id: applicationId, companyId }, select: { candidate: { select: { name: true, email: true } }, job: { select: { title: true, company: { select: { name: true } } } } } });
+      if (app?.candidate.email) {
+        const result = await this.mail.send(app.candidate.email, candidateDocumentsEmail({ name: app.candidate.name, company: app.job.company.name, jobTitle: app.job.title, items, url: `${this.appBase()}/carreiras/documentos/${token}`, expires: expiresAt.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) }));
+        emailed = result.sent;
+      }
+    }
+    return { ...request, token, path: `/carreiras/documentos/${token}`, emailed };
   }
 
   async listForApplication(companyId: string, actor: Actor, applicationId: string) {

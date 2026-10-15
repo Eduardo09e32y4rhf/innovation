@@ -13,6 +13,7 @@ export function AssessmentClient({ token }: { token: string }) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [index, setIndex] = useState(0);
   const [now, setNow] = useState(Date.now());
   useEffect(() => { processPublic.assessment(token).then(setData).catch((cause) => setError(errorMessage(cause, 'Teste não encontrado.'))); }, [token]);
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
@@ -74,23 +75,34 @@ export function AssessmentClient({ token }: { token: string }) {
                 {clock && <span className={`font-bold tabular-nums ${remaining !== null && remaining < 120_000 ? 'text-rose-700' : 'text-[#5b29be]'}`} aria-live="polite">⏱ {clock}</span>}
               </div>
               {behavioral && <Notice tone="info">Em cada situação, escolha a frase que <strong>mais parece com você</strong> no trabalho.</Notice>}
-              <ol className="space-y-4">
-                {items.map((item, index) => (
-                  <li key={item.id} className={actionCard}>
-                    <fieldset>
-                      <legend className="mb-3 font-bold"><span className="text-[#7240da]">{index + 1}.</span> {item.title}</legend>
-                      <div className="space-y-2">
-                        {item.options.map((option) => (
-                          <label key={option.value} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-[12px] border px-4 py-2 text-sm transition ${answers[item.id] === option.value ? 'border-[#7240da] bg-[#f0eafa] font-semibold text-[#3b2a63]' : 'border-[#e4dcef] hover:bg-[#f8f5fd]'}`}>
-                            <input type="radio" name={item.id} className="h-5 w-5 shrink-0 accent-[#7240da]" checked={answers[item.id] === option.value} onChange={() => setAnswers({ ...answers, [item.id]: option.value })} /> {option.text}
-                          </label>
-                        ))}
-                      </div>
-                    </fieldset>
-                  </li>
-                ))}
-              </ol>
-              <button type="button" className={`${primaryBtn} w-full`} disabled={busy} onClick={submit}>{busy ? 'Enviando…' : 'Enviar respostas'}</button>
+              {(() => {
+                const item = items[Math.min(index, items.length - 1)];
+                const last = index >= items.length - 1;
+                const chosen = answers[item.id] !== undefined;
+                return (
+                  <>
+                    <div className="h-2 overflow-hidden rounded-full bg-[#ebe6f3]" role="progressbar" aria-valuemin={0} aria-valuemax={items.length} aria-valuenow={index + 1} aria-label="Progresso do teste"><div className="h-full rounded-full bg-[#7240da] transition-all" style={{ width: `${((index + 1) / items.length) * 100}%` }} /></div>
+                    <section key={item.id} className={actionCard}>
+                      <fieldset>
+                        <legend className="mb-4 text-base font-bold leading-snug"><span className="block text-xs font-semibold uppercase tracking-wide text-[#7240da]">{behavioral ? 'Situação' : 'Pergunta'} {index + 1} de {items.length}</span>{item.title}</legend>
+                        <div className="space-y-2">
+                          {item.options.map((option) => (
+                            <label key={option.value} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-[12px] border px-4 py-3 text-sm transition ${answers[item.id] === option.value ? 'border-[#7240da] bg-[#f0eafa] font-semibold text-[#3b2a63]' : 'border-[#e4dcef] hover:bg-[#f8f5fd]'}`}>
+                              <input type="radio" name={item.id} className="h-5 w-5 shrink-0 accent-[#7240da]" checked={answers[item.id] === option.value} onChange={() => setAnswers({ ...answers, [item.id]: option.value })} /> {option.text}
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                    </section>
+                    <div className="flex items-center gap-2">
+                      <button type="button" className="min-h-12 rounded-[12px] border border-[#e4dcef] px-5 text-sm font-semibold disabled:opacity-40" disabled={index === 0} onClick={() => setIndex(index - 1)}>Voltar</button>
+                      {last
+                        ? <button type="button" className={`${primaryBtn} flex-1`} disabled={busy} onClick={submit}>{busy ? 'Enviando…' : 'Enviar respostas'}</button>
+                        : <button type="button" className={`${primaryBtn} flex-1`} onClick={() => setIndex(index + 1)}>{chosen ? 'Próxima' : 'Pular por agora'}</button>}
+                    </div>
+                  </>
+                );
+              })()}
             </>
           )}
         </>

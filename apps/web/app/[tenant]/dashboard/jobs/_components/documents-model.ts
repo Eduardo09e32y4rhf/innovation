@@ -6,7 +6,7 @@ export type DocumentRow = {
 };
 export type RequestRow = { id: string; items: string[]; expiresAt: string; revokedAt: string | null; createdAt: string; state: 'ACTIVE' | 'EXPIRED' | 'REVOKED' };
 export type DocumentsPayload = { selectedAt: string | null; forwardedAt: string | null; requests: RequestRow[]; documents: DocumentRow[] };
-export type CreatedRequest = { id: string; items: string[]; expiresAt: string; token: string; path: string };
+export type CreatedRequest = { id: string; items: string[]; expiresAt: string; token: string; path: string; emailed?: boolean };
 
 export const DOC_STATUS_LABEL: Record<DocStatus | 'PENDING', string> = {
   PENDING: 'Aguardando envio',
