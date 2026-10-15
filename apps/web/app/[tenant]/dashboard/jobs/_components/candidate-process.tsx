@@ -271,7 +271,7 @@ export function OffersPanel({ applicationId, jobTitle, canCreate, closed, onChan
               <p className="text-xs text-fg-mut">Criada por {offer.createdByName ?? '—'} em {dt(offer.createdAt)}{offer.approvedByName ? ` · aprovada por ${offer.approvedByName}` : ''}{offer.sentAt ? ` · enviada ${dt(offer.sentAt)}` : ''}{offer.viewedAt ? ` · candidato abriu ${dt(offer.viewedAt)}` : ''}</p>
               {offer.rejectionNote && <p className="text-xs text-rose-700">Devolvida: {offer.rejectionNote}</p>}
               {offer.declineReason && <p className="text-xs text-rose-700">Motivo da recusa: {offer.declineReason}</p>}
-              {status === 'ACCEPTED' && <p className="text-xs font-semibold text-emerald-700">Próximo passo: mova o candidato para Contratado para iniciar a admissão.</p>}
+              {status === 'ACCEPTED' && <p className="text-xs font-semibold text-emerald-700">Próximo passo: contrate o candidato. Ele recebe um e-mail de parabéns com o link para enviar os documentos, que você confere na aba Documentos.</p>}
               <div className="flex flex-wrap gap-2">
                 {offer.canApprove && <Button size="sm" onClick={() => act(offer.id, () => processApi.approveOffer(offer.id), 'Proposta aprovada.')} isLoading={busy === offer.id}>Aprovar</Button>}
                 {offer.canApprove && <Button size="sm" variant="outline" onClick={() => { const note = window.prompt('O que precisa mudar?'); if (note?.trim()) act(offer.id, () => processApi.returnOffer(offer.id, note.trim()), 'Proposta devolvida para ajuste.'); }}>Devolver</Button>}

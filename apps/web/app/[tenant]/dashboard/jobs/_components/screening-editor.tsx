@@ -10,7 +10,8 @@ import { Field, inputClass } from './bits';
 const num = (value: string) => (value.trim() === '' ? undefined : Number(value.replace(',', '.')));
 
 /** Uma pergunta: texto, tipo, importancia (com % da nota) e o valor de cada resposta (Ideal ... Elimina). */
-function QuestionCard({ question, index, total, share, eliminate, onChange, onRemove, onMove }: {
+function QuestionCard({ question, index, total, share, eliminate, open, onOpen, onChange, onRemove, onMove }: {
+  open: boolean; onOpen: () => void;
   question: Question; index: number; total: number; share: number; eliminate: 'FLAG' | 'REJECT';
   onChange: (next: Question) => void; onRemove: () => void; onMove: (delta: -1 | 1) => void;
 }) {
@@ -26,6 +27,19 @@ function QuestionCard({ question, index, total, share, eliminate, onChange, onRe
     if (question.type === 'NUMBER') onChange(applyNumberRules(question, next, numberRules.ideal, numberRules.accept, eliminate));
     else setLevels(Object.keys(levels).length ? levels : Object.fromEntries(options.map((option) => [option, 0 as Level])), next);
   };
+
+  if (!open) {
+    return (
+      <li>
+        <button type="button" onClick={onOpen} className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border bg-bg p-3 text-left shadow-sm hover:bg-bg-sub">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-50 text-xs font-bold text-purple-700">{index + 1}</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">{question.label || 'Pergunta sem texto (toque para editar)'}</span>
+          {weight > 0 && <span className="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700">{share}%</span>}
+          {question.knockout && <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">elimina</span>}
+        </button>
+      </li>
+    );
+  }
 
   return (
     <li className="space-y-3 rounded-2xl border border-border bg-bg p-4 shadow-sm">
@@ -155,13 +169,14 @@ export function ScreeningEditor({ questions, suggested, minScore, action, onChan
 }) {
   const [keys, setKeys] = useState<string[]>(() => questions.map(() => crypto.randomUUID()));
   const [library, setLibrary] = useState(false);
+  const [openIndex, setOpenIndex] = useState(0);
   const keyList = questions.map((_, index) => keys[index] ?? `q-${index}`);
   const shares = weightShares(questions);
   const scored = shares.some((share) => share > 0);
   const eliminating = questions.filter((question) => question.knockout).length;
 
   const setAll = (next: Question[], nextKeys = keyList) => { setKeys(nextKeys); onChange(next); };
-  const add = (items: Question[]) => setAll([...questions, ...items], [...keyList, ...items.map(() => crypto.randomUUID())]);
+  const add = (items: Question[]) => { setOpenIndex(questions.length); setAll([...questions, ...items], [...keyList, ...items.map(() => crypto.randomUUID())]); };
   const changeAction = (value: 'FLAG' | 'REJECT') => {
     onAction(value);
     // O que acontece com a resposta eliminatoria vale para todas as perguntas da vaga.
@@ -180,7 +195,7 @@ export function ScreeningEditor({ questions, suggested, minScore, action, onChan
 
       <ul className="space-y-3">
         {questions.map((question, index) => (
-          <QuestionCard key={keyList[index]} question={question} index={index} total={questions.length} share={shares[index]} eliminate={action}
+          <QuestionCard key={keyList[index]} question={question} index={index} total={questions.length} share={shares[index]} eliminate={action} open={openIndex === index} onOpen={() => setOpenIndex(index)}
             onChange={(next) => onChange(questions.map((item, i) => (i === index ? next : item)))}
             onRemove={() => setAll(questions.filter((_, i) => i !== index), keyList.filter((_, i) => i !== index))}
             onMove={(delta) => {

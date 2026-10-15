@@ -9,6 +9,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { ApplyJobDto } from './dto/apply-job.dto';
 import { CreateJobDto, UpdateJobDto } from './dto/create-job.dto';
+import { RecruitmentDocumentsService } from './recruitment-documents.service';
 import { HireCandidateDto } from './dto/hire-candidate.dto';
 import type { Prisma } from '@prisma/client';
 import { JobsRepository } from './jobs.repository';
@@ -30,6 +31,7 @@ export class JobsService {
     private readonly recruitment: RecruitmentService,
     private readonly privacy: RecruitmentPrivacyService,
     private readonly workflow: JobWorkflowService,
+    private readonly documents: RecruitmentDocumentsService,
   ) {}
 
   async list(companyId: string, jobScope: Prisma.JobWhereInput = {}) {
@@ -169,6 +171,7 @@ export class JobsService {
     }
     const result = await this.repository.hire(companyId, applicationId, actorId, dto);
     if (!result) throw new NotFoundException('Candidatura nao encontrada.');
+    if (!result.alreadyHired) void this.documents.sendHireWelcome(companyId, applicationId, actorId, dto.admissionDate);
     return result;
   }
 

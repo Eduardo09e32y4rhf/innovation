@@ -12,7 +12,7 @@ function setup() {
     hire: vi.fn(),
   } as any;
   const storage = {} as any;
-  return { service: new JobsService(repository, storage, {} as any), repository };
+  return { service: new JobsService(repository, storage, {} as any, {} as any, {} as any, { sendHireWelcome: vi.fn() } as any), repository };
 }
 
 describe('JobsService', () => {

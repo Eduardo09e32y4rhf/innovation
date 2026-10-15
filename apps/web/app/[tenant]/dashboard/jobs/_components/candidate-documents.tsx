@@ -23,6 +23,7 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
   const query = useQuery(() => jobsApi.documents(applicationId), [applicationId]);
   const [itemsText, setItemsText] = useState('');
   const [days, setDays] = useState(7);
+  const [sendEmail, setSendEmail] = useState(true);
   const [created, setCreated] = useState<CreatedRequest | null>(null);
   const [returning, setReturning] = useState<{ id: string; reason: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -60,6 +61,8 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
           <div className="space-y-2">
             <label className="block text-sm font-medium" htmlFor="doc-items">Documentos (um por linha)</label>
             <textarea id="doc-items" rows={3} className={inputClass} value={itemsText} onChange={(event) => setItemsText(event.target.value)} placeholder={'Ex.: Documento de identificação\nComprovante de residência'} />
+            <div className="flex flex-wrap gap-2">{['RG ou CNH', 'CPF', 'Comprovante de residência', 'Carteira de trabalho', 'Foto 3x4', 'Certidão de nascimento ou casamento', 'Título de eleitor', 'Comprovante de escolaridade'].map((item) => <button key={item} type="button" className="min-h-9 rounded-full border border-border px-3 text-xs font-semibold hover:bg-bg-sub" onClick={() => setItemsText((text) => parseItemsInput(text).includes(item) ? text : `${text.trim() ? `${text.trim()}\n` : ''}${item}`)}>+ {item}</button>)}</div>
+            <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5 accent-[var(--color-brand)]" checked={sendEmail} onChange={(event) => setSendEmail(event.target.checked)} /> Enviar o link por e-mail ao candidato</label>
             <div className="flex flex-wrap items-end gap-3">
               <label className="text-sm font-medium">Validade do link
                 <select className="input-v2 ml-2" value={days} onChange={(event) => setDays(Number(event.target.value))}>
@@ -67,7 +70,7 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
                 </select>
               </label>
               <Button isLoading={busy} disabled={!parseItemsInput(itemsText).length}
-                onClick={() => run(async () => { setCreated(await jobsApi.createDocumentRequest(applicationId, parseItemsInput(itemsText), days)); setItemsText(''); })}>
+                onClick={() => run(async () => { setCreated(await jobsApi.createDocumentRequest(applicationId, parseItemsInput(itemsText), days, sendEmail)); setItemsText(''); })}>
                 <Link2 size={16} aria-hidden="true" /> Gerar link
               </Button>
             </div>
@@ -75,7 +78,7 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
         )}
         {created && (
           <div role="status" className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-            <p>Link gerado. <strong>Ele só aparece agora</strong>: copie e envie ao candidato por um canal seguro. Vale até {dateTime(created.expiresAt)}.</p>
+            <p>{created.emailed ? <strong>E-mail enviado ao candidato com o link. </strong> : null}Link gerado. <strong>Ele só aparece agora</strong>: copie se quiser enviar por outro canal. Vale até {dateTime(created.expiresAt)}.</p>
             <p className="select-all break-all rounded border border-amber-300 bg-white p-2 font-mono text-xs" data-testid="document-link">{link}</p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={copy}><Copy size={14} aria-hidden="true" /> Copiar</Button>

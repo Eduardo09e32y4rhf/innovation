@@ -1,4 +1,4 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { ArrayMaxSize, IsBoolean, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 export class CreateDocumentRequestDto {
   @IsArray()
@@ -13,6 +13,10 @@ export class CreateDocumentRequestDto {
   @Min(1)
   @Max(30)
   expiresInDays?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  sendEmail?: boolean;
 }
 
 export class ReviewDocumentDto {

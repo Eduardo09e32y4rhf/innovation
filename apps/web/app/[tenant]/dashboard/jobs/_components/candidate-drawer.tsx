@@ -89,7 +89,7 @@ export function CandidateDrawer({
           <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-border">
             {TABS.filter(([key]) => key !== 'documents' || canSeeDocuments).map(([key, label]) => (
               <button key={key} role="tab" aria-selected={tab === key} type="button" onClick={() => setTab(key)}
-                className={`shrink-0 border-b-2 px-3 py-2 text-sm font-medium ${tab === key ? 'border-purple-600 text-purple-700' : 'border-transparent text-fg-sub hover:text-fg'}`}>{label}</button>
+                className={`shrink-0 border-b-2 px-3 py-2 text-sm font-medium ${tab === key ? 'border-purple-600 text-purple-700' : 'border-transparent text-fg-sub hover:text-fg'}`}>{label}{key === 'documents' && <span className="ml-1 rounded-full bg-purple-100 px-1.5 text-[10px] font-bold text-purple-700">link</span>}</button>
             ))}
           </div>
 

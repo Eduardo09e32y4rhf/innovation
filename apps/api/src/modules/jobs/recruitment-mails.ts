@@ -172,3 +172,28 @@ export function recruiterNoticeEmail(input: { title: string; lines: string[]; ur
     text: `${input.lines.join('\n')}${input.url ? `\n\n${input.url}` : ''}`,
   };
 }
+
+/** Contratacao: parabens + (quando houver) link para enviar os documentos da admissao. */
+export function candidateHiredEmail(input: { name: string; company: string; jobTitle: string; startDate?: string | null; documentsUrl?: string | null; items?: string[]; expires?: string | null }): MailContent {
+  const items = (input.items ?? []).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  const docs = input.documentsUrl
+    ? `<p style="margin:0 0 8px">Para concluir sua admissão, envie seus documentos pelo link seguro abaixo (foto ou PDF, até 5 MB cada):</p>${items ? `<ul style="margin:0 0 14px;padding-left:20px">${items}</ul>` : ''}<p style="margin:0 0 12px">${button('Enviar meus documentos', input.documentsUrl)}</p><p style="margin:0;font-size:12px;color:#6b6478">O link é pessoal${input.expires ? ` e vale até ${escapeHtml(input.expires)}` : ''}. Não compartilhe com ninguém.</p>`
+    : '<p style="margin:0">O RH vai entrar em contato com os próximos passos da admissão.</p>';
+  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p><p style="margin:0 0 14px">Parabéns! Você foi <strong>contratado(a)</strong> pela <strong>${escapeHtml(input.company)}</strong> para a vaga de <strong>${escapeHtml(input.jobTitle)}</strong>.${input.startDate ? ` Data de início: <strong>${escapeHtml(input.startDate)}</strong>.` : ''}</p>${docs}`;
+  return {
+    subject: `Parabéns! Você foi contratado(a): ${input.jobTitle} · ${input.company}`,
+    html: portalLayout('Bem-vindo(a) à equipe!', body),
+    text: `Olá, ${input.name}.\n\nParabéns! Você foi contratado(a) pela ${input.company} para a vaga ${input.jobTitle}.${input.startDate ? `\nInício: ${input.startDate}.` : ''}${input.documentsUrl ? `\n\nEnvie seus documentos: ${input.documentsUrl}${(input.items ?? []).length ? `\nDocumentos: ${(input.items ?? []).join(', ')}` : ''}` : '\nO RH entrará em contato com os próximos passos.'}`,
+  };
+}
+
+/** Link de documentos enviado por e-mail pelo RH (fora da contratacao). */
+export function candidateDocumentsEmail(input: { name: string; company: string; jobTitle: string; items: string[]; url: string; expires: string }): MailContent {
+  const list = input.items.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p><p style="margin:0 0 10px">A <strong>${escapeHtml(input.company)}</strong> precisa dos documentos abaixo para seguir com o processo da vaga <strong>${escapeHtml(input.jobTitle)}</strong>:</p><ul style="margin:0 0 14px;padding-left:20px">${list}</ul><p style="margin:0 0 12px">${button('Enviar documentos', input.url)}</p><p style="margin:0;font-size:12px;color:#6b6478">Foto ou PDF, até 5 MB cada. O link é pessoal e vale até ${escapeHtml(input.expires)}.</p>`;
+  return {
+    subject: `Envio de documentos: ${input.jobTitle} · ${input.company}`,
+    html: portalLayout('Envie seus documentos', body),
+    text: `Olá, ${input.name}.\n\nA ${input.company} precisa dos documentos: ${input.items.join(', ')}.\nEnvie em: ${input.url}\nVálido até ${input.expires}.`,
+  };
+}
