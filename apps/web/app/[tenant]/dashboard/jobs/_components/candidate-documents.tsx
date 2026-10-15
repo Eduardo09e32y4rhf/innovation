@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button } from '@/app/components/ui';
+import { DocumentPicker } from './document-picker';
 import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
 import { jobsApi } from '../jobs-api';
@@ -59,9 +60,9 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
         <h3 id="doc-request-title" className="text-sm font-semibold">Solicitar documentos</h3>
         {!forwarded && (
           <div className="space-y-2">
-            <label className="block text-sm font-medium" htmlFor="doc-items">Documentos (um por linha)</label>
-            <textarea id="doc-items" rows={3} className={inputClass} value={itemsText} onChange={(event) => setItemsText(event.target.value)} placeholder={'Ex.: Documento de identificação\nComprovante de residência'} />
-            <div className="flex flex-wrap gap-2">{['RG ou CNH', 'CPF', 'Comprovante de residência', 'Carteira de trabalho', 'Foto 3x4', 'Certidão de nascimento ou casamento', 'Título de eleitor', 'Comprovante de escolaridade'].map((item) => <button key={item} type="button" className="min-h-9 rounded-full border border-border px-3 text-xs font-semibold hover:bg-bg-sub" onClick={() => setItemsText((text) => parseItemsInput(text).includes(item) ? text : `${text.trim() ? `${text.trim()}\n` : ''}${item}`)}>+ {item}</button>)}</div>
+            <p className="text-sm font-medium">Escolha os documentos (CLT, PJ, estágio) ou digite outros abaixo</p>
+            <textarea id="doc-items" aria-label="Documentos, um por linha" rows={3} className={inputClass} value={itemsText} onChange={(event) => setItemsText(event.target.value)} placeholder={'Ex.: Documento de identificação\nComprovante de residência'} />
+            <DocumentPicker value={parseItemsInput(itemsText)} onChange={(items) => setItemsText(items.join('\n'))} />
             <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5 accent-[var(--color-brand)]" checked={sendEmail} onChange={(event) => setSendEmail(event.target.checked)} /> Enviar o link por e-mail ao candidato</label>
             <div className="flex flex-wrap items-end gap-3">
               <label className="text-sm font-medium">Validade do link

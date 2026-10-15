@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, PayloadTooLargeException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, PayloadTooLargeException, UnprocessableEntityException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
@@ -11,6 +11,7 @@ import {
   MAX_DOCUMENT_BYTES,
   MAX_LINK_DAYS,
   detectDocumentType,
+  hireKitFor,
   evaluateForwardReadiness,
   generateAccessToken,
   hashAccessToken,
@@ -26,6 +27,8 @@ const TOKEN_SHAPE = /^[A-Za-z0-9_-]{43,64}$/;
 
 @Injectable()
 export class RecruitmentDocumentsService {
+  private readonly logger = new Logger(RecruitmentDocumentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: JobsStorageService,
@@ -37,11 +40,11 @@ export class RecruitmentDocumentsService {
   private appBase() { return (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); }
 
   /** Contratacao: cria o link de documentos da admissao e manda o e-mail de parabens com ele. Nunca derruba a contratacao. */
-  async sendHireWelcome(companyId: string, actorId: string, applicationId: string, startDate?: Date | string | null): Promise<boolean> {
+  async sendHireWelcome(companyId: string, actorId: string, applicationId: string, startDate?: Date | string | null, contractType?: string | null): Promise<boolean> {
     try {
       const app = await this.prisma.application.findFirst({ where: { id: applicationId, companyId }, select: { anonymizedAt: true, candidate: { select: { name: true, email: true } }, job: { select: { title: true, company: { select: { name: true } } } } } });
       if (!app || app.anonymizedAt || !app.candidate.email) return false;
-      const items = ['Documento de identificação (RG ou CNH)', 'CPF', 'Comprovante de residência', 'Carteira de trabalho', 'Foto 3x4'];
+      const items = normalizeItems(hireKitFor(contractType));
       const { token, hash } = generateAccessToken();
       const expiresAt = new Date(Date.now() + 14 * 86_400_000);
       await this.prisma.recruitmentDocumentRequest.create({ data: { companyId, applicationId, tokenHash: hash, items, expiresAt, createdById: actorId } });
@@ -210,7 +213,7 @@ export class RecruitmentDocumentsService {
 
     const sha256 = createHash('sha256').update(file.buffer).digest('hex');
     const key = `${request.companyId}/documents/${request.applicationId}/${randomUUID()}.${type.extension}`;
-    await this.storage.save(key, file.buffer);
+    try { await this.storage.save(key, file.buffer); } catch (error) { this.logger.error(`Documento do candidato: falha ao gravar o arquivo (${key}): ${error instanceof Error ? error.stack : error}`); throw error; }
     try {
       await this.prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`doc:${request.applicationId}:${label}`}))`;
@@ -220,6 +223,7 @@ export class RecruitmentDocumentsService {
         });
       });
     } catch (error) {
+      this.logger.error(`Documento do candidato: falha ao gravar no banco (${request.applicationId}): ${error instanceof Error ? error.stack : error}`);
       await this.storage.remove(key);
       throw error;
     }

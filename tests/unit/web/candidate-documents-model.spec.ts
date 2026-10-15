@@ -8,7 +8,7 @@ describe('itens do pedido', () => {
   it('aceita linhas, virgulas e ponto e virgula; remove duplicados, curtos e longos', () => {
     expect(parseItemsInput('RG\nCPF, comprovante de residência; rg\nx\n' + 'a'.repeat(61))).toEqual(['RG', 'CPF', 'comprovante de residência']);
     expect(parseItemsInput('')).toEqual([]);
-    expect(parseItemsInput(Array.from({ length: 30 }, (_, i) => `Doc ${i}`).join('\n'))).toHaveLength(15);
+    expect(parseItemsInput(Array.from({ length: 100 }, (_, i) => `Doc ${i}`).join('\n'))).toHaveLength(80);
   });
 });
 

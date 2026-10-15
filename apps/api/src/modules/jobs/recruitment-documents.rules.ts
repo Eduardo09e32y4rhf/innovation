@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 
 export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
-export const MAX_REQUEST_ITEMS = 15;
+export const MAX_REQUEST_ITEMS = 80;
 export const DEFAULT_LINK_DAYS = 7;
 export const MAX_LINK_DAYS = 30;
 
@@ -69,4 +69,15 @@ export function evaluateForwardReadiness(labels: string[], latestByLabel: Map<st
 export function safeDownloadName(label: string, extension: string): string {
   const base = label.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'documento';
   return `${base}.${extension}`;
+}
+
+/** Documentos pedidos na contratacao, conforme o contrato (CLT ou PJ). O RH pode pedir outros depois, pelo catalogo completo. */
+export const HIRE_DOCUMENT_KITS = {
+  CLT: ['RG ou CNH', 'CPF', 'Título de eleitor', 'Carteira de trabalho (CTPS)', 'PIS/PASEP/NIS', 'Comprovante de residência', 'Certidão de nascimento ou casamento', 'Comprovante de escolaridade', 'Foto 3x4', 'Dados bancários (comprovante de conta)', 'Certificado de reservista (homens)', 'Documentos dos dependentes (se houver)'],
+  PJ: ['Cartão CNPJ', 'Contrato social ou certificado MEI (CCMEI)', 'RG ou CNH do sócio', 'CPF do sócio', 'Comprovante de endereço da empresa', 'Dados bancários da empresa (PJ)', 'Certidão negativa de débitos federais', 'Inscrição municipal'],
+} as const;
+
+export function hireKitFor(contractType?: string | null): string[] {
+  const key = String(contractType ?? '').toUpperCase();
+  return [...(key.includes('PJ') || key.includes('MEI') || key.includes('PRESTA') ? HIRE_DOCUMENT_KITS.PJ : HIRE_DOCUMENT_KITS.CLT)];
 }
