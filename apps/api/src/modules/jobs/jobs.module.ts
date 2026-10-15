@@ -28,6 +28,7 @@ import { RecruitmentMetricsController } from './recruitment-metrics.controller';
 import { RecruitmentMetricsService } from './recruitment-metrics.service';
 
 import { AssessmentsService } from './assessments.service';
+import { PublicInternalJobsController } from './internal-jobs.controller';
 import { CandidateActionsController, PublicCandidateActionsController } from './candidate-actions.controller';
 import { InterviewFollowupService } from './interview-followup.service';
 import { JobOfferService } from './job-offer.service';
@@ -36,7 +37,7 @@ import { RecruiterNotifierService } from './recruiter-notifier.service';
 @Module({
   // RecruitmentController precisa vir antes: suas rotas estáticas (/jobs/pipeline, /jobs/stats...) não podem cair em /jobs/:id.
   imports: [NotificationsModule],
-  controllers: [CandidateActionsController, PublicCandidateActionsController, RecruitmentController, RecruitmentPrivacyController, PublicCandidateController, RecruitmentMetricsController, JobWorkflowController, InternalJobsController, JobsController, RecruitmentDocumentsController, PublicJobsController, PublicCandidateDocumentsController, CandidateAccountController, TalentPoolController, CandidateAdminController],
+  controllers: [PublicInternalJobsController, CandidateActionsController, PublicCandidateActionsController, RecruitmentController, RecruitmentPrivacyController, PublicCandidateController, RecruitmentMetricsController, JobWorkflowController, InternalJobsController, JobsController, RecruitmentDocumentsController, PublicJobsController, PublicCandidateDocumentsController, CandidateAccountController, TalentPoolController, CandidateAdminController],
   providers: [RecruiterNotifierService, InterviewFollowupService, JobOfferService, AssessmentsService, TalentPoolService, CandidateAdminService, CandidateAccountService, CandidateAuthGuard, JobWorkflowService, JobTemplatesService, RecruitmentPrivacyService, RecruitmentMetricsService, InternalJobsService, JobsRepository, JobsService, JobsStorageService, RecruitmentService, JobScopeService, CandidateDocumentScanner, RecruitmentDocumentsService],
 })
 export class JobsModule {}

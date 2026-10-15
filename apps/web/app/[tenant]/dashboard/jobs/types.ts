@@ -27,6 +27,10 @@ export interface Job {
   reopenCount?: number;
   /** Processo interno: só funcionários da empresa se candidatam, pela matrícula. */
   isInternal?: boolean;
+  confidential?: boolean;
+  interviewGuide?: string[];
+  screeningMinScore?: number | null;
+  screeningAction?: 'FLAG' | 'REJECT' | null;
   lifecycle?: { phase: 'DRAFT' | 'PENDING_APPROVAL' | 'OPEN' | 'PAUSED' | 'CLOSED_RECENT' | 'ARCHIVED'; acceptsApplications: boolean; canReactivate: boolean; reactivatableUntil: string | null; daysLeft: number | null };
   _count?: { applications?: number; questions?: number };
   pipeline?: { new: number; inProgress: number; hired: number; rejected: number };
@@ -51,6 +55,9 @@ export interface JobPayload {
   salaryHidden?: boolean;
   deadline?: string | null;
   isInternal?: boolean;
+  confidential?: boolean;
+  screeningMinScore?: number | null;
+  screeningAction?: 'FLAG' | 'REJECT' | null;
 }
 
 export interface InternalLookup {
@@ -84,9 +91,13 @@ export interface KnockoutRule {
   action?: 'FLAG' | 'REJECT';
 }
 
+/** v2: importancia (peso 1-3) e % por resposta; sem v = formato antigo de pontos livres. */
 export interface ScoreRule {
+  v?: 2;
+  weight?: number;
+  levels?: Record<string, number>;
   points?: Record<string, number>;
-  ranges?: { min?: number; max?: number; points: number }[];
+  ranges?: { min?: number; max?: number; points?: number; pct?: number }[];
 }
 
 export interface Question {

@@ -81,7 +81,7 @@ export function CandidateDrawer({
             <Button variant="ghost" size="sm" onClick={() => run(() => jobsApi.favorite(data.id, !data.favorite))} aria-pressed={data.favorite}>
               <Star size={16} className={data.favorite ? 'fill-amber-400 text-amber-500' : ''} aria-hidden="true" /> {data.favorite ? 'Favorito' : 'Favoritar'}
             </Button>
-            {data.score !== null && <Pill tone="info">{data.score} pts</Pill>}
+            {data.score !== null && <Pill tone={data.score >= 70 ? "success" : data.score >= 40 ? "warning" : "danger"}>Triagem {data.score}%</Pill>}
             {data.evaluationScore !== null && <Pill tone="brand">Nota {data.evaluationScore}/5</Pill>}{(data as { evaluationsHidden?: boolean }).evaluationsHidden && <span className="text-xs text-fg-sub">Avaliação cega: as notas dos colegas aparecem depois que você avaliar todos os critérios.</span>}
             {data.knockedOut && <Pill tone="danger">Fora do critério</Pill>}
           </div>
@@ -125,7 +125,7 @@ export function CandidateDrawer({
                     {data.answers.map((answer) => (
                       <div key={answer.questionId} className={`rounded-lg border p-3 text-sm ${answer.knockedOut ? 'border-rose-300 bg-rose-50' : 'border-border'}`}>
                         <dt className="text-fg-sub">{answer.label}</dt>
-                        <dd className="mt-0.5 flex flex-wrap items-center justify-between gap-2 font-medium"><span className="whitespace-pre-line">{answer.value.replace(/\|/g, ', ')}</span>{answer.points !== 0 && <Pill tone="info">{answer.points > 0 ? '+' : ''}{answer.points} pts</Pill>}</dd>
+                        <dd className="mt-0.5 flex flex-wrap items-center justify-between gap-2 font-medium"><span className="whitespace-pre-line">{answer.value.replace(/\|/g, ', ')}</span>{answer.points > 0 && <Pill tone="info">{answer.points}% da pergunta</Pill>}</dd>
                       </div>
                     ))}
                   </dl>

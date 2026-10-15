@@ -45,7 +45,7 @@ export function FiltersBar({
         <select aria-label="Critérios" className={sel} value={filters.knockedOut ?? ''} onChange={(event) => patch({ knockedOut: event.target.value })}>
           <option value="">Dentro e fora do critério</option><option value="false">Somente dentro do critério</option><option value="true">Somente fora do critério</option>
         </select>
-        <input type="number" min={0} aria-label="Pontuação mínima" className={sel} placeholder="Pontuação mín." value={filters.minScore ?? ''} onChange={(event) => patch({ minScore: event.target.value })} />
+        <input type="number" min={0} max={100} aria-label="Nota mínima da triagem (%)" className={sel} placeholder="Triagem mín. %" value={filters.minScore ?? ''} onChange={(event) => patch({ minScore: event.target.value })} />
         <input type="number" min={1} max={5} step={0.5} aria-label="Avaliação mínima" className={sel} placeholder="Nota mín. (1-5)" value={filters.minRating ?? ''} onChange={(event) => patch({ minRating: event.target.value })} />
         <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={filters.favorite === 'true'} onChange={(event) => patch({ favorite: event.target.checked ? 'true' : '' })} /> Só favoritos</label>
         <input type="date" aria-label="Inscritos a partir de" className={sel} value={filters.from ?? ''} onChange={(event) => patch({ from: event.target.value })} />

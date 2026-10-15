@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpRight, Briefcase, CalendarClock, Check, Copy, ExternalLink, MapPin, Plus, Search, Settings2, Users, X } from 'lucide-react';
+import { ArrowUpRight, Briefcase, CalendarClock, Check, Copy, ExternalLink, MapPin, Plus, QrCode, Search, Settings2, Users, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
@@ -13,6 +13,7 @@ import { ApiError } from '@/app/lib/api';
 import { Pill } from './_components/bits';
 import { ApprovalsPanel } from './_components/approvals-panel';
 import { jobsApi } from './jobs-api';
+import { JobShareDialog } from './_components/share-dialog';
 import { workflowApi } from './workflow-api';
 import { EMPLOYMENT_TYPE_LABEL, JOB_STATUS_LABEL, WORK_MODE_LABEL, daysSince, salaryLabel, type Job, type JobStatus } from './types';
 
@@ -37,6 +38,7 @@ export default function JobsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<JobStatus | ''>('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [sharing, setSharing] = useState<Job | null>(null);
   const [toDelete, setToDelete] = useState<Job | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const templates = useQuery(() => workflowApi.templates(), [company?.id], { enabled: canAccess && templatesOpen });
@@ -59,12 +61,6 @@ export default function JobsPage() {
     finally { setBusyId(null); }
   }
 
-  async function copy(job: Job) {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/carreiras/${job.companyId}/${job.id}`);
-      toast.success('Link público copiado.');
-    } catch { toast.error('Não foi possível copiar o link.'); }
-  }
 
   if (!canAccess) return <div className="p-6"><EmptyState message="Seu perfil não tem acesso ao módulo de vagas." /></div>;
 
@@ -109,7 +105,7 @@ export default function JobsPage() {
         {jobs.error && <ErrorState message={jobs.error} onRetry={jobs.refetch} />}
         {jobs.loading && !jobs.data ? <LoadingState label="Carregando vagas..." /> : !jobs.data ? null : rows.length === 0 ? <div className="rounded-2xl border border-dashed border-border bg-bg p-10 text-center sm:p-14"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-[var(--color-brand)]"><Briefcase size={23} aria-hidden="true" /></span><h2 className="mt-4 text-lg font-semibold text-fg">Sua próxima contratação começa aqui</h2><p className="mx-auto mt-1 max-w-md text-sm text-fg-sub">Crie uma vaga e acompanhe candidatos desde a inscrição até a contratação.</p>{canManage && <Link href={`${base}/new`} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--color-brand)] px-4 text-sm font-semibold text-white hover:bg-[var(--color-brand-700)]"><Plus size={16} aria-hidden="true" /> Criar primeira vaga</Link>}</div> : filtered.length === 0 ? <EmptyState message="Nenhuma vaga corresponde à busca e aos filtros selecionados." /> : (
           <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-            {filtered.map((job) => <JobCard key={job.id} job={job} base={base} canManage={canManage} busy={busyId === job.id} onCopy={() => copy(job)} onRun={(action, success) => run(job, action, success)} onDelete={() => setToDelete(job)} />)}
+            {filtered.map((job) => <JobCard key={job.id} job={job} base={base} canManage={canManage} busy={busyId === job.id} onCopy={() => setSharing(job)} onRun={(action, success) => run(job, action, success)} onDelete={() => setToDelete(job)} />)}
           </div>
         )}
       </section>
@@ -120,6 +116,7 @@ export default function JobsPage() {
           <ul className="space-y-2">{(templates.data ?? []).map((item) => <li key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm">{item.name}<Button size="sm" onClick={async () => { try { const job = await workflowApi.useTemplate(item.id); toast.success('Vaga criada em rascunho.'); setTemplatesOpen(false); window.location.assign(`${base}/${job.id}/edit`); } catch (cause) { toast.error(errorMessage(cause)); } }}>Usar</Button></li>)}</ul>
         )}
       </Modal>
+      <JobShareDialog job={sharing} isOpen={Boolean(sharing)} onClose={() => setSharing(null)} />
       <ConfirmDialog isOpen={!!toDelete} onClose={() => setToDelete(null)} title="Excluir vaga" description={toDelete && (toDelete._count?.applications ?? 0) > 0 ? 'Esta vaga tem candidaturas. Ela será encerrada e o histórico dos candidatos, preservado.' : 'A vaga será removida definitivamente.'} confirmText="Excluir vaga" onConfirm={async () => {
         if (!toDelete) return;
         const job = toDelete;
@@ -155,7 +152,7 @@ function JobCard({ job, base, canManage, busy, onCopy, onRun, onDelete }: {
       {(job.status === 'CLOSED' || job.status === 'FILLED') && life && <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-medium ${life.canReactivate ? 'bg-amber-50 text-amber-800' : 'bg-bg-sub text-fg-sub'}`}>{life.canReactivate ? `Encerrada, sem receber candidatos. Pode reativar até ${life.reactivatableUntil ? new Date(life.reactivatableUntil).toLocaleDateString('pt-BR') : ''} (faltam ${life.daysLeft} dia${life.daysLeft === 1 ? '' : 's'}); reativar não conta como vaga nova no plano.` : 'Encerrada há mais de 30 dias. Para abrir de novo, duplique a vaga.'}</p>}
       <p className="mt-3 text-xs font-semibold text-fg">{salaryLabel(job)}</p>
     </div>
-    <footer className="mt-auto flex flex-wrap items-center gap-2 border-t border-border px-4 py-3 sm:px-5"><Link href={`${base}/${job.id}`} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[var(--color-brand)] px-3 text-xs font-semibold text-white hover:bg-[var(--color-brand-700)]"><Users size={14} aria-hidden="true" /> Candidatos</Link>{canManage && <Link href={`${base}/${job.id}/edit`} className="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-xs font-semibold text-fg hover:bg-bg-sub">Editar</Link>}{!job.isInternal && <Button size="sm" variant="outline" onClick={onCopy} aria-label={`Copiar link público de ${job.title}`}><Copy size={14} aria-hidden="true" /></Button>}{canManage && <>{!archived && job.status !== 'PENDING_APPROVAL' && <StatusActions job={job} busy={busy} onRun={onRun} />}<Button size="sm" variant="ghost" onClick={() => { const name = window.prompt('Nome do modelo de vaga:', job.title); if (name) onRun(() => workflowApi.createTemplate(job.id, name), 'Modelo salvo. Use em Nova vaga.'); }}>Modelo</Button><Button size="sm" variant="ghost" onClick={() => onRun(() => jobsApi.duplicate(job.id), 'Vaga duplicada como rascunho.')}>Duplicar</Button><Button size="sm" variant="ghost" className="text-rose-700" onClick={onDelete}>Excluir</Button></>}</footer>
+    <footer className="mt-auto flex flex-wrap items-center gap-2 border-t border-border px-4 py-3 sm:px-5"><Link href={`${base}/${job.id}`} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[var(--color-brand)] px-3 text-xs font-semibold text-white hover:bg-[var(--color-brand-700)]"><Users size={14} aria-hidden="true" /> Candidatos</Link>{canManage && <Link href={`${base}/${job.id}/edit`} className="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-xs font-semibold text-fg hover:bg-bg-sub">Editar</Link>}<Button size="sm" variant="outline" onClick={onCopy} aria-label={`Link e QR code de ${job.title}`}><QrCode size={14} aria-hidden="true" /> Link</Button>{canManage && <>{!archived && job.status !== 'PENDING_APPROVAL' && <StatusActions job={job} busy={busy} onRun={onRun} />}<Button size="sm" variant="ghost" onClick={() => { const name = window.prompt('Nome do modelo de vaga:', job.title); if (name) onRun(() => workflowApi.createTemplate(job.id, name), 'Modelo salvo. Use em Nova vaga.'); }}>Modelo</Button><Button size="sm" variant="ghost" onClick={() => onRun(() => jobsApi.duplicate(job.id), 'Vaga duplicada como rascunho.')}>Duplicar</Button><Button size="sm" variant="ghost" className="text-rose-700" onClick={onDelete}>Excluir</Button></>}</footer>
   </article>;
 }
 

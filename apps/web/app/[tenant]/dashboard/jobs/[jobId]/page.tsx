@@ -1,6 +1,7 @@
 'use client';
 
-import { ArrowLeft, Columns3, Copy, ExternalLink, Pencil, Star, Table2, UserPlus } from 'lucide-react';
+import { ArrowLeft, Columns3, ExternalLink, Pencil, QrCode, Star, Table2, UserPlus } from 'lucide-react';
+import { JobShareDialog, jobPublicUrl } from '../_components/share-dialog';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -43,6 +44,7 @@ export default function JobCandidatesPage() {
   const [reject, setReject] = useState<{ ids: string[] } | null>(null);
   const [rejectStageId, setRejectStageId] = useState('');
   const [hire, setHire] = useState<{ id: string; name: string } | null>(null);
+  const [sharing, setSharing] = useState(false);
   const [interviewMove, setInterviewMove] = useState<{ id: string; stageId: string; stageName: string; name: string } | null>(null);
   const [bulkStage, setBulkStage] = useState('');
   const [bulkTag, setBulkTag] = useState('');
@@ -179,8 +181,8 @@ export default function JobCandidatesPage() {
           {canEdit && <Link href={`${base}/${jobId}/teste`} className="btn btn-outline btn-md">Teste técnico</Link>}
           {canEdit && <Link href={`${base}/${jobId}/edit`} className="btn btn-outline btn-md"><Pencil size={16} aria-hidden="true" /> Editar vaga</Link>}
           {jobData?.isInternal && jobData.lifecycle?.acceptsApplications && <Button variant="outline" onClick={() => setInternalOpen(true)}><UserPlus size={16} aria-hidden="true" /> Adicionar candidato interno</Button>}
-          {jobData && !jobData.isInternal && <Button variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(`${window.location.origin}/carreiras/${jobData.companyId}/${jobData.id}`); toast.success('Link público copiado.'); } catch { toast.error('Não foi possível copiar.'); } }}><Copy size={16} aria-hidden="true" /> Copiar link</Button>}
-          {jobData && !jobData.isInternal && <Link href={`/carreiras/${jobData.companyId}/${jobData.id}`} target="_blank" className="btn btn-outline btn-md"><ExternalLink size={16} aria-hidden="true" /> Ver publicação</Link>}
+          {jobData && <Button variant="outline" onClick={() => setSharing(true)}><QrCode size={16} aria-hidden="true" /> Link e QR code</Button>}
+          {jobData && <Link href={jobPublicUrl(jobData, '')} target="_blank" className="btn btn-outline btn-md"><ExternalLink size={16} aria-hidden="true" /> Ver publicação</Link>}
           <div className="inline-flex overflow-hidden rounded-lg border border-border" role="group" aria-label="Modo de visualização">
             <button type="button" aria-pressed={view === 'kanban'} onClick={() => setView('kanban')} className={`flex items-center gap-1.5 px-3 py-2 text-sm ${view === 'kanban' ? 'bg-purple-600 text-white' : 'hover:bg-bg-sub'}`}><Columns3 size={15} aria-hidden="true" /> Funil</button>
             <button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')} className={`flex items-center gap-1.5 px-3 py-2 text-sm ${view === 'table' ? 'bg-purple-600 text-white' : 'hover:bg-bg-sub'}`}><Table2 size={15} aria-hidden="true" /> Tabela</button>
@@ -223,6 +225,7 @@ export default function JobCandidatesPage() {
 
       <CandidateDrawer applicationId={openId} pipeline={movablePipeline} tags={tags.data ?? []} onClose={() => setOpenId(null)} onChanged={refresh} onRequestMove={moveOne} />
       <RejectDialog isOpen={Boolean(reject)} count={reject?.ids.length ?? 0} onClose={() => setReject(null)} onConfirm={confirmReject} />
+      <JobShareDialog job={jobData ?? null} isOpen={sharing} onClose={() => setSharing(false)} />
       <HireDialog isOpen={Boolean(hire)} name={hire?.name ?? ''} applicationId={hire?.id ?? null} onClose={() => setHire(null)} onConfirm={confirmHire} />
       <InterviewDialog isOpen={Boolean(interviewMove)} applicationId={interviewMove?.id ?? null} candidateName={interviewMove?.name ?? 'Candidato'} title={`Mover para ${interviewMove?.stageName ?? 'Entrevista'} e agendar`} onClose={() => setInterviewMove(null)} onSubmit={confirmInterview} onSkip={moveWithoutInterview} />
     </div>

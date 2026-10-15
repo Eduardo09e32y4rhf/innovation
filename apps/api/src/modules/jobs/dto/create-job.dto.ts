@@ -11,6 +11,7 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  Max,
   Min,
 } from 'class-validator';
 
@@ -77,6 +78,18 @@ class JobFieldsDto {
   @IsInt()
   @Min(0)
   salaryMax?: number;
+
+  /** Nota minima da triagem (0 a 100%). */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  screeningMinScore?: number | null;
+
+  @IsOptional()
+  @IsIn(['FLAG', 'REJECT'])
+  screeningAction?: 'FLAG' | 'REJECT' | null;
 
   /** Roteiro de entrevista: perguntas sugeridas para quem entrevista. */
   @IsOptional()

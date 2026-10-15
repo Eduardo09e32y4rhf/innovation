@@ -1340,6 +1340,9 @@ model Job {
   confidential   Boolean   @default(false)
   /// Roteiro de entrevista: perguntas sugeridas para quem entrevista.
   interviewGuide String[]  @default([])
+  /// Nota minima da triagem (0 a 100%). Abaixo dela: FLAG (sinaliza) ou REJECT (reprova).
+  screeningMinScore Int?
+  screeningAction   String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

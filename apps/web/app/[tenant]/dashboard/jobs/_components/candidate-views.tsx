@@ -21,7 +21,7 @@ function CandidateCard({ app, onOpen, dragging, onDragStart, onDragEnd, selected
         {app.favorite && <Star size={15} className="shrink-0 fill-amber-400 text-amber-500" aria-label="Favorito" />}
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
-        {app.score !== null && <Pill tone="info">{app.score} pts</Pill>}
+        {app.score !== null && <Pill tone={app.score >= 70 ? "success" : app.score >= 40 ? "warning" : "danger"}>Triagem {app.score}%</Pill>}
         {app.evaluationScore !== null && <Pill tone="brand">★ {app.evaluationScore}</Pill>}
         {app.knockedOut && <Pill tone="danger"><AlertTriangle size={11} aria-hidden="true" /> Fora do critério</Pill>}
         {app.tags.slice(0, 3).map((tag) => <TagChip key={tag.id} name={tag.name} color={tag.color} />)}

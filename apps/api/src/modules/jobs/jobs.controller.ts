@@ -53,6 +53,11 @@ export class JobsController {
     return job;
   }
 
+  @Get('title-suggestions')
+  titleSuggestions(@CurrentCompany() companyId: string) {
+    return this.service.titleSuggestions(companyId);
+  }
+
   @Get(':id')
   async get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
     await this.scope.assertJob(companyId, actor, id);

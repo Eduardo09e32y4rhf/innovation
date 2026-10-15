@@ -27,7 +27,7 @@ function Chip({ children }: { children: React.ReactNode }) {
   return <span className="inline-flex items-center rounded-full bg-bg-sub px-3 py-1 text-xs font-medium text-fg">{children}</span>;
 }
 
-function QuestionField({ question, value, error, onChange }: { question: PublicQuestion; value: string | string[] | undefined; error?: string; onChange: (next: string | string[]) => void }) {
+export function QuestionField({ question, value, error, onChange }: { question: PublicQuestion; value: string | string[] | undefined; error?: string; onChange: (next: string | string[]) => void }) {
   const id = `q-${question.id}`;
   const label = <span className="text-sm font-medium">{question.label}{question.required && ' *'}</span>;
   const common = { id, 'aria-invalid': Boolean(error), 'aria-describedby': error ? `${id}-error` : undefined };
