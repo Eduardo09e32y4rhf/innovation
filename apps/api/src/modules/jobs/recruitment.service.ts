@@ -19,7 +19,7 @@ import {
   SavedViewDto,
   TagDto,
 } from './dto/recruitment.dto';
-import { weightedEvaluationScore, evaluateAnswer, type RuleQuestion } from './recruitment-rules';
+import { weightedEvaluationScore, evaluateAnswer, screeningScore, type RuleQuestion } from './recruitment-rules';
 
 export const DEFAULT_STAGES = [
   { name: 'Inscritos', color: '#6366f1', kind: 'APPLIED' },
@@ -714,23 +714,33 @@ export class RecruitmentService {
   }
 
   // ─── Usado pela candidatura pública ─────────────────────────────
+  /**
+   * Triagem: nota de 0 a 100% (media ponderada) + perguntas eliminatorias + nota minima da vaga.
+   * Abaixo da nota minima: sinaliza ou reprova, conforme a vaga.
+   */
   async evaluateApplication(
     questions: RuleQuestion[],
     answers: Map<string, string>,
+    screening: { minScore?: number | null; action?: string | null } = {},
   ) {
-    let score = 0;
     let knockedOut = false;
     let reject = false;
     const reasons: string[] = [];
-    for (const question of questions) {
-      const evaluation = evaluateAnswer(question, answers.get(question.id) ?? '');
-      score += evaluation.points;
+    const evaluations = questions.map((question) => evaluateAnswer(question, answers.get(question.id) ?? ''));
+    for (const evaluation of evaluations) {
       if (evaluation.knockedOut) {
         knockedOut = true;
         if (evaluation.action === 'REJECT') reject = true;
         if (evaluation.reason) reasons.push(evaluation.reason);
       }
     }
-    return { score, knockedOut, reject, reason: reasons.join('; ') || null };
+    const score = screeningScore(evaluations);
+    const min = screening.minScore ?? null;
+    if (score !== null && min !== null && min > 0 && score < min) {
+      knockedOut = true;
+      if (screening.action === 'REJECT') reject = true;
+      reasons.push(`Nota da triagem ${score}% abaixo do mínimo de ${min}%`);
+    }
+    return { score: score ?? 0, scored: score !== null, knockedOut, reject, reason: reasons.join('; ') || null };
   }
 }

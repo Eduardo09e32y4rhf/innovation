@@ -15,12 +15,13 @@ describe('recruitment rules', () => {
     expect(evaluateAnswer(question, 'Não').action).toBe('FLAG');
   });
 
-  it('soma pontos por opção, inclusive em múltipla escolha', () => {
+  it('formato antigo: pontos viram % do maximo da pergunta (nunca passa de 100%)', () => {
     const multi: RuleQuestion = {
       ...base, type: 'MULTI', options: ['Excel', 'SQL', 'Power BI'],
       scoreRule: { points: { Excel: 5, SQL: 10 } },
     };
-    expect(evaluateAnswer(multi, 'Excel|SQL|Power BI').points).toBe(15);
+    expect(evaluateAnswer(multi, 'Excel|SQL|Power BI').points).toBe(100);
+    expect(evaluateAnswer(multi, 'Excel').points).toBe(33);
   });
 
   it('pontua e elimina por faixa numérica', () => {
@@ -29,7 +30,7 @@ describe('recruitment rules', () => {
       knockout: { min: 2 }, scoreRule: { ranges: [{ min: 0, max: 2, points: 0 }, { min: 3, points: 20 }] },
     };
     expect(evaluateAnswer(number, '1')).toMatchObject({ knockedOut: true, points: 0 });
-    expect(evaluateAnswer(number, '5')).toMatchObject({ knockedOut: false, points: 20 });
+    expect(evaluateAnswer(number, '5')).toMatchObject({ knockedOut: false, points: 100 });
   });
 
   it('valida obrigatoriedade e opções', () => {

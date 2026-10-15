@@ -7,7 +7,8 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ModuleGuard } from '../../common/guards/module.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
-import { InternalApplyDto, InternalJobsService } from './internal-jobs.service';
+import { Throttle } from '@nestjs/throttler';
+import { InternalApplyDto, InternalJobsService, PublicInternalApplyDto } from './internal-jobs.service';
 
 /** Processo interno: funcionário vê as vagas internas e se candidata pela matrícula; RH/R&S/Gestor também inscrevem por matrícula. */
 @UseGuards(JwtAuthGuard, RolesGuard, ModuleGuard)
@@ -25,4 +26,18 @@ export class InternalJobsController {
 
   @Post(':jobId/apply')
   apply(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId', ParseUUIDPipe) jobId: string, @Body() dto: InternalApplyDto) { return this.service.apply(companyId, actor, jobId, dto); }
+}
+
+
+/** Link publico da vaga interna (QR code/WhatsApp interno): so funcionarios, validados por matricula + CPF. */
+@Controller('public/internal-jobs')
+export class PublicInternalJobsController {
+  constructor(private readonly service: InternalJobsService) {}
+
+  @Get(':jobId') @Throttle({ default: { limit: 30, ttl: 60000 } })
+  job(@Param('jobId', ParseUUIDPipe) jobId: string) { return this.service.publicJob(jobId); }
+
+  /** Limite baixo: impede testar matricula/CPF em sequencia. */
+  @Post(':jobId/apply') @Throttle({ default: { limit: 5, ttl: 60000 } })
+  apply(@Param('jobId', ParseUUIDPipe) jobId: string, @Body() dto: PublicInternalApplyDto) { return this.service.applyPublic(jobId, dto); }
 }

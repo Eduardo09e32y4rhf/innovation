@@ -87,6 +87,15 @@ export class JobsRepository {
     return { limit, used, extraPrice: extra > 0 ? extra : null };
   }
 
+  async titleSources(companyId: string) {
+    const [custom, employees, jobs] = await Promise.all([
+      this.prisma.companyPosition.findMany({ where: { companyId }, select: { name: true }, take: 500 }),
+      this.prisma.employee.findMany({ where: { companyId, position: { not: '' } }, select: { position: true }, distinct: ['position'], take: 500 }),
+      this.prisma.job.findMany({ where: { companyId }, select: { title: true, department: true }, orderBy: { createdAt: 'desc' }, take: 300 }),
+    ]);
+    return { custom, employees, jobs };
+  }
+
   create(companyId: string, data: any) {
     return this.prisma.job.create({ data: { ...data, companyId } });
   }
@@ -170,6 +179,8 @@ export class JobsRepository {
       select: {
         id: true,
         companyId: true,
+        screeningMinScore: true,
+        screeningAction: true,
         questions: { select: { ...PUBLIC_QUESTION_SELECT, knockout: true, scoreRule: true }, orderBy: { position: 'asc' } },
       },
     });
@@ -195,7 +206,7 @@ export class JobsRepository {
     resume: { key: string; name: string; type: string; size: number },
     extra: {
       answers: { questionId: string; value: string }[];
-      score: number;
+      score: number | null;
       knockedOut: boolean;
       knockoutReason: string | null;
       rejectOnKnockout: boolean;
@@ -253,7 +264,7 @@ export class JobsRepository {
           consentAt: data.consent ? new Date() : null,
           stageId: stage?.id,
           stageMovedAt: new Date(),
-          score: extra.answers.length ? extra.score : null,
+          score: extra.score,
           knockedOut: extra.knockedOut,
           knockoutReason: extra.knockoutReason,
           rejectionReason: autoReject ? extra.knockoutReason : null,

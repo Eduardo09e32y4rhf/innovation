@@ -107,7 +107,11 @@ export class JobsService {
       salaryMax: job.salaryMax,
       salaryHidden: job.salaryHidden,
       pipelineId: job.pipelineId,
-      interviewGuide: (job as { interviewGuide?: string[] }).interviewGuide ?? [],
+      interviewGuide: job.interviewGuide ?? [],
+      screeningMinScore: job.screeningMinScore,
+      screeningAction: job.screeningAction,
+      isInternal: job.isInternal,
+      confidential: job.confidential,
       status: 'DRAFT',
     });
     if (questions.length) {
@@ -128,6 +132,24 @@ export class JobsService {
       });
     }
     return copy;
+  }
+
+  /** Cargos para o titulo da vaga: cargos cadastrados, cargos dos funcionarios e titulos de vagas anteriores. */
+  async titleSuggestions(companyId: string) {
+    const { custom, employees, jobs } = await this.repository.titleSources(companyId);
+    const seen = new Set<string>();
+    const titles: { title: string; source: 'company' | 'job'; department?: string | null }[] = [];
+    const add = (title: string | null | undefined, source: 'company' | 'job', department?: string | null) => {
+      const clean = String(title ?? '').replace(/\s*\(c[oó]pia\)\s*$/i, '').trim();
+      const key = clean.toLowerCase();
+      if (!clean || seen.has(key)) return;
+      seen.add(key);
+      titles.push({ title: clean, source, department });
+    };
+    for (const job of jobs) add(job.title, 'job', job.department);
+    for (const row of custom) add(row.name, 'company');
+    for (const row of employees) add(row.position, 'company');
+    return { titles };
   }
 
   async delete(companyId: string, id: string) {
@@ -261,7 +283,7 @@ export class JobsService {
       if (problem) throw new BadRequestException({ message: problem, fields: { [`question:${question.id}`]: problem } });
       if (value) answerValues.set(question.id, value);
     }
-    const evaluation = await this.recruitment.evaluateApplication(questions, answerValues);
+    const evaluation = await this.recruitment.evaluateApplication(questions, answerValues, { minScore: job.screeningMinScore, action: job.screeningAction });
 
     const normalizedEmail = dto.email.trim().toLowerCase();
     const safeName = dto.name.trim();
@@ -282,7 +304,7 @@ export class JobsService {
         },
         {
           answers: [...answerValues].map(([questionId, value]) => ({ questionId, value })),
-          score: evaluation.score,
+          score: evaluation.scored ? evaluation.score : null,
           knockedOut: evaluation.knockedOut,
           knockoutReason: evaluation.reason,
           rejectOnKnockout: evaluation.reject,
