@@ -1761,37 +1761,37 @@ model TimeClosing {
   overtime50      Float @default(0)
   overtime100     Float @default(0)
   nightShift      Float @default(0)
-  dsrValue        Float @default(0)
+  dsrValue        Decimal @default(0) @db.Decimal(14, 2)
   absences        Float @default(0)
   lateArrivals    Float @default(0)
   fallbackPunches Int   @default(0)
-  totalPayable    Float @default(0)
+  totalPayable    Decimal @default(0) @db.Decimal(14, 2)
 
-  salaryBase         Float  @default(0)
+  salaryBase         Decimal  @default(0) @db.Decimal(14, 2)
   monthlyDivisor     Int    @default(220)
   payableWorkdays    Int    @default(0)
   paidRestDays       Int    @default(0)
-  hourlyRate         Float  @default(0)
-  overtime50Value    Float  @default(0)
-  overtime100Value   Float  @default(0)
-  nightShiftValue    Float  @default(0)
+  hourlyRate         Decimal  @default(0) @db.Decimal(14, 4)
+  overtime50Value    Decimal  @default(0) @db.Decimal(14, 2)
+  overtime100Value   Decimal  @default(0) @db.Decimal(14, 2)
+  nightShiftValue    Decimal  @default(0) @db.Decimal(14, 2)
   dsrHours           Float  @default(0)
   absenceMinutes     Int    @default(0)
   lateMinutes        Int    @default(0)
   earlyLeaveMinutes  Int    @default(0)
-  absenceDiscount    Float  @default(0)
-  lateDiscount       Float  @default(0)
-  earlyLeaveDiscount Float  @default(0)
-  grossPay           Float  @default(0)
-  inssBase           Float  @default(0)
-  inssDiscount       Float  @default(0)
-  irrfBase           Float  @default(0)
-  irrfDiscount       Float  @default(0)
-  fgtsBase           Float  @default(0)
-  fgtsAmount         Float  @default(0)
-  netPay             Float  @default(0)
+  absenceDiscount    Decimal  @default(0) @db.Decimal(14, 2)
+  lateDiscount       Decimal  @default(0) @db.Decimal(14, 2)
+  earlyLeaveDiscount Decimal  @default(0) @db.Decimal(14, 2)
+  grossPay           Decimal  @default(0) @db.Decimal(14, 2)
+  inssBase           Decimal  @default(0) @db.Decimal(14, 2)
+  inssDiscount       Decimal  @default(0) @db.Decimal(14, 2)
+  irrfBase           Decimal  @default(0) @db.Decimal(14, 2)
+  irrfDiscount       Decimal  @default(0) @db.Decimal(14, 2)
+  fgtsBase           Decimal  @default(0) @db.Decimal(14, 2)
+  fgtsAmount         Decimal  @default(0) @db.Decimal(14, 2)
+  netPay             Decimal  @default(0) @db.Decimal(14, 2)
   // Descontos da empresa (beneficios etc.) tirados do liquido depois de INSS/IRRF. netPay ja vem descontado.
-  benefitsDiscount   Float  @default(0)
+  benefitsDiscount   Decimal  @default(0) @db.Decimal(14, 2)
   deductionsJson     Json?
   calculationVersion String @default("CLT_2026_1")
   taxTableSnapshot   Json?
@@ -2113,7 +2113,7 @@ model Proposal {
   endDate     DateTime?
 
   planType       String
-  monthlyPrice   Float
+  monthlyPrice   Decimal @db.Decimal(14, 2)
   usersLimit     Int
   employeesLimit Int
   features       String[]
@@ -2683,7 +2683,7 @@ model AiUsageLog {
   promptTokens     Int
   completionTokens Int
   totalTokens      Int
-  estimatedCostUsd Float    @default(0)
+  estimatedCostUsd Decimal    @default(0) @db.Decimal(14, 6)
   source           String   @default("OPENAI")
   createdAt        DateTime @default(now())
 
