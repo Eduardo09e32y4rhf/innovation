@@ -218,3 +218,9 @@ infra/webhook_url
 
 # Robo QA provisorio: senhas de teste e relatorios gerados
 
+
+# Dados de runtime e builds temporarios de QA
+apps/api/data/
+apps/api/.iso-dist/
+apps/api/dist-qa*/
+apps/api/.dist-*/
