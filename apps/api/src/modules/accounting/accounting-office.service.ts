@@ -90,7 +90,7 @@ export class AccountingOfficeService {
     const [companies, clients, closings, payrolls, docs, tasks, fees, manual] = await Promise.all([
       this.prisma.company.findMany({ select: { id: true, name: true, document: true, status: true }, orderBy: { name: 'asc' }, take: 1000 }),
       this.prisma.accountingClient.findMany(),
-      this.prisma.timeClosing.groupBy({ by: ['companyId', 'status'], where: { periodStart: { gte: period.start, lt: period.end } }, _count: true }),
+      this.prisma.timeClosing.groupBy({ by: ['companyId', 'status'], where: { periodEnd: { gte: period.start, lt: period.end } }, _count: true }),
       this.prisma.payroll.groupBy({ by: ['companyId', 'status'], where: { referenceYear: period.year, referenceMonth: period.month, deletedAt: null }, _count: true }),
       this.prisma.accountingDocRequest.groupBy({ by: ['companyId', 'status'], where: { month: period.key }, _count: true }),
       this.prisma.accountingTask.groupBy({ by: ['companyId'], where: { status: { not: 'DONE' } }, _count: true }),
@@ -172,7 +172,7 @@ export class AccountingOfficeService {
   async checklist(companyId: string, month?: string) {
     const period = resolveMonth(month);
     const [closings, payrolls, manual, employees] = await Promise.all([
-      this.prisma.timeClosing.groupBy({ by: ['status'], where: { companyId, periodStart: { gte: period.start, lt: period.end } }, _count: true }),
+      this.prisma.timeClosing.groupBy({ by: ['status'], where: { companyId, periodEnd: { gte: period.start, lt: period.end } }, _count: true }),
       this.prisma.payroll.groupBy({ by: ['status'], where: { companyId, referenceYear: period.year, referenceMonth: period.month, deletedAt: null }, _count: true }),
       this.prisma.accountingChecklistItem.findMany({ where: { companyId, month: period.key } }),
       this.dpMovements(companyId, period),

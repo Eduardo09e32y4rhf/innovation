@@ -48,7 +48,7 @@ export class AccountingHubService {
       const company = await this.assertCompany(companyId);
       const [closings, payrolls] = await Promise.all([
         this.prisma.timeClosing.findMany({
-          where: { companyId, periodStart: { gte: period.start, lt: period.end } },
+          where: { companyId, periodEnd: { gte: period.start, lt: period.end } },
           select: { id: true, status: true, periodStart: true, periodEnd: true, grossPay: true, netPay: true, inssDiscount: true, irrfDiscount: true, fgtsAmount: true, overtime50: true, overtime100: true, nightShift: true, calculationVersion: true, updatedAt: true, employee: { select: { name: true, position: true } } },
           orderBy: [{ status: 'asc' }, { employee: { name: 'asc' } }],
           take: 500,
@@ -75,7 +75,7 @@ export class AccountingHubService {
 
     const [companies, closings, payrolls] = await Promise.all([
       this.prisma.company.findMany({ select: { id: true, name: true, document: true, status: true }, orderBy: { name: 'asc' }, take: 1000 }),
-      this.prisma.timeClosing.groupBy({ by: ['companyId', 'status'], where: { periodStart: { gte: period.start, lt: period.end } }, _count: true, _sum: { grossPay: true, netPay: true, inssDiscount: true, irrfDiscount: true, fgtsAmount: true } }),
+      this.prisma.timeClosing.groupBy({ by: ['companyId', 'status'], where: { periodEnd: { gte: period.start, lt: period.end } }, _count: true, _sum: { grossPay: true, netPay: true, inssDiscount: true, irrfDiscount: true, fgtsAmount: true } }),
       this.prisma.payroll.groupBy({ by: ['companyId', 'status'], where: { referenceYear: period.year, referenceMonth: period.month, deletedAt: null }, _count: true, _sum: { grossSalary: true, netSalary: true } }),
     ]);
     const rows = companies.map((company) => {
