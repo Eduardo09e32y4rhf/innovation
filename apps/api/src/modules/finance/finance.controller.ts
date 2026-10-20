@@ -1,3 +1,4 @@
+import { CompanyChargeDto } from './dto/company-charge.dto';
 import { Body, Controller, Delete, Get, Headers, Param, ParseUUIDPipe, Patch, Post, Query, Res, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
@@ -208,7 +209,7 @@ export class FinanceController {
   @Roles('DEV')
   async createCompanyCharge(
     @Param('companyId') companyId: string,
-    @Body() body: { amount: number; dueDate: string; description: string; idempotencyKey?: string },
+    @Body() body: CompanyChargeDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Res({ passthrough: true }) reply: unknown,
   ) {

@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { CronLock } from '../../common/redis/cron-lock.decorator';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasRejectedException, AsaasService } from './asaas.service';
 import { MercadoPagoService } from './mercadopago.service';
@@ -147,6 +148,7 @@ export class PaymentRefundService {
   }
 
   @Cron('0 */5 * * * *')
+  @CronLock('finance.reconcileRefunds', 240, { retries: 2, backoffMs: 2000 })
   async reconcilePending() {
     const pending = await this.prisma.paymentRefund.findMany({ where: { status: { in: active } }, select: { invoiceId: true }, distinct: ['invoiceId'], orderBy: { updatedAt: 'asc' }, take: 40 });
     for (const { invoiceId } of pending) {
