@@ -37,7 +37,7 @@ export function malformedPlaceholders(text: string): string[] {
   const rest = text.replace(PLACEHOLDER, ' ');
   if (!/\{\{|\}\}/.test(rest)) return [];
   const found = new Set<string>();
-  for (const m of rest.matchAll(/\{\{[^{}]{0,40}\}{0,2}|[^{}\s]{0,40}\}\}/g)) found.add(m[0].trim() || '{{ }}');
+  for (const m of rest.matchAll(/\{\{[^{}]{0,40}\}{0,2}|\{?[^{}\s]{0,40}\}\}/g)) found.add(m[0].trim() || '{{ }}');
   if (!found.size) found.add('{{ }}');
   return [...found];
 }

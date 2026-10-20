@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderTemplate, unknownVariables, validateTemplate } from './template-render';
+import { malformedPlaceholders, renderTemplate, unknownVariables, validateTemplate } from './template-render';
 
 describe('modelos de documento', () => {
   it('troca os campos pelos valores', () => {
@@ -20,5 +20,24 @@ describe('modelos de documento', () => {
     expect(validateTemplate({ ...ok, kind: 'X' })).toMatch(/tipo/);
     expect(validateTemplate({ ...ok, body: 'curto' })).toMatch(/curto/);
     expect(validateTemplate({ ...ok, body: ok.body + ' {{salario}}' })).toMatch(/desconhecido/);
+  });
+
+  it('acha campo mal escrito que iria cru para o documento', () => {
+    expect(malformedPlaceholders('{{nome}} {{data-ocorrencia}}')).toEqual(['{{data-ocorrencia}}']);
+    expect(malformedPlaceholders('Olá {{nome}')).toEqual(['{{nome}']);
+    expect(malformedPlaceholders('Olá {nome}}')).toEqual(['{nome}}']);
+    expect(malformedPlaceholders('{{nome1}}')).toEqual(['{{nome1}}']);
+    expect(malformedPlaceholders('{{ nome }} e {{cpf}}')).toEqual([]);
+  });
+  it('o modelo é recusado se o título ou o texto tiver campo mal escrito ou desconhecido', () => {
+    const ok = { name: 'Advertência por atraso', kind: 'ADVERTENCIA', title: 'Termo de advertência', body: 'Prezado(a) {{nome}}, em {{data_ocorrencia}} houve atraso.' };
+    expect(validateTemplate({ ...ok, body: `${ok.body} {{data-fim}}` })).toMatch(/mal escrito/);
+    expect(validateTemplate({ ...ok, title: 'Advertência {{nome}' })).toMatch(/mal escrito/);
+    expect(validateTemplate({ ...ok, title: 'Advertência {{salario}}' })).toMatch(/desconhecido/);
+  });
+  it('chaves dentro do valor digitado (motivo) não viram campo não resolvido', () => {
+    const out = renderTemplate('Motivo: {{motivo}}', { motivo: 'atraso {{nome}} repetido }}' });
+    expect(out).toBe('Motivo: atraso nome repetido ');
+    expect(out).not.toMatch(/\{\{|\}\}/);
   });
 });
