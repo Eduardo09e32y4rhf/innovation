@@ -136,6 +136,11 @@ export class AsaasWebhookProcessorService {
       this.logger.warn(`Evento ${event} ignorado: fatura ${existing.id} já está paga (fora de ordem).`);
       return;
     }
+    // Paga, depois estornada/contestada: um "recebido" atrasado só reabre se o Asaas confirmar que está paga de novo.
+    if (existing?.status === 'CANCELED' && existing.paidAt && status === 'PAID' && !(await this.remotelyPaid(payment.id))) {
+      this.logger.warn(`Evento ${event} ignorado: fatura ${existing.id} foi estornada/contestada (fora de ordem).`);
+      return;
+    }
     const invoiceData = {
       companyId: company.id,
       description: payment.description || 'Cobrança Asaas',
@@ -252,6 +257,12 @@ export class AsaasWebhookProcessorService {
         fiscalXmlUrl: invoice.xmlUrl,
       });
     }
+  }
+
+  private async remotelyPaid(paymentId: string) {
+    if (!this.asaas.isConfigured()) return false;
+    const charge: any = await this.asaas.getCharge(paymentId);
+    return ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(charge?.status);
   }
 
   private statusFromEvent(event: string): InvoiceStatus | undefined {
