@@ -10,6 +10,7 @@ import {
   vacationTwelfths,
 } from './labor-dates';
 import { thirteenthTaxes, toCents, toReais } from './thirteenth.calculator';
+import { deriveVestedVacations, EntitlementRecord } from './vested-vacations';
 
 export const TERMINATION_TYPES = [
   'SEM_JUSTA_CAUSA',
@@ -37,6 +38,10 @@ export interface TerminationInput {
   fgtsBalance?: number;
   dependents?: number;
   taxContext?: PayrollTaxContext;
+  /** Média mensal das verbas variáveis (R$) — integra aviso, férias e 13º (CLT art. 142 §§3º/5º, 487 §3º; Súmula 45 TST). */
+  variableMonthly?: number;
+  /** Histórico de direitos de férias do módulo de férias. Se informado, substitui vestedVacationPeriods (derivação automática + dobra). */
+  vacationHistory?: EntitlementRecord[];
 }
 
 type Line = { code: string; label: string; amount: number; legalBasis: string };
@@ -57,7 +62,11 @@ export function calculateTermination(input: TerminationInput) {
 
   const type = input.type;
   const salaryCents = toCents(input.salary);
-  const dailyCents = salaryCents / 30;
+  const variableCents = Math.max(0, toCents(input.variableMonthly ?? 0));
+  // Remuneração = salário + média das variáveis; é a base do aviso, das férias, do 13º e do teto do art. 477 §5º.
+  const baseCents = salaryCents + variableCents;
+  const dailyCents = baseCents / 30;
+  const salaryDailyCents = salaryCents / 30;
   const dependents = Math.max(0, input.dependents ?? 0);
   const earnings: Line[] = [];
   const discounts: Line[] = [];
@@ -95,7 +104,7 @@ export function calculateTermination(input: TerminationInput) {
 
   // Saldo de salário
   const balanceDays = salaryBalanceDays(admission, termination);
-  const balanceCents = push(earnings, 'SALDO_SALARIO', `Saldo de salário (${balanceDays}/30)`, dailyCents * balanceDays, 'CLT art. 462/477');
+  const balanceCents = push(earnings, 'SALDO_SALARIO', `Saldo de salário (${balanceDays}/30)`, salaryDailyCents * balanceDays, 'CLT art. 462/477');
 
   // 13º proporcional: indevido na justa causa (Decreto 57.155/1965 art. 7º).
   let thirteenthCents = 0;
@@ -108,24 +117,53 @@ export function calculateTermination(input: TerminationInput) {
       const to = projectedEnd.getTime() < yearEnd.getTime() ? projectedEnd : yearEnd;
       const avos = thirteenthTwelfths(year, from, to);
       thirteenthAvos += avos;
-      thirteenthCents += Math.round((salaryCents * avos) / 12);
+      thirteenthCents += Math.round((baseCents * avos) / 12);
     }
     push(earnings, '13_PROPORCIONAL', `13º salário proporcional (${thirteenthAvos}/12)`, thirteenthCents, 'Lei 4.090/1962 art. 3º');
   }
 
   // Férias
-  const vested = Math.max(0, Math.floor(input.vestedVacationPeriods ?? 0));
-  const vestedCents = push(earnings, 'FERIAS_VENCIDAS', `Férias vencidas (${vested} período(s))`, salaryCents * vested, 'CLT art. 146 caput');
   const periodStart = currentVacationPeriodStart(admission, projectedEnd);
+  let vestedCents = 0;
+  let doubleCents = 0;
+  if (input.vacationHistory) {
+    const vestedList = deriveVestedVacations({ admission, termination, projectedEnd, entitlements: input.vacationHistory });
+    const vestedDays = vestedList.reduce((sum, v) => sum + v.pendingDays, 0);
+    const doubledDays = vestedList.filter((v) => v.doubled).reduce((sum, v) => sum + v.pendingDays, 0);
+    vestedCents = push(
+      earnings,
+      'FERIAS_VENCIDAS',
+      `Férias vencidas (${vestedDays} dia(s): ${vestedList.map((v) => v.label).join('; ')})`,
+      dailyCents * vestedDays,
+      'CLT art. 146 caput',
+    );
+    doubleCents = push(
+      earnings,
+      'FERIAS_DOBRA',
+      `Dobra das férias com período concessivo vencido (${doubledDays} dia(s))`,
+      dailyCents * doubledDays,
+      'CLT art. 137',
+    );
+    if (doubledDays > 0) warnings.push('Há férias vencidas com período concessivo expirado: pagas em dobro (CLT art. 137), com 1/3 sobre a dobra.');
+  } else {
+    const vested = Math.max(0, Math.floor(input.vestedVacationPeriods ?? 0));
+    vestedCents = push(earnings, 'FERIAS_VENCIDAS', `Férias vencidas (${vested} período(s))`, baseCents * vested, 'CLT art. 146 caput');
+  }
   const vacationAvos = type === 'JUSTA_CAUSA' ? 0 : vacationTwelfths(periodStart, projectedEnd);
   const proportionalVacationCents = push(
     earnings,
     'FERIAS_PROPORCIONAIS',
     `Férias proporcionais (${vacationAvos}/12)`,
-    (salaryCents * vacationAvos) / 12,
+    (baseCents * vacationAvos) / 12,
     'CLT arts. 146 parágrafo único e 147; Súmulas 171 e 261 TST',
   );
-  push(earnings, 'TERCO_FERIAS', '1/3 constitucional sobre férias', (vestedCents + proportionalVacationCents) / 3, 'CF art. 7º XVII; Súmula 328 TST');
+  push(
+    earnings,
+    'TERCO_FERIAS',
+    '1/3 constitucional sobre férias',
+    (vestedCents + doubleCents + proportionalVacationCents) / 3,
+    'CF art. 7º XVII; Súmula 328 TST',
+  );
 
   // Contrato a termo rompido antes do fim (arts. 479/480): metade da remuneração dos dias restantes.
   let fixedTermIndemnityCents = 0;
@@ -138,13 +176,19 @@ export function calculateTermination(input: TerminationInput) {
     }
   }
 
-  // Descontos rescisórios
-  if (type === 'PEDIDO_DEMISSAO' && mode === 'NAO_CUMPRIDO') {
-    push(discounts, 'AVISO_NAO_CUMPRIDO', 'Aviso prévio não cumprido (30 dias)', salaryCents, 'CLT art. 487 §2º');
+  // Descontos rescisórios (compensações). CLT art. 477 §5º: a compensação não pode exceder um mês de remuneração.
+  let noticeDiscountCents = type === 'PEDIDO_DEMISSAO' && mode === 'NAO_CUMPRIDO' ? salaryCents : 0;
+  let indemnity480Cents = type === 'ANTECIPADA_EMPREGADO' ? Math.round(fixedTermIndemnityCents) : 0;
+  const compensationRequested = noticeDiscountCents + indemnity480Cents;
+  if (compensationRequested > baseCents) {
+    noticeDiscountCents = Math.min(noticeDiscountCents, baseCents);
+    indemnity480Cents = Math.min(indemnity480Cents, baseCents - noticeDiscountCents);
+    warnings.push(
+      `Compensação de ${toReais(compensationRequested).toFixed(2)} limitada a ${toReais(noticeDiscountCents + indemnity480Cents).toFixed(2)} (um mês de remuneração — CLT art. 477 §5º).`,
+    );
   }
-  if (type === 'ANTECIPADA_EMPREGADO') {
-    push(discounts, 'INDENIZACAO_480', 'Indenização art. 480 (limitada ao valor do art. 479)', fixedTermIndemnityCents, 'CLT art. 480 §1º');
-  }
+  push(discounts, 'AVISO_NAO_CUMPRIDO', 'Aviso prévio não cumprido (30 dias)', noticeDiscountCents, 'CLT art. 487 §2º; art. 477 §5º');
+  push(discounts, 'INDENIZACAO_480', 'Indenização art. 480 (limitada ao valor do art. 479)', indemnity480Cents, 'CLT art. 480 §1º; art. 477 §5º');
 
   // Tributos. Saldo de salário: INSS e IRRF mensais. Aviso indenizado, férias indenizadas + 1/3 e art. 479:
   // sem INSS (Lei 8.212 art. 28 §9º "d"/"e"; STJ Tema 478) e isentos de IRRF (Lei 7.713 art. 6º V; Súmula 386 STJ).
@@ -177,13 +221,15 @@ export function calculateTermination(input: TerminationInput) {
   const totalEarnings = earnings.reduce((sum, l) => sum + toCents(l.amount), 0);
   const totalDiscounts = discounts.reduce((sum, l) => sum + toCents(l.amount), 0);
   if (totalDiscounts > totalEarnings) {
-    warnings.push('Descontos superam os haveres; a compensação na rescisão é limitada a 1 mês de remuneração (CLT art. 477 §5º).');
+    warnings.push('Descontos superam os haveres (tributos e adiantamentos não são compensação); revise os valores antes de efetivar.');
   }
 
   return {
     type,
     noticeMode: type === 'SEM_JUSTA_CAUSA' || type === 'ACORDO' || type === 'PEDIDO_DEMISSAO' ? mode : null,
     proportionalNoticeDays: proportionalNotice,
+    remuneration: toReais(baseCents),
+    variableMonthly: toReais(variableCents),
     projectedEndDate: projectedEnd.toISOString().slice(0, 10),
     earnings,
     discounts,

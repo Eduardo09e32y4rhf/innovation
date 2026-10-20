@@ -1,11 +1,8 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { NOTICE_MODES, TERMINATION_TYPES } from '../termination.calculator';
 
-export class SimulateTerminationDto {
-  @IsUUID()
-  employeeId!: string;
-
+export class TerminationParamsDto {
   @IsIn(TERMINATION_TYPES)
   type!: (typeof TERMINATION_TYPES)[number];
 
@@ -38,4 +35,26 @@ export class SimulateTerminationDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   fgtsBalance?: number;
+
+  /** Média mensal das variáveis informada manualmente (R$); substitui o cálculo automático dos últimos 12 meses. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  variableAverageOverride?: number;
+
+  /** false desliga a média automática de variáveis (padrão: true). */
+  @IsOptional()
+  @IsBoolean()
+  includeVariableAverage?: boolean;
+}
+
+export class SimulateTerminationDto extends TerminationParamsDto {
+  @IsUUID()
+  employeeId!: string;
+}
+
+export class FinalizeTerminationDto extends TerminationParamsDto {
+  @IsString()
+  confirm!: string;
 }

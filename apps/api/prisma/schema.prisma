@@ -3843,3 +3843,30 @@ model AssessmentInvite {
 
   @@index([companyId, applicationId])
 }
+
+/// Termo de rescisão efetivado (TRCT). Um por funcionário/data de desligamento; snapshot imutável do cálculo.
+model TerminationRecord {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyId       String   @db.Uuid
+  employeeId      String   @db.Uuid
+  type            String
+  noticeMode      String?
+  terminationDate DateTime @db.Date
+
+  totalEarnings   Decimal  @db.Decimal(14, 2)
+  totalDiscounts  Decimal  @db.Decimal(14, 2)
+  netAmount       Decimal  @db.Decimal(14, 2)
+  fgtsFine        Decimal  @db.Decimal(14, 2)
+  paymentDeadline DateTime @db.Date
+
+  /// Resultado completo do cálculo (verbas, descontos, base legal, avisos) e parâmetros usados.
+  snapshot   Json
+  documentId String? @db.Uuid
+  sha256     String?
+
+  finalizedBy String   @db.Uuid
+  createdAt   DateTime @default(now())
+
+  @@unique([employeeId, terminationDate])
+  @@index([companyId, terminationDate])
+}
