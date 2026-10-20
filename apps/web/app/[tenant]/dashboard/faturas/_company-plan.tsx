@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import api, { ApiError, type PlanQuote, type PublicPlatformPlan, type SeatsQuote } from '@/app/lib/api';
+import { useOverlay } from '@/app/components/ui/use-overlay';
 
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const field = 'h-10 w-full rounded-xl border border-line bg-transparent px-3 text-sm text-fg';
@@ -12,6 +13,7 @@ type Mode = 'seats' | 'plan';
 /** Troca de usuários e de plano feita pelo administrador da empresa: upgrade cobra rateio por dia, downgrade vale no próximo ciclo. */
 export default function CompanyPlanActions({ currentSeats, onDone }: { currentSeats?: number; onDone: () => void }) {
   const [mode, setMode] = useState<Mode | null>(null);
+  const planOverlayRef = useOverlay<HTMLDivElement>(Boolean(mode), () => setMode(null));
   const [seats, setSeats] = useState('');
   const [planId, setPlanId] = useState('');
   const [plans, setPlans] = useState<PublicPlatformPlan[]>([]);
@@ -64,7 +66,7 @@ export default function CompanyPlanActions({ currentSeats, onDone }: { currentSe
       </span>
 
       {mode && (
-        <div role="dialog" aria-modal="true" aria-label={mode === 'seats' ? 'Alterar usuários' : 'Trocar plano'} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div ref={planOverlayRef} role="dialog" aria-modal="true" aria-label={mode === 'seats' ? 'Alterar usuários' : 'Trocar plano'} tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form onSubmit={confirm} className="card-v2 w-full max-w-md space-y-3 p-5">
             <h2 className="text-lg font-semibold text-fg">{mode === 'seats' ? 'Alterar usuários contratados' : 'Trocar de plano'}</h2>
 

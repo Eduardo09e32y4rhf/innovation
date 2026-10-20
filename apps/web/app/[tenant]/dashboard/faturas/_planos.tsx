@@ -8,6 +8,7 @@ import { useMutation, useQuery } from '../platform/_components/use-platform-quer
 import { request } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { useOverlay } from '@/app/components/ui/use-overlay';
 
 const MODULES: { id: string; label: string }[] = [
   { id: 'employees', label: 'Funcionários' },
@@ -46,6 +47,7 @@ function normalizeText(value: string) {
 // ─── MODAL ───────────────────────────────────────────────────────────────────
 
 function PlanModal({ plan, onClose, onDone }: { plan?: any; onClose: () => void; onDone: () => void }) {
+  const overlayRef = useOverlay<HTMLDivElement>(true, onClose);
   const [form, setForm] = useState({
     name: plan?.name ?? '',
     description: plan?.description ?? '',
@@ -97,7 +99,7 @@ function PlanModal({ plan, onClose, onDone }: { plan?: any; onClose: () => void;
   const isValid = form.name.trim().length > 0 && !priceInvalid;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+    <div ref={overlayRef} role="dialog" aria-modal="true" aria-label="Plano" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
       <div className="w-full max-w-lg rounded-[14px] border border-slate-200 bg-white shadow-2xl flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">

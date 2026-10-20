@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useMutation, useQuery } from './use-platform-query';
 import { api, type CreatePlatformCompanyInput } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { useOverlay } from '@/app/components/ui/use-overlay';
 
 function F({ label, value, onChange, type = 'text', required }: { label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean }) {
   return (
@@ -17,6 +18,7 @@ function F({ label, value, onChange, type = 'text', required }: { label: string;
 }
 
 export function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const overlayRef = useOverlay<HTMLDivElement>(true, onClose);
   const plansData = useQuery(() => api.platform.listPlans(), []);
 
   const [form, setForm] = useState<CreatePlatformCompanyInput & { planId?: string }>({
@@ -50,7 +52,7 @@ export function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+    <div ref={overlayRef} role="dialog" aria-modal="true" aria-label="Nova empresa" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
       <div className="w-full max-w-lg rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-black text-slate-950">Nova empresa</h3>

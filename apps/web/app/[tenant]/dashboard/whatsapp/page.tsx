@@ -8,6 +8,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useMutation, useQuery } from '../platform/_components/use-platform-query';
 import { api, type Chat, type ChatMessage } from '@/app/lib/api';
 import { safeHref } from '@/app/lib/text';
+import { attachmentSizeError } from '@/app/lib/attachments';
 
 export default function WhatsappPage() {
   const { user } = useAuth();
@@ -79,6 +80,8 @@ function ChatThread({ chat, onBack }: { chat: Chat; onBack: () => void }) {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
+    const sizeError = attachmentSizeError(file);
+    if (sizeError) { setAttachment(null); setFileError(sizeError); return; }
     setFileError('');
     setReading(true);
     const reader = new FileReader();

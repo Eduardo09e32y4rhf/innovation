@@ -5,6 +5,7 @@ import { CreditCard, Database, MessageSquare, Shield, X } from 'lucide-react';
 import { useQuery } from './use-platform-query';
 import { api, type PlatformCompany } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { useOverlay } from '@/app/components/ui/use-overlay';
 
 export function safeIsoDate(val: any) {
   if (!val) return '';
@@ -13,6 +14,7 @@ export function safeIsoDate(val: any) {
 }
 
 export function CompanyManageModal({ company, onClose, onSave, loading, error }: { company: PlatformCompany; onClose: () => void; onSave: (data: any) => void; loading: boolean; error: string | null }) {
+  const overlayRef = useOverlay<HTMLDivElement>(true, onClose);
   const [activeTab, setActiveTab] = useState<string>('plan');
   const [generatingContract, setGeneratingContract] = useState(false);
   const [contractError, setContractError] = useState<string | null>(null);
@@ -79,7 +81,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
   const valid = name.trim().length > 0 && maxUsers >= 1 && maxUsers >= company.usersCount && maxEmployees >= 1 && maxEmployees >= company.employeesCount;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/40">
+    <div ref={overlayRef} role="dialog" aria-modal="true" aria-label="Gerenciar empresa" tabIndex={-1} className="fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/40">
       <div className="flex h-full w-full max-w-2xl flex-col border-l border-slate-200 bg-white p-0 shadow-2xl">
 
         {/* HEADER */}

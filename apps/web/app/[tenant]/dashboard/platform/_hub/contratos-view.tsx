@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import api, { ApiError, type PlatformCompany, type PublicPlatformPlan } from '@/app/lib/api';
 import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { useOverlay } from '@/app/components/ui/use-overlay';
 
 type ManualContract = {
   id: string;
@@ -108,6 +109,7 @@ export function ContratosView({ params: { tenant } }: { params: { tenant: string
   const [editingId, setEditingId] = useState<string | null>(null);
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [selectedContract, setSelectedContract] = useState<ManualContract | null>(null);
+  const contractOverlayRef = useOverlay<HTMLDivElement>(Boolean(selectedContract), () => setSelectedContract(null));
 
   async function load() {
     setLoading(true);
@@ -465,7 +467,7 @@ export function ContratosView({ params: { tenant } }: { params: { tenant: string
       </section>
 
       {selectedContract && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 p-4">
+        <div ref={contractOverlayRef} role="dialog" aria-modal="true" aria-label="Contrato" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 p-4">
           <div className="flex h-full w-full max-w-2xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl">
             <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
               <div>

@@ -25,6 +25,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { api, type PlatformBillingAuditLog, type PlatformCompany, type PlatformFinanceSummary, type PublicPlatformPlan } from '@/app/lib/api';
 import { toast } from 'sonner';
 import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { useOverlay } from '@/app/components/ui/use-overlay';
 
 type SubscriptionCompany = PlatformCompany & {
   subscription?: {
@@ -207,7 +208,8 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
     () => filteredCompanies.find((company) => company.id === selectedCompanyId) || null,
     [filteredCompanies, selectedCompanyId],
   );
-  const canRunCheckout = String(user?.role || user?.profile || '').toUpperCase() === 'DEV';
+   const companyOverlayRef = useOverlay<HTMLDivElement>(Boolean(selectedCompany), () => setSelectedCompanyId(null));
+ const canRunCheckout = String(user?.role || user?.profile || '').toUpperCase() === 'DEV';
 
   const askConfirm = useConfirm();
   async function runCheckout(company: SubscriptionCompany) {
@@ -555,7 +557,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
       </section>
 
       {selectedCompany && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 sm:p-4">
+        <div ref={companyOverlayRef} role="dialog" aria-modal="true" aria-label="Assinatura da empresa" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/50 sm:p-4">
           <div className="flex h-full w-full max-w-2xl flex-col overflow-hidden bg-white shadow-2xl sm:rounded-[24px]">
             <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-4 py-4 sm:px-6 sm:py-5">
               <div>

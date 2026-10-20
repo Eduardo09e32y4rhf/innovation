@@ -22,6 +22,7 @@ import { selectableStages } from '../stage-access';
 import { FiltersBar } from '../_components/filters-bar';
 import { jobsApi } from '../jobs-api';
 import { JOB_STATUS_LABEL, WORK_MODE_LABEL, type ApplicationFilters, type ApplicationsPayload, type InterviewPayload } from '../types';
+import { useOverlay } from '@/app/components/ui/use-overlay';
 
 const ALLOWED_ROLES = new Set(['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR']);
 const message = (cause: unknown, fallback: string) => (cause instanceof ApiError ? cause.message : fallback);
@@ -39,6 +40,7 @@ export default function JobCandidatesPage() {
   const [debounced, setDebounced] = useState<ApplicationFilters>({});
   const [view, setView] = useState<'kanban' | 'table'>('kanban');
   const [internalOpen, setInternalOpen] = useState(false);
+  const internalOverlayRef = useOverlay<HTMLDivElement>(internalOpen, () => setInternalOpen(false));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(null);
   const [reject, setReject] = useState<{ ids: string[] } | null>(null);
@@ -162,7 +164,7 @@ export default function JobCandidatesPage() {
   return (
     <div className="mx-auto w-full max-w-[1700px] space-y-4 p-4 sm:p-6">
       <Link href={base} className="inline-flex items-center gap-1 text-sm text-fg-sub hover:text-fg"><ArrowLeft size={15} aria-hidden="true" /> Voltar para vagas</Link>
-      {internalOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Adicionar candidato interno"><div className="w-full max-w-lg rounded-2xl bg-bg p-5 shadow-xl"><h2 className="text-lg font-semibold text-fg">Adicionar candidato interno</h2><p className="mb-3 text-xs text-fg-sub">Digite a matrícula: os dados do cadastro do funcionário já vêm preenchidos.</p><InternalCandidateForm jobId={jobId} onCancel={() => setInternalOpen(false)} onDone={() => { setInternalOpen(false); refresh(); }} /></div></div>}
+      {internalOpen && <div ref={internalOverlayRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Adicionar candidato interno" tabIndex={-1}><div className="w-full max-w-lg rounded-2xl bg-bg p-5 shadow-xl"><h2 className="text-lg font-semibold text-fg">Adicionar candidato interno</h2><p className="mb-3 text-xs text-fg-sub">Digite a matrícula: os dados do cadastro do funcionário já vêm preenchidos.</p><InternalCandidateForm jobId={jobId} onCancel={() => setInternalOpen(false)} onDone={() => { setInternalOpen(false); refresh(); }} /></div></div>}
 
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">

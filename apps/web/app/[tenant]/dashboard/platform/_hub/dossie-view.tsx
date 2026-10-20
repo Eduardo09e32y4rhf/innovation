@@ -25,6 +25,7 @@ import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '../_components/use-platform-query';
 import api, { ApiError, type PlatformInvoice } from '@/app/lib/api';
+import { useOverlay } from '@/app/components/ui/use-overlay';
 
 const statusLabel: Record<string, string> = { ACTIVE: 'Ativa', SUSPENDED: 'Suspensa', CANCELLED: 'Cancelada', OPEN: 'Em aberto', PAID: 'Paga', OVERDUE: 'Vencida', CANCELED: 'Cancelada' };
 
@@ -55,6 +56,7 @@ export function DossieView({ params, tab, onTab }: { params: { tenant: string; c
   const role = user?.profile?.toUpperCase();
   const [creatingCheckout, setCreatingCheckout] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const invoiceOverlayRef = useOverlay<HTMLDivElement>(isInvoiceModalOpen, () => setIsInvoiceModalOpen(false));
   const [invoiceForm, setInvoiceForm] = useState({ amount: '', description: '', dueDate: '' });
   const [creatingManualInvoice, setCreatingManualInvoice] = useState(false);
   const [invoiceKey, setInvoiceKey] = useState(() => crypto.randomUUID());
@@ -255,7 +257,7 @@ export function DossieView({ params, tab, onTab }: { params: { tenant: string; c
 
       {/* Modal Nova Fatura Manual */}
       {isInvoiceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div ref={invoiceOverlayRef} role="dialog" aria-modal="true" aria-label="Nova fatura manual" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md overflow-hidden rounded-[20px] bg-white shadow-2xl">
             <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
               <h2 className="text-base font-black text-slate-900">Nova Cobrança Avulsa</h2>

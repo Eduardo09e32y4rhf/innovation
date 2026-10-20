@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useMutation, useQuery } from './use-platform-query';
 import { api, type CompanyStatus, type PlatformCompany } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { useOverlay } from '@/app/components/ui/use-overlay';
 
 const MODULES = [
   { id: 'employees', label: 'Funcionarios' },
@@ -31,6 +32,7 @@ function Field({ label, value, onChange, type = 'text' }: { label: string; value
 }
 
 export function CompanyEditModal({ company, onClose, onDone }: { company: PlatformCompany; onClose: () => void; onDone: () => void }) {
+  const overlayRef = useOverlay<HTMLDivElement>(true, onClose);
   const plansData = useQuery(() => api.platform.listPlans(), []);
 
   const [form, setForm] = useState({
@@ -82,7 +84,7 @@ export function CompanyEditModal({ company, onClose, onDone }: { company: Platfo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/50">
+    <div ref={overlayRef} role="dialog" aria-modal="true" aria-label="Editar empresa" tabIndex={-1} className="fixed inset-0 z-50 flex items-stretch justify-end bg-slate-950/50">
       <div className="flex h-full w-full max-w-2xl flex-col border-l border-slate-200 bg-white shadow-2xl">
         <header className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div>
