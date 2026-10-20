@@ -691,6 +691,8 @@ model Employee {
   timeRecords         TimeRecord[]
 
   @@index([companyId])
+  @@index([companyId, status])
+  @@index([companyId, name])
   @@index([cpf])
 }
 

@@ -1,5 +1,6 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsArray, IsBoolean, IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches } from 'class-validator';
+import { sanitizeString } from '../../../common/utils/sanitize-string';
 
 const EMPLOYEE_STATUSES = ['ACTIVE', 'ONBOARDING', 'INACTIVE', 'SUSPENDED', 'TERMINATED'] as const;
 const CONTRACT_TYPES = ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO', 'JOVEM_APRENDIZ', 'TERCEIRIZADO'] as const;
@@ -10,6 +11,7 @@ const ACCESS_ENABLED = ['NO', 'YES'] as const;
 const ACCESS_PROFILES = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'] as const;
 
 export class CreateEmployeeDto {
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   name!: string;
 
@@ -42,6 +44,7 @@ export class CreateEmployeeDto {
   cep?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   street?: string;
 
@@ -50,14 +53,17 @@ export class CreateEmployeeDto {
   streetNumber?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   addressComplement?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   neighborhood?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   city?: string;
 
@@ -74,14 +80,17 @@ export class CreateEmployeeDto {
   maritalStatus?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   nationality?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   birthplace?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   observations?: string;
 
@@ -94,10 +103,12 @@ export class CreateEmployeeDto {
   registration?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   position?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   department?: string;
 
@@ -131,14 +142,17 @@ export class CreateEmployeeDto {
   cnpj?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   legalName?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   tradeName?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   unit?: string;
 
@@ -200,10 +214,12 @@ export class CreateEmployeeDto {
   education?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   motherName?: string;
 
   @IsOptional()
+  @Transform(({ value }) => sanitizeString(value))
   @IsString()
   fatherName?: string;
 

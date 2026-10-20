@@ -46,7 +46,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ logger: true, bodyLimit: 10_485_760, trustProxy: true }), // 10MB limit for base64 images
+    new FastifyAdapter({ logger: true, bodyLimit: 1_048_576, trustProxy: true }), // 1MB default; multipart routes override per-route
   );
   app.useLogger(logger);
 
