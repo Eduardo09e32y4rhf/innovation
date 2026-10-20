@@ -6,6 +6,7 @@ import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyMultipart from '@fastify/multipart';
 import { initSentry } from './common/observability';
+import { DEFAULT_BODY_LIMIT, applyRouteBodyLimits } from './common/http/body-limits';
 initSentry();
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -44,10 +45,9 @@ async function bootstrap() {
     ],
   });
 
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter({ logger: true, bodyLimit: 1_048_576, trustProxy: process.env.TRUST_PROXY ?? 'loopback,uniquelocal' }), // 1MB default; multipart routes override per-route
-  );
+  const fastifyAdapter = new FastifyAdapter({ logger: true, bodyLimit: DEFAULT_BODY_LIMIT, trustProxy: process.env.TRUST_PROXY ?? 'loopback,uniquelocal' });
+  applyRouteBodyLimits(fastifyAdapter.getInstance());
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, fastifyAdapter);
   app.useLogger(logger);
 
   const reflector = app.get(Reflector);
