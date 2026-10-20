@@ -9,6 +9,7 @@ import { AccountingOfficeService } from './accounting-office.service';
 import { ChecklistToggleDto, CreateDocRequestDto, CreateTaskDto, GenerateFeesDto, PayFeeDto, SaveClientDto, UpdateDocRequestDto, UpdateTaskDto } from './accounting-office.dto';
 import { AccountingHubService } from './accounting-hub.service';
 import { AccountingRulesService } from './accounting-rules.service';
+import { PlatformLedgerService } from './platform-ledger.service';
 
 /** Contabilidade: DEV, CEO e CONTABIL (fonte única das regras de cálculo). */
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -19,11 +20,18 @@ export class AccountingController {
     private readonly hub: AccountingHubService,
     private readonly rules: AccountingRulesService,
     private readonly office: AccountingOfficeService,
+    private readonly ledger: PlatformLedgerService,
   ) {}
 
   @Get('overview')
   overview(@Query() query: MonthQueryDto) {
     return this.hub.overview(query.month, query.companyId);
+  }
+
+  /** Razão da receita de assinaturas: recebimentos, devoluções confirmadas, competência e alertas fiscais. */
+  @Get('platform-ledger')
+  platformLedger(@Query() query: MonthQueryDto) {
+    return this.ledger.month(query.month, query.companyId);
   }
 
   @Get('report/pdf')

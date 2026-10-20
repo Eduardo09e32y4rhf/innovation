@@ -4,7 +4,7 @@
 // Comportamento configuravel em runtime por POST /__control/config (ver CONFIG abaixo).
 import http from 'node:http';
 
-const PORT = Number(process.env.PORT ?? 3370);
+const PORT = Number(process.env.PORT ?? 3380);
 const WEBHOOK_URL = process.env.WEBHOOK_URL ?? 'http://localhost:3371/finance/webhook/asaas';
 const WEBHOOK_TOKEN = process.env.WEBHOOK_TOKEN ?? '';
 // Asaas rejeita cobranca abaixo de R$ 5,00 (regra de valor minimo da conta).

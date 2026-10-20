@@ -181,14 +181,14 @@ export class PaymentReconciliationService {
     this.logger.error(`OPERATIONAL_ALERT ${JSON.stringify({ condition: 'payment_divergence', invoiceId: invoice.id, reason })}`);
   }
 
-  /** Divergência de fatura que foi cancelada/removida depois: não há mais o que conciliar, baixa o ajuste. */
+  /** Divergência de fatura que foi cancelada ou removida depois: não há mais o que conciliar, baixa o ajuste. */
   private async sweepRemoved(companyId?: string) {
     const rows = await this.prisma.auditLog.findMany({ where: { action: DIVERGENCE, ...(companyId ? { companyId } : {}) }, distinct: ['entityId'], select: { entityId: true, companyId: true }, take: 500 });
     let resolved = 0;
     for (const row of rows) {
       if (!row.entityId || !(await this.openDivergenceIds(row.entityId)).length) continue;
-      const invoice = await this.prisma.platformInvoice.findUnique({ where: { id: row.entityId }, select: { deletedAt: true } });
-      if (invoice && !invoice.deletedAt) continue;
+      const invoice = await this.prisma.platformInvoice.findUnique({ where: { id: row.entityId }, select: { deletedAt: true, status: true } });
+      if (invoice && !invoice.deletedAt && invoice.status !== 'CANCELED') continue;
       await this.prisma.auditLog.create({ data: { companyId: row.companyId, action: RESOLVED, entity: 'PlatformInvoice', entityId: row.entityId, metadata: { auto: true, reason: 'fatura_removida' } } });
       resolved += 1;
     }
