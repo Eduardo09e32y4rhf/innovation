@@ -8,6 +8,7 @@ import { Button, Drawer } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
+import { safeHref } from '@/app/lib/text';
 import { jobsApi } from '../jobs-api';
 import type { Pipeline, Tag } from '../types';
 import { Field, Pill, TagChip, inputClass } from './bits';
@@ -98,7 +99,7 @@ export function CandidateDrawer({
               <ul className="space-y-1.5 text-sm">
                 {data.candidate?.email && <li className="flex items-center gap-2"><Mail size={15} aria-hidden="true" /><a className="underline" href={`mailto:${data.candidate.email}`}>{data.candidate.email}</a></li>}
                 {data.candidate?.phone && <li className="flex items-center gap-2"><Phone size={15} aria-hidden="true" /><a className="underline" href={`https://wa.me/${data.candidate.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">{data.candidate.phone}</a></li>}
-                {data.linkedinUrl && <li className="flex items-center gap-2"><ExternalLink size={15} aria-hidden="true" /><a className="underline" href={data.linkedinUrl} target="_blank" rel="noreferrer noopener">LinkedIn</a></li>}
+                {safeHref(data.linkedinUrl) && <li className="flex items-center gap-2"><ExternalLink size={15} aria-hidden="true" /><a className="underline" href={safeHref(data.linkedinUrl)} target="_blank" rel="noreferrer noopener">LinkedIn</a></li>}
               </ul>
               {data.resumeAvailable && <Button variant="outline" onClick={download}><Download size={16} aria-hidden="true" /> Baixar currículo</Button>}
 

@@ -21,3 +21,9 @@ export function maskCNPJ(value: string) {
 export function maskCEP(value: string) {
   return value.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
 }
+
+/** Só deixa passar http(s), mailto e tel: um href vindo do usuário com `javascript:` executaria no clique. */
+export function safeHref(value?: string | null): string | undefined {
+  const url = String(value ?? '').trim();
+  return /^(https?:\/\/|mailto:|tel:)/i.test(url) ? url : undefined;
+}

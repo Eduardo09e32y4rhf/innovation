@@ -27,6 +27,7 @@ import { QueueModule } from './modules/queue/queue.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { SanitizeInputInterceptor } from './common/pipes/sanitize-input.interceptor';
 import { CryptoModule } from './common/crypto/crypto.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -122,6 +123,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     ScheduleModule.forRoot(),
   ],
   providers: [
+    { provide: APP_INTERCEPTOR, useClass: SanitizeInputInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
     { provide: APP_GUARD, useClass: UserThrottlerGuard },
