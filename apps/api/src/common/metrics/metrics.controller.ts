@@ -7,7 +7,7 @@ import type { FastifyReply } from 'fastify';
 @Controller()
 export class MetricsController extends PrometheusController {
   @Get()
-  async index(@Res() response: FastifyReply, @Headers('authorization') auth?: string): Promise<string> {
+  async index(@Res({ passthrough: true }) response: FastifyReply, @Headers('authorization') auth?: string): Promise<string> {
     const expected = process.env.METRICS_TOKEN;
     if (expected || process.env.NODE_ENV === 'production') {
       const given = Buffer.from(auth ?? '');
@@ -16,9 +16,7 @@ export class MetricsController extends PrometheusController {
         throw new UnauthorizedException();
       }
     }
-    // Raw @Res() bypasses ResponseInterceptor so Prometheus gets plain text.
-    const body = await register.metrics();
-    response.header('Content-Type', register.contentType).send(body);
-    return body;
+    response.header('Content-Type', register.contentType);
+    return register.metrics();
   }
 }

@@ -19,7 +19,10 @@ export function decimalsToNumbers(value: unknown): unknown {
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
-  intercept(_context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    // Prometheus scrapes plain text; wrapping it in the JSON envelope breaks the exposition format.
+    const url = String(context.switchToHttp().getRequest()?.url ?? '');
+    if (url === '/metrics' || url.startsWith('/metrics?')) return next.handle();
     return next.handle().pipe(map((data) => ({ success: true, data: decimalsToNumbers(data) })));
   }
 }
