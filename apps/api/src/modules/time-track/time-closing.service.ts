@@ -1,4 +1,5 @@
 import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
+import { countDependents } from '../../common/utils/dependents';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { TimeClosingStatus } from '@prisma/client';
@@ -12,6 +13,7 @@ import { computeDeductions } from '../payroll/deduction-rules';
 import { appendMirror, buildPayslipPdf, buildTimeSheetPdf, timeSheetBrand } from './time-sheet-pdf';
 import { saoPauloDayOfWeek, toSaoPauloDateKey } from '../../common/utils/date.utils';
 import { analyzeTimesheet, salaryDeadline, type ComplianceIssue } from './closing-compliance';
+import { vacationTaxableGross } from '../vacations/vacation-tax-base';
 
 interface GenerateClosingDto {
   employeeIds?: string[];
@@ -113,7 +115,7 @@ export class TimeClosingService {
     const blockingByEmployee: Array<{ employeeId: string; name: string; issues: ComplianceIssue[] }> = [];
 
     const employeeIds = employees.map(e => e.id);
-    const [allTracks, allOccurrences, allSchedules, allDayOffs] = await Promise.all([
+    const [allTracks, allOccurrences, allSchedules, allDayOffs, allVacations] = await Promise.all([
       this.prisma.timeTrack.findMany({
         where: { companyId, employeeId: { in: employeeIds }, date: { gte: periodStart, lte: periodEnd } },
         orderBy: { date: 'asc' },
@@ -135,6 +137,16 @@ export class TimeClosingService {
       this.prisma.scheduleException.findMany({
         where: { companyId, employeeId: { in: employeeIds }, date: { gte: periodStart, lte: periodEnd }, exceptionType: { in: ['FOLGA', 'FERIADO_LOCAL', 'ATESTADO'] } },
         select: { employeeId: true, date: true },
+      }),
+      // Férias pagas (mesma condição do recibo) com início na competência: o INSS do recibo entra na base unificada do mês.
+      this.prisma.vacation.findMany({
+        where: {
+          employeeId: { in: employeeIds },
+          status: { in: ['APPROVED', 'COMPLETED'] },
+          startDate: { gte: periodStart, lte: periodEnd },
+          payments: { some: { status: 'PAID' } },
+        },
+        select: { employeeId: true, daysUsed: true },
       }),
     ]);
     const dayOffKeys = new Map<string, Set<string>>();
@@ -253,7 +265,7 @@ export class TimeClosingService {
       const totalDaysInPeriod = Math.round((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1;
       const isPartialMonth = totalDaysInPeriod < 28 || totalDaysInPeriod > 31;
 
-      const dependents = Array.isArray(employee.dependents) ? employee.dependents.length : 0;
+      const dependents = countDependents(employee.dependents);
       const financial = this.payroll.calculate({
         salary: Number(employee.salary),
         weeklyMinutes,
@@ -273,6 +285,9 @@ export class TimeClosingService {
         overtime100Factor: Number(overtimeRule.sundayHolidayRate),
         nightShiftPercent: (Number(overtimeRule.nightShiftRate) - 1) * 100,
         dsrEnabled: overtimeRule.dsrEnabled,
+        vacationTaxableGrosses: allVacations
+          .filter((item) => item.employeeId === employee.id)
+          .map((item) => vacationTaxableGross(Number(employee.salary), item.daysUsed)),
         taxContext,
       });
 
@@ -445,7 +460,7 @@ export class TimeClosingService {
         earlyLeaveMinutes: Number(updated.earlyLeaveMinutes),
         payableWorkdays: Number(updated.payableWorkdays),
         paidRestDays: Number(updated.paidRestDays),
-        dependents: Array.isArray(updated.employee.dependents) ? updated.employee.dependents.length : 0,
+        dependents: countDependents(updated.employee.dependents),
         taxContext,
       });
       const rules = await tx.payrollDeductionRule.findMany({ where: { companyId, isActive: true } });

@@ -6,6 +6,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { SupportStorageService } from '../support/support-storage.service';
 import { VacationsRepository } from './vacations.repository';
 import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
+import { vacationTaxableGross } from './vacation-tax-base';
 
 export const VACATION_RECEIPT_VERSION = 'VACATION_RECEIPT_V2';
 
@@ -48,7 +49,7 @@ export class VacationReceiptService {
     const calculatedGross = this.roundCurrency(vacationPay + constitutionalThird + soldDaysPay + soldDaysThird);
     // INSS/IRRF incidem so sobre ferias gozadas + 1/3, em separado do salario do mes;
     // abono pecuniario (CLT art. 143) e seu 1/3 sao isentos (Lei 8.212 art. 28 §9 "e" 6; AD PGFN 6/2006).
-    const taxableGross = this.roundCurrency(vacationPay + constitutionalThird);
+    const taxableGross = vacationTaxableGross(salary, vacation.daysUsed);
     const dependents = this.countDependents(vacation.employee?.dependents);
     const taxContext = await this.payroll.resolveTaxContext(new Date(vacation.startDate));
     const taxes = this.payroll.applyTaxes(taxableGross, dependents, taxContext);
