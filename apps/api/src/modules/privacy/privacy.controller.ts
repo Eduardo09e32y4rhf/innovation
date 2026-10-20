@@ -48,8 +48,8 @@ export class PrivacyController {
 
 
   @Get('job/:jobId/status')
-  async getJobStatus(@Param('jobId') jobId: string) {
-    return this.service.getJobStatus(jobId);
+  async getJobStatus(@CurrentUser() user: JwtUser, @Param('jobId') jobId: string) {
+    return this.service.getJobStatus(jobId, user.companyId);
   }
 
 }
