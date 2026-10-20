@@ -1,0 +1,15 @@
+{
+  "name": "innovation-e2e-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "E2E dos fluxos principais, responsivo, sessao e metricas web (Playwright)",
+  "scripts": {
+    "test": "playwright test --config playwright.config.ts",
+    "test:flows": "playwright test flows --config playwright.config.ts",
+    "test:responsive": "playwright test responsive --config playwright.config.ts",
+    "test:vitals": "playwright test vitals --config playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
