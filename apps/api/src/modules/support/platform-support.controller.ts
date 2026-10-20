@@ -1,3 +1,5 @@
+import { AssignTicketDto } from './dto/platform-support.dto';
+import { AddSupportMessageDto } from './dto/add-support-message.dto';
 import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { SupportRepository } from './support.repository';
@@ -50,7 +52,8 @@ export class PlatformSupportController {
 
   @Patch('tickets/:id/assign')
   @Roles('DEV')
-  async assignTicket(@Req() req: any, @Param('id') id: string, @Body('userId') userId: string) {
+  async assignTicket(@Req() req: any, @Param('id') id: string, @Body() body: AssignTicketDto) {
+    const userId = body.userId;
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { assignedTo: { connect: { id: userId || req.user.sub } } });
     await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'ASSIGNED', newValue: { userId: userId || req.user.sub } });
@@ -85,13 +88,13 @@ export class PlatformSupportController {
 
   @Post('tickets/:id/messages')
   @Roles('DEV')
-  async addMessage(@Req() req: any, @Param('id') id: string, @Body() data: any) {
+  async addMessage(@Req() req: any, @Param('id') id: string, @Body() data: AddSupportMessageDto) {
     return this.supportService.addMessage(req.user, id, data.message, 'PUBLIC');
   }
 
   @Post('tickets/:id/internal-notes')
   @Roles('DEV')
-  async addInternalNote(@Req() req: any, @Param('id') id: string, @Body() data: any) {
+  async addInternalNote(@Req() req: any, @Param('id') id: string, @Body() data: AddSupportMessageDto) {
     return this.supportService.addMessage(req.user, id, data.message, 'INTERNAL');
   }
 

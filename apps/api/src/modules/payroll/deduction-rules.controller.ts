@@ -1,4 +1,5 @@
-﻿import { BadRequestException, Body, ForbiddenException, Controller, Delete, Get, NotFoundException, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+﻿import { DeductionRuleDto } from './dto/deduction-rule.dto';
+import { BadRequestException, Body, ForbiddenException, Controller, Delete, Get, NotFoundException, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -41,7 +42,7 @@ export class DeductionRulesController {
   }
 
   @Post()
-  async create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: any) {
+  async create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: DeductionRuleDto) {
     this.assertWriter(actor);
     const created = await this.prisma.payrollDeductionRule.create({ data: { companyId, createdByUserId: actor.sub, ...this.payload(body) } });
     await this.prisma.auditLog.create({ data: { companyId, userId: actor.sub, action: 'DEDUCTION_RULE_CREATED', entity: 'PayrollDeductionRule', entityId: created.id, metadata: { name: created.name, scope: created.scope, kind: created.kind, value: Number(created.value) } } });
@@ -49,7 +50,7 @@ export class DeductionRulesController {
   }
 
   @Patch(':id')
-  async update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+  async update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: DeductionRuleDto) {
     this.assertWriter(actor);
     const current = await this.prisma.payrollDeductionRule.findFirst({ where: { id, companyId } });
     if (!current) throw new NotFoundException('Regra não encontrada.');

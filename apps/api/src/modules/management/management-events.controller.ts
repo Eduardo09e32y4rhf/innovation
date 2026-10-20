@@ -1,3 +1,4 @@
+import { ManagementEventDto } from './dto/management-event.dto';
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -30,13 +31,13 @@ export class ManagementEventsController {
   }
 
   @Post()
-  create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: Record<string, unknown>) {
-    return this.svc.create(companyId, actor.sub, body, actor);
+  create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: ManagementEventDto) {
+    return this.svc.create(companyId, actor.sub, { ...body }, actor);
   }
 
   @Patch(':id')
-  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: Record<string, unknown>) {
-    return this.svc.update(companyId, id, body, actor);
+  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: ManagementEventDto) {
+    return this.svc.update(companyId, id, { ...body }, actor);
   }
 
   @Delete(':id')

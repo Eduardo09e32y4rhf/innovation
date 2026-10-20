@@ -1,4 +1,5 @@
-﻿import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+﻿import { UpdateGlobalPermissionsDto } from './dto/update-global-permissions.dto';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { GlobalPermissionsService } from './global-permissions.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -19,7 +20,7 @@ export class GlobalPermissionsController {
   }
 
   @Patch(':role')
-  update(@CurrentUser() actor: JwtUser, @Param('role') role: UserRole, @Body() body: { permissions: string[] }) {
+  update(@CurrentUser() actor: JwtUser, @Param('role') role: UserRole, @Body() body: UpdateGlobalPermissionsDto) {
     return this.service.update(role, body.permissions, actor);
   }
 }
