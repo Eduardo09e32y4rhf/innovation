@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -225,6 +225,13 @@ export class VacationsRepository {
       });
       if (!vacation) return null;
       const beforeStatus = vacation.status;
+      if (beforeStatus !== status) {
+        // Compare-and-set: concurrent approvals must not debit the entitlement twice.
+        const claimed = await tx.vacation.updateMany({ where: { id, status: beforeStatus }, data: { status } });
+        if (claimed.count === 0) {
+          throw new ConflictException('Estas ferias acabaram de ser alteradas por outra pessoa. Atualize a pagina.');
+        }
+      }
       const total = vacation.daysUsed + vacation.soldDays;
       if (vacation.entitlementId && beforeStatus !== status) {
         const data: Record<string, unknown> = {};
