@@ -157,6 +157,38 @@ export class AsaasFiscalService {
     }
   }
 
+  /**
+   * Estorno total: cancela a NFS-e. Estorno parcial: a NF não aceita valor parcial, então só registra para ajuste manual.
+   * Nunca lança. Idempotente: nota já cancelada ou em cancelamento é ignorada; falha vira CANCEL_PENDING e a rotina tenta de novo.
+   */
+  async handleRefund(invoiceId: string, refundStatus: string | null | 'CHARGEBACK') {
+    const invoice = await this.prisma.platformInvoice.findUnique({ where: { id: invoiceId }, select: { id: true, companyId: true, asaasInvoiceId: true, invoiceStatus: true } });
+    if (!invoice?.asaasInvoiceId) return { result: 'SKIPPED' as const };
+    if (['CANCELED', 'PROCESSING_CANCELLATION'].includes(invoice.invoiceStatus ?? '')) return { result: 'SKIPPED' as const };
+
+    // Chargeback pode ser revertido na disputa (PAYMENT_AWAITING_CHARGEBACK_REVERSAL): não cancela sozinho, sinaliza revisão.
+    if (refundStatus === 'PARTIALLY_REFUNDED' || refundStatus === 'CHARGEBACK') {
+      const reason = refundStatus === 'CHARGEBACK' ? 'chargeback' : 'estorno_parcial';
+      const already = await this.prisma.auditLog.findFirst({ where: { action: 'NFSE_MANUAL_ADJUSTMENT', entityId: invoice.id, metadata: { path: ['reason'], equals: reason } }, select: { id: true } });
+      if (!already) {
+        await this.prisma.auditLog.create({ data: { companyId: invoice.companyId, action: 'NFSE_MANUAL_ADJUSTMENT', entity: 'PlatformInvoice', entityId: invoice.id, metadata: { reason, asaasInvoiceId: invoice.asaasInvoiceId } } });
+        this.logger.warn(`Fatura ${invoice.id}: ${reason} — NFS-e ${invoice.asaasInvoiceId} exige revisão manual.`);
+      }
+      return { result: 'MANUAL' as const };
+    }
+    if (refundStatus !== 'REFUNDED') return { result: 'SKIPPED' as const };
+
+    try {
+      const nf = await this.asaas.cancelFiscalInvoice(invoice.asaasInvoiceId);
+      await this.persist(invoice.id, { ...(nf ?? { id: invoice.asaasInvoiceId }), id: invoice.asaasInvoiceId, status: nf?.status ?? 'PROCESSING_CANCELLATION' });
+      return { result: 'REQUESTED' as const };
+    } catch (error) {
+      this.logger.error(`Fatura ${invoice.id}: falha ao cancelar NFS-e ${invoice.asaasInvoiceId}: ${error instanceof Error ? error.message : String(error)}`);
+      await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { invoiceStatus: 'CANCEL_PENDING', nfeStatus: 'CANCEL_PENDING' } }).catch(() => undefined);
+      return { result: 'FAILED' as const };
+    }
+  }
+
   /** Rotina: agenda notas que faltam e puxa as que ainda não foram autorizadas (cobre webhook perdido). */
   async reconcileRecent(days = 45, limit = 200) {
     if (!this.asaas.isConfigured()) return { checked: 0 };
@@ -164,13 +196,16 @@ export class AsaasFiscalService {
     const invoices = await this.prisma.platformInvoice.findMany({
       where: {
         status: 'PAID', deletedAt: null, provider: { not: 'MERCADOPAGO' }, asaasPaymentId: { not: null }, paidAt: { gte: since },
-        OR: [{ asaasInvoiceId: null }, { invoiceStatus: null }, { invoiceStatus: { notIn: [...FINAL_STATUS, 'ERROR'] } }],
+        OR: [{ asaasInvoiceId: null }, { invoiceStatus: null }, { invoiceStatus: { notIn: [...FINAL_STATUS, 'ERROR', 'CANCEL_PENDING', 'PROCESSING_CANCELLATION'] } }],
+        AND: [{ OR: [{ refundStatus: null }, { refundStatus: { not: 'REFUNDED' } }] }],
       },
       select: { id: true },
       orderBy: { paidAt: 'desc' },
       take: limit,
     });
     for (const invoice of invoices) await this.ensureForInvoice(invoice.id);
-    return { checked: invoices.length };
+    const pendingCancel = await this.prisma.platformInvoice.findMany({ where: { invoiceStatus: 'CANCEL_PENDING', refundStatus: 'REFUNDED' }, select: { id: true }, take: limit });
+    for (const invoice of pendingCancel) await this.handleRefund(invoice.id, 'REFUNDED');
+    return { checked: invoices.length + pendingCancel.length };
   }
 }

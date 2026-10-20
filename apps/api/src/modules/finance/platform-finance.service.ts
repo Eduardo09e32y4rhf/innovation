@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { PdfReport, fmt } from '../../common/pdf/pdf-report';
 import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
 import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
@@ -1339,7 +1340,7 @@ export class PlatformFinanceService {
     if (Number.isNaN(new Date(dto.dueDate).getTime())) throw new BadRequestException('Informe um vencimento válido.');
 
     const include = { company: { select: { id: true, name: true } }, plan: { select: { id: true, name: true } } } as const;
-    const key = dto.idempotencyKey ? `${dto.companyId}:${dto.idempotencyKey}` : undefined;
+    const key = chargeKey(dto);
     if (key) {
       const previous = await this.prisma.platformInvoice.findUnique({ where: { chargeRequestKey: key }, include });
       if (previous) {
@@ -1401,7 +1402,7 @@ export class PlatformFinanceService {
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
     return this.createMercadoPagoInvoice({
       companyId: dto.companyId, planId: dto.planId, description: dto.description, amount: Number(dto.amount),
-      dueDate: new Date(dto.dueDate), payerEmail: company.users[0]?.email, chargeRequestKey: dto.idempotencyKey ? `${dto.companyId}:${dto.idempotencyKey}` : undefined,
+      dueDate: new Date(dto.dueDate), payerEmail: company.users[0]?.email, chargeRequestKey: chargeKey(dto),
     });
   }
   /**
@@ -1606,4 +1607,15 @@ export class PlatformFinanceService {
   private isPaid(status?: string) {
     return !!status && ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(status);
   }
+}
+
+/**
+ * Chave anti-duplicidade da cobrança. Sem chave do cliente, deriva uma dos dados + janela de 5 min:
+ * duplo clique ou retry idêntico devolve a mesma fatura em vez de gerar outra cobrança no gateway.
+ */
+function chargeKey(dto: CreatePlatformInvoiceDto): string {
+  if (dto.idempotencyKey) return `${dto.companyId}:${dto.idempotencyKey}`;
+  const bucket = Math.floor(Date.now() / 300_000);
+  const digest = createHash('sha256').update([dto.companyId, Number(dto.amount).toFixed(2), String(dto.dueDate).slice(0, 10), dto.description ?? '', dto.billingType ?? '', dto.sendToAsaas ? 1 : 0, bucket].join('|')).digest('hex').slice(0, 32);
+  return `${dto.companyId}:auto:${digest}`;
 }

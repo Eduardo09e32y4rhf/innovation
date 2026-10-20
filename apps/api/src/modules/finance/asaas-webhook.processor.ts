@@ -169,6 +169,8 @@ export class AsaasWebhookProcessorService {
       ...(Object.keys(companyData).length ? [this.prisma.company.update({ where: { id: company.id }, data: companyData })] : []),
     ]);
 
+    if (event === 'PAYMENT_CHARGEBACK_REQUESTED' && this.fiscal) await this.fiscal.handleRefund(invoice.id, 'CHARGEBACK');
+
     if (status === 'PAID' && existing?.status !== 'PAID') {
       await this.advanceCouponCycle(company.id);
       await cancelRedundantSignupCharges(this.prisma, this.asaas, this.logger, company.id, invoice.id).catch((error) => this.logger.warn(`Limpeza de cobrancas avulsas falhou: ${String(error)}`));

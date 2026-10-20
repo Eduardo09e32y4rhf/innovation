@@ -244,6 +244,11 @@ export class AsaasService {
     return this.request<AsaasFiscalInvoice>('/invoices', { method: 'POST', body: JSON.stringify(data) });
   }
 
+  /** Cancela a NFS-e (agendada ou autorizada). Assíncrono: o resultado chega por INVOICE_CANCELED / INVOICE_CANCELLATION_DENIED. */
+  cancelFiscalInvoice(invoiceId: string) {
+    return this.request<AsaasFiscalInvoice>(`/invoices/${encodeURIComponent(invoiceId)}/cancel`, { method: 'POST', body: JSON.stringify({}) });
+  }
+
   /** Dados fiscais da conta (prefeitura, RPS, certificado). Responde 404 quando a conta ainda não configurou a emissão. */
   getFiscalInfo() {
     return this.request<{ simplesNacional?: boolean; municipalInscription?: string; rpsSerie?: string; rpsNumber?: number; email?: string }>('/fiscalInfo');

@@ -89,7 +89,7 @@ export class CeoOnboardingService {
     const contract = await this.loadContract(actor, contractId);
     const documentId = which === 'signed' ? contract.signedPdfDocumentId : contract.pdfDocumentId;
     if (!documentId) throw new NotFoundException('Arquivo nao disponivel.');
-    return { buffer: await this.documents.readBuffer(documentId), name: `contrato-ceo-${contract.version}${which === 'signed' ? '-assinado' : ''}.pdf` };
+    return { buffer: await this.documents.readBuffer(contract.ceo.companyId, documentId), name: `contrato-ceo-${contract.version}${which === 'signed' ? '-assinado' : ''}.pdf` };
   }
 
   /** Cada parte (CEO e DEV) envia o PDF com a sua assinatura nova; cada envio precisa acrescentar uma assinatura. */
@@ -99,7 +99,7 @@ export class CeoOnboardingService {
     if (actor.role === 'CEO' && contract.ceo.onboardingState !== 'CONTRACT_PENDING') throw new ConflictException('O contrato ainda nao esta liberado para assinatura nesta etapa.');
     if (!contract.pdfDocumentId) throw new ConflictException('A minuta em PDF nao foi gerada.');
 
-    const previous = await this.documents.readBuffer(contract.signedPdfDocumentId ?? contract.pdfDocumentId);
+    const previous = await this.documents.readBuffer(contract.ceo.companyId, contract.signedPdfDocumentId ?? contract.pdfDocumentId);
     const check = checkSignedUpload(previous, contract.signatureCount, file);
     if (!check.ok) throw new BadRequestException(check.reason);
 

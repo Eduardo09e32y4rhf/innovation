@@ -1,8 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasService } from './asaas.service';
 import { MercadoPagoService } from './mercadopago.service';
+import { AsaasFiscalService } from './asaas-fiscal.service';
 
 const cents = (value: unknown) => Math.round(Number(value) * 100);
 const active = ['PROCESSING', 'PENDING', 'UNKNOWN'];
@@ -11,7 +12,7 @@ const active = ['PROCESSING', 'PENDING', 'UNKNOWN'];
 @Injectable()
 export class PaymentRefundService {
   private readonly logger = new Logger(PaymentRefundService.name);
-  constructor(private readonly prisma: PrismaService, private readonly asaas: AsaasService, private readonly mp: MercadoPagoService) {}
+  constructor(private readonly prisma: PrismaService, private readonly asaas: AsaasService, private readonly mp: MercadoPagoService, @Optional() private readonly fiscal?: AsaasFiscalService) {}
 
   async request(invoiceId: string, input: { amount?: number; reason: string; key?: string; actorId?: string }) {
     const key = `${invoiceId}:${input.key || `legacy:${input.amount ?? 'remaining'}`}`;
@@ -70,7 +71,7 @@ export class PaymentRefundService {
     const done = (status: string) => provider === 'MERCADOPAGO' ? status === 'approved' : status === 'DONE';
     const total = remote.filter(r => done(r.status)).reduce((sum, r) => sum + cents('value' in r ? r.value : r.amount), 0);
     if (total > cents(invoice.amount)) throw new ConflictException('O total devolvido pelo provedor excede a fatura. Revisão necessária.');
-    return this.prisma.$transaction(async tx => {
+    const result = await this.prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT "id" FROM "PlatformInvoice" WHERE "id" = ${invoiceId}::uuid FOR UPDATE`;
       const locked = await tx.platformInvoice.findUniqueOrThrow({ where: { id: invoiceId } });
       const confirmedTotal = Math.max(total, cents(locked.refundedAmount));
@@ -106,6 +107,8 @@ export class PaymentRefundService {
       await tx.platformInvoice.update({ where: { id: invoiceId }, data: { refundedAmount: confirmedTotal / 100, refundStatus: status } });
       return { refundedAmount: confirmedTotal / 100, refundStatus: status };
     });
+    if (this.fiscal) await this.fiscal.handleRefund(invoiceId, result.refundStatus);
+    return result;
   }
 
   private async asaasRefunds(paymentId: string) {
