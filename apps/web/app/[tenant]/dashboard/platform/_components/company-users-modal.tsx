@@ -7,6 +7,7 @@ import { useMutation, useQuery } from './use-platform-query';
 import { api, type AppUser, type CreatedUser, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const COMPANY_USER_ROLES: PlatformCompanyUserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 type CompanyUserForm = { name: string; email: string; password: string; role: PlatformCompanyUserRole; isActive?: boolean };
@@ -27,8 +28,9 @@ export function CompanyUsersModal({ company, onClose }: { company: PlatformCompa
   const [openNew, setOpenNew] = useState(false);
   const remove = useMutation((userId: string) => api.platform.deleteCompanyUser(company.id, userId), { onSuccess: () => users.refetch() });
 
+  const askConfirm = useConfirm();
   async function handleDelete(user: AppUser) {
-    if (!window.confirm(`Remover o acesso de ${user.name}?`)) return;
+    if (!(await askConfirm({ title: 'Remover acesso', description: `Remover o acesso de ${user.name}?`, confirmText: 'Remover acesso' }))) return;
     await remove.mutate(user.id).catch(() => {});
   }
 

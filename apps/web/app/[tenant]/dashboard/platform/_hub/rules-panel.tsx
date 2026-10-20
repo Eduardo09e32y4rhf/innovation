@@ -9,6 +9,7 @@ import { useQuery } from '@/app/hooks/use-data';
 import { date, errorText, money } from './format';
 import { platformHub } from './hub-api';
 import type { RuleGroup, RuleVersion, SimulationResult } from './types';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const input = 'input-v2 w-full text-base sm:text-sm';
 const pct = (rate: number) => `${(rate * 100).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}%`;
@@ -144,8 +145,9 @@ function RuleCard({ group, canEdit, onNew, onChanged }: { group: RuleGroup; canE
   const today = todayIso();
   const future = group.history.filter((v) => v.active && v.effectiveFrom.slice(0, 10) > today);
 
+  const askConfirm = useConfirm();
   async function deactivate(version: RuleVersion) {
-    if (!window.confirm(`Desativar a versão ${version.version}? Os cálculos passam a usar a versão anterior.`)) return;
+    if (!(await askConfirm({ title: 'Desativar versão da regra', description: `Desativar a versão ${version.version}? Os cálculos passam a usar a versão anterior.`, confirmText: 'Desativar versão' }))) return;
     try { await platformHub.deactivateRule(version.id); toast.success('Versão desativada.'); onChanged(); }
     catch (cause) { toast.error(errorText(cause, 'Não foi possível desativar.')); }
   }

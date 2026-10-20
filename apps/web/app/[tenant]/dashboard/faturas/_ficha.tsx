@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import api, { ApiError, type FaturasCompanyRow, type InvoiceAdjustment, type PlanQuote, type PlatformInvoice, type SeatsQuote } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -8,6 +8,7 @@ import { hasPermission, type Permission } from '@/app/lib/permissions';
 import CompanyInvoicesView from './_company-view';
 import { money } from './_format';
 import Integration from './_integration';
+import { useOverlay } from '@/app/components/ui/use-overlay';
 
 type Dialog =
   | { kind: 'charge' } | { kind: 'recurring' } | { kind: 'freeDays' } | { kind: 'seats' } | { kind: 'plan' } | { kind: 'coupon' } | { kind: 'cancelSub' } | { kind: 'activate' } | { kind: 'release' }
@@ -31,6 +32,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; company: FaturasCompanyRow; onClose: () => void; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
+  const panelRef = useOverlay<HTMLFormElement>(true, () => { if (!submitting.current) onClose(); });
   const [refundKey] = useState(() => crypto.randomUUID());
   const [chargeKey] = useState(() => crypto.randomUUID());
   const [reason, setReason] = useState('');
@@ -69,8 +72,10 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting.current) return;
     setErrorMsg(null);
     if (needsReason && reason.trim().length < 5) { setErrorMsg('Informe o motivo (mínimo 5 caracteres).'); return; }
+    submitting.current = true;
     setBusy(true);
     try {
       switch (dialog.kind) {
@@ -131,6 +136,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
       setErrorMsg(message);
       toast.error(message);
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   }
@@ -143,8 +149,8 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
   );
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={TITLES[dialog.kind]} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4">
-      <form onSubmit={submit} className="card-v2 max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4">
+      <form ref={panelRef} role="dialog" aria-modal="true" aria-label={TITLES[dialog.kind]} tabIndex={-1} onSubmit={submit} className="card-v2 max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto p-5 focus:outline-none">
         <h2 className="text-lg font-semibold text-fg">{TITLES[dialog.kind]}</h2>
         <p className="text-xs text-fg-mut">{company.name}{'invoice' in dialog ? ` · fatura de ${brl(dialog.invoice.amount)}` : ''}</p>
 
@@ -220,7 +226,7 @@ function ActionDialog({ dialog, company, onClose, onDone }: { dialog: Dialog; co
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" className="btn btn-outline" onClick={onClose} disabled={busy}>Voltar</button>
-          <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Aplicando...' : 'Confirmar'}</button>
+          <button type="submit" className={`btn ${['cancel', 'refundFull', 'refundPartial', 'cancelSub'].includes(dialog.kind) ? 'btn-danger' : 'btn-primary'}`} disabled={busy} aria-busy={busy || undefined}>{busy ? 'Aplicando...' : TITLES[dialog.kind]}</button>
         </div>
       </form>
     </div>

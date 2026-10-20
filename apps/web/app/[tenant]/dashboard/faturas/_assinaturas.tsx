@@ -24,6 +24,7 @@ import { EmptyState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api, type PlatformBillingAuditLog, type PlatformCompany, type PlatformFinanceSummary, type PublicPlatformPlan } from '@/app/lib/api';
 import { toast } from 'sonner';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 type SubscriptionCompany = PlatformCompany & {
   subscription?: {
@@ -208,8 +209,9 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
   );
   const canRunCheckout = String(user?.role || user?.profile || '').toUpperCase() === 'DEV';
 
+  const askConfirm = useConfirm();
   async function runCheckout(company: SubscriptionCompany) {
-    if (!window.confirm(`Gerar ou atualizar a cobranca de onboarding para ${company.name}?`)) return;
+    if (!(await askConfirm({ title: 'Gerar cobrança de onboarding', description: `Gerar ou atualizar a cobrança de onboarding para ${company.name}?`, confirmText: 'Gerar cobrança', variant: 'primary' }))) return;
     setWorkingCheckoutId(company.id);
     try {
       await api.platform.finance.checkoutCompany(company.id);

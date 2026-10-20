@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-stat
 import { useQuery } from '@/app/hooks/use-data';
 import { date, errorText, money, monthLabel } from './format';
 import { DEPARTMENTS, DEPARTMENT_LABEL, DOC_TYPES, office, type OfficeClientRow, type OfficeTask, type TeamMember } from './office-api';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const input = 'input-v2 w-full text-base sm:text-sm';
 const PRIORITY: Record<string, [string, string]> = { HIGH: ['Alta', 'bg-rose-100 text-rose-800'], NORMAL: ['Normal', 'bg-slate-100 text-slate-700'], LOW: ['Baixa', 'bg-sky-100 text-sky-800'] };
@@ -51,8 +52,9 @@ export function TasksView({ clients, team, refreshPanel }: { clients: OfficeClie
   async function setStatus(task: OfficeTask, status: OfficeTask['status']) {
     try { await office.updateTask(task.id, { status }); reload(); } catch (cause) { toast.error(errorText(cause, 'Não foi possível atualizar.')); }
   }
+  const askConfirm = useConfirm();
   async function remove(task: OfficeTask) {
-    if (!window.confirm(`Excluir a tarefa "${task.title}"?`)) return;
+    if (!(await askConfirm({ title: 'Excluir tarefa', description: `Excluir a tarefa "${task.title}"?`, confirmText: 'Excluir tarefa' }))) return;
     try { await office.deleteTask(task.id); reload(); } catch (cause) { toast.error(errorText(cause, 'Não foi possível excluir.')); }
   }
   const today = new Date().toISOString().slice(0, 10);
@@ -102,8 +104,9 @@ export function DocsView({ clients, month, refreshPanel }: { clients: OfficeClie
   async function act(id: string, body: Record<string, unknown>, success: string) {
     try { await office.updateDoc(id, body); toast.success(success); reload(); } catch (cause) { toast.error(errorText(cause, 'Não foi possível atualizar.')); }
   }
+  const askConfirm = useConfirm();
   async function cancel(id: string) {
-    if (!window.confirm('Remover este pedido de documento?')) return;
+    if (!(await askConfirm({ title: 'Remover pedido', description: 'Remover este pedido de documento?', confirmText: 'Remover pedido' }))) return;
     try { await office.deleteDoc(id); reload(); } catch (cause) { toast.error(errorText(cause, 'Não foi possível remover.')); }
   }
   const today = new Date().toISOString().slice(0, 10);

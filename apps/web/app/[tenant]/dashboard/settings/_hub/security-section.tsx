@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/app/components/ui';
 import { api, request, type SessionInfo } from '@/app/lib/api';
 import { cardClass, errorText, inputClass } from './types';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 type Mfa = { enabled: boolean; enabledAt?: string; required: boolean; recoveryCodesLeft: number };
 type Setup = { secret: string; otpauthUrl: string; qrDataUrl?: string };
@@ -47,10 +48,13 @@ function TwoFactor() {
     } catch (cause) { setError(errorText(cause, 'Código inválido. Confira o horário do celular e tente de novo.')); }
     finally { setBusy(false); }
   }
+  const askConfirm = useConfirm();
   async function disable() {
-    if (!window.confirm('Desativar a verificação em duas etapas? Sua conta fica menos protegida.')) return;
+    if (!(await askConfirm({ title: 'Desativar verificação em duas etapas', description: 'Sua conta fica menos protegida.', confirmText: 'Desativar verificação' }))) return;
+    const code = window.prompt('Para confirmar, digite o código de 6 dígitos do app autenticador:')?.trim();
+    if (!code) return;
     setBusy(true); setError(null);
-    try { await request('/auth/mfa/disable', { method: 'POST' }); toast.success('Verificação em duas etapas desativada.'); await load(); }
+    try { await request('/auth/mfa/disable', { method: 'POST', body: { code } }); toast.success('Verificação em duas etapas desativada.'); await load(); }
     catch (cause) { setError(errorText(cause, 'Não foi possível desativar.')); }
     finally { setBusy(false); }
   }

@@ -7,6 +7,7 @@ import { ErrorState, LoadingState, EmptyState } from '@/app/components/data-stat
 import { useMutation, useQuery } from '../platform/_components/use-platform-query';
 import { request } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const MODULES: { id: string; label: string }[] = [
   { id: 'employees', label: 'Funcionários' },
@@ -445,8 +446,9 @@ export function PlanosView({ params: { tenant } }: { params: { tenant: string } 
   const activeBaseMonthly = activePlans.reduce((acc, plan) => acc + parseMoney(plan.baseMonthlyPrice ?? plan.price), 0);
   const visiblePlanCount = visiblePlans.length;
 
-  function handleDeactivate(plan: any) {
-    if (!window.confirm(`Desativar o plano "${plan.name}"?\nEmpresas vinculadas não serão afetadas.`)) return;
+  const askConfirm = useConfirm();
+  async function handleDeactivate(plan: any) {
+    if (!(await askConfirm({ title: 'Desativar plano', description: `Desativar o plano "${plan.name}"? Empresas vinculadas não serão afetadas.`, confirmText: 'Desativar plano' }))) return;
     deactivate.mutate(plan.id);
   }
 
@@ -454,8 +456,8 @@ export function PlanosView({ params: { tenant } }: { params: { tenant: string } 
     reactivate.mutate(plan.id);
   }
 
-  function handleDeletePermanent(plan: any) {
-    if (!window.confirm(`EXCLUIR PERMANENTEMENTE o plano "${plan.name}"?\nEsta ação não pode ser desfeita.`)) return;
+  async function handleDeletePermanent(plan: any) {
+    if (!(await askConfirm({ title: 'Excluir plano permanentemente', description: `Excluir o plano "${plan.name}". Esta ação não pode ser desfeita.`, confirmText: 'Excluir plano', requireText: 'EXCLUIR' }))) return;
     deletePermanently.mutate(plan.id);
   }
 

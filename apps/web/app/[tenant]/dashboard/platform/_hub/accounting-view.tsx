@@ -14,6 +14,7 @@ import { OfficePanel } from './office-view';
 import { DocsView, FeesView, TasksView } from './office-lists';
 import { RulesPanel } from './rules-panel';
 import type { AccountingCompany, AccountingGlobal } from './types';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const input = 'input-v2 w-full text-base sm:text-sm';
 const CLOSING_FIELDS = [['salaryBase', 'Salário base (R$)'], ['overtime50', 'Hora extra 50% (h)'], ['overtime100', 'Hora extra 100% (h)'], ['nightShift', 'Adicional noturno (h)'], ['absenceMinutes', 'Faltas (min)'], ['lateMinutes', 'Atrasos (min)'], ['earlyLeaveMinutes', 'Saídas antecipadas (min)']] as const;
@@ -258,15 +259,17 @@ function CompanyCompetencia({ c, month, canEdit, refetch }: { c: AccountingCompa
   const rule = Object.values(c.ruleVersions).filter(Boolean).join(' · ');
 
   const approvable = list.filter((row) => row.status === 'DRAFT' || (tab === 'fechamentos' && row.status === 'IN_REVIEW'));
+  const askConfirm = useConfirm();
   async function approveAll() {
-    if (!window.confirm(`Aprovar  item(ns) de uma vez? Confira os valores antes.`)) return;
+    if (busy) return;
+    if (!(await askConfirm({ title: 'Aprovar em lote', description: `Aprovar ${approvable.length} item(ns) de uma vez? Confira os valores antes.`, confirmText: `Aprovar ${approvable.length} item(ns)`, variant: 'primary' }))) return;
     setBusy(true);
     let ok = 0; let fail = 0;
     for (const row of approvable) {
       try { if (tab === 'fechamentos') await platformHub.closingWorkflow(row.id, 'APPROVE'); else await platformHub.payrollWorkflow(row.id, 'APPROVE'); ok++; } catch { fail++; }
     }
     setBusy(false); refetch();
-    if (fail) toast.warning(` aprovado(s);  não puderam ser aprovados (confira valores inválidos).`); else toast.success(` item(ns) aprovado(s).`);
+    if (fail) toast.warning(`${ok} aprovado(s); ${fail} não puderam ser aprovados (confira valores inválidos).`); else toast.success(`${ok} item(ns) aprovado(s).`);
   }
 
   async function recalc() {

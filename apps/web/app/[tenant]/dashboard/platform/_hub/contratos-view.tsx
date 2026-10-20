@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import api, { ApiError, type PlatformCompany, type PublicPlatformPlan } from '@/app/lib/api';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 type ManualContract = {
   id: string;
@@ -220,8 +221,9 @@ export function ContratosView({ params: { tenant } }: { params: { tenant: string
     }
   }
 
+  const askConfirm = useConfirm();
   async function remove(item: ManualContract) {
-    if (!window.confirm(`Excluir o contrato da empresa ${item.company?.name || 'selecionada'}?`)) return;
+    if (!(await askConfirm({ title: 'Excluir contrato', description: `Excluir o contrato da empresa ${item.company?.name || 'selecionada'}?`, confirmText: 'Excluir contrato' }))) return;
     setWorkingId(item.id);
     try {
       await api.manualContracts.delete(item.id);

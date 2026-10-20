@@ -13,6 +13,7 @@ import { CompanyActionMenu } from '../_components/company-action-menu';
 import { CompanyEditModal } from '../_components/company-edit-modal';
 import { NewCompanyModal } from '../_components/new-company-modal';
 import { BILLING_STATUS, COMPANY_STATUS, date } from './format';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const PAGE_SIZE = 12;
 const STATUS_FILTERS: Array<[string, string]> = [['', 'Todas'], ['ACTIVE', 'Ativas'], ['SUSPENDED', 'Suspensas'], ['CANCELLED', 'Canceladas']];
@@ -62,12 +63,13 @@ export function CompaniesView({ onOpenCompany }: { onOpenCompany: (id: string, n
     const normalized = reason.trim() === 'solicitacao_voluntaria' ? 'solicitacao_voluntaria' : reason.trim() === 'não informado' ? 'não informado' : 'inadimplencia';
     await toggleActive.mutate({ id: company.id, status: 'SUSPENDED', suspensionReason: normalized }).catch(() => {});
   }
+  const askConfirm = useConfirm();
   async function handleDelete(company: PlatformCompany) {
-    if (!isSuperAdmin || !window.confirm(`Arquivar "${company.name}"? O acesso será bloqueado e o histórico será preservado.`)) return;
+    if (!isSuperAdmin || !(await askConfirm({ title: 'Arquivar empresa', description: `Arquivar "${company.name}"? O acesso será bloqueado e o histórico será preservado.`, confirmText: 'Arquivar empresa' }))) return;
     await remove.mutate(company.id).catch(() => {});
   }
   async function handlePurge(company: PlatformCompany) {
-    if (!isSuperAdmin || !window.confirm(`ATENÇÃO: deletar definitivamente "${company.name}" e TODOS os dados associados (usuários, faturas, escalas)? Esta ação é IRREVERSÍVEL!`)) return;
+    if (!isSuperAdmin || !(await askConfirm({ title: 'Excluir empresa definitivamente', description: `Deletar "${company.name}" e TODOS os dados associados (usuários, faturas, escalas). Esta ação é IRREVERSÍVEL.`, confirmText: 'Excluir definitivamente', requireText: 'EXCLUIR' }))) return;
     await purge.mutate(company.id).catch(() => {});
   }
 

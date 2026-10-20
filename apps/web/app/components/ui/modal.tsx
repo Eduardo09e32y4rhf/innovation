@@ -1,5 +1,7 @@
+'use client'
 import * as React from "react"
 import { X } from "lucide-react"
+import { useOverlay } from "./use-overlay"
 
 export interface ModalProps {
   isOpen: boolean
@@ -12,16 +14,10 @@ export interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, description, children, footer, maxWidth = 'max-w-lg' }: ModalProps) {
-  React.useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen])
+  // Foco preso, ESC, trava de rolagem e devolução do foco ao botão que abriu (WCAG 2.1.2, 2.4.3, 4.1.2).
+  const panelRef = useOverlay<HTMLDivElement>(isOpen, onClose)
+  const titleId = React.useId()
+  const descriptionId = React.useId()
 
   if (!isOpen) return null
 
@@ -29,19 +25,29 @@ export function Modal({ isOpen, onClose, title, description, children, footer, m
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Overlay */}
       <div 
+        aria-hidden="true"
         className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" 
         onClick={onClose} 
       />
       
       {/* Modal Content */}
-      <div className={`modal z-50 w-full ${maxWidth} mx-4 shadow-[var(--shadow-xl)] animate-in fade-in zoom-in-95 duration-200`}>
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-describedby={description ? descriptionId : undefined}
+        tabIndex={-1}
+        className={`modal z-50 w-full ${maxWidth} mx-4 shadow-[var(--shadow-xl)] animate-in fade-in zoom-in-95 duration-200 focus:outline-none`}
+      >
         {(title || description) && (
           <div className="modal-header">
             <div>
-              {title && <h2 className="modal-title">{title}</h2>}
-              {description && <p className="modal-description mt-1 text-sm text-zinc-500">{description}</p>}
+              {title && <h2 id={titleId} className="modal-title">{title}</h2>}
+              {description && <p id={descriptionId} className="modal-description mt-1 text-sm text-zinc-500">{description}</p>}
             </div>
             <button 
+              type="button"
               onClick={onClose} 
               className="btn-icon" 
               aria-label="Fechar modal"

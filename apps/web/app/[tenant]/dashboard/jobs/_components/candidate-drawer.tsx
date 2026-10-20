@@ -17,6 +17,7 @@ import { InterviewDialog } from './interview-dialog';
 import { AssessmentsPanel, FeedbackDialog, FeedbackSummary, OffersPanel, ResponseBadge, SlotOfferDialog, SlotOffersList } from './candidate-process';
 import { processApi } from '../process-api';
 import { meetingLabel } from '../../management/agenda/meeting-link';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const TABS = [['summary', 'Resumo'], ['evaluation', 'Avaliação'], ['notes', 'Notas'], ['interviews', 'Entrevistas'], ['assessments', 'Testes'], ['offer', 'Proposta'], ['history', 'Histórico'], ['documents', 'Documentos']] as const;
 type TabKey = (typeof TABS)[number][0];
@@ -30,6 +31,7 @@ export function CandidateDrawer({
   applicationId: string | null; pipeline: Pipeline | undefined; tags: Tag[];
   onClose: () => void; onChanged: () => void; onRequestMove: (applicationId: string, stageId: string) => void;
 }) {
+  const askConfirm = useConfirm();
   const { user } = useAuth();
   const detail = useQuery(() => jobsApi.application(applicationId ?? ''), [applicationId], { enabled: Boolean(applicationId) });
   const [tab, setTab] = useState<TabKey>('summary');
@@ -215,7 +217,7 @@ export function CandidateDrawer({
                         <button type="button" className="inline-flex min-h-9 items-center text-xs font-semibold text-brand-700 hover:underline" onClick={() => setFeedbackFor(item.id)}>{(feedback.data?.items ?? []).some((row) => row.interviewId === item.id && row.userId === user?.id) ? 'Editar minha avaliação' : 'Avaliar entrevista'}</button>
                       </div>
                       <button type="button" className="btn-icon text-rose-600" aria-label="Cancelar entrevista" title={item.notifiedAt && future ? 'Cancelar e avisar o candidato' : 'Cancelar entrevista'}
-                        onClick={() => { if (window.confirm(item.notifiedAt && future ? 'Cancelar esta entrevista? O candidato recebe um e-mail avisando.' : 'Cancelar esta entrevista?')) run(() => jobsApi.removeInterview(data.id, item.id), 'Entrevista cancelada.'); }}><Trash2 size={15} /></button>
+                        onClick={async () => { if (await askConfirm({ title: 'Cancelar entrevista', description: item.notifiedAt && future ? 'O candidato recebe um e-mail avisando do cancelamento.' : 'Esta entrevista será cancelada.', confirmText: 'Cancelar entrevista' })) run(() => jobsApi.removeInterview(data.id, item.id), 'Entrevista cancelada.'); }}><Trash2 size={15} /></button>
                     </li>
                   );
                 })}

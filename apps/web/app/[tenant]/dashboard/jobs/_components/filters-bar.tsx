@@ -8,6 +8,7 @@ import { ApiError } from '@/app/lib/api';
 import { jobsApi } from '../jobs-api';
 import type { ApplicationFilters, Pipeline, SavedView, Tag, Question } from '../types';
 import { PromptDialog } from './dialogs';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const sel = 'input-v2 text-sm';
 
@@ -18,6 +19,7 @@ export function FiltersBar({
   pipeline?: Pipeline; tags: Tag[]; questions: Question[]; views: SavedView[];
   onViewsChanged: () => void; onExport: () => void; total: number;
 }) {
+  const askConfirm = useConfirm();
   const [saveOpen, setSaveOpen] = useState(false);
   const patch = (next: Partial<ApplicationFilters>) => onChange({ ...filters, ...next });
   const active = Object.entries(filters).some(([key, value]) => key !== 'sort' && value);
@@ -68,7 +70,7 @@ export function FiltersBar({
           <span key={view.id} className="inline-flex items-center overflow-hidden rounded-full border border-border">
             <button type="button" className="px-3 py-1 hover:bg-bg-sub" onClick={() => onChange(view.filters)}>{view.name}</button>
             <button type="button" className="px-2 py-1 text-rose-600 hover:bg-rose-50" aria-label={`Excluir visão ${view.name}`}
-              onClick={async () => { try { await jobsApi.deleteView(view.id); onViewsChanged(); } catch (cause) { toast.error(cause instanceof ApiError ? cause.message : 'Falha ao excluir.'); } }}><Trash2 size={13} /></button>
+              onClick={async () => { if (!(await askConfirm({ title: 'Excluir visão salva', description: `Excluir a visão "${view.name}"?`, confirmText: 'Excluir visão' }))) return; try { await jobsApi.deleteView(view.id); onViewsChanged(); } catch (cause) { toast.error(cause instanceof ApiError ? cause.message : 'Falha ao excluir.'); } }}><Trash2 size={13} /></button>
           </span>
         ))}
       </div>
