@@ -13,7 +13,7 @@ import { computeDeductions } from '../payroll/deduction-rules';
 import { appendMirror, buildPayslipPdf, buildTimeSheetPdf, timeSheetBrand } from './time-sheet-pdf';
 import { saoPauloDayOfWeek, toSaoPauloDateKey } from '../../common/utils/date.utils';
 import { analyzeTimesheet, salaryDeadline, type ComplianceIssue } from './closing-compliance';
-import { vacationTaxableGross } from '../vacations/vacation-tax-base';
+import { vacationEnjoymentDates, vacationTaxableGross } from '../vacations/vacation-tax-base';
 
 interface GenerateClosingDto {
   employeeIds?: string[];
@@ -138,15 +138,17 @@ export class TimeClosingService {
         where: { companyId, employeeId: { in: employeeIds }, date: { gte: periodStart, lte: periodEnd }, exceptionType: { in: ['FOLGA', 'FERIADO_LOCAL', 'ATESTADO'] } },
         select: { employeeId: true, date: true },
       }),
-      // Férias pagas (mesma condição do recibo) com início na competência: o INSS do recibo entra na base unificada do mês.
+      // Férias pagas (mesma condição do recibo) que tocam a competência: os dias de gozo saem do salário do mês e,
+      // se iniciam nela, o INSS do recibo entra na base unificada.
       this.prisma.vacation.findMany({
         where: {
           employeeId: { in: employeeIds },
           status: { in: ['APPROVED', 'COMPLETED'] },
-          startDate: { gte: periodStart, lte: periodEnd },
+          startDate: { lte: periodEnd },
+          endDate: { gte: periodStart },
           payments: { some: { status: 'PAID' } },
         },
-        select: { employeeId: true, daysUsed: true },
+        select: { employeeId: true, daysUsed: true, startDate: true },
       }),
     ]);
     const dayOffKeys = new Map<string, Set<string>>();
@@ -182,6 +184,14 @@ export class TimeClosingService {
         .filter((item) => this.isJustifyingOccurrence(item.type))
         .map((item) => this.dateKey(item.date)));
       for (const key of dayOffKeys.get(employee.id) ?? []) justifiedDates.add(key);
+      const employeeVacations = allVacations.filter((item) => item.employeeId === employee.id);
+      const vacationKeys = new Set<string>();
+      for (const vacation of employeeVacations) for (const day of vacationEnjoymentDates(vacation)) vacationKeys.add(this.dateKey(day));
+      for (const key of vacationKeys) justifiedDates.add(key);
+      let vacationDaysInPeriod = 0;
+      let nonEmployedDaysInPeriod = 0;
+      const admissionKey = this.dateKey(new Date(employee.admissionDate));
+      const terminationKey = employee.terminationDate ? this.dateKey(new Date(employee.terminationDate)) : null;
       let payableWorkdays = 0;
       let paidRestDays = 0;
       let missingAbsenceMinutes = 0;
@@ -200,7 +210,15 @@ export class TimeClosingService {
         const isRest = restDays.includes(dayOfWeek) || holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule);
         
         let expectedForDay = this.expectedMinutes(employee, schedule?.schedule);
-        if (holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule)) {
+        const outsideContract = key < admissionKey || (terminationKey !== null && key > terminationKey);
+        if (outsideContract) {
+          nonEmployedDaysInPeriod++;
+          expectedForDay = 0;
+          justifiedDates.add(key);
+        } else if (vacationKeys.has(key)) {
+          vacationDaysInPeriod++;
+          expectedForDay = 0;
+        } else if (holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule)) {
           expectedForDay = 0;
         } else if (restDays.includes(dayOfWeek)) {
           expectedForDay = 0;
@@ -285,8 +303,10 @@ export class TimeClosingService {
         overtime100Factor: Number(overtimeRule.sundayHolidayRate),
         nightShiftPercent: (Number(overtimeRule.nightShiftRate) - 1) * 100,
         dsrEnabled: overtimeRule.dsrEnabled,
-        vacationTaxableGrosses: allVacations
-          .filter((item) => item.employeeId === employee.id)
+        vacationDaysInPeriod,
+        contractDaysInPeriod: nonEmployedDaysInPeriod === 0 ? 30 : Math.min(30, totalDaysInPeriod - nonEmployedDaysInPeriod),
+        vacationTaxableGrosses: employeeVacations
+          .filter((item) => item.startDate >= periodStart && item.startDate <= periodEnd)
           .map((item) => vacationTaxableGross(Number(employee.salary), item.daysUsed)),
         taxContext,
       });
@@ -500,11 +520,17 @@ export class TimeClosingService {
   async reopen(companyId: string, actor: JwtUser, id: string, reason: string) {
     if (!reason?.trim()) throw new BadRequestException('Informe o motivo da reabertura.');
     const closing = await this.prisma.timeClosing.findFirst({ where: { id, companyId } });
-    if (!closing || closing.status !== TimeClosingStatus.CLOSED) throw new BadRequestException('Somente fechamento concluido pode ser reaberto.');
-    return this.prisma.timeClosing.update({
+    if (!closing || (closing.status !== TimeClosingStatus.CLOSED && closing.status !== TimeClosingStatus.APPROVED)) {
+      throw new BadRequestException('Somente fechamento aprovado ou concluido pode ser reaberto.');
+    }
+    const reopened = await this.prisma.timeClosing.update({
       where: { id },
       data: { status: TimeClosingStatus.DRAFT, reopenedAt: new Date(), reopenedBy: actor.sub, reopenReason: reason.trim(), closedAt: null, closedBy: null },
     });
+    await this.prisma.auditLog
+      .create({ data: { companyId, userId: actor.sub, action: 'TIME_CLOSING_REOPENED', entity: 'TimeClosing', entityId: id, metadata: { from: closing.status, reason: reason.trim(), employeeId: closing.employeeId, periodStart: closing.periodStart, periodEnd: closing.periodEnd } } })
+      .catch(() => undefined);
+    return reopened;
   }
 
   async delete(companyId: string, id: string) {

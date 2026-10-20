@@ -60,6 +60,13 @@ export interface PayrollCalculationInput {
   isPartialMonth?: boolean;
   /** Base (férias gozadas + 1/3) de cada recibo de férias pago na competência; o INSS de cada recibo já foi retido isoladamente. */
   vacationTaxableGrosses?: number[];
+  /**
+   * Dias de gozo de férias dentro da competência. Esses dias são pagos pelo recibo de férias (CLT art. 142 e 145),
+   * então o salário do mês cobre só os demais (30 - dias, base comercial). Em mês parcial o chamador já os tira de scheduledMinutesInPeriod.
+   */
+  vacationDaysInPeriod?: number;
+  /** Dias de contrato na competência em base comercial (0 a 30; mês inteiro = 30), igual ao saldo de salário da rescisão (labor-dates). Omitido = 30. */
+  contractDaysInPeriod?: number;
   scheduledMinutesInPeriod?: number;
   taxContext?: PayrollTaxContext;
 }
@@ -187,6 +194,10 @@ export class PayrollCalculationService {
     if (isPartialMonth && (input.scheduledMinutesInPeriod ?? 0) > 0) {
       salaryBase = this.money(hourlyRate * (input.scheduledMinutesInPeriod! / 60));
     }
+
+    const contractDays = Math.min(30, Math.max(0, Math.floor(input.contractDaysInPeriod ?? 30)));
+    const unpaidDays = Math.min(30, 30 - contractDays + Math.max(0, Math.floor(input.vacationDaysInPeriod ?? 0)));
+    if (!isPartialMonth && unpaidDays > 0) salaryBase = this.money((salaryBase * (30 - unpaidDays)) / 30);
 
     const overtime50Value = this.money((input.overtime50Minutes / 60) * hourlyRate * overtime50Factor);
     const overtime100Value = this.money((input.overtime100Minutes / 60) * hourlyRate * overtime100Factor);

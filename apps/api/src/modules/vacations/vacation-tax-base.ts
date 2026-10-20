@@ -9,3 +9,15 @@ export function vacationTaxableGross(salary: number, daysUsed: number): number {
   const vacationPay = round((salary / 30) * daysUsed);
   return round(vacationPay + round(vacationPay / 3));
 }
+
+/** Dias de gozo (daysUsed a partir de startDate), um Date UTC por dia. O abono vendido (soldDays) é trabalhado e não entra. */
+export function vacationEnjoymentDates(vacation: { startDate: Date; daysUsed: number }): Date[] {
+  const total = Number.isFinite(vacation.daysUsed) ? Math.max(0, Math.floor(vacation.daysUsed)) : 0;
+  const dates: Date[] = [];
+  for (let i = 0; i < total; i += 1) {
+    const day = new Date(vacation.startDate);
+    day.setUTCDate(day.getUTCDate() + i);
+    dates.push(day);
+  }
+  return dates;
+}

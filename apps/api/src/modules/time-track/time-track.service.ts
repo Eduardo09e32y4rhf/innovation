@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
@@ -12,6 +12,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { getDistanceInMeters } from '../../common/utils/geo.utils';
 import { saoPauloDayOfWeek, toDateOnly } from '../../common/utils/date.utils';
 import { TimeZoneService } from '../../common/services/timezone.service';
+import { assertTimePeriodOpen } from './period-lock';
 
 const REASON_LABEL: Record<string, string> = {
   ajuste_erro_marcacao: 'AJUSTE - ERRO MARCAÇÃO',
@@ -96,6 +97,7 @@ export class TimeTrackService {
       const employee = await this.ensureCanAccessEmployee(companyId, actor, dto.employeeId);
       const date = this.parseDateOnly(dto.date, 'Invalid date');
       this.validateEmployeeDateRange(employee, date);
+      await assertTimePeriodOpen(this.prisma, companyId, employee.id, date);
 
       // Validação de Interjornada da CLT (11h mínimas)
       if (dto.entry) {
@@ -124,7 +126,7 @@ export class TimeTrackService {
       
       await this.applyManual(companyId, actor, employee, dto.date, dto);
     } catch (error: any) {
-      if (error instanceof BadRequestException || error instanceof ForbiddenException || error instanceof NotFoundException) {
+      if (error instanceof BadRequestException || error instanceof ForbiddenException || error instanceof NotFoundException || error instanceof ConflictException) {
         throw error;
       }
       throw new BadRequestException(error.message || 'Erro ao lançar ponto manual. Verifique os dados fornecidos.');
@@ -165,6 +167,8 @@ export class TimeTrackService {
       const isFutureAllowed = dto.manualReason === 'ajuste_atestado_integral' || dto.manualReason === 'ajuste_feriado' || dto.manualReason === 'ajuste_suspensao' || dto.manualReason === 'ajuste_folga_dsr' || dto.manualReason === 'ajuste_abono_folga' || dto.manualReason === 'ajuste_abono_banco_saida_antecipada' || dto.manualReason === 'ajuste_abono_atraso' || dto.manualReason === 'ajuste_abono_atestado_horas';
       this.validateManualTimestamp(employee, undefined, undefined, undefined, undefined, targetDate, isFutureAllowed);
     }
+
+    await assertTimePeriodOpen(this.prisma, companyId, employee.id, targetDate);
 
     const dateStr = targetDate.toISOString().slice(0, 10);
     const lockKey = `punch-lock:${companyId}:${employee.id}:${dateStr}`;
@@ -292,6 +296,7 @@ export class TimeTrackService {
     if (!current) throw new NotFoundException('Time track not found');
     
     await this.ensureCanAccessEmployee(companyId, actor, current.employeeId);
+    await assertTimePeriodOpen(this.prisma, companyId, current.employeeId, current.date);
 
     const employee = await this.prisma.employee.findUnique({ where: { id: current.employeeId } });
     if (!employee) throw new NotFoundException('Employee not found');
@@ -374,6 +379,7 @@ export class TimeTrackService {
 
     const track = await this.repository.findById(companyId, id);
     if (!track) throw new NotFoundException('Time track not found');
+    await assertTimePeriodOpen(this.prisma, companyId, track.employeeId, track.date);
 
     const totalOvertime = track.overtime50Minutes + track.overtime100Minutes;
     let bankMinutes = 0;
@@ -427,6 +433,7 @@ export class TimeTrackService {
   async approveManual(companyId: string, actor: JwtUser, id: string, approved: boolean) {
     const track = await this.repository.findById(companyId, id);
     if (!track) throw new NotFoundException('Time track not found');
+    await assertTimePeriodOpen(this.prisma, companyId, track.employeeId, track.date);
     if (track.manualStatus !== 'pending') throw new BadRequestException('Este ponto nao esta pendente de aprovacao');
     if (actor.role === 'GESTOR') {
       const managerEmployee = await this.repository.findEmployeeByUserId(companyId, actor.sub, actor.email);
@@ -459,6 +466,7 @@ export class TimeTrackService {
     }
     const track = await this.repository.findById(companyId, id);
     if (!track) throw new NotFoundException('Time track not found');
+    await assertTimePeriodOpen(this.prisma, companyId, track.employeeId, track.date);
     if (track.manualStatus !== 'approved') throw new BadRequestException('Apenas ajustes aprovados podem ser revogados.');
     return this.repository.updateManualStatus(companyId, id, 'revoked', reason);
   }
@@ -466,6 +474,7 @@ export class TimeTrackService {
   async delete(companyId: string, actor: JwtUser, id: string) {
     const track = await this.repository.findById(companyId, id);
     if (!track) throw new NotFoundException('Time track not found');
+    await assertTimePeriodOpen(this.prisma, companyId, track.employeeId, track.date);
 
     const result = await this.repository.delete(companyId, id);
     if (!result.count) throw new NotFoundException('Time track not found');

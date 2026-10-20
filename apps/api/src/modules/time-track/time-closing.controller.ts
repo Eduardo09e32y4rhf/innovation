@@ -1,3 +1,4 @@
+import { AdjustClosingDto, GenerateClosingBodyDto, OvertimePolicyDto, ReopenClosingDto } from './dto/closing.dto';
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { $Enums } from '@prisma/client';
 type TimeClosingStatus = $Enums.TimeClosingStatus;
@@ -15,7 +16,7 @@ export class TimeClosingController {
 
   @Post('generate')
   @Roles(...rolesWith('closing.write'))
-  generate(@Req() req: any, @Body() body: any) { return this.service.generate(req.user.companyId, req.user, body); }
+  generate(@Req() req: any, @Body() body: GenerateClosingBodyDto) { return this.service.generate(req.user.companyId, req.user, body); }
 
   @Get('conference')
   @Roles(...rolesWith('closing.read'))
@@ -28,7 +29,7 @@ export class TimeClosingController {
 
   @Put('overtime-policy')
   @Roles('ADMIN', 'RH', 'DEV')
-  setOvertimePolicy(@Req() req: any, @Body() body: { policy?: string; validityMonths?: number }) { return this.service.setOvertimePolicy(req.user.companyId, req.user, body); }
+  setOvertimePolicy(@Req() req: any, @Body() body: OvertimePolicyDto) { return this.service.setOvertimePolicy(req.user.companyId, req.user, body); }
 
   @Get()
   @Roles('ADMIN', 'RH', 'CEO', 'CONTABIL')
@@ -65,7 +66,7 @@ export class TimeClosingController {
 
   @Patch(':id/adjust')
   @Roles(...rolesWith('closing.write'))
-  adjust(@Req() req: any, @Param('id') id: string, @Body() body: any) { return this.service.adjust(req.user.companyId, req.user, id, body); }
+  adjust(@Req() req: any, @Param('id') id: string, @Body() body: AdjustClosingDto) { return this.service.adjust(req.user.companyId, req.user, id, body); }
 
   @Post(':id/submit-review')
   @Roles(...rolesWith('closing.write'))
@@ -81,7 +82,7 @@ export class TimeClosingController {
 
   @Post(':id/reopen')
   @Roles(...rolesWith('closing.write'))
-  reopen(@Req() req: any, @Param('id') id: string, @Body() body: { reason: string }) { return this.service.reopen(req.user.companyId, req.user, id, body.reason); }
+  reopen(@Req() req: any, @Param('id') id: string, @Body() body: ReopenClosingDto) { return this.service.reopen(req.user.companyId, req.user, id, body.reason); }
 
   @Delete(':id')
   @Roles(...rolesWith('closing.write'))
