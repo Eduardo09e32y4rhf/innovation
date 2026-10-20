@@ -3,6 +3,7 @@
 import { clearAuthSession, persistAuthSession, readAuthSession, readParsedAuthSession } from './auth-session';
 import { refreshSession } from './refresh-session';
 import { resetAllQueryStates } from '@/app/hooks/use-data';
+import { createSingleFlight, mutationFlightKey } from './single-flight';
 
 /**
  * Cliente HTTP central do Innovation RH System.
@@ -45,7 +46,16 @@ function clearSession() {
 
 type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; silent?: boolean; timeoutMs?: number; keepSessionOn401?: boolean };
 
-export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
+const mutationFlight = createSingleFlight();
+
+/** Mutações idênticas (mesmo método, rota e corpo) em andamento compartilham uma única requisição: o duplo clique nunca vira duas gravações. */
+export function request<T>(path: string, opts: Opts = {}): Promise<T> {
+  const key = mutationFlightKey(opts.method, path, opts.body);
+  if (key === null) return requestOnce<T>(path, opts);
+  return mutationFlight.run(key, () => requestOnce<T>(path, opts));
+}
+
+async function requestOnce<T>(path: string, opts: Opts = {}): Promise<T> {
   const { method = 'GET', body, silent, timeoutMs, keepSessionOn401 } = opts;
   const headers: Record<string, string> = {};
   if (body !== undefined) {
