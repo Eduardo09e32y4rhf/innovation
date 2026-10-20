@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { CronLock } from '../../common/redis/cron-lock.decorator';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -123,6 +124,7 @@ export class SessionService {
   }
 
   @Cron('0 4 * * *')
+  @CronLock('auth.purgeSessions', 3000)
   async purgeOld() {
     const result = await this.prisma.refreshSession.deleteMany({
       where: { OR: [{ expiresAt: { lt: new Date() } }, { revokedAt: { lt: new Date(Date.now() - 7 * 86_400_000) } }] },
