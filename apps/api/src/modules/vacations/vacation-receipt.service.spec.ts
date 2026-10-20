@@ -96,4 +96,46 @@ describe('VacationReceiptService', () => {
       .rejects.toThrow('database unavailable');
     expect(storage.deleteFile).toHaveBeenCalledOnce();
   });
+
+  function calcOf(repository: any) {
+    return repository.createGeneratedDocument.mock.calls[0][0].metadata.calculation;
+  }
+
+  it('desconta INSS/IRRF so sobre ferias + 1/3 e isenta abono + 1/3 (salario 3.000, 20 dias + 10 vendidos)', async () => {
+    const { service, repository, vacation } = fixture();
+    await service.generate(actor.companyId, actor, vacation);
+    const calc = calcOf(repository);
+    // ferias 2.000,00 + 1/3 666,67 = 2.666,67 tributavel; abono 1.000,00 + 1/3 333,33 isento
+    expect(calc.taxableGross).toBe(2666.67);
+    expect(calc.exemptAmount).toBe(1333.33);
+    expect(calc.calculatedGross).toBe(4000);
+    // INSS: 1.621 x 7,5% = 121,575 + (2.666,67 - 1.621) x 9% = 94,1103 -> 215,69
+    expect(calc.inssDiscount).toBe(215.69);
+    // rendimento ate R$ 5.000 -> IRRF zerado pelo redutor da Lei 15.270/2025
+    expect(calc.irrfDiscount).toBe(0);
+    expect(calc.calculatedNet).toBe(3784.31);
+  });
+
+  it('aplica teto do INSS, dependentes e IRRF 27,5% (salario 9.000, 30 dias, 2 dependentes)', async () => {
+    const { service, repository, vacation } = fixture({ daysUsed: 30, soldDays: 0 });
+    vacation.employee = { ...vacation.employee, salary: '9000', dependents: [{ name: 'A' }, { name: 'B' }] };
+    await service.generate(actor.companyId, actor, vacation);
+    const calc = calcOf(repository);
+    expect(calc.taxableGross).toBe(12000);
+    expect(calc.exemptAmount).toBe(0);
+    // INSS no teto 8.475,55 -> 988,09
+    expect(calc.inssDiscount).toBe(988.09);
+    // base IR = 12.000 - 988,09 - 2 x 189,59 = 10.632,73; x 27,5% - 908,73 = 2.015,27; acima de 7.350 sem redutor
+    expect(calc.dependents).toBe(2);
+    expect(calc.irrfBase).toBe(10632.73);
+    expect(calc.irrfDiscount).toBe(2015.27);
+    expect(calc.calculatedNet).toBe(8996.64);
+  });
+
+  it('aceita dependentes salvos como texto JSON', async () => {
+    const { service, repository, vacation } = fixture({ daysUsed: 30, soldDays: 0 });
+    vacation.employee = { ...vacation.employee, salary: '9000', dependents: '[{"name":"A"}]' };
+    await service.generate(actor.companyId, actor, vacation);
+    expect(calcOf(repository).dependents).toBe(1);
+  });
 });

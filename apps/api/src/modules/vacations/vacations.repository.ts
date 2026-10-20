@@ -38,6 +38,16 @@ export class VacationsRepository {
     });
   }
 
+  findForReceipt(companyId: string, id: string) {
+    return this.prisma.vacation.findFirst({
+      where: { id, employee: { companyId } },
+      include: {
+        employee: { select: { id: true, name: true, registration: true, position: true, department: true, cpf: true, admissionDate: true, salary: true, dependents: true } },
+        payments: true,
+      },
+    });
+  }
+
   findCompany(companyId: string) {
     return this.prisma.company.findUnique({
       where: { id: companyId },
