@@ -91,8 +91,8 @@ export class AiController {
   }
 
   @Post('support/classify')
+  @UseGuards(JwtAuthGuard)
   async classifyTicket(@Body() body: { title: string; description?: string }) {
-    // Endpoint público ou autenticado para auxiliar na triagem ao abrir novo chamado
     return this.supportAi.classifyTicket(body.title || '', body.description || '');
   }
 

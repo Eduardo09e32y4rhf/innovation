@@ -45,6 +45,7 @@ import { CouponsModule } from './modules/coupons/coupons.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { MetricsController } from './common/metrics/metrics.controller';
 
 import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -63,7 +64,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
 @Module({
   imports: [
     PartnersModule,
-    PrometheusModule.register(),
+    PrometheusModule.register({ controller: MetricsController }),
     CacheModule.registerAsync({
       isGlobal: true,
       useFactory: async () => ({
