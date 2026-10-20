@@ -57,6 +57,7 @@ export function DossieView({ params, tab, onTab }: { params: { tenant: string; c
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [invoiceForm, setInvoiceForm] = useState({ amount: '', description: '', dueDate: '' });
   const [creatingManualInvoice, setCreatingManualInvoice] = useState(false);
+  const [invoiceKey, setInvoiceKey] = useState(() => crypto.randomUUID());
 
   const company = useQuery(() => api.platform.getCompany(params.companyId), [params.companyId]);
   const users = useQuery(() => api.platform.listCompanyUsers(params.companyId), [params.companyId]);
@@ -107,7 +108,9 @@ export function DossieView({ params, tab, onTab }: { params: { tenant: string; c
         description: invoiceForm.description,
         dueDate: new Date(invoiceForm.dueDate).toISOString(),
         sendToAsaas: true,
+        idempotencyKey: invoiceKey,
       });
+      setInvoiceKey(crypto.randomUUID());
       toast.success('Cobrança manual gerada no Asaas com sucesso!');
       setIsInvoiceModalOpen(false);
       setInvoiceForm({ amount: '', description: '', dueDate: '' });

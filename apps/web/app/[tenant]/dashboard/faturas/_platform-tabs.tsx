@@ -2,6 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { AjustesFiscaisView } from './_ajustes-fiscais';
 import { AssinaturasView } from './_assinaturas';
 import { CuponsView } from './_cupons';
 import { PlanosView } from './_planos';
@@ -46,6 +47,7 @@ export default function PlatformFaturas() {
       {tab === 'assinaturas' && <AssinaturasView params={{ tenant }} />}
       {tab === 'planos' && <PlanosView params={{ tenant }} />}
       {tab === 'cupons' && <CuponsView />}
+      {tab === 'ajustes-fiscais' && <AjustesFiscaisView />}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { PlainJsonInterceptor } from '../../common/interceptors/plain-json.interceptor';
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, Res, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, ParseUUIDPipe, Post, Query, Res, UseGuards, UseInterceptors } from '@nestjs/common';
+import { requireIdempotencyKey } from './idempotency';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { SkipSubscriptionCheck } from '../../common/decorators/skip-subscription-check.decorator';
@@ -176,8 +177,8 @@ export class FaturasController {
   // ---- Ações de dinheiro (cada uma exige motivo e grava o livro de ajustes) ----
   @Post('plataforma/invoices')
   @RequireFaturasPermission('faturas.cobrar')
-  charge(@CurrentUser() actor: JwtUser, @Body() dto: CreatePlatformInvoiceDto) {
-    return this.acoes.charge(dto, actor);
+  charge(@CurrentUser() actor: JwtUser, @Body() dto: CreatePlatformInvoiceDto, @Headers('idempotency-key') idempotencyKey?: string) {
+    return this.acoes.charge({ ...dto, idempotencyKey: requireIdempotencyKey(idempotencyKey, dto.idempotencyKey) }, actor);
   }
 
   @Delete('plataforma/invoices/:id')

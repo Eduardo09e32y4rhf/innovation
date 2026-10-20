@@ -1,4 +1,4 @@
-export type FaturasTab = 'faturas' | 'reembolsos' | 'assinaturas' | 'planos' | 'cupons';
+export type FaturasTab = 'faturas' | 'reembolsos' | 'assinaturas' | 'planos' | 'cupons' | 'ajustes-fiscais';
 
 export const FATURAS_TAB_LABEL: Record<FaturasTab, string> = {
   faturas: 'Faturas',
@@ -6,6 +6,7 @@ export const FATURAS_TAB_LABEL: Record<FaturasTab, string> = {
   assinaturas: 'Assinaturas',
   planos: 'Planos',
   cupons: 'Cupons',
+  'ajustes-fiscais': 'Ajustes fiscais',
 };
 
 /**
@@ -18,9 +19,10 @@ const POLICY: Record<FaturasTab, readonly string[]> = {
   assinaturas: ['DEV', 'CEO', 'CONTABIL'],
   planos: ['DEV', 'CEO', 'CONTABIL'],
   cupons: ['DEV', 'CEO', 'CONTABIL'],
+  'ajustes-fiscais': ['DEV', 'CEO', 'CONTABIL'],
 };
 
-const ORDER: FaturasTab[] = ['faturas', 'reembolsos', 'assinaturas', 'planos', 'cupons'];
+const ORDER: FaturasTab[] = ['faturas', 'reembolsos', 'assinaturas', 'planos', 'cupons', 'ajustes-fiscais'];
 
 export function visibleFaturasTabs(role: string | null | undefined): FaturasTab[] {
   const normalized = String(role ?? '').toUpperCase();

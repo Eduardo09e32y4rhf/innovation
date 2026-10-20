@@ -571,6 +571,12 @@ export interface CreatePlatformInvoiceInput {
   companyId: string; planId?: string; description: string; amount: number; dueDate: string;
   billingType?: PlatformBillingType; sendToAsaas?: boolean; idempotencyKey?: string;
 }
+export interface FiscalAdjustment {
+  id: string; kind: 'MANUAL_REVIEW' | 'CANCEL_PENDING'; reasonCode: string; reason: string; invoiceId: string;
+  company: { id: string; name: string } | null; amount: number; description: string | null;
+  asaasInvoiceId: string | null; invoiceStatus: string | null; createdAt: string;
+}
+export type FiscalAdjustmentAction = 'RETRY_CANCEL' | 'REISSUE' | 'MARK_RESOLVED';
 export interface UpdatePlatformInvoiceInput {
   description?: string; amount?: number; dueDate?: string; billingType?: PlatformBillingType; status?: PlatformInvoiceStatus;
 }
@@ -1022,6 +1028,9 @@ export const api = {
       retryWebhookEvent: (id: string) => request<{ queued: boolean; id: string }>(`/finance/platform/webhook-events/${id}/retry`, { method: 'POST' }),
       billingAuditLogs: (query: { companyId?: string; limit?: number } = {}) => request<PlatformBillingAuditLog[]>(`/finance/platform/audit-logs${makeQuery(query)}`),
       delete: (id: string) => request<{ id: string }>(`/finance/platform/invoices/${id}`, { method: 'DELETE' }),
+      fiscalAdjustments: (query: { companyId?: string } = {}) => request<FiscalAdjustment[]>(`/finance/fiscal-adjustments${makeQuery(query)}`),
+      resolveFiscalAdjustment: (invoiceId: string, input: { action: FiscalAdjustmentAction; note?: string }) =>
+        request<{ invoiceId: string; action: FiscalAdjustmentAction; outcome: string }>(`/finance/fiscal-adjustments/${invoiceId}/resolve`, { method: 'POST', body: input }),
       downloadCostCentersPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'from' | 'to'> = {}) => downloadRequest(`/faturas/plataforma/cost-centers/pdf${makeQuery(query)}`),
     downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to' | 'companyId'> = {}) =>
         downloadRequest(`/finance/platform/statements/pdf${makeQuery(query)}`),

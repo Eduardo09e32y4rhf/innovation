@@ -1327,7 +1327,7 @@ export class PlatformFinanceService {
     };
   }
 
-  async create(dto: CreatePlatformInvoiceDto) {
+  async create(dto: CreatePlatformInvoiceDto, meta?: { replayed: boolean }) {
     const company = await this.prisma.company.findUnique({
       where: { id: dto.companyId },
       select: {
@@ -1345,6 +1345,7 @@ export class PlatformFinanceService {
       const previous = await this.prisma.platformInvoice.findUnique({ where: { chargeRequestKey: key }, include });
       if (previous) {
         if (Number(previous.amount) !== dto.amount || previous.description !== dto.description || previous.dueDate.toISOString().slice(0, 10) !== dto.dueDate.slice(0, 10) || previous.billingType !== dto.billingType || (previous.paymentProcessingStatus === 'LOCAL') !== !dto.sendToAsaas) throw new BadRequestException('Chave de cobrança já usada com outros dados.');
+        if (meta) meta.replayed = true;
         return previous;
       }
     }
@@ -1361,6 +1362,7 @@ export class PlatformFinanceService {
       throw error;
     });
     const { invoice } = reserved;
+    if (!reserved.created && meta) meta.replayed = true;
     if (!reserved.created || !dto.sendToAsaas) return invoice;
     try {
       let customerId = company.asaasCustomerId;
