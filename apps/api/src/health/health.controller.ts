@@ -1,6 +1,8 @@
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { RedisService } from '../common/redis/redis.service';
+
+const DB_CHECK_TIMEOUT_MS = 2000;
 
 @Controller('health')
 export class HealthController {
@@ -8,6 +10,23 @@ export class HealthController {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
   ) {}
+
+  /** Liveness: o processo responde. Nao toca em banco nem Redis, para o orquestrador nao reiniciar a API por queda de dependencia. */
+  @Get('live')
+  @HttpCode(HttpStatus.OK)
+  live() {
+    return { status: 'ok', uptime: process.uptime() };
+  }
+
+  /** Readiness: so o banco e obrigatorio. 503 tira a instancia do balanceador sem reinicia-la. */
+  @Get('ready')
+  @HttpCode(HttpStatus.OK)
+  async ready() {
+    const db = await this.checkDatabase();
+    const body = { status: db ? 'ok' : 'error', database: { status: db ? 'ok' : 'error' }, redis: { status: this.redis.getStatus() ? 'ok' : 'degraded (optional)' } };
+    if (!db) throw new HttpException(body, HttpStatus.SERVICE_UNAVAILABLE);
+    return body;
+  }
 
   @Get()
   @HttpCode(HttpStatus.OK)
@@ -19,34 +38,28 @@ export class HealthController {
       memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
     };
 
-    let dbOk = false;
-    try {
-      await this.prisma.$queryRaw`SELECT 1`;
-      checks.database = { status: 'ok' };
-      dbOk = true;
-    } catch {
-      checks.database = { status: 'error', message: 'Database connection failed' };
-    }
-
-    let redisOk = false;
-    try {
-      redisOk = this.redis.getStatus(); // true only when connected
-      checks.redis = { status: redisOk ? 'ok' : 'degraded (optional)' };
-    } catch {
-      checks.redis = { status: 'unavailable (optional)' };
-    }
+    const dbOk = await this.checkDatabase();
+    checks.database = dbOk ? { status: 'ok' } : { status: 'error', message: 'Database connection failed' };
+    checks.redis = { status: this.redis.getStatus() ? 'ok' : 'degraded (optional)' };
 
     // Only the database is required for the API to function
-    const isHealthy = dbOk;
-
-    if (!isHealthy) {
-      const { HttpException } = await import('@nestjs/common');
-      throw new HttpException(
-        { status: 'error', ...checks },
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
-    }
-
+    if (!dbOk) throw new HttpException({ status: 'error', ...checks }, HttpStatus.SERVICE_UNAVAILABLE);
     return { status: 'ok', ...checks };
+  }
+
+  /** SELECT 1 com prazo: um banco pendurado nao pode pendurar o health check junto. */
+  private async checkDatabase(): Promise<boolean> {
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      await Promise.race([
+        this.prisma.$queryRaw`SELECT 1`,
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('db timeout')), DB_CHECK_TIMEOUT_MS); }),
+      ]);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 }

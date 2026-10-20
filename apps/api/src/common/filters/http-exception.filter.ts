@@ -45,6 +45,18 @@ export function mapException(exception: unknown): MappedError {
 
   const error = exception as { code?: string; name?: string; message?: string; meta?: any; statusCode?: number; status?: number };
 
+  // Banco inacessivel (P1001 nao alcanca, P1002 timeout, P1008 operacao expirou, P1017 conexao fechada, P2024 pool esgotado,
+  // erro de inicializacao do Prisma): 503 pede para tentar de novo, em vez de um 500 que parece bug da aplicacao.
+  // O motor do Prisma devolve a maioria das quedas como PrismaClientUnknownRequestError, so com o texto do Postgres.
+  const dbDownMessage = /not currently accepting connections|database system is (starting up|shutting down|in recovery mode)|terminating connection|server closed the connection|connection (refused|reset|closed)|too many connections|remaining connection slots|can't reach database server|timed out fetching a new connection|ECONNREFUSED|ECONNRESET/i;
+  const isDbUnavailable =
+    error?.name === 'PrismaClientInitializationError' ||
+    ['P1001', 'P1002', 'P1008', 'P1017', 'P2024'].includes(String(error?.code)) ||
+    (error?.name === 'PrismaClientUnknownRequestError' && dbDownMessage.test(String(error?.message)));
+  if (isDbUnavailable) {
+    return { status: HttpStatus.SERVICE_UNAVAILABLE, body: { message: 'Servico temporariamente indisponivel. Tente novamente em instantes.', code: 'DB_UNAVAILABLE' }, log: true };
+  }
+
   if (error?.name === 'PrismaClientKnownRequestError' || (typeof error?.code === 'string' && /^P\d{4}$/.test(error.code))) {
     switch (error.code) {
       case 'P2002':
