@@ -26,6 +26,9 @@ const REASON_LABEL: Record<string, string> = {
   chargeback: 'Chargeback: aguardar a disputa e decidir sobre a nota',
   estorno_parcial: 'Estorno parcial: a nota não aceita cancelamento parcial, emita a substituta pelo valor líquido',
   cancelamento_pendente: 'Cancelamento da nota falhou: tentar novamente',
+  cancelamento_negado: 'A prefeitura negou o cancelamento: a nota segue válida. Trate com a prefeitura (substituição/devolução) e marque como resolvido',
+  emissao_recusada: 'A emissão da nota foi recusada (dado fiscal inválido). Corrija o cadastro/valor e reemita',
+  emissao_esgotada: 'A emissão da nota falhou várias vezes (provedor fora do ar). Reemita ou trate no painel do Asaas',
 };
 
 @Injectable()
@@ -87,7 +90,8 @@ export class FiscalAdjustmentsService {
       outcome = result.result;
     } else if (action === 'REISSUE') {
       if (manualReason === 'estorno_parcial') throw new BadRequestException('Estorno parcial: emita a nota substituta pelo valor líquido no painel do Asaas e depois marque como resolvido.');
-      if (!['CANCELED', 'ERROR', 'CANCELLATION_DENIED'].includes(invoice.invoiceStatus ?? '')) throw new ConflictException('Cancele a nota atual e aguarde a confirmação antes de reemitir.');
+      if (manualReason === 'cancelamento_negado' || invoice.invoiceStatus === 'CANCELLATION_DENIED') throw new BadRequestException('A prefeitura negou o cancelamento e a nota segue válida: reemitir duplicaria o documento fiscal. Resolva com a prefeitura e marque como resolvido.');
+      if (!['CANCELED', 'ERROR', 'RETRY'].includes(invoice.invoiceStatus ?? '')) throw new ConflictException('Cancele a nota atual e aguarde a confirmação antes de reemitir.');
       const result = await this.fiscal.ensureForInvoice(invoiceId, { force: true });
       if (result.result === 'FAILED' || result.result === 'SKIPPED') throw new ConflictException(result.message);
       outcome = result.result;

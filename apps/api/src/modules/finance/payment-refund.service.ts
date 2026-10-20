@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma.service';
-import { AsaasService } from './asaas.service';
+import { AsaasRejectedException, AsaasService } from './asaas.service';
 import { MercadoPagoService } from './mercadopago.service';
 import { AsaasFiscalService } from './asaas-fiscal.service';
 
@@ -52,13 +52,33 @@ export class PaymentRefundService {
       }
       await this.reconcile(invoiceId);
     } catch (error) {
-      // Timeout e falha de persistência também podem ocorrer após o provedor aceitar. Não liberar reserva nem repetir.
-      // Guarda o motivo real (ex.: "Asaas recusou: saldo insuficiente") para aparecer na tela e no log.
       const detail = error instanceof Error ? error.message : String(error);
+      // Recusa definitiva (Asaas 400/404/422 com motivo; Mercado Pago 404): o provedor NÃO aceitou, então a reserva é liberada na hora.
+      if (error instanceof AsaasRejectedException || error instanceof NotFoundException) {
+        await this.failReservation(invoiceId, operation.id, detail);
+        return this.prisma.paymentRefund.findUniqueOrThrow({ where: { id: operation.id } });
+      }
+      // Timeout, 5xx e falha de persistência também podem ocorrer após o provedor aceitar. Não liberar reserva nem repetir:
+      // fica UNKNOWN (devolução pendente) e a conciliação a cada 5 min decide. Guarda o motivo real para a tela e o log.
       await this.prisma.paymentRefund.updateMany({ where: { id: operation.id, status: { in: active } }, data: { status: 'UNKNOWN', errorMessage: detail.slice(0, 500) } }).catch(() => undefined);
       this.logger.warn(`Devolução ${operation.id} precisa de conciliação: ${detail}`);
     }
     return this.prisma.paymentRefund.findUniqueOrThrow({ where: { id: operation.id } });
+  }
+
+  /** Recusa definitiva do provedor: marca FALHOU, audita e devolve o saldo reservado (a fatura volta ao estado anterior). */
+  private async failReservation(invoiceId: string, operationId: string, detail: string) {
+    await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT "id" FROM "PlatformInvoice" WHERE "id" = ${invoiceId}::uuid FOR UPDATE`;
+      const op = await tx.paymentRefund.update({ where: { id: operationId }, data: { status: 'FAILED', errorMessage: detail.slice(0, 500) } });
+      const invoice = await tx.platformInvoice.findUniqueOrThrow({ where: { id: invoiceId } });
+      const pending = await tx.paymentRefund.count({ where: { invoiceId, status: { in: active } } });
+      const refunded = cents(invoice.refundedAmount);
+      const status = pending ? 'PROCESSING' : refunded >= cents(invoice.amount) ? 'REFUNDED' : refunded > 0 ? 'PARTIALLY_REFUNDED' : null;
+      await tx.platformInvoice.update({ where: { id: invoiceId }, data: { refundStatus: status } });
+      await tx.auditLog.create({ data: { companyId: invoice.companyId, userId: op.actorId, action: 'REFUND_FAILED', entity: 'PaymentRefund', entityId: op.id, metadata: { invoiceId, amount: Number(op.amount), reason: 'recusado_pelo_provedor', detail: detail.slice(0, 200) } } });
+    });
+    this.logger.warn(`Devolução ${operationId} recusada pelo provedor: ${detail}`);
   }
 
   async reconcile(invoiceId: string) {
@@ -92,6 +112,13 @@ export class PaymentRefundService {
           if (op.status === 'UNKNOWN' && stale && !sameValue) {
             await tx.paymentRefund.update({ where: { id: op.id }, data: { status: 'FAILED', errorMessage: op.errorMessage && !op.errorMessage.startsWith('Confirmação pendente') ? op.errorMessage : 'O provedor não registrou esta devolução. Nada foi devolvido; solicite de novo.' } });
             await tx.auditLog.create({ data: { companyId: invoice.companyId, userId: op.actorId, action: 'REFUND_FAILED', entity: 'PaymentRefund', entityId: op.id, metadata: { invoiceId, amount: Number(op.amount), reason: 'nao_encontrada_no_provedor' } } });
+          } else if (op.status === 'UNKNOWN' && Date.now() - new Date(op.createdAt).getTime() > 24 * 60 * 60_000) {
+            // Há estorno de mesmo valor no provedor que não casa com este pedido: não dá para decidir sozinho. Alerta uma vez.
+            const flagged = await tx.auditLog.findFirst({ where: { action: 'REFUND_NEEDS_REVIEW', entityId: op.id }, select: { id: true } });
+            if (!flagged) {
+              await tx.auditLog.create({ data: { companyId: invoice.companyId, userId: op.actorId, action: 'REFUND_NEEDS_REVIEW', entity: 'PaymentRefund', entityId: op.id, metadata: { invoiceId, amount: Number(op.amount) } } });
+              this.logger.error(`ALERTA: devolução ${op.id} há mais de 24h sem conciliar com o provedor; revisão manual.`);
+            }
           }
           continue;
         }

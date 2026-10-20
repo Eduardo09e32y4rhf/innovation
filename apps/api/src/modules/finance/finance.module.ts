@@ -23,6 +23,8 @@ import { PaymentProviderService } from './payment-provider.service';
 import { FinanceNotificationService } from './finance-notification.service';
 import { PlatformFinanceService } from './platform-finance.service';
 import { PaymentRefundService } from './payment-refund.service';
+import { PaymentReconciliationService } from './payment-reconciliation.service';
+import { ReconciliationController } from './reconciliation.controller';
 import { PricingService } from './pricing.service';
 import { QueueModule } from '../queue/queue.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -50,6 +52,7 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     BillingCronService,
     PlatformFinanceService,
     PaymentRefundService,
+    PaymentReconciliationService,
     FinanceNotificationService,
     PricingService,
     FaturasService,
@@ -66,6 +69,7 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     AsaasWebhookController,
     MercadoPagoWebhookController,
     IntegrationsController,
+    ReconciliationController,
   ],
   exports: [AsaasService, MercadoPagoService, PaymentProviderService, PlatformFinanceService, FinanceNotificationService, PricingService],
 })
