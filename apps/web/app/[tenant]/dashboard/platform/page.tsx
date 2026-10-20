@@ -27,6 +27,7 @@ import { SubNav } from './_hub/sub-nav';
 import { SuporteView } from './_hub/suporte-view';
 import { ScopePicker } from './_hub/scope-picker';
 import { TAB_LABEL, TAB_POLICY, type CompanyOption, type HubTab } from './_hub/types';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 const SUBTITLE: Record<string, string> = {
   CONTABIL: 'Contabilidade e regras de cálculo de todas as empresas.',
@@ -75,7 +76,7 @@ function Hub() {
   if (!user) return <LoadingState label="Carregando acesso…" />;
   if (!allowed.length) return <section className="card-v2 m-4 p-5"><h1 className="text-xl font-semibold">Acesso restrito</h1><p className="mt-2 text-sm text-fg-sub">Seu perfil não tem acesso à Plataforma.</p></section>;
 
-  const canManageCompany = ['DEV', 'CEO', 'COMERCIAL'].includes(role);
+  const canManageCompany = roleIn(ROLE_ACCESS.platformCompanyManage, role);
 
   async function openManage() {
     if (!companyId) return;

@@ -18,6 +18,7 @@ import { AssessmentsPanel, FeedbackDialog, FeedbackSummary, OffersPanel, Respons
 import { processApi } from '../process-api';
 import { meetingLabel } from '../../management/agenda/meeting-link';
 import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 const TABS = [['summary', 'Resumo'], ['evaluation', 'Avaliação'], ['notes', 'Notas'], ['interviews', 'Entrevistas'], ['assessments', 'Testes'], ['offer', 'Proposta'], ['history', 'Histórico'], ['documents', 'Documentos']] as const;
 type TabKey = (typeof TABS)[number][0];
@@ -44,9 +45,9 @@ export function CandidateDrawer({
   const [busy, setBusy] = useState(false);
   const data = detail.data;
   const role = String(user?.profile ?? '').toUpperCase();
-  const canSeeDocuments = ['DEV', 'ADMIN', 'RH', 'RH_RS'].includes(role);
+  const canSeeDocuments = roleIn(ROLE_ACCESS.recruitmentConduct, role);
   // Gestor avalia entrevistas e ve testes/propostas; quem conduz (RH) agenda, envia testes e monta proposta.
-  const canConduct = ['DEV', 'ADMIN', 'RH', 'RH_RS'].includes(role);
+  const canConduct = roleIn(ROLE_ACCESS.recruitmentConduct, role);
   const feedback = useQuery(() => processApi.feedback(applicationId ?? ''), [applicationId], { enabled: Boolean(applicationId) && tab === 'interviews' });
 
   useEffect(() => { setTab('summary'); setNote(''); }, [applicationId]);

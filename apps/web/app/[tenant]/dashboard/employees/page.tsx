@@ -17,6 +17,7 @@ import { matchesEmployee } from './employee-filters';
 import { EmployeeAccessModal } from './_components/employee-access-modal';
 import { RowActionsMenu } from './_components/row-actions-menu';
 import { toast } from 'sonner';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 const monthNow = () => { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`; };
@@ -25,8 +26,8 @@ export default function EmployeesPage() {
   const tenant = String(useParams()?.tenant ?? '');
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
-  const canEdit = ['DEV', 'ADMIN', 'RH'].includes(profile ?? '');
-  const canDownloadSheet = profile === 'RH';
+  const canEdit = roleIn(ROLE_ACCESS.employeeWrite, profile);
+  const canDownloadSheet = roleIn(ROLE_ACCESS.employeePointSheet, profile);
   const isGestor = profile === 'GESTOR';
   const base = `/${tenant}/dashboard`;
   const employeesQuery = useQuery(() => api.employees.list(), []);

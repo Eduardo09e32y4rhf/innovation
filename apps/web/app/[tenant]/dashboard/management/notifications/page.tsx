@@ -11,6 +11,7 @@ import { normalizeDisplayName } from '@/app/lib/text';
 import { managementDocumentsApi } from '../management-documents-api';
 import { Bell, XCircle, X } from 'lucide-react';
 import { LoadingState, ErrorState } from '@/app/components/data-states';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 function fmtDateTime(v?: string | null) {
   if (!v) return '---';
@@ -34,7 +35,7 @@ function getStatusBadge(status: string): { label: string; cls: string } {
 export default function NotificationsPage() {
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase();
-  const canManage = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH';
+  const canManage = roleIn(ROLE_ACCESS.notificationsManage, profile);
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');

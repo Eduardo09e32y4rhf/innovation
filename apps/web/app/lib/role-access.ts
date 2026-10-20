@@ -13,6 +13,8 @@ export const ROLE_ACCESS = {
   vacationApprove: roles('ADMIN', 'RH', 'DEV'),
   /** Solicitar férias: espelha `POST /vacations`; GESTOR e FUNCIONARIO não têm essa rota. */
   vacationRequest: roles('ADMIN', 'RH', 'DEV'),
+  /** Área de Gestão (layout): ações de escrita do RH. */
+  managementManage: roles('DEV', 'ADMIN', 'RH'),
   asoView: roles('DEV', 'ADMIN', 'RH', 'GESTOR', 'CEO', 'CONSULTA'),
   asoManage: roles('DEV', 'ADMIN', 'RH'),
   notificationsManage: roles('DEV', 'ADMIN', 'RH'),

@@ -14,8 +14,9 @@ import { api, ApiError, type Employee } from '@/app/lib/api';
 import { ConfirmDialog, Modal } from '../../escalas/_components/operational-dialog';
 import { payrollApi } from './payroll-api';
 import { MANUAL_ITEM_LABEL, PAYROLL_STATUS_LABEL, type ManualItemInput, type ManualItemType, type PayrollItem, type PayrollStatus } from './types';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
-const ALLOWED_ROLES = new Set(['DEV', 'ADMIN', 'RH']);
+const ALLOWED_ROLES = new Set(ROLE_ACCESS.payrollAccess);
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const MANUAL_TYPES = Object.keys(MANUAL_ITEM_LABEL) as ManualItemType[];
 

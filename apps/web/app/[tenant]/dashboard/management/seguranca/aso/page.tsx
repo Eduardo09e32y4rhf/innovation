@@ -23,6 +23,7 @@ import {
   type ComplianceState,
 } from '../../sst-api';
 import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 const FILTERS: Array<{ value: '' | ComplianceState; label: string }> = [
   { value: '', label: 'Todos' },
@@ -40,8 +41,8 @@ const STATE_CLASS: Record<string, string> = {
 export default function SegurancaAsoPage() {
   const { user } = useAuth();
   const profile = String(user?.profile ?? user?.role ?? '').toUpperCase();
-  const canView = ['DEV', 'ADMIN', 'RH', 'GESTOR', 'CEO', 'CONSULTA'].includes(profile);
-  const canManage = ['DEV', 'ADMIN', 'RH'].includes(profile);
+  const canView = roleIn(ROLE_ACCESS.asoView, profile);
+  const canManage = roleIn(ROLE_ACCESS.asoManage, profile);
 
   const searchParams = useSearchParams();
   const initial = (searchParams?.get('state') ?? '') as '' | ComplianceState;

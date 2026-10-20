@@ -13,6 +13,7 @@ import { useWorkspace } from '../../_components/shell-v2/workspace-context';
 import { meetingLabel, normalizeMeetingInput } from './meeting-link';
 import { LoadingState, ErrorState } from '@/app/components/ui';
 import { Drawer, ConfirmDialog, Badge } from '@/app/components/ui';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 type ColumnKey = 'OVERDUE' | 'TODAY' | 'THIS_WEEK' | 'UPCOMING' | 'COMPLETED';
 type EventType = 'REUNIAO' | 'ENTREVISTA' | 'CHAMADA' | 'TAREFA_INTERNA' | 'PRAZO_ADMINISTRATIVO' | 'RETORNO_COLABORADOR' | 'DOCUMENTO_PENDENTE' | 'OUTROS';
@@ -76,8 +77,8 @@ export default function AgendaPage() {
   const { company } = useWorkspace();
   // R&S: agenda pessoal, sem funcionarios vinculados (conta autonoma nao tem cadastro de funcionarios).
   const recruiterMode = usesRecruiterAgenda(profile, company?.activeModules);
-  const canView = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH' || profile === 'GESTOR' || profile === 'RH_RS';
-  const canManage = profile === 'DEV' || profile === 'ADMIN' || profile === 'RH' || profile === 'RH_RS';
+  const canView = roleIn(ROLE_ACCESS.agendaView, profile);
+  const canManage = roleIn(ROLE_ACCESS.agendaManage, profile);
 
   const [eventForm, setEventForm] = useState<{ open: boolean; edit?: ManagementEvent }>({ open: false });
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id?: string }>({ open: false });

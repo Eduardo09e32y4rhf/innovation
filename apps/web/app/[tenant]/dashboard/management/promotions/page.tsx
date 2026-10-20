@@ -9,6 +9,7 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { api, type PromotionItem, type PromotionPolicy } from '@/app/lib/api';
 import { resolveUserRole } from '@/app/lib/user-role';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 const input = 'input-v2 w-full text-sm';
 const brl = (v: number | null) => (v === null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
@@ -21,7 +22,7 @@ const message = (cause: unknown, fallback: string) => (cause instanceof Error &&
 export default function PromotionsPage() {
   const { user } = useAuth();
   const role = resolveUserRole(user);
-  const canWrite = ['DEV', 'ADMIN', 'RH'].includes(role);
+  const canWrite = roleIn(ROLE_ACCESS.promotionsWrite, role);
   const list = useQuery(() => api.promotions.list(), []);
   const policy = useQuery(() => api.promotions.policy(), []);
   const people = useQuery(() => api.employees.list(), [], { enabled: canWrite });

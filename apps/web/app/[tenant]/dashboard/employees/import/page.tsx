@@ -8,6 +8,7 @@ import { Button, ConfirmDialog, PageHeader } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { API_URL, api } from '@/app/lib/api';
 import { readAuthSession } from '@/app/lib/auth-session';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 type ImportValidation = Awaited<ReturnType<typeof api.employees.validateImport>>;
 type ImportResult = Awaited<ReturnType<typeof api.employees.confirmImport>>;
@@ -15,7 +16,7 @@ type ImportResult = Awaited<ReturnType<typeof api.employees.confirmImport>>;
 export default function EmployeesImportPage() {
   const tenant = String(useParams()?.tenant ?? '');
   const { user } = useAuth();
-  const canImport = ['DEV', 'ADMIN', 'RH'].includes(user?.profile?.toUpperCase() ?? '');
+  const canImport = roleIn(ROLE_ACCESS.employeeWrite, user?.profile);
   const destination = '/' + tenant + '/dashboard/employees';
   const [file, setFile] = useState<File | null>(null);
   const [validation, setValidation] = useState<ImportValidation | null>(null);

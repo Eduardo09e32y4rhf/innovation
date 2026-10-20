@@ -16,8 +16,9 @@ import { jobsApi } from './jobs-api';
 import { JobShareDialog } from './_components/share-dialog';
 import { workflowApi } from './workflow-api';
 import { EMPLOYMENT_TYPE_LABEL, JOB_STATUS_LABEL, WORK_MODE_LABEL, daysSince, salaryLabel, type Job, type JobStatus } from './types';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
-const ALLOWED_ROLES = new Set(['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR']);
+const ALLOWED_ROLES = new Set(ROLE_ACCESS.recruitmentAccess);
 const STATUS_TONE = { OPEN: 'success', DRAFT: 'warning', CLOSED: 'default', PENDING_APPROVAL: 'warning', PAUSED: 'default', FILLED: 'default' } as const;
 const STATUS_FILTERS: { value: JobStatus | ''; label: string }[] = [
   { value: '', label: 'Todas' }, { value: 'OPEN', label: 'Abertas' },
@@ -32,7 +33,7 @@ export default function JobsPage() {
   const role = (user?.profile ?? user?.role ?? '').toUpperCase();
   const canAccess = ALLOWED_ROLES.has(role);
   const canManage = role !== 'GESTOR' && canAccess;
-  const canConfigure = ['DEV', 'ADMIN', 'RH'].includes(role);
+  const canConfigure = roleIn(ROLE_ACCESS.recruitmentConfigure, role);
   const jobs = useQuery(() => jobsApi.list(), [company?.id], { enabled: canAccess });
   const stats = useQuery(() => jobsApi.stats(), [company?.id], { enabled: canAccess });
   const [search, setSearch] = useState('');

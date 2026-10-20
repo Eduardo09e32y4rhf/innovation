@@ -11,6 +11,7 @@ import { usesRecruiterAgenda } from '@/app/lib/recruiter-account';
 import { useWorkspace } from '../_components/shell-v2/workspace-context';
 import { isAgendaPath } from '../_components/shell-v2/rs-route-access';
 import styles from '../escalas/_components/operational-ui.module.css';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 interface NavItem { name: string; href: string; icon: LucideIcon; exact?: boolean }
 interface NavGroup { title: string; icon?: LucideIcon; items: NavItem[] }
@@ -22,7 +23,7 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
   const router = useRouter();
   const { user } = useAuth();
   const profile = String(user?.profile ?? user?.role ?? '').toUpperCase();
-  const canManage = ['DEV', 'ADMIN', 'RH'].includes(profile);
+  const canManage = roleIn(ROLE_ACCESS.managementManage, profile);
   const base = `/${tenant}/dashboard/management`;
   const { company } = useWorkspace();
   // R&S (perfil RH_RS ou conta autonoma so de Recrutamento): Gestao e so a Agenda.
