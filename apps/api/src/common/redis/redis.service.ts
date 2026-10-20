@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Redis from 'ioredis';
 import { redisConnection } from './redis-config';
+import { setCronLockRedis } from './cron-lock.decorator';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -40,6 +41,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private outageLogged = false;
 
   onModuleInit() {
+    setCronLockRedis(this);
     // Nao aguardar: com Redis fora no boot a API sobe degradada e conecta quando ele voltar.
     this.client.connect().catch((error: unknown) => {
       console.warn('[Redis] Not available — running without Redis cache:', error instanceof Error ? error.message : String(error));
