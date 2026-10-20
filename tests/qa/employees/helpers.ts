@@ -35,7 +35,7 @@ export const employee = (over: Record<string, unknown> = {}) => ({
 
 const REPOSITORY_METHODS = [
   'list', 'count', 'findById', 'findByUserId', 'listByManager', 'listSwapCandidates', 'countByManager', 'findByCpf',
-  'findByRegistration', 'create', 'update', 'updateUserLink', 'findUserByEmail', 'findUserById', 'createUser', 'updateUser',
+  'findByRegistration', 'create', 'update', 'terminateOnce', 'updateUserLink', 'findUserByEmail', 'findUserById', 'createUser', 'updateUser',
   'getDeletionImpact', 'getDossier', 'getOfficialDocumentData', 'delete', 'createAuditLog', 'countByCompany', 'getCompanyLimits',
 ] as const;
 
@@ -48,6 +48,7 @@ export function makeRepo(over: Partial<FakeRepo> = {}): FakeRepo {
   repo.listByManager.mockResolvedValue([]);
   repo.listSwapCandidates.mockResolvedValue([]);
   repo.update.mockResolvedValue({ count: 1 });
+  repo.terminateOnce.mockResolvedValue({ count: 1 });
   repo.delete.mockResolvedValue({ count: 1 });
   repo.updateUser.mockResolvedValue({ count: 1 });
   repo.updateUserLink.mockResolvedValue({ count: 1 });

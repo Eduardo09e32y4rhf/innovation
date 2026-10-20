@@ -171,26 +171,23 @@ export class EmployeesService {
   }
 
   async terminate(companyId: string, actor: JwtUser, id: string) {
-    await this.get(companyId, actor, id);
-    const result = await this.repository.update(companyId, id, { status: 'TERMINATED' });
-    if (!result.count) throw new NotFoundException('Employee not found');
+    const current = await this.get(companyId, actor, id);
+    const result = await this.repository.terminateOnce(companyId, id, {}, current?.userId);
+    if (!result.count) {
+      if (current?.status === 'TERMINATED' || (await this.repository.findById(companyId, id))?.status === 'TERMINATED') {
+        throw new ConflictException('Funcionário já desligado.');
+      }
+      throw new NotFoundException('Employee not found');
+    }
 
-    // Automação: Gera ASO Demissional pendente
+    // Automação: Gera ASO Demissional pendente (uma única vez: só quem venceu o compare-and-set chega aqui)
     await this.asoService.create(companyId, actor.sub, {
       employeeId: id,
       asoType: 'DEMISSIONAL',
       status: 'PENDING'
     });
 
-    const employee = await this.get(companyId, actor, id);
-    if (employee?.userId) {
-      await this.repository.updateUser(companyId, employee.userId, {
-        isActive: false,
-        forcePasswordChange: true,
-      });
-    }
-
-    return employee;
+    return this.get(companyId, actor, id);
   }
 
   async createAccess(companyId: string, actor: JwtUser, employeeId: string, dto: { email: string; role?: string; name?: string }) {
@@ -378,17 +375,11 @@ export class EmployeesService {
     const deletionImpact = await this.repository.getDeletionImpact(companyId, id);
 
     if (deletionImpact.total > 0) {
-      await this.repository.update(companyId, id, {
-        status: 'TERMINATED',
+      const archived = await this.repository.terminateOnce(companyId, id, {
         terminationDate: employee?.terminationDate ? undefined : this.todayInSaoPaulo(),
         observations: this.appendArchiveNote(employee?.observations, actor),
-      });
-      if (employee?.userId) {
-        await this.repository.updateUser(companyId, employee.userId, {
-          isActive: false,
-          forcePasswordChange: true,
-        });
-      }
+      }, employee?.userId);
+      if (!archived.count) throw new ConflictException('Funcionário já desligado ou arquivado.');
       return {
         deleted: false,
         archived: true,

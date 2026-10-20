@@ -1,4 +1,5 @@
 import { fmt, PDF, PdfReport } from '../../common/pdf/pdf-report';
+import { countDependents } from '../../common/utils/dependents';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { roundMoney } from '../../common/utils/money';
@@ -118,7 +119,7 @@ export class AccountingHubService {
     const reference = new Date(payroll.periodEnd ?? Date.UTC(payroll.referenceYear, payroll.referenceMonth - 1, 1));
     const ctx = await this.payroll.resolveTaxContext(reference);
     const dependentsData = payroll.employee?.dependents as unknown;
-    const dependents = Array.isArray(dependentsData) ? dependentsData.length : 0;
+    const dependents = countDependents(dependentsData);
 
     // Valores corrigidos nas colunas viram lançamentos (salário, horas extras, noturno).
     const ensureItem = async (type: 'BASE_SALARY' | 'OVERTIME' | 'NIGHT_SHIFT', description: string, amount: number) => {

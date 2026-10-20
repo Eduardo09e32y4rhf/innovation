@@ -160,9 +160,8 @@ describe('QA · consultar, desligar, excluir', () => {
     const target = employee({ id: 'e9', userId: 'u9', status: 'ACTIVE' });
     const { service, repository, aso } = makeService({ findById: vi.fn().mockResolvedValue(target) } as never);
     await service.terminate(COMPANY_A, actor('RH'), 'e9');
-    expect(repository.update).toHaveBeenCalledWith(COMPANY_A, 'e9', { status: 'TERMINATED' });
+    expect(repository.terminateOnce).toHaveBeenCalledWith(COMPANY_A, 'e9', {}, 'u9');
     expect(aso.create).toHaveBeenCalledWith(COMPANY_A, 'user-rh', expect.objectContaining({ asoType: 'DEMISSIONAL' }));
-    expect(repository.updateUser).toHaveBeenCalledWith(COMPANY_A, 'u9', { isActive: false, forcePasswordChange: true });
   });
 
   it('delete com histórico arquiva (não apaga) e bloqueia o acesso', async () => {

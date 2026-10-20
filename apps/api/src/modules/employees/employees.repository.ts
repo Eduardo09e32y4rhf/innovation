@@ -114,6 +114,17 @@ export class EmployeesRepository {
     return this.prisma.employee.updateMany({ where: { companyId, id }, data });
   }
 
+  /** Compare-and-set: only the caller that flips status to TERMINATED gets count=1; user lock-out runs in the same transaction. */
+  terminateOnce(companyId: string, id: string, data: any, userId?: string | null) {
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.employee.updateMany({ where: { companyId, id, status: { not: 'TERMINATED' } }, data: { ...data, status: 'TERMINATED' } });
+      if (result.count && userId) {
+        await tx.user.updateMany({ where: { companyId, id: userId }, data: { isActive: false, forcePasswordChange: true } });
+      }
+      return result;
+    });
+  }
+
   updateUserLink(companyId: string, id: string, userId: string | null) {
     return this.prisma.employee.updateMany({ where: { companyId, id }, data: { userId } });
   }
