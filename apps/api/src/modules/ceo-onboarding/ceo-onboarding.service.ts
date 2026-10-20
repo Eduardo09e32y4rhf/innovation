@@ -1,3 +1,4 @@
+import { ALLOW, inspectFile } from '../../common/utils/file-validation';
 import { PdfReport } from '../../common/pdf/pdf-report';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
@@ -99,6 +100,8 @@ export class CeoOnboardingService {
     if (actor.role === 'CEO' && contract.ceo.onboardingState !== 'CONTRACT_PENDING') throw new ConflictException('O contrato ainda nao esta liberado para assinatura nesta etapa.');
     if (!contract.pdfDocumentId) throw new ConflictException('A minuta em PDF nao foi gerada.');
 
+    const upload = inspectFile(file, { allow: ALLOW.SIGNED_PDF, maxBytes: 10 * 1024 * 1024, blockActivePdf: true });
+    if (!upload.ok) throw new BadRequestException(`PDF assinado recusado: ${upload.message}`);
     const previous = await this.documents.readBuffer(contract.ceo.companyId, contract.signedPdfDocumentId ?? contract.pdfDocumentId);
     const check = checkSignedUpload(previous, contract.signatureCount, file);
     if (!check.ok) throw new BadRequestException(check.reason);

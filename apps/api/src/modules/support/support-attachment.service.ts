@@ -1,3 +1,4 @@
+import { ALLOW, inspectFile } from '../../common/utils/file-validation';
 import { Injectable, Logger, BadRequestException, Inject } from '@nestjs/common';
 import { SupportStorageService } from './support-storage.service';
 import { SupportRepository } from './support.repository';
@@ -65,6 +66,12 @@ export class SupportAttachmentService {
       if (extension === 'png' && !hex.startsWith('89504E47')) throw new BadRequestException('Arquivo PNG corrompido ou falsificado.');
       if ((extension === 'jpg' || extension === 'jpeg') && !hex.startsWith('FFD8FF')) throw new BadRequestException('Arquivo JPEG corrompido ou falsificado.');
       if (extension === 'pdf' && !file.buffer.subarray(0, 5).toString('ascii').startsWith('%PDF-')) throw new BadRequestException('Arquivo PDF corrompido ou falsificado.');
+    }
+
+    const checked = inspectFile(file.buffer, { allow: ALLOW.SUPPORT, maxBytes: 20 * 1024 * 1024, filename: file.originalname });
+    if (!checked.ok) {
+      this.logger.warn(`[Security Alert] Anexo recusado pelo conteudo (${checked.detected}): ${String(file.originalname).slice(0, 80)}`);
+      throw new BadRequestException(`Arquivo recusado: ${checked.message}`);
     }
 
     const { createHash } = require('crypto');

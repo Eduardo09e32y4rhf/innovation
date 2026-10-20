@@ -1,4 +1,5 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { ALLOW, inspectFile } from '../../common/utils/file-validation';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { CommunicationGateway } from './realtime/communication.gateway';
 import { CommunicationRepository } from './communication.repository';
 import { SendMessageDto } from './dto/send-message.dto';
@@ -292,8 +293,18 @@ export class CommunicationService implements OnModuleInit {
     return conversation;
   }
 
+  /** Mídia do atendente: tipo real pelo conteúdo (mime e nome vêm do validador, nunca do cliente). */
+  private checkedMedia(media: SendMessageDto['media']) {
+    if (!media) return undefined;
+    const raw = typeof media.base64 === 'string' ? media.base64.replace(/^data:[^;,]*;base64,/, '').replace(/\s+/g, '') : '';
+    if (!raw || !/^[A-Za-z0-9+/]+={0,2}$/.test(raw)) throw new BadRequestException('Anexo invalido: conteudo base64 mal formado.');
+    const checked = inspectFile(Buffer.from(raw, 'base64'), { allow: ALLOW.WHATSAPP, maxBytes: 10 * 1024 * 1024, filename: media.name });
+    if (!checked.ok) throw new BadRequestException(`Anexo recusado: ${checked.message}`);
+    return { base64: `data:${checked.mime};base64,${raw}`, mimeType: checked.mime, name: checked.safeName };
+  }
+
   async sendMessage(companyId: string, dto: SendMessageDto) {
-    const sent = await this.provider.sendMessage(this.platformSessionKey, dto.phone, dto.body || '', dto.media);
+    const sent = await this.provider.sendMessage(this.platformSessionKey, dto.phone, dto.body || '', this.checkedMedia(dto.media));
     let conversation: any;
     let message: any;
     try {

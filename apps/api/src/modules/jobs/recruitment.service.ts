@@ -30,6 +30,10 @@ export const DEFAULT_STAGES = [
   { name: 'Reprovado', color: '#f43f5e', kind: 'REJECTED' },
 ] as const;
 
+const ACCENTED = 'áàâãäéèêëíìîïóòôõöúùûüçñÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ';
+const PLAIN = 'aaaaaeeeeiiiiooooouuuucnAAAAAEEEEIIIIOOOOOUUUUCN';
+export const foldText = (value?: string) => String(value ?? '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
 export interface ApplicationFilters {
   q?: string;
   stageId?: string;
@@ -225,7 +229,24 @@ export class RecruitmentService {
   }
 
   // ─── Candidaturas ───────────────────────────────────────────────
-  private buildWhere(companyId: string, jobId: string, filters: ApplicationFilters) {
+  /** O ILIKE do Postgres não ignora acento ("joao" não achava "João"); translate() é nativo e dispensa a extensão unaccent. */
+  private async accentInsensitiveCandidateIds(companyId: string, jobId: string, q?: string): Promise<string[]> {
+    const term = foldText(q);
+    if (!term) return [];
+    const needle = `%${term.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+    try {
+      const rows = await this.prisma.$queryRaw<Array<{ candidateId: string }>>`
+        SELECT a."candidateId" FROM "Application" a JOIN "Candidate" c ON c."id" = a."candidateId"
+        WHERE a."companyId" = ${companyId}::uuid AND a."jobId" = ${jobId}::uuid
+          AND lower(translate(c."name" || ' ' || coalesce(c."email", ''), ${ACCENTED}, ${PLAIN})) LIKE ${needle}
+        LIMIT 500`;
+      return rows.map((row) => row.candidateId);
+    } catch {
+      return [];
+    }
+  }
+
+  private buildWhere(companyId: string, jobId: string, filters: ApplicationFilters, foldedCandidateIds: string[] = []) {
     const where: any = { companyId, jobId };
     if (filters.stageId) where.stageId = filters.stageId;
     if (filters.tagId) where.tags = { some: { tagId: filters.tagId } };
@@ -249,6 +270,7 @@ export class RecruitmentService {
       and.push({
         OR: [
           { candidate: { name: { contains: q, mode: 'insensitive' } } },
+          ...(foldedCandidateIds.length ? [{ candidateId: { in: foldedCandidateIds } }] : []),
           { candidate: { email: { contains: q, mode: 'insensitive' } } },
           { candidate: { phone: { contains: q } } },
           { coverLetter: { contains: q, mode: 'insensitive' } },
@@ -326,7 +348,7 @@ export class RecruitmentService {
       : filters.sort === 'oldest' ? [{ createdAt: 'asc' }]
       : [{ createdAt: 'desc' }];
     const applications = await this.prisma.application.findMany({
-      where: this.buildWhere(companyId, jobId, filters),
+      where: this.buildWhere(companyId, jobId, filters, await this.accentInsensitiveCandidateIds(companyId, jobId, filters.q)),
       include: {
         candidate: { include: { admittedEmployee: { select: { id: true } } } },
         tags: { include: { tag: true } },

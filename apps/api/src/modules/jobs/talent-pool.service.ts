@@ -1,5 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { CronLock } from '../../common/redis/cron-lock.decorator';
 import { PrismaService } from '../../database/prisma.service';
+import { monthsAgo, TALENT_CONSENT_MONTHS } from './recruitment-privacy';
 import { MailService } from '../mail/mail.service';
 import { JobsStorageService } from './jobs-storage.service';
 import { candidateInviteEmail } from './recruitment-mails';
@@ -23,7 +26,7 @@ export class TalentPoolService {
   constructor(private readonly prisma: PrismaService, private readonly mail: MailService, private readonly storage: JobsStorageService) {}
 
   async search(companyId: string, userId: string, filters: TalentFilters) {
-    const where: Record<string, unknown> = { talentPoolConsentAt: { not: null }, name: { not: null } };
+    const where: Record<string, unknown> = { talentPoolConsentAt: { gte: monthsAgo(TALENT_CONSENT_MONTHS) }, name: { not: null } };
     const city = filters.city?.trim();
     if (city) where.city = { contains: city, mode: 'insensitive' };
     const state = filters.state?.trim().toUpperCase();
@@ -64,8 +67,20 @@ export class TalentPoolService {
     };
   }
 
+  /** Todo dia às 04:15 tira do banco de talentos quem passou do prazo do consentimento (o cadastro do candidato continua dele). */
+  @Cron('15 4 * * *')
+  @CronLock('talent.consent-expiry', 3600)
+  async expireConsents() {
+    const { count } = await this.prisma.candidateAccount.updateMany({
+      where: { talentPoolConsentAt: { lt: monthsAgo(TALENT_CONSENT_MONTHS) } },
+      data: { talentPoolConsentAt: null },
+    });
+    if (count) this.logger.log(`Banco de talentos: ${count} consentimento(s) vencido(s) encerrado(s).`);
+    return count;
+  }
+
   private async consentedAccount(id: string) {
-    const account = await this.prisma.candidateAccount.findFirst({ where: { id, talentPoolConsentAt: { not: null } } });
+    const account = await this.prisma.candidateAccount.findFirst({ where: { id, talentPoolConsentAt: { gte: monthsAgo(TALENT_CONSENT_MONTHS) } } });
     if (!account) throw new NotFoundException('Candidato não encontrado ou fora do banco de talentos.');
     return account;
   }
