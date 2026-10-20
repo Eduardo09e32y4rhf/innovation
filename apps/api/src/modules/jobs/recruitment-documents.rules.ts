@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
+import { ALLOW, inspectFile } from '../../common/utils/file-validation';
 
 export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 export const MAX_REQUEST_ITEMS = 80;
@@ -7,10 +8,8 @@ export const MAX_LINK_DAYS = 30;
 
 /** Tipo real pelo conteudo (assinatura binaria), nunca pela extensao ou pelo Content-Type informado. */
 export function detectDocumentType(buffer: Buffer): { mime: string; extension: string } | null {
-  if (buffer.length >= 5 && buffer.subarray(0, 5).toString('latin1') === '%PDF-') return { mime: 'application/pdf', extension: 'pdf' };
-  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return { mime: 'image/png', extension: 'png' };
-  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return { mime: 'image/jpeg', extension: 'jpg' };
-  return null;
+  const checked = inspectFile(buffer, { allow: ALLOW.DOCUMENT, maxBytes: Number.MAX_SAFE_INTEGER });
+  return checked.ok ? { mime: checked.mime, extension: checked.extension } : null;
 }
 
 /** O token bruto so existe na resposta da criacao; o banco guarda apenas o SHA-256. */

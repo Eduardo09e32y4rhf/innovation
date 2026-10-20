@@ -1,3 +1,4 @@
+import { makeZip } from '../../../tests/unit/zip-fixture';
 import { describe, expect, it } from 'vitest';
 import { JobsService } from './jobs.service';
 import { RecruitmentService } from './recruitment.service';
@@ -13,8 +14,10 @@ describe('correcoes encontradas na varredura', () => {
     expect('workMode' in untouched).toBe(false);
   });
   it('curriculo: so DOCX de verdade (zip/xlsx renomeado e recusado)', () => {
-    const docx = Buffer.concat([Buffer.from([0x50, 0x4b, 3, 4]), Buffer.from('....word/document.xml')]);
-    const xlsx = Buffer.concat([Buffer.from([0x50, 0x4b, 3, 4]), Buffer.from('....xl/workbook.xml')]);
+    const docx = makeZip([{ name: '[Content_Types].xml', data: Buffer.from('<Types/>') }, { name: 'word/document.xml', data: Buffer.from('<w:document/>') }]);
+    const xlsx = makeZip([{ name: '[Content_Types].xml', data: Buffer.from('<Types/>') }, { name: 'xl/workbook.xml', data: Buffer.from('<workbook/>') }]);
+    const fakeDocx = Buffer.concat([Buffer.from([0x50, 0x4b, 3, 4]), Buffer.from('....word/document.xml')]);
+    expect(jobs.detectResumeFormat(fakeDocx, 'cv.docx')).toBeNull();
     expect(jobs.detectResumeFormat(docx, 'cv.docx')?.extension).toBe('docx');
     expect(jobs.detectResumeFormat(xlsx, 'cv.docx')).toBeNull();
     expect(jobs.detectResumeFormat(Buffer.from('%PDF-1.7'), 'cv.pdf')?.extension).toBe('pdf');

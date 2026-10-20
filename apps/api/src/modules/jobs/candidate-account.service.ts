@@ -1,3 +1,4 @@
+import { ALLOW, inspectFile } from '../../common/utils/file-validation';
 import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { CandidateAccount } from '@prisma/client';
@@ -200,14 +201,15 @@ export class CandidateAccountService {
   async saveResume(account: Account, file?: { buffer: Buffer; filename: string }) {
     if (!file?.buffer?.length) throw new BadRequestException('Envie seu currículo em PDF ou DOCX.');
     if (file.buffer.length > MAX_RESUME_SIZE) throw new BadRequestException('O currículo deve ter no máximo 5 MB.');
-    const format = detectResume(file.buffer, file.filename);
-    if (!format) throw new BadRequestException('Currículo inválido. Envie um arquivo PDF ou DOCX verdadeiro.');
+    const checked = inspectFile(file.buffer, { allow: ALLOW.RESUME, maxBytes: MAX_RESUME_SIZE, filename: file.filename });
+    if (!checked.ok) throw new BadRequestException(checked.code === 'UNSAFE' ? checked.message : 'Currículo inválido. Envie um arquivo PDF ou DOCX verdadeiro.');
+    const format = { extension: checked.extension, mime: checked.mime };
     const key = `candidates/${account.id}/${randomUUID()}.${format.extension}`;
     await this.storage.save(key, file.buffer);
     const previous = account.resumeKey;
     const updated = await this.prisma.candidateAccount.update({
       where: { id: account.id },
-      data: { resumeKey: key, resumeName: safeFileName(file.filename, format.extension), resumeType: format.mime, resumeSize: file.buffer.length },
+      data: { resumeKey: key, resumeName: checked.safeName, resumeType: format.mime, resumeSize: file.buffer.length },
     });
     if (previous) await this.storage.remove(previous);
     return this.profile(updated);
@@ -312,18 +314,4 @@ export class CandidateAccountService {
     if (!account) throw new UnauthorizedException('Entre na Área do candidato para continuar.');
     return account;
   }
-}
-
-function detectResume(buffer: Buffer, filename: string): { extension: 'pdf' | 'docx'; mime: string } | null {
-  const name = String(filename ?? '').toLowerCase();
-  if (buffer.subarray(0, 5).toString('latin1') === '%PDF-' && name.endsWith('.pdf')) return { extension: 'pdf', mime: 'application/pdf' };
-  if (buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04 && name.endsWith('.docx')) {
-    return { extension: 'docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
-  }
-  return null;
-}
-
-function safeFileName(filename: string, extension: string) {
-  const base = String(filename ?? 'curriculo').replace(/\.[^.]+$/, '').replace(/[^\w\- ]+/g, '').trim().slice(0, 80) || 'curriculo';
-  return `${base}.${extension}`;
 }

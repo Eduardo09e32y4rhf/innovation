@@ -1,3 +1,4 @@
+import { ALLOW, inspectFile, sanitizeFileName } from '../../common/utils/file-validation';
 import {
   BadRequestException,
   ConflictException,
@@ -275,8 +276,9 @@ export class JobsService {
     if (!file?.buffer?.length) throw new BadRequestException('Envie seu curriculo em PDF ou DOCX.');
     if (file.buffer.length > MAX_RESUME_SIZE) throw new BadRequestException('O curriculo deve ter no maximo 5 MB.');
 
-    const format = this.detectResumeFormat(file.buffer, file.filename);
-    if (!format) throw new BadRequestException('Curriculo invalido. Envie um arquivo PDF ou DOCX verdadeiro.');
+    const checked = inspectFile(file.buffer, { allow: ALLOW.RESUME, maxBytes: MAX_RESUME_SIZE, filename: file.filename });
+    if (!checked.ok) throw new BadRequestException(checked.code === 'UNSAFE' ? checked.message : 'Curriculo invalido. Envie um arquivo PDF ou DOCX verdadeiro.');
+    const format = { extension: checked.extension, mime: checked.mime };
 
     const job = await this.repository.jobForApplication(jobId);
     if (!job) throw new NotFoundException('Vaga nao encontrada ou encerrada.');
@@ -375,27 +377,11 @@ export class JobsService {
   }
 
   private detectResumeFormat(buffer: Buffer, filename?: string) {
-    const head = buffer.subarray(0, 2048).toString('ascii');
-    if (head.includes('%PDF')) {
-      return { extension: 'pdf', mime: 'application/pdf' };
-    }
-    // ZIP qualquer (xlsx, zip, apk) nao e curriculo: o DOCX tem a pasta word/ dentro.
-    if (buffer[0] === 0x50 && buffer[1] === 0x4b && buffer.includes(Buffer.from('word/'))) {
-      return {
-        extension: 'docx',
-        mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      };
-    }
-    return null;
+    const checked = inspectFile(buffer, { allow: ALLOW.RESUME, maxBytes: MAX_RESUME_SIZE, filename });
+    return checked.ok ? { extension: checked.extension, mime: checked.mime } : null;
   }
 
   private safeFileName(original: string, extension: string) {
-    const base = String(original || 'curriculo')
-      .normalize('NFKD')
-      .replace(/[^\w.-]+/g, '-')
-      .replace(/\.(pdf|docx)$/i, '')
-      .slice(0, 120);
-    return `${base || 'curriculo'}.${extension}`;
+    return sanitizeFileName(original, extension, 'curriculo');
   }
 }
-

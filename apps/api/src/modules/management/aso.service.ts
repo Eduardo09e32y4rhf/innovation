@@ -407,7 +407,11 @@ export class AsoService {
   async createClinicPreset(companyId: string, data: any) {
     try {
       return await this.prisma.asoClinicPreset.create({
-        data: { companyId, ...data },
+        data: {
+          companyId,
+          name: data.name, cep: data.cep, address: data.address, city: data.city,
+          state: data.state, phone: data.phone, doctorName: data.doctorName, active: data.active,
+        },
       });
     } catch (err) {
       this.safeLog('createClinicPreset', err);
@@ -417,7 +421,7 @@ export class AsoService {
 
   async deleteClinicPreset(companyId: string, id: string) {
     try {
-      await this.prisma.asoClinicPreset.delete({ where: { id } });
+      await this.prisma.asoClinicPreset.deleteMany({ where: { id, companyId } });
     } catch (err) {
       this.safeLog('deleteClinicPreset', err);
     }
