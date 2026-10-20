@@ -21,6 +21,7 @@ import { RegisterCompanyDto } from './dto/register-company.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SessionService } from './session.service';
+import { SecurityStore } from './security-store';
 import { MfaService } from './mfa.service';
 import { MailService } from '../mail/mail.service';
 import { emailVerificationEmail, passwordResetEmail, securityAlertEmail } from '../mail/mail-templates';
@@ -39,6 +40,14 @@ import { checkCouponEligibility, couponDiscount } from '../coupons/coupon-rules'
 const LOGIN_DENIED_MESSAGE = 'Não foi possível entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
 const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
+const RESET_DENIED_MESSAGE = 'Dados de validação incorretos';
+const RESET_MAX_ATTEMPTS = 5;
+// Hash falso com o mesmo custo (12) dos reais: quem não existe gasta o mesmo tempo de bcrypt de quem existe.
+let dummyHash: Promise<string> | null = null;
+const burnPasswordCheck = async (password: string) => {
+  dummyHash ??= bcrypt.hash('timing-equalizer', 12);
+  await bcrypt.compare(password, await dummyHash);
+};
 const MFA_LOGIN_PURPOSE = 'MFA_LOGIN';
 const EMAIL_VERIFY_PURPOSE = 'EMAIL_VERIFY';
 
@@ -63,6 +72,7 @@ export class AuthService {
     private readonly sessions: SessionService,
     private readonly mfa: MfaService,
     private readonly mail: MailService,
+    private readonly store: SecurityStore,
   ) {}
 
   /** Valores em número: o Decimal do Prisma sai no JSON como objeto {s,e,d} e o site lia R$ 0,00. */
@@ -212,6 +222,7 @@ export class AuthService {
   private async loginInner(dto: LoginDto, requestMeta?: RequestMeta) {
     const user = await this.repository.findUserByEmail(dto.email);
     if (!user || !user.isActive) {
+      await burnPasswordCheck(dto.password);
       await this.auditInvalidLogin(dto.email, requestMeta);
       throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     }
@@ -220,6 +231,7 @@ export class AuthService {
 
     const role = this.resolveRole(user);
     if (!this.canAccessCompany(user.company, role)) {
+      await burnPasswordCheck(dto.password);
       await this.auditInvalidLogin(dto.email, requestMeta, user.companyId, user.id);
       throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     }
@@ -399,7 +411,13 @@ export class AuthService {
   }
 
 
-  async requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
+  /** Resposta e tempo idênticos para e-mail existente ou não: o trabalho real roda em segundo plano (sem enumeração de contas). */
+  requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
+    void this.processPasswordResetRequest(dto, requestMeta).catch((err) => this.logger.error(`Falha ao processar pedido de recuperacao: ${String(err)}`));
+    return { requested: true };
+  }
+
+  private async processPasswordResetRequest(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
     const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
     if (!user || !user.isActive) return { requested: true };
     const role = this.resolveRole(user);
@@ -453,33 +471,37 @@ export class AuthService {
     return { requested: true };
   }
 
+  /** Cada falha conta; ao atingir o limite o código é invalidado (um código de 6 caracteres não pode ser forçado dentro das 2 h de validade). */
+  private async failResetValidation(userId: string, email: string): Promise<never> {
+    const key = `reset-attempts:${email}`;
+    if ((await this.store.hit(key, 2 * 60 * 60)) >= RESET_MAX_ATTEMPTS) {
+      await this.repository.clearResetCode(userId);
+      await this.store.reset(key);
+    }
+    throw new UnauthorizedException(RESET_DENIED_MESSAGE);
+  }
+
   async validateResetCode(dto: ValidateResetCodeDto) {
+    const email = dto.email.trim().toLowerCase();
     const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
-    if (!user || !user.isActive) throw new UnauthorizedException('Dados de validação incorretos');
-    
+    // Mesma mensagem em todas as falhas: não revela se a conta existe, se o código errou ou se expirou.
+    if (!user || !user.isActive) throw new UnauthorizedException(RESET_DENIED_MESSAGE);
+
     const storedCode = Buffer.from(user.resetPasswordCode ?? '');
     const providedCode = Buffer.from(dto.code.trim().toUpperCase());
     const codesMatch = storedCode.length === providedCode.length && timingSafeEqual(storedCode, providedCode);
 
-    if (!user.resetPasswordCode || !codesMatch) {
-      throw new UnauthorizedException('Código inválido ou expirado');
-    }
-    if (user.resetPasswordExpires && new Date() > user.resetPasswordExpires) {
-      throw new UnauthorizedException('Código expirado');
-    }
+    if (!user.resetPasswordCode || !codesMatch) return this.failResetValidation(user.id, email);
+    if (user.resetPasswordExpires && new Date() > user.resetPasswordExpires) return this.failResetValidation(user.id, email);
 
     // Usuários sem ficha de funcionário (ADMIN, CEO, contabilidade...) são validados apenas pelo código entregue pela empresa.
     const employee = user.employee;
     if (employee) {
       const rawCpf = employee.cpf ? employee.cpf.replace(/\D/g, '') : '';
       const cpfStart = (dto.cpfStart ?? '').trim();
-      if (rawCpf && (!cpfStart || !rawCpf.startsWith(cpfStart))) {
-        throw new UnauthorizedException('Dados de validação incorretos');
-      }
+      if (rawCpf && (!cpfStart || !rawCpf.startsWith(cpfStart))) return this.failResetValidation(user.id, email);
       const empReg = (employee.registration || '').trim().toLowerCase();
-      if (empReg && empReg !== (dto.registration ?? '').trim().toLowerCase()) {
-        throw new UnauthorizedException('Dados de validação incorretos');
-      }
+      if (empReg && empReg !== (dto.registration ?? '').trim().toLowerCase()) return this.failResetValidation(user.id, email);
     }
 
     const token = await this.jwtService.signAsync({

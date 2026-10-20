@@ -11,6 +11,8 @@ export type RotateResult =
 
 export const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 const ttlMs = () => Math.max(1, Number(process.env.REFRESH_TTL_DAYS ?? 30) || 30) * 86_400_000;
+/** Teto absoluto da sessão, independente de uso (ASVS 3.3.2): depois dele é preciso entrar de novo. */
+const absoluteMs = () => Math.max(1, Number(process.env.SESSION_ABSOLUTE_DAYS ?? 90) || 90) * 86_400_000;
 
 /**
  * Sessões com refresh token rotativo. O token opaco só existe no cookie httpOnly; no banco fica o SHA-256.
@@ -48,6 +50,11 @@ export class SessionService {
       return { status: 'reuse', userId: current.userId };
     }
     if (current.expiresAt < new Date()) return { status: 'invalid' };
+    // createdAt é herdado na rotação: marca o início da sessão (família), então o teto absoluto vale mesmo com uso contínuo.
+    if (Date.now() - current.createdAt.getTime() > absoluteMs()) {
+      await this.prisma.refreshSession.updateMany({ where: { family: current.family, revokedAt: null }, data: { revokedAt: new Date() } });
+      return { status: 'invalid' };
+    }
 
     const nextToken = randomBytes(48).toString('base64url');
     const next = await this.prisma.$transaction(async (tx) => {
@@ -58,7 +65,7 @@ export class SessionService {
       });
       if (consumed.count !== 1) return null;
       const successor = await tx.refreshSession.create({
-        data: { userId: current.userId, family: current.family, tokenHash: hashToken(nextToken),
+        data: { userId: current.userId, family: current.family, tokenHash: hashToken(nextToken), createdAt: current.createdAt,
           ip: meta.ip ?? null, userAgent: meta.userAgent?.slice(0, 300) ?? null, expiresAt: new Date(now.getTime() + ttlMs()) },
       });
       await tx.refreshSession.update({ where: { id: current.id }, data: { replacedBy: successor.id } });

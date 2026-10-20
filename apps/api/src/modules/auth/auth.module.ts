@@ -4,6 +4,7 @@ import { AuthController } from './auth.controller';
 import { AuthRepository } from './auth.repository';
 import { AuthService } from './auth.service';
 import { MfaService } from './mfa.service';
+import { SecurityStore } from './security-store';
 import { SessionService } from './session.service';
 
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -27,7 +28,7 @@ import { FinanceModule } from '../finance/finance.module';
     FinanceModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthRepository, SessionService, MfaService],
-  exports: [JwtModule, AuthService, SessionService, MfaService],
+  providers: [AuthService, AuthRepository, SessionService, MfaService, SecurityStore],
+  exports: [JwtModule, AuthService, SessionService, MfaService, SecurityStore],
 })
 export class AuthModule {}
