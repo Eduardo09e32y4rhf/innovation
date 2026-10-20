@@ -209,7 +209,7 @@ export class MercadoPagoService {
 
   /**
    * Valida o cabeçalho x-signature (ts=...,v1=...) do webhook.
-   * Manifesto: `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`
+   * Manifesto: `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`. Rejeita ts fora da janela (padrão 5 min).
    */
   verifySignature(input: { signature?: string; requestId?: string; dataId?: string }): boolean {
     if (!this.webhookSecret || !input.signature) return false;
@@ -217,6 +217,12 @@ export class MercadoPagoService {
     const ts = parts.ts;
     const v1 = parts.v1;
     if (!ts || !v1) return false;
+    // ts vem em ms (docs atuais) ou s (legado). A doc não define janela anti-replay: aplicamos tolerância própria.
+    const tsNumber = Number(ts);
+    if (!Number.isFinite(tsNumber) || tsNumber <= 0) return false;
+    const tsMs = tsNumber < 1e12 ? tsNumber * 1000 : tsNumber;
+    const toleranceMs = (Number(this.config.get<string>('MERCADOPAGO_WEBHOOK_TOLERANCE_SECONDS')) || 300) * 1000;
+    if (Math.abs(Date.now() - tsMs) > toleranceMs) return false;
     const manifest = `${input.dataId ? `id:${String(input.dataId).toLowerCase()};` : ''}${input.requestId ? `request-id:${input.requestId};` : ''}ts:${ts};`;
     const expected = crypto.createHmac('sha256', this.webhookSecret).update(manifest).digest('hex');
     const a = Buffer.from(expected);

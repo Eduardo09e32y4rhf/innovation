@@ -152,9 +152,13 @@ export class MercadoPagoWebhookController {
 
   private assertAuthentic(input: { signature?: string; requestId?: string; dataId?: string }) {
     if (!this.mercadoPago.hasWebhookSecret()) {
-      this.logger.warn('MERCADOPAGO_WEBHOOK_SECRET não configurado.');
-      if (process.env.NODE_ENV === 'production') throw new ForbiddenException('Webhook não configurado.');
-      return;
+      // Sem segredo nunca confiamos no webhook; bypass só em dev com flag explícita.
+      if (process.env.NODE_ENV !== 'production' && process.env.MERCADOPAGO_WEBHOOK_INSECURE === 'true') {
+        this.logger.warn('MERCADOPAGO_WEBHOOK_INSECURE=true: assinatura NÃO validada (somente desenvolvimento).');
+        return;
+      }
+      this.logger.warn('MERCADOPAGO_WEBHOOK_SECRET não configurado: webhook rejeitado.');
+      throw new ForbiddenException('Webhook não configurado.');
     }
     if (!this.mercadoPago.verifySignature(input)) throw new ForbiddenException('Assinatura de webhook inválida.');
   }

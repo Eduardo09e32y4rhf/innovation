@@ -88,9 +88,12 @@ export class AsaasWebhookController {
   private validateToken(accessToken?: string) {
     const expected = process.env.ASAAS_WEBHOOK_TOKEN || process.env.ASAAS_WEBHOOK_SECRET;
     if (!expected) {
-      this.logger.warn('ASAAS_WEBHOOK_TOKEN/ASAAS_WEBHOOK_SECRET não configurado.');
-      if (process.env.NODE_ENV === 'production') throw new ForbiddenException('Webhook não configurado.');
-      return;
+      if (process.env.NODE_ENV !== 'production' && process.env.ASAAS_WEBHOOK_INSECURE === 'true') {
+        this.logger.warn('ASAAS_WEBHOOK_INSECURE=true: token NÃO validado (somente desenvolvimento).');
+        return;
+      }
+      this.logger.warn('ASAAS_WEBHOOK_TOKEN/ASAAS_WEBHOOK_SECRET não configurado: webhook rejeitado.');
+      throw new ForbiddenException('Webhook não configurado.');
     }
     if (!accessToken || !this.secureEqual(accessToken, expected)) {
       throw new ForbiddenException('Token de webhook inválido.');

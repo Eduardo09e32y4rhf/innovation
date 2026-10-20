@@ -1,4 +1,4 @@
-import { productionEnvProblems } from './env.validation';
+import { productionEnvProblems, validateEnv } from './env.validation';
 
 const strong = {
   ALLOWED_ORIGINS: 'https://app.exemplo.com',
@@ -6,6 +6,9 @@ const strong = {
   KMS_MASTER_KEY: 'b1'.repeat(32),
   DATABASE_URL: 'postgresql://app:Xk29fjs82hD7qLmPz0@db:5432/app',
   REDIS_URL: 'redis://:Zq81hs72Dk0LpWm3@redis:6379',
+  METRICS_TOKEN: 'm3tr1cs-t0k3n-Zq81hs72',
+  ASAAS_WEBHOOK_TOKEN: 'w'.repeat(20) + 'Q7' + 'k'.repeat(14),
+  MERCADOPAGO_WEBHOOK_SECRET: 'mp-webhook-secret-Xk29fjs82',
 };
 
 describe('productionEnvProblems', () => {
@@ -26,10 +29,27 @@ describe('productionEnvProblems', () => {
     expect(productionEnvProblems({ ...strong, KMS_MASTER_KEY: undefined }).join()).toMatch(/KMS_MASTER_KEY/);
   });
 
-  it('só exige o segredo do webhook do provedor configurado', () => {
-    expect(productionEnvProblems(strong)).toEqual([]);
-    expect(productionEnvProblems({ ...strong, ASAAS_API_KEY: 'k' }).join()).toMatch(/ASAAS_WEBHOOK_TOKEN/);
-    expect(productionEnvProblems({ ...strong, MERCADOPAGO_ACCESS_TOKEN: 't' }).join()).toMatch(/MERCADOPAGO_WEBHOOK_SECRET/);
-    expect(productionEnvProblems({ ...strong, ASAAS_API_KEY: 'k', ASAAS_WEBHOOK_TOKEN: 'x'.repeat(32) })).toEqual([]);
+  it('exige METRICS_TOKEN, ASAAS_WEBHOOK_TOKEN e MERCADOPAGO_WEBHOOK_SECRET em produção', () => {
+    const problems = productionEnvProblems({ ...strong, METRICS_TOKEN: undefined, ASAAS_WEBHOOK_TOKEN: undefined, MERCADOPAGO_WEBHOOK_SECRET: undefined }).join('\n');
+    expect(problems).toMatch(/METRICS_TOKEN is required/);
+    expect(problems).toMatch(/ASAAS_WEBHOOK_TOKEN is required/);
+    expect(problems).toMatch(/MERCADOPAGO_WEBHOOK_SECRET is required/);
+  });
+
+  it('rejeita segredos de exemplo ou curtos e ALLOWED_ORIGINS vazio', () => {
+    expect(productionEnvProblems({ ...strong, ASAAS_WEBHOOK_TOKEN: 'token_seguro_com_no_minimo_32_caracteres' }).join()).toMatch(/ASAAS_WEBHOOK_TOKEN must be a real secret/);
+    expect(productionEnvProblems({ ...strong, METRICS_TOKEN: 'curto' }).join()).toMatch(/METRICS_TOKEN must be a real secret/);
+    expect(productionEnvProblems({ ...strong, ALLOWED_ORIGINS: '' }).join()).toMatch(/ALLOWED_ORIGINS/);
+  });
+
+  it('validateEnv lança em produção incompleto e passa no completo', () => {
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      expect(() => validateEnv({ ...strong, METRICS_TOKEN: undefined })).toThrow(/METRICS_TOKEN/);
+      expect(() => validateEnv({ ...strong })).not.toThrow();
+    } finally {
+      process.env.NODE_ENV = prev;
+    }
   });
 });

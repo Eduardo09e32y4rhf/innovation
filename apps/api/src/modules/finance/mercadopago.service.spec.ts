@@ -15,12 +15,22 @@ describe('MercadoPagoService', () => {
 
   it('valida a assinatura do webhook', () => {
     const service = make({ MERCADOPAGO_WEBHOOK_SECRET: 'segredo' });
-    const ts = '1700000000';
+    const ts = String(Date.now());
     const v1 = sign('segredo', 'ABC123', 'req-1', ts);
     expect(service.verifySignature({ signature: `ts=${ts},v1=${v1}`, requestId: 'req-1', dataId: 'ABC123' })).toBe(true);
     expect(service.verifySignature({ signature: `ts=${ts},v1=${v1}`, requestId: 'req-2', dataId: 'ABC123' })).toBe(false);
     expect(service.verifySignature({ signature: `ts=${ts},v1=deadbeef`, requestId: 'req-1', dataId: 'ABC123' })).toBe(false);
     expect(service.verifySignature({ requestId: 'req-1', dataId: 'ABC123' })).toBe(false);
+  });
+
+  it('rejeita replay: ts fora da janela de 5 min (ms ou s), aceita ts em segundos recente', () => {
+    const service = make({ MERCADOPAGO_WEBHOOK_SECRET: 'segredo' });
+    const old = String(Date.now() - 10 * 60 * 1000);
+    expect(service.verifySignature({ signature: `ts=${old},v1=${sign('segredo', 'A1', 'r', old)}`, requestId: 'r', dataId: 'A1' })).toBe(false);
+    const oldSeconds = String(Math.floor(Date.now() / 1000) - 3600);
+    expect(service.verifySignature({ signature: `ts=${oldSeconds},v1=${sign('segredo', 'A1', 'r', oldSeconds)}`, requestId: 'r', dataId: 'A1' })).toBe(false);
+    const recentSeconds = String(Math.floor(Date.now() / 1000));
+    expect(service.verifySignature({ signature: `ts=${recentSeconds},v1=${sign('segredo', 'A1', 'r', recentSeconds)}`, requestId: 'r', dataId: 'A1' })).toBe(true);
   });
 
   it('rejeita assinatura quando não há segredo configurado', () => {
