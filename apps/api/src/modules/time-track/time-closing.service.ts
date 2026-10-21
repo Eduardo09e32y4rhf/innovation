@@ -11,7 +11,7 @@ import { getOvertimePolicy, overtimePaymentRatio } from './overtime-policy';
 import { PDF, PdfReport } from '../../common/pdf/pdf-report';
 import { computeDeductions } from '../payroll/deduction-rules';
 import { appendMirror, buildPayslipPdf, buildTimeSheetPdf, timeSheetBrand } from './time-sheet-pdf';
-import { saoPauloDayOfWeek, toSaoPauloDateKey } from '../../common/utils/date.utils';
+import { toSaoPauloDateKey } from '../../common/utils/date.utils';
 import { analyzeTimesheet, salaryDeadline, type ComplianceIssue } from './closing-compliance';
 import { vacationEnjoymentDates, vacationTaxableGross } from '../vacations/vacation-tax-base';
 
@@ -200,13 +200,13 @@ export class TimeClosingService {
       let scheduledMinutesInPeriod = 0;
 
       const today = new Date();
-      const todayKey = this.dateKey(today);
+      const todayKey = toSaoPauloDateKey(today); // instante real, este sim lido pelo fuso de Sao Paulo
 
       for (const date of this.eachDate(periodStart, periodEnd)) {
         const key = this.dateKey(date);
         const schedule = schedules.find((item) => item.startDate <= date && (!item.endDate || item.endDate >= date));
         const restDays = schedule?.schedule.restDays ?? employee.workScheduleRule?.restDaysOfWeek ?? [0, 6];
-        const dayOfWeek = saoPauloDayOfWeek(date);
+        const dayOfWeek = date.getUTCDay();
         const isRest = restDays.includes(dayOfWeek) || holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule);
         
         let expectedForDay = this.expectedMinutes(employee, schedule?.schedule);
@@ -383,7 +383,7 @@ export class TimeClosingService {
       const absences: string[] = [];
       for (const date of this.eachDate(periodStart, periodEnd)) {
         const key = this.dateKey(date);
-        const weekday = saoPauloDayOfWeek(date);
+        const weekday = date.getUTCDay();
         if (date > today || weekday === 0 || weekday === 6 || holidayKeys.has(key) || byDate.has(key) || justified.has(key)) continue;
         absences.push(key);
       }
@@ -870,7 +870,8 @@ export class TimeClosingService {
   }
 
   private hours(minutes: number): number { return Math.round((minutes / 60) * 10000) / 10000; }
-  private dateKey(date: Date): string { return toSaoPauloDateKey(date); }
+  /** Chave do dia de calendario (as datas do periodo, marcacao, feriado e admissao sao gravadas em 00:00 UTC; ler pelo fuso recuaria um dia). */
+  private dateKey(date: Date): string { return date.toISOString().slice(0, 10); }
   private isJustifyingOccurrence(type: string): boolean {
     return ['JUSTIFIED_ABSENCE', 'MEDICAL_CERTIFICATE', 'VACATION', 'LEAVE', 'DAY_OFF', 'DSR', 'HOLIDAY', 'EXTERNAL_WORK', 'HOME_OFFICE', 'TRAINING'].includes(String(type));
   }
