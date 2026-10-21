@@ -6,6 +6,7 @@ import { LookupModule } from './modules/lookup/lookup.module';
 import { WelcomeModule } from './modules/welcome/welcome.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { UserThrottlerGuard } from './common/guards/user-throttler.guard';
+import { FeatureFlagGuard } from './common/guards/feature-flag.guard';
 import { HealthModule } from './health/health.module';
 import { appConfig } from './config/app.config';
 import { validateEnv } from './config/env.validation';
@@ -128,6 +129,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     { provide: APP_INTERCEPTOR, useClass: SanitizeInputInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
+    // Primeiro: rota de modulo congelado responde 404 antes de qualquer outra checagem.
+    { provide: APP_GUARD, useClass: FeatureFlagGuard },
     { provide: APP_GUARD, useClass: UserThrottlerGuard },
     { provide: APP_GUARD, useClass: MfaEnrollmentGuard },
     { provide: APP_GUARD, useClass: TenantGuard },

@@ -1,3 +1,4 @@
+import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -13,6 +14,7 @@ import { ManualContractsService } from './manual-contracts.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
 @Controller('manual-contracts')
+@RequiresFeature('manual-contracts')
 export class ManualContractsController {
   constructor(private readonly service: ManualContractsService) {}
 

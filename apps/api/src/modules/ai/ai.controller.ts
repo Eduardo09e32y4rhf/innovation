@@ -1,3 +1,4 @@
+import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { ClassifyTicketDto, PlatformAssistantDto } from './dto/ai.dto';
 import { Body, Controller, Post, Param, UseGuards, Req, ForbiddenException, Get } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -12,6 +13,7 @@ import { AiGuardrailsService } from './ai-guardrails.service';
 import { PrismaService } from '../../database/prisma.service';
 
 @Controller('ai')
+@RequiresFeature('ai')
 export class AiController {
   constructor(
     private readonly platformAi: PlatformAiService,

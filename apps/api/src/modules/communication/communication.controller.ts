@@ -1,3 +1,4 @@
+import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -11,6 +12,7 @@ import { UpdateConversationStatusDto } from './dto/update-conversation-status.dt
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV')
 @Controller('communication')
+@RequiresFeature('communication')
 export class CommunicationController {
   constructor(private readonly service: CommunicationService) {}
 

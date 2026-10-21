@@ -1,3 +1,4 @@
+import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { BadRequestException, Body, Controller, Get, Header, Param, ParseUUIDPipe, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -13,6 +14,7 @@ import { MAX_SIGNED_PDF_BYTES } from './signed-pdf.rules';
 
 @Controller('ceo-onboarding')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@RequiresFeature('ceo-onboarding')
 export class CeoOnboardingController {
   constructor(private readonly service: CeoOnboardingService) {}
   @Get('state') @Roles('CEO') state(@CurrentUser() actor: JwtUser) { return this.service.state(actor); }

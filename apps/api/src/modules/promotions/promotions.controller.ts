@@ -1,3 +1,4 @@
+import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { PromotionPolicyDto } from './dto/promotion-policy.dto';
 import { Body, Controller, ForbiddenException, Get, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
@@ -12,6 +13,7 @@ import { PromotionsService, type PromotionDto } from './promotions.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'ADMIN', 'RH', 'CEO')
 @Controller('promotions')
+@RequiresFeature('promotions')
 export class PromotionsController {
   constructor(private readonly service: PromotionsService) {}
 

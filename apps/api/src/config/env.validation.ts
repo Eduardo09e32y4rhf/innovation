@@ -1,3 +1,5 @@
+import { featureFlagProblems } from '../common/feature-flags';
+
 const WEAK_JWT_MARKERS = ['TROQUE_', 'local-development', 'innovation-secret-key', 'changeme', 'secret'];
 
 const PLACEHOLDER_MARKERS = ['troque_', 'token_seguro', 'sua_', 'your_', 'changeme', 'example'];
@@ -61,6 +63,9 @@ export function validateEnv(config: Record<string, unknown>) {
   for (const key of ['DATABASE_URL', 'JWT_SECRET']) {
     if (!config[key]) throw new Error(`Missing required environment variable: ${key}`);
   }
+
+  const flagProblems = featureFlagProblems(config);
+  if (flagProblems.length) throw new Error(`Invalid feature flags:\n - ${flagProblems.join('\n - ')}`);
 
   if (process.env.NODE_ENV === 'production') {
     const problems = productionEnvProblems(config);

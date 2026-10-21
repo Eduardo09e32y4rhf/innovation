@@ -1,4 +1,5 @@
 ﻿import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -9,6 +10,7 @@ import { CreatePartnerDto } from './dto/create-partner.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('partners')
+@RequiresFeature('partners')
 export class PartnersController {
   constructor(private readonly service: PartnersService) {}
 
