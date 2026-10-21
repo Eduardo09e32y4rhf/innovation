@@ -156,7 +156,7 @@ export function CandidateDrawer({
                               className={`h-9 w-9 rounded-md border text-sm font-medium ${current?.score === score ? 'border-purple-600 bg-purple-600 text-white' : 'border-border hover:bg-bg-sub'}`}>{score}</button>
                           ))}
                         </div>
-                        <input className={inputClass} placeholder="Comentário (opcional)" value={current?.comment ?? ''} maxLength={500} onChange={(event) => setRatings({ ...ratings, [criterion.id]: { score: current?.score ?? 3, comment: event.target.value } })} />
+                        <input aria-label="Comentário opcional sobre este critério" className={inputClass} placeholder="Comentário (opcional)" value={current?.comment ?? ''} maxLength={500} onChange={(event) => setRatings({ ...ratings, [criterion.id]: { score: current?.score ?? 3, comment: event.target.value } })} />
                       </div>
                     );
                   })}

@@ -16,6 +16,7 @@ import { WorkflowSettings } from '../_components/workflow-settings';
 import { jobsApi } from '../jobs-api';
 import { STAGE_KIND_LABEL, type Stage, type StageKind } from '../types';
 import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { useGuard } from '@/app/hooks/use-action';
 
 const COLORS = ['#6366f1', '#0ea5e9', '#14b8a6', '#f59e0b', '#8b5cf6', '#10b981', '#f43f5e', '#6b7280'];
 const message = (cause: unknown, fallback: string) => (cause instanceof ApiError ? cause.message : fallback);
@@ -50,11 +51,12 @@ export default function RecruitmentSettingsPage() {
     finally { setSaving(false); }
   }
 
-  async function addTag() {
+  const { guard } = useGuard();
+  const addTag = guard('addTag', async () => {
     if (!tagName.trim()) return;
     try { await jobsApi.createTag(tagName.trim(), tagColor); setTagName(''); tags.refetch(); }
     catch (cause) { toast.error(message(cause, 'Não foi possível criar a tag.')); }
-  }
+  });
 
   if (!allowed) return <div className="p-6"><EmptyState message="Apenas Admin, RH ou Dev configuram o funil." /></div>;
 

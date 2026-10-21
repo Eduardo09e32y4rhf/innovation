@@ -23,6 +23,7 @@ import { FiltersBar } from '../_components/filters-bar';
 import { jobsApi } from '../jobs-api';
 import { JOB_STATUS_LABEL, WORK_MODE_LABEL, type ApplicationFilters, type ApplicationsPayload, type InterviewPayload } from '../types';
 import { useOverlay } from '@/app/components/ui/use-overlay';
+import { useGuard } from '@/app/hooks/use-action';
 
 const ALLOWED_ROLES = new Set(['DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR']);
 const message = (cause: unknown, fallback: string) => (cause instanceof ApiError ? cause.message : fallback);
@@ -72,7 +73,8 @@ export default function JobCandidatesPage() {
 
   const refresh = () => { list.refetch(); };
 
-  async function moveOne(applicationId: string, stageId: string) {
+  const { guard } = useGuard();
+  const moveOne = guard('moveOne', async (applicationId: string, stageId: string) => {
     const stage = pipeline?.stages.find((item) => item.id === stageId);
     const app = applications.find((item) => item.id === applicationId);
     if (!stage) return;
@@ -85,9 +87,9 @@ export default function JobCandidatesPage() {
     if (stage.kind === 'INTERVIEW' && app?.stageId !== stageId) { setInterviewMove({ id: applicationId, stageId, stageName: stage.name, name: app?.candidate?.name ?? 'Candidato' }); return; }
     try { await jobsApi.move(applicationId, { stageId }); toast.success(`Movido para ${stage.name}.`); refresh(); }
     catch (cause) { toast.error(message(cause, 'Não foi possível mover o candidato.')); }
-  }
+  });
 
-  async function confirmInterview(payload: InterviewPayload) {
+  const confirmInterview = guard('confirmInterview', async (payload: InterviewPayload) => {
     if (!interviewMove) return;
     try {
       await jobsApi.move(interviewMove.id, { stageId: interviewMove.stageId });
@@ -101,15 +103,15 @@ export default function JobCandidatesPage() {
     } catch (cause) {
       toast.error(message(cause, 'O candidato foi movido, mas a entrevista não foi agendada. Tente pela aba Entrevistas.'));
     } finally { refresh(); }
-  }
+  });
 
-  async function moveWithoutInterview() {
+  const moveWithoutInterview = guard('moveWithoutInterview', async () => {
     if (!interviewMove) return;
     try { await jobsApi.move(interviewMove.id, { stageId: interviewMove.stageId }); toast.success(`Movido para ${interviewMove.stageName}. Agende a entrevista quando quiser pela ficha do candidato.`); setInterviewMove(null); refresh(); }
     catch (cause) { toast.error(message(cause, 'Não foi possível mover o candidato.')); }
-  }
+  });
 
-  async function bulkMove() {
+  const bulkMove = guard('bulkMove', async () => {
     if (!canUseBulkActions) return;
     const stage = pipeline?.stages.find((item) => item.id === bulkStage);
     if (!stage || selectedIds.size === 0) return;
@@ -120,9 +122,9 @@ export default function JobCandidatesPage() {
       toast.success(`${result.moved ?? 0} candidato(s) movido(s).${result.failed ? ` ${result.failed} não puderam ser movidos: ${result.errors?.join('; ')}` : ''}`);
       setSelectedIds(new Set()); refresh();
     } catch (cause) { toast.error(message(cause, 'Falha ao mover em lote.')); }
-  }
+  });
 
-  async function confirmReject(reason: string, code?: string) {
+  const confirmReject = guard('confirmReject', async (reason: string, code?: string) => {
     if (!reject) return;
     if (reject.ids.length > 1 && !canUseBulkActions) { toast.error('Este perfil precisa reprovar candidatos individualmente.'); return; }
     try {
@@ -131,17 +133,17 @@ export default function JobCandidatesPage() {
       toast.success('Reprovação registrada.');
       setReject(null); setSelectedIds(new Set()); refresh();
     } catch (cause) { toast.error(message(cause, 'Não foi possível reprovar.')); }
-  }
+  });
 
-  async function bulkSimple(action: 'FAVORITE' | 'TAG_ADD' | 'TAG_REMOVE') {
+  const bulkSimple = guard('bulkSimple', async (action: 'FAVORITE' | 'TAG_ADD' | 'TAG_REMOVE') => {
     if (!canUseBulkActions) return;
     try {
       await jobsApi.bulk({ ids: [...selectedIds], action, tagId: bulkTag || undefined, value: true });
       toast.success('Atualizado.'); refresh();
     } catch (cause) { toast.error(message(cause, 'Falha na ação em lote.')); }
-  }
+  });
 
-  async function confirmHire(data: Parameters<typeof jobsApi.hire>[1]) {
+  const confirmHire = guard('confirmHire', async (data: Parameters<typeof jobsApi.hire>[1]) => {
     if (!hire) return;
     try {
       const result = await jobsApi.hire(hire.id, data);
@@ -151,7 +153,7 @@ export default function JobCandidatesPage() {
         action: employeeId ? { label: 'Abrir cadastro', onClick: () => router.push(`/${tenant}/dashboard/employees/new?id=${employeeId}`) } : undefined,
       });
     } catch (cause) { toast.error(message(cause, 'Não foi possível contratar.')); }
-  }
+  });
 
   function toggle(id: string) {
     setSelectedIds((previous) => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; });

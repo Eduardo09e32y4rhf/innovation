@@ -787,7 +787,7 @@ export function SuporteView() {
                     <span>Empresa / Cliente</span>
                     {selectedTicket.company?.id && (
                       <Link
-                        href={`/${tenant}/dashboard/platform/${selectedTicket.company.id}?tab=general`}
+                        href={`/${tenant}/dashboard/platform?tab=dossie&sub=general&company=${encodeURIComponent(selectedTicket.company.id)}`}
                         className="inline-flex items-center gap-0.5 text-[11px] font-bold text-purple-600 hover:text-purple-700"
                       >
                         Abrir <ArrowUpRight size={12} />

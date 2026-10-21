@@ -6,21 +6,23 @@ import { ErrorState } from '@/app/components/data-states';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { dateTime, errorText } from '../platform/_hub/format';
+import { useGuard } from '@/app/hooks/use-action';
 
 /** Eventos do provedor de pagamento (Asaas): falhas podem ser reprocessadas pelo DEV. */
 export default function Integration({ companyId, canRetry, canSwitch = canRetry }: { companyId?: string; canRetry: boolean; canSwitch?: boolean }) {
   const events = useQuery(() => api.platform.finance.webhookEvents({ companyId, limit: 15 }), [companyId]);
   const fiscal = useQuery(() => api.faturas.fiscalStatus(), []);
   const health = useQuery(() => api.faturas.providerHealth(), []);
+  const { guard } = useGuard();
   if (events.error) return <ErrorState message={events.error} onRetry={events.refetch} />;
   const rows = events.data ?? [];
   const nf = fiscal.data;
   const names = { ASAAS: 'Asaas', MERCADOPAGO: 'Mercado Pago' } as const;
   const modes: Record<string, string> = { sandbox: 'teste', production: 'produção', unconfigured: 'sem chave' };
-  async function choose(provider: 'ASAAS' | 'MERCADOPAGO') {
+  const choose = guard('choose', async (provider: 'ASAAS' | 'MERCADOPAGO') => {
     try { await api.faturas.setProvider(provider); toast.success(`${names[provider]} agora é o provedor de cobrança.`); health.refetch(); }
     catch (cause) { toast.error(errorText(cause, 'Não foi possível trocar o provedor.')); }
-  }
+  });
   return (
     <details className="card-v2 p-4" open={health.data ? health.data.active !== 'ASAAS' : undefined}>
       <summary className="cursor-pointer text-sm font-semibold">Integração de pagamentos{health.data ? ` · ${names[health.data.active]} ativo` : ''} ({rows.filter((row) => row.status === 'FAILED').length} com falha)</summary>

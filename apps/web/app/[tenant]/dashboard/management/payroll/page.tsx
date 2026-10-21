@@ -343,7 +343,7 @@ function CreateModal({ initialFrom, initialTo, onClose, onDone }: { initialFrom:
         <div>
           <div className="mb-1 flex items-center justify-between"><span className="text-sm font-semibold">Funcionários * ({selected.length} escolhido(s))</span>
             <button type="button" className="text-xs font-semibold text-violet-700 underline" onClick={() => setSelected(selected.length === shown.length ? [] : shown.map((x) => x.id))}>{selected.length === shown.length && shown.length ? 'Limpar' : 'Selecionar todos'}</button></div>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar funcionário" className="input-v2 mb-2" />
+          <input aria-label="Buscar funcionário" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar funcionário" className="input-v2 mb-2" />
           <ul className="max-h-56 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-200">
             {employeesQuery.loading && <li className="p-3 text-sm text-slate-500">Carregando funcionários...</li>}
             {employeesQuery.error && <li className="p-3 text-sm text-rose-700">{employeesQuery.error}</li>}
@@ -405,9 +405,9 @@ function EditModal({ item, onClose, onDone }: { item: PayrollItem; onClose: () =
           {!lines.length && <p className="text-xs text-slate-500">Nenhum lançamento manual.</p>}
           {lines.map((line, i) => (
             <div key={i} className="grid grid-cols-[1fr_1.4fr_90px_auto] items-center gap-2">
-              <select value={line.type} onChange={(e) => setLine(i, { type: e.target.value as ManualItemType })} className="input-v2">{MANUAL_TYPES.map((t) => <option key={t} value={t}>{MANUAL_ITEM_LABEL[t]}</option>)}</select>
-              <input value={line.description} onChange={(e) => setLine(i, { description: e.target.value })} placeholder="Descrição" className="input-v2" />
-              <input inputMode="decimal" value={line.amount || ''} onChange={(e) => setLine(i, { amount: Number(e.target.value.replace(',', '.')) || 0 })} placeholder="R$" className="input-v2" />
+              <select aria-label="Tipo do lançamento" value={line.type} onChange={(e) => setLine(i, { type: e.target.value as ManualItemType })} className="input-v2">{MANUAL_TYPES.map((t) => <option key={t} value={t}>{MANUAL_ITEM_LABEL[t]}</option>)}</select>
+              <input aria-label="Descrição do lançamento" value={line.description} onChange={(e) => setLine(i, { description: e.target.value })} placeholder="Descrição" className="input-v2" />
+              <input aria-label="Valor do lançamento em reais" inputMode="decimal" value={line.amount || ''} onChange={(e) => setLine(i, { amount: Number(e.target.value.replace(',', '.')) || 0 })} placeholder="R$" className="input-v2" />
               <button type="button" aria-label="Remover lançamento" onClick={() => setLines((l) => l.filter((_, idx) => idx !== i))} className="text-rose-600"><Trash2 size={16} /></button>
             </div>
           ))}

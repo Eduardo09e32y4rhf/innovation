@@ -6,6 +6,7 @@ import { useQuery } from './use-platform-query';
 import { api, type PlatformCompany } from '@/app/lib/api';
 import { normalizeDisplayName } from '@/app/lib/text';
 import { useOverlay } from '@/app/components/ui/use-overlay';
+import { isFeatureEnabled } from '@/app/lib/feature-flags';
 
 export function safeIsoDate(val: any) {
   if (!val) return '';
@@ -121,7 +122,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Nome da Empresa <span className="text-rose-500">*</span></label>
-                <input
+                <input aria-label="Nome da empresa"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -132,7 +133,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
               </div>
               <div>
                 <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">CNPJ</label>
-                <input
+                <input aria-label="CNPJ da empresa"
                   type="text"
                   value={cnpj}
                   onChange={(e) => setCnpj(e.target.value)}
@@ -151,7 +152,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                   <span className="text-[10px] font-bold text-slate-400">{company.usersCount} em uso</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <input type="number" min={Math.max(1, company.usersCount)} value={maxUsers} onChange={(e) => setMaxUsers(Math.max(1, Number(e.target.value) || 1))} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500" />
+                  <input aria-label="Limite de usuários" type="number" min={Math.max(1, company.usersCount)} value={maxUsers} onChange={(e) => setMaxUsers(Math.max(1, Number(e.target.value) || 1))} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500" />
                 </div>
                 {maxUsers < company.usersCount && <p className="mt-1 text-[10px] font-semibold text-rose-600">Não pode ser menor que o atual ({company.usersCount})</p>}
               </div>
@@ -162,7 +163,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                   <span className="text-[10px] font-bold text-slate-400">{company.employeesCount} em uso</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <input type="number" min={Math.max(1, company.employeesCount)} value={maxEmployees} onChange={(e) => setMaxEmployees(Math.max(1, Number(e.target.value) || 1))} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500" />
+                  <input aria-label="Limite de funcionários" type="number" min={Math.max(1, company.employeesCount)} value={maxEmployees} onChange={(e) => setMaxEmployees(Math.max(1, Number(e.target.value) || 1))} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500" />
                 </div>
                 {maxEmployees < company.employeesCount && <p className="mt-1 text-[10px] font-semibold text-rose-600">Não pode ser menor que o atual ({company.employeesCount})</p>}
               </div>
@@ -171,7 +172,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Plano Ativo</label>
-                    <select value={plan} onChange={(e) => setPlan(e.target.value)} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500 bg-white">
+                    <select aria-label="Plano da empresa" value={plan} onChange={(e) => setPlan(e.target.value)} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500 bg-white">
                       <option value="FREE">Free Trial / Nenhum</option>
                       {plansData.data?.map(p => (
                         <option key={p.id} value={p.id}>{p.name} {p.isHidden ? '(Uso Interno)' : ''} - {p.isFree ? 'FREE' : `R$ ${parseFloat(String(p.price || 0)).toFixed(2)}`}</option>
@@ -180,7 +181,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                   </div>
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Status de Faturamento</label>
-                    <select value={billingStatus} onChange={(e) => setBillingStatus(e.target.value as 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT')} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500 bg-white">
+                    <select aria-label="Situação da cobrança" value={billingStatus} onChange={(e) => setBillingStatus(e.target.value as 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT')} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-teal-500 bg-white">
                       <option value="TRIAL">Em Teste (Trial)</option>
                       <option value="ACTIVE">Ativo</option>
                       <option value="PAST_DUE">Inadimplente</option>
@@ -189,6 +190,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                   </div>
                 </div>
 
+                {isFeatureEnabled('manual-contracts') && (
                 <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
                   <button
                     onClick={handleGeneratePdf}
@@ -198,6 +200,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                     {generatingContract ? 'Gerando contrato...' : 'Gerar Contrato (PDF)'}
                   </button>
                 </div>
+                )}
               </div>
             </div>
           )}
@@ -212,7 +215,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                   { id: 'vacations', label: 'Gestão de Férias' },
                   { id: 'management', label: 'Painel de Gestão' },
                   { id: 'recruitment', label: 'Vagas e recrutamento' },
-                  { id: 'whatsapp', label: 'Integração WhatsApp' },
+                  ...(isFeatureEnabled('communication') ? [{ id: 'whatsapp', label: 'Integração WhatsApp' }] : []),
                 ].map(mod => (
                   <label key={mod.id} className="flex cursor-pointer items-center gap-3 text-sm font-semibold text-slate-700 p-2 rounded-[8px] hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors">
                     <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-600" checked={activeModules.includes(mod.id)} onChange={(e) => {
@@ -242,11 +245,11 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
                 <div className="grid gap-4 sm:grid-cols-2 mt-4">
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Customer ID (Asaas)</label>
-                    <input type="text" placeholder="cus_00000..." value={asaasCustomerId} onChange={(e) => setAsaasCustomerId(e.target.value)} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-medium outline-none focus:border-teal-500 font-mono" />
+                    <input aria-label="ID do cliente no Asaas" type="text" placeholder="cus_00000..." value={asaasCustomerId} onChange={(e) => setAsaasCustomerId(e.target.value)} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-medium outline-none focus:border-teal-500 font-mono" />
                   </div>
                   <div>
                     <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Subscription ID (Asaas)</label>
-                    <input type="text" placeholder="sub_00000..." value={asaasSubscriptionId} onChange={(e) => setAsaasSubscriptionId(e.target.value)} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-medium outline-none focus:border-teal-500 font-mono" />
+                    <input aria-label="ID da assinatura no Asaas" type="text" placeholder="sub_00000..." value={asaasSubscriptionId} onChange={(e) => setAsaasSubscriptionId(e.target.value)} className="h-9 w-full rounded-[6px] border border-slate-200 px-3 text-sm font-medium outline-none focus:border-teal-500 font-mono" />
                   </div>
                 </div>
 
@@ -272,7 +275,7 @@ export function CompanyManageModal({ company, onClose, onSave, loading, error }:
           {activeTab === 'crm' && (
             <div className="rounded-[10px] border border-slate-100 bg-white p-5 shadow-sm flex flex-col h-full">
               <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-slate-500">Anotações Internas (Somente DEV/COMERCIAL)</label>
-              <textarea
+              <textarea aria-label="Observações internas sobre o cliente"
                 value={internalNotes}
                 onChange={(e) => setInternalNotes(e.target.value)}
                 placeholder="Registre aqui o histórico de negociação, alinhamentos e observações técnicas sobre o cliente..."

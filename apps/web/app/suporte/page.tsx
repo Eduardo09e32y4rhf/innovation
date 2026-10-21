@@ -144,7 +144,7 @@ export default function SuportePage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
                   Seu Nome Completo <span className="text-rose-400">*</span>
                 </label>
-                <input
+                <input aria-label="Seu nome"
                   type="text"
                   required
                   value={name}
@@ -158,7 +158,7 @@ export default function SuportePage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
                   E-mail de Contato / Corporativo <span className="text-rose-400">*</span>
                 </label>
-                <input
+                <input aria-label="Seu e-mail"
                   type="email"
                   required
                   value={email}
@@ -174,7 +174,7 @@ export default function SuportePage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
                   Categoria da Solicitação <span className="text-rose-400">*</span>
                 </label>
-                <select
+                <select aria-label="Categoria do chamado"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
@@ -190,7 +190,7 @@ export default function SuportePage() {
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
                   Assunto Principal <span className="text-rose-400">*</span>
                 </label>
-                <input
+                <input aria-label="Assunto"
                   type="text"
                   required
                   value={subject}
@@ -205,7 +205,7 @@ export default function SuportePage() {
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
                 Descrição Detalhada do Problema <span className="text-rose-400">*</span>
               </label>
-              <textarea
+              <textarea aria-label="Descrição do problema"
                 rows={4}
                 required
                 value={description}

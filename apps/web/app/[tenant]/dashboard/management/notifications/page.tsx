@@ -281,7 +281,7 @@ function CreateNotificationForm({ employees, onCreated }: { employees: Employee[
           <div className="form-group sm:col-span-2">
             <span>Modelo da empresa (opcional)</span>
             <div className="flex flex-wrap gap-2">
-              <select value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="input-v2 min-w-[220px] flex-1">
+              <select aria-label="Modelo de comunicado" value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="input-v2 min-w-[220px] flex-1">
                 <option value="">Texto padrão do sistema</option>
                 {fitting.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>

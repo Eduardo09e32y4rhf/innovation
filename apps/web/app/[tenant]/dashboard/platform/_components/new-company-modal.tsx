@@ -64,7 +64,7 @@ export function NewCompanyModal({ onClose, onDone }: { onClose: () => void; onDo
           <div className="space-y-1">
             <label className="text-xs font-medium text-slate-600">CNPJ</label>
             <div className="flex gap-2">
-              <input type="text" value={form.document ?? ''} onChange={(e) => set('document', e.target.value)} className="h-10 flex-1 rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+              <input aria-label="CNPJ ou CPF da empresa" type="text" value={form.document ?? ''} onChange={(e) => set('document', e.target.value)} className="h-10 flex-1 rounded-[8px] border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
               <button
                 type="button"
                 onClick={async () => {

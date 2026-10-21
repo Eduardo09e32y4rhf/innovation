@@ -36,7 +36,7 @@ export default function MfaPage() {
       <p className="text-sm text-zinc-600">Adicione esta chave ao Google Authenticator, 1Password ou outro app compatível e informe o código gerado.</p>
       {setup.qrDataUrl && <img src={setup.qrDataUrl} alt="QR code para configurar o autenticador" className="mx-auto h-56 w-56 rounded bg-white p-2" />}
       <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3"><p className="text-xs text-zinc-500">Chave manual</p><code className="break-all font-mono text-sm">{setup.secret}</code></div>
-      <form onSubmit={enable} className="space-y-3"><input required minLength={6} maxLength={8} inputMode="numeric" autoComplete="one-time-code" className={`${authInput} text-center font-mono tracking-[0.3em]`} placeholder="Código do aplicativo" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} /><button className={authButton} disabled={loading}>{loading ? 'Confirmando…' : 'Ativar MFA'}</button></form>
+      <form onSubmit={enable} className="space-y-3"><input aria-label="Código de verificação do aplicativo" required minLength={6} maxLength={8} inputMode="numeric" autoComplete="one-time-code" className={`${authInput} text-center font-mono tracking-[0.3em]`} placeholder="Código do aplicativo" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} /><button className={authButton} disabled={loading}>{loading ? 'Confirmando…' : 'Ativar MFA'}</button></form>
     </div>}
   </AuthShell>;
 }

@@ -267,15 +267,15 @@ export function DossieView({ params, tab, onTab }: { params: { tenant: string; c
               <div className="space-y-4">
                 <div>
                   <label className="mb-1 block text-xs font-bold text-slate-500">Valor (R$)</label>
-                  <input type="number" step="0.01" min="1" required placeholder="Ex: 99.90" value={invoiceForm.amount} onChange={(e) => setInvoiceForm({ ...invoiceForm, amount: e.target.value })} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
+                  <input aria-label="Valor da fatura em reais" type="number" step="0.01" min="1" required placeholder="Ex: 99.90" value={invoiceForm.amount} onChange={(e) => setInvoiceForm({ ...invoiceForm, amount: e.target.value })} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-bold text-slate-500">Vencimento</label>
-                  <input type="date" required value={invoiceForm.dueDate} onChange={(e) => setInvoiceForm({ ...invoiceForm, dueDate: e.target.value })} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
+                  <input aria-label="Data de vencimento" type="date" required value={invoiceForm.dueDate} onChange={(e) => setInvoiceForm({ ...invoiceForm, dueDate: e.target.value })} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-bold text-slate-500">Descrição da Cobrança</label>
-                  <input type="text" required placeholder="Ex: Fatura Negociada - Mensalidade" value={invoiceForm.description} onChange={(e) => setInvoiceForm({ ...invoiceForm, description: e.target.value })} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
+                  <input aria-label="Descrição da fatura" type="text" required placeholder="Ex: Fatura Negociada - Mensalidade" value={invoiceForm.description} onChange={(e) => setInvoiceForm({ ...invoiceForm, description: e.target.value })} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10" />
                 </div>
               </div>
               <footer className="mt-8 flex gap-3">

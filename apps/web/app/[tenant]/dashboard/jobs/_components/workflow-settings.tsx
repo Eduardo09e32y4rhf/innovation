@@ -10,6 +10,7 @@ import { ApiError } from '@/app/lib/api';
 import { workflowApi } from '../workflow-api';
 import { SectionCard, inputClass } from './bits';
 import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { useGuard } from '@/app/hooks/use-action';
 
 const STEPS: Array<[string, string]> = [['GESTOR', 'Gestor'], ['RH', 'RH'], ['FINANCEIRO', 'Financeiro']];
 const message = (cause: unknown, fallback: string) => (cause instanceof ApiError ? cause.message : fallback);
@@ -24,14 +25,15 @@ export function WorkflowSettings() {
   const [dept, setDept] = useState(''); const [value, setValue] = useState('');
   useEffect(() => { if (steps.data) setPicked(steps.data.steps); }, [steps.data]);
 
-  async function saveSteps() {
+  const { guard } = useGuard();
+  const saveSteps = guard('saveSteps', async () => {
     try { await workflowApi.saveSteps(picked); toast.success(picked.length ? 'Etapas de aprovação salvas.' : 'Aprovação desligada: vagas abrem direto.'); steps.refetch(); }
     catch (cause) { toast.error(message(cause, 'Não foi possível salvar.')); }
-  }
-  async function saveBudget(department: string, budget: number | null) {
+  });
+  const saveBudget = guard('saveBudget', async (department: string, budget: number | null) => {
     try { await workflowApi.saveBudget(department, budget); budgets.refetch(); toast.success('Orçamento atualizado.'); }
     catch (cause) { toast.error(message(cause, 'Não foi possível salvar.')); }
-  }
+  });
 
   return (
     <>

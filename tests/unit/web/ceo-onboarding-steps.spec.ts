@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ceoOnboardingPending, isValidCpf, stepIndex } from '../../../apps/web/app/ceo-onboarding/steps';
+
+// O onboarding do CEO e um modulo congelado (padrao); estes testes cobrem o comportamento com ele ligado.
+// O caso "congelado" esta em frozen-features.spec.ts.
+beforeEach(() => { process.env.NEXT_PUBLIC_FEATURE_CEO_ONBOARDING = 'true'; });
+afterEach(() => { delete process.env.NEXT_PUBLIC_FEATURE_CEO_ONBOARDING; });
 
 describe('onboarding do CEO (frontend)', () => {
   it('so CEO com etapa pendente e redirecionado', () => {

@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/app/components/ui';
 import { request } from '@/app/lib/api';
+import { useGuard } from '@/app/hooks/use-action';
 
 type CouponType = 'TRIAL_DAYS' | 'PERCENT' | 'FIXED';
 interface Coupon {
@@ -73,10 +74,11 @@ export function CuponsView() {
     finally { setSaving(false); }
   }
 
-  async function toggle(item: Coupon) {
+  const { guard } = useGuard();
+  const toggle = guard('toggle', async (item: Coupon) => {
     try { await request(`/coupons/${item.id}/${item.isActive ? 'deactivate' : 'activate'}`, { method: 'PATCH' }); await load(); }
     catch (cause) { toast.error(cause instanceof Error ? cause.message : 'Não foi possível alterar o cupom.'); }
-  }
+  });
 
   const locked = Boolean(editing && editing.redemptionCount > 0);
   const discount = form.type !== 'TRIAL_DAYS';

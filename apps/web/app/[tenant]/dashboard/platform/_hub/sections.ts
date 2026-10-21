@@ -1,14 +1,16 @@
+import { featureAllowed, type WebFeature } from '../../../../lib/feature-flags';
+
 export type SubSection = { key: string; label: string };
 
 /** Subsecoes dentro de cada aba da Plataforma (tela unica; a subsecao vem da URL: ?sub=). */
-const SUBS: Record<string, Array<SubSection & { roles: readonly string[] }>> = {
+const SUBS: Record<string, Array<SubSection & { roles: readonly string[]; feature?: WebFeature }>> = {
   resumo: [
     { key: 'visao', label: 'Visão geral', roles: ['DEV', 'CEO', 'COMERCIAL', 'CONTABIL'] },
-    { key: 'alertas', label: 'Alertas e riscos', roles: ['DEV', 'COMERCIAL'] },
+    { key: 'alertas', label: 'Alertas e riscos', roles: ['DEV', 'COMERCIAL'], feature: 'ai' },
   ],
   comercial: [
-    { key: 'contratos', label: 'Contratos', roles: ['DEV', 'COMERCIAL'] },
-    { key: 'propostas', label: 'Propostas', roles: ['DEV', 'COMERCIAL'] },
+    { key: 'contratos', label: 'Contratos', roles: ['DEV', 'COMERCIAL'], feature: 'manual-contracts' },
+    { key: 'propostas', label: 'Propostas', roles: ['DEV', 'COMERCIAL'], feature: 'proposals' },
   ],
   dossie: [
     { key: 'general', label: 'Resumo', roles: ['DEV', 'CEO', 'COMERCIAL'] },
@@ -28,7 +30,7 @@ const SUBS: Record<string, Array<SubSection & { roles: readonly string[] }>> = {
 
 export function subsFor(tab: string, role: string | null | undefined): SubSection[] {
   const normalized = String(role ?? '').toUpperCase();
-  return (SUBS[tab] ?? []).filter((sub) => sub.roles.includes(normalized)).map(({ key, label }) => ({ key, label }));
+  return (SUBS[tab] ?? []).filter((sub) => featureAllowed(sub.feature) && sub.roles.includes(normalized)).map(({ key, label }) => ({ key, label }));
 }
 
 /** Subsecao pedida quando permitida; senao a primeira disponivel (ou undefined se a aba nao tem subsecoes). */

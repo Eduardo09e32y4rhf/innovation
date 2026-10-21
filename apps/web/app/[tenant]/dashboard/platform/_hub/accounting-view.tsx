@@ -95,7 +95,7 @@ function WorkflowBar({ kind, id, status, onDone, onClose }: { kind: 'closing' | 
       <p className="text-xs font-bold uppercase tracking-wide text-fg-sub">Revisão da contabilidade</p>
       {returning ? (
         <div className="space-y-2">
-          <textarea className={`${input} min-h-16`} maxLength={500} placeholder="Explique ao RH o que precisa ser corrigido" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <textarea aria-label="Motivo da correção para o RH" className={`${input} min-h-16`} maxLength={500} placeholder="Explique ao RH o que precisa ser corrigido" value={reason} onChange={(e) => setReason(e.target.value)} />
           <div className="flex justify-end gap-2"><Button variant="outline" size="sm" onClick={() => setReturning(false)} disabled={busy}>Voltar</Button><Button size="sm" isLoading={busy} disabled={reason.trim().length < 5} onClick={() => run('RETURN', 'Devolvido ao RH.')}>Devolver ao RH</Button></div>
         </div>
       ) : (

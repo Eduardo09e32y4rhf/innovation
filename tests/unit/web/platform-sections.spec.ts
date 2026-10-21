@@ -1,5 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { resolveSub, subsFor } from '../../../apps/web/app/[tenant]/dashboard/platform/_hub/sections';
+
+// Alertas (IA), Contratos e Propostas sao modulos congelados (padrao); estes testes cobrem as subsecoes com eles ligados.
+// O caso "congelado" esta em frozen-features.spec.ts.
+const FLAGS = ['NEXT_PUBLIC_FEATURE_AI', 'NEXT_PUBLIC_FEATURE_PROPOSALS', 'NEXT_PUBLIC_FEATURE_MANUAL_CONTRACTS'];
+beforeEach(() => { for (const key of FLAGS) process.env[key] = 'true'; });
+afterEach(() => { for (const key of FLAGS) delete process.env[key]; });
 
 describe('subsecoes da Plataforma', () => {
   it('Comercial: DEV e COMERCIAL veem contratos e propostas; CEO e CONTABIL nenhuma', () => {

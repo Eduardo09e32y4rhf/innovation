@@ -303,7 +303,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
                     className={`block cursor-pointer rounded-xl border-2 border-dashed p-5 text-center transition ${dragging ? 'border-purple-500 bg-purple-50' : fileError ? 'border-rose-400 bg-rose-50' : 'border-border hover:bg-bg-sub'}`}>
                     <span className="block text-sm font-medium">{resume ? 'Trocar currículo' : 'Currículo *'}</span>
                     <span className="mt-1 block text-xs text-fg-mut">Arraste o arquivo aqui ou clique para escolher · PDF ou DOCX até 5 MB</span>
-                    <input ref={fileInput} name="resume" type="file" className="sr-only" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" aria-invalid={Boolean(fileError)} aria-describedby="resume-error" onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} />
+                    <input aria-label="Anexar currículo em PDF ou DOCX" ref={fileInput} name="resume" type="file" className="sr-only" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" aria-invalid={Boolean(fileError)} aria-describedby="resume-error" onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} />
                   </label>
                   {resume && (
                     <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">

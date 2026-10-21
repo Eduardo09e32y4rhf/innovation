@@ -9,6 +9,7 @@ import CompanyInvoicesView from './_company-view';
 import { money } from './_format';
 import Integration from './_integration';
 import { useOverlay } from '@/app/components/ui/use-overlay';
+import { useGuard } from '@/app/hooks/use-action';
 
 type Dialog =
   | { kind: 'charge' } | { kind: 'recurring' } | { kind: 'freeDays' } | { kind: 'seats' } | { kind: 'plan' } | { kind: 'coupon' } | { kind: 'cancelSub' } | { kind: 'activate' } | { kind: 'release' }
@@ -261,10 +262,11 @@ export default function CompanyFicha({ company, onChanged }: { company: FaturasC
     } catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível alterar a cobrança.'); }
   }
 
-  async function syncInvoice(inv: PlatformInvoice) {
+  const { guard } = useGuard();
+  const syncInvoice = guard('syncInvoice', async (inv: PlatformInvoice) => {
     try { await api.faturas.syncInvoice(inv.id); toast.success('Fatura sincronizada com o provedor.'); refresh(); }
     catch (e) { toast.error(e instanceof ApiError ? e.message : 'Não foi possível sincronizar.'); }
-  }
+  });
 
   async function gerarBoleto(inv: PlatformInvoice) {
     try { await api.faturas.gerarBoleto(inv.id); toast.success('Cobrança convertida em boleto. Baixe a Fatura PDF para ver o código de barras.'); refresh(); }

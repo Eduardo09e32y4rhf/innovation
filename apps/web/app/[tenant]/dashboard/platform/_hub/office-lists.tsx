@@ -9,6 +9,7 @@ import { useQuery } from '@/app/hooks/use-data';
 import { date, errorText, money, monthLabel } from './format';
 import { DEPARTMENTS, DEPARTMENT_LABEL, DOC_TYPES, office, type OfficeClientRow, type OfficeTask, type TeamMember } from './office-api';
 import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { useGuard } from '@/app/hooks/use-action';
 
 const input = 'input-v2 w-full text-base sm:text-sm';
 const PRIORITY: Record<string, [string, string]> = { HIGH: ['Alta', 'bg-rose-100 text-rose-800'], NORMAL: ['Normal', 'bg-slate-100 text-slate-700'], LOW: ['Baixa', 'bg-sky-100 text-sky-800'] };
@@ -49,14 +50,15 @@ export function TasksView({ clients, team, refreshPanel }: { clients: OfficeClie
   const query = useQuery(() => office.tasks({ status: filter }), [filter]);
   const reload = () => { query.refetch(); refreshPanel(); };
 
-  async function setStatus(task: OfficeTask, status: OfficeTask['status']) {
+  const { guard } = useGuard();
+  const setStatus = guard('setStatus', async (task: OfficeTask, status: OfficeTask['status']) => {
     try { await office.updateTask(task.id, { status }); reload(); } catch (cause) { toast.error(errorText(cause, 'Não foi possível atualizar.')); }
-  }
+  });
   const askConfirm = useConfirm();
-  async function remove(task: OfficeTask) {
+  const remove = guard('remove', async (task: OfficeTask) => {
     if (!(await askConfirm({ title: 'Excluir tarefa', description: `Excluir a tarefa "${task.title}"?`, confirmText: 'Excluir tarefa' }))) return;
     try { await office.deleteTask(task.id); reload(); } catch (cause) { toast.error(errorText(cause, 'Não foi possível excluir.')); }
-  }
+  });
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -101,14 +103,15 @@ export function DocsView({ clients, month, refreshPanel }: { clients: OfficeClie
   const reload = () => { query.refetch(); refreshPanel(); };
   const typeLabel = Object.fromEntries(DOC_TYPES);
 
-  async function act(id: string, body: Record<string, unknown>, success: string) {
+  const { guard } = useGuard();
+  const act = guard('act', async (id: string, body: Record<string, unknown>, success: string) => {
     try { await office.updateDoc(id, body); toast.success(success); reload(); } catch (cause) { toast.error(errorText(cause, 'Não foi possível atualizar.')); }
-  }
+  });
   const askConfirm = useConfirm();
-  async function cancel(id: string) {
+  const cancel = guard('cancel', async (id: string) => {
     if (!(await askConfirm({ title: 'Remover pedido', description: 'Remover este pedido de documento?', confirmText: 'Remover pedido' }))) return;
     try { await office.deleteDoc(id); reload(); } catch (cause) { toast.error(errorText(cause, 'Não foi possível remover.')); }
-  }
+  });
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -158,9 +161,10 @@ export function FeesView({ clients, month, refreshPanel }: { clients: OfficeClie
     try { const out = await office.generateFees(month); toast.success(out.generated ? `${out.generated} honorário(s) gerado(s).` : 'Todos os honorários do mês já foram gerados.'); reload(); }
     catch (cause) { toast.error(errorText(cause, 'Não foi possível gerar.')); } finally { setBusy(false); }
   }
-  async function pay(id: string, paid: boolean) {
+  const { guard } = useGuard();
+  const pay = guard('pay', async (id: string, paid: boolean) => {
     try { await office.payFee(id, paid); reload(); } catch (cause) { toast.error(errorText(cause, 'Não foi possível atualizar.')); }
-  }
+  });
   const tone: Record<string, string> = { PAID: 'bg-emerald-100 text-emerald-800', OPEN: 'bg-slate-100 text-slate-700', OVERDUE: 'bg-rose-100 text-rose-800' };
   const label: Record<string, string> = { PAID: 'Paga', OPEN: 'A receber', OVERDUE: 'Atrasada' };
 

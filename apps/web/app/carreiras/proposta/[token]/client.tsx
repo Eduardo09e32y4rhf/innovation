@@ -63,7 +63,7 @@ export function OfferClient({ token }: { token: string }) {
           {data.status === 'SENT' && declining && (
             <section className={`${actionCard} space-y-3`}>
               <h2 className="font-bold">Pode contar por que vai recusar?</h2>
-              <textarea className="min-h-[96px] w-full rounded-[12px] border border-[#d9cdee] p-3 text-base outline-none focus:border-[#7240da]" maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Opcional. Ex.: aceitei outra proposta, salário abaixo do esperado." />
+              <textarea aria-label="Motivo da recusa (opcional)" className="min-h-[96px] w-full rounded-[12px] border border-[#d9cdee] p-3 text-base outline-none focus:border-[#7240da]" maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Opcional. Ex.: aceitei outra proposta, salário abaixo do esperado." />
               <div className="flex flex-wrap gap-2"><button type="button" className={primaryBtn} disabled={busy} onClick={() => respond(false)}>Confirmar recusa</button><button type="button" className={outlineBtn} disabled={busy} onClick={() => setDeclining(false)}>Voltar</button></div>
             </section>
           )}

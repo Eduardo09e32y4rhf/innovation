@@ -143,7 +143,7 @@ export function TicketWizardSlideover({
                 <Upload size={24} className="mb-3 text-brand" />
                 <span className="text-sm font-bold text-fg-mut">Clique para anexar arquivos</span>
                 <span className="mt-1 text-xs text-fg-sub">PNG, JPG, WEBP, PDF, TXT, MP4 e WEBM · até 20 MB por arquivo</span>
-                <input
+                <input aria-label="Anexar arquivos ao chamado"
                   type="file"
                   multiple
                   accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.mp4,.webm"

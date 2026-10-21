@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useRef, useState } from 'react';
-import { newIdempotencyKey } from '@/app/lib/single-flight';
+import { createSingleFlight, newIdempotencyKey } from '@/app/lib/single-flight';
 
 /**
  * Executa uma ação assíncrona (clique, submit) no máximo uma vez por vez.
@@ -38,4 +38,28 @@ export function useIdempotencyKey() {
   const get = useCallback(() => (key.current ??= newIdempotencyKey()), []);
   const rotate = useCallback(() => { key.current = null; }, []);
   return { get, rotate };
+}
+
+/**
+ * Trava por ação: a MESMA ação com os MESMOS argumentos (duplo clique, Enter repetido) roda uma vez só e as demais
+ * chamadas recebem o mesmo resultado; ações diferentes (outro cartão, outro registro) seguem normalmente.
+ * Use `guard('nome', async (...) => { ... })` no lugar de `async function` e `busy` para desabilitar botões.
+ */
+export function useGuard() {
+  const [running, setRunning] = useState(0);
+  const flight = useRef(createSingleFlight()).current;
+
+  const guard = useCallback(<TArgs extends unknown[], TResult>(name: string, fn: (...args: TArgs) => Promise<TResult>) =>
+    (...args: TArgs): Promise<TResult> => {
+      let key = name;
+      try { key = `${name}:${JSON.stringify(args)}`; } catch { /* argumentos não serializáveis: trava só pelo nome */ }
+      if (flight.isRunning(key)) return flight.run(key, () => fn(...args));
+      setRunning((count) => count + 1);
+      return flight.run(key, async () => {
+        try { return await fn(...args); }
+        finally { setRunning((count) => count - 1); }
+      });
+    }, [flight]);
+
+  return { guard, busy: running > 0 };
 }

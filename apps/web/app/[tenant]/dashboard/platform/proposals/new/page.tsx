@@ -51,7 +51,7 @@ export default function NewProposalPage() {
         employeesLimit: Number(formData.employeesLimit),
       });
       toast.success('Proposta criada com sucesso!');
-      router.push(`/${tenant}/dashboard/platform/proposals`);
+      router.push(`/${tenant}/dashboard/platform?tab=comercial&sub=propostas`);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao criar proposta');
     } finally {
@@ -62,7 +62,7 @@ export default function NewProposalPage() {
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <div className="flex items-center space-x-4 mb-6">
-        <button className="p-2 hover:bg-muted rounded-md" onClick={() => router.push(`/${tenant}/dashboard/platform/proposals`)}>
+        <button className="p-2 hover:bg-muted rounded-md" onClick={() => router.push(`/${tenant}/dashboard/platform?tab=comercial&sub=propostas`)}>
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-2xl font-bold">Criar Nova Proposta</h1>

@@ -16,9 +16,9 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   const base = `/${tenant}/dashboard/platform`;
   const isHub = pathname.replace(/\/+$/, '') === base;
   const allowed = Boolean(TAB_POLICY[role]);
-  // Subpáginas especializadas: DEV/CEO/COMERCIAL abrem todas; a Contabilidade abre as financeiras (planos, cupons, contratos, cobrança, assinaturas e auditoria).
+  // Subpáginas especializadas: DEV/CEO/COMERCIAL abrem todas; a Contabilidade abre só as financeiras (cobrança e contabilidade).
   const section = pathname.slice(base.length).split('/').filter(Boolean)[0] ?? '';
-  const specialist = ['DEV', 'CEO', 'COMERCIAL'].includes(role) || (role === 'CONTABIL' && ['plans', 'coupons', 'contracts', 'finance', 'subscriptions', 'audit'].includes(section));
+  const specialist = ['DEV', 'CEO', 'COMERCIAL'].includes(role) || (role === 'CONTABIL' && ['finance', 'accounting'].includes(section));
 
   const devOnly = section === 'visitas' && role !== 'DEV';
 

@@ -106,7 +106,7 @@ export default function PlanosPage() {
                 <label className="text-sm font-medium text-slate-300">Tamanho da Equipe</label>
                 <span className="text-sm font-bold text-indigo-400">{seatQuantity} vidas</span>
               </div>
-              <input
+              <input aria-label="Quantidade de usuários"
                 type="range"
                 min="1"
                 max="500"

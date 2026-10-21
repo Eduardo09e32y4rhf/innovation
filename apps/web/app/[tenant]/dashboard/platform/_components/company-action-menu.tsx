@@ -62,7 +62,7 @@ export function CompanyActionMenu({
         <div className="absolute right-0 z-[100] mt-1 w-52 origin-top-right rounded-[10px] border border-slate-200 bg-white p-1 shadow-2xl ring-1 ring-black ring-opacity-5">
           <div className="flex flex-col">
             <Link 
-              href={`/${tenant}/dashboard/platform/${company.id}?tab=general`} 
+              href={`/${tenant}/dashboard/platform?tab=dossie&sub=general&company=${encodeURIComponent(company.id)}`} 
               className="flex items-center gap-2 rounded-[6px] px-3 py-2 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
               onClick={() => setOpen(false)}
             >
@@ -81,7 +81,7 @@ export function CompanyActionMenu({
 
             {canManageUsers && (
               <Link 
-                href={`/${tenant}/dashboard/platform/${company.id}?tab=users`} 
+                href={`/${tenant}/dashboard/platform?tab=dossie&sub=users&company=${encodeURIComponent(company.id)}`} 
                 onClick={() => setOpen(false)} 
                 className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
               >
@@ -92,7 +92,7 @@ export function CompanyActionMenu({
 
             {canManageLicenses && (
               <Link 
-                href={`/${tenant}/dashboard/platform/${company.id}?tab=subscription`} 
+                href={`/${tenant}/dashboard/platform?tab=dossie&sub=subscription&company=${encodeURIComponent(company.id)}`} 
                 onClick={() => setOpen(false)} 
                 className="flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-left text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
               >

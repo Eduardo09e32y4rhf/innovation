@@ -248,7 +248,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
               Atualizar contexto
             </button>
             <Link
-              href={`/${tenant}/dashboard/platform/companies`}
+              href={`/${tenant}/dashboard/platform?tab=empresas`}
               className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-white text-[var(--color-brand)] px-4 text-xs font-black shadow-sm hover:bg-[var(--color-brand-50)]"
             >
               <Building2 size={14} />
@@ -312,14 +312,14 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
             <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
               <div className="relative">
                 <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
+                <input aria-label="Buscar por empresa, plano ou contexto"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Buscar por empresa, plano ou contexto..."
                   className="form-control pl-9 pr-3 h-10"
                 />
               </div>
-              <select
+              <select aria-label="Filtrar por situação da assinatura"
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as (typeof STATUS_FILTERS)[number]['value'])}
                 className="form-control h-10 w-full md:w-auto md:min-w-[200px]"
@@ -446,7 +446,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
                               </a>
                             ) : null}
                             <Link
-                              href={`/${tenant}/dashboard/platform/companies?search=${encodeURIComponent(company.name)}`}
+                              href={`/${tenant}/dashboard/platform?tab=empresas`}
                               className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-[10px] font-bold text-slate-600 shadow-sm hover:bg-slate-50"
                             >
                               <ArrowRightLeft size={12} />
@@ -625,7 +625,7 @@ export function AssinaturasView({ params: { tenant } }: { params: { tenant: stri
                     Ver financeiro
                   </Link>
                   <Link
-                    href={`/${tenant}/dashboard/platform/companies?search=${encodeURIComponent(selectedCompany.name)}`}
+                    href={`/${tenant}/dashboard/platform?tab=empresas`}
                     className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
                   >
                     <Building2 size={14} />

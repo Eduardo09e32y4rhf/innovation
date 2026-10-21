@@ -32,7 +32,7 @@ export function AcessosView() {
   return (
     <div className="space-y-4">
       <div className="rounded-[16px] border border-slate-200 bg-white p-4 shadow-sm">
-        <input
+        <input aria-label="Buscar usuário, empresa ou perfil"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar usuario, empresa ou perfil"

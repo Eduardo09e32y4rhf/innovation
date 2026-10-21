@@ -24,7 +24,7 @@ export default function ProposalDetailsPage() {
       setProposal(data);
     } catch (err) {
       toast.error('Erro ao carregar proposta');
-      router.push(`/${tenant}/dashboard/platform/proposals`);
+      router.push(`/${tenant}/dashboard/platform?tab=comercial&sub=propostas`);
     }
   };
 
@@ -47,7 +47,7 @@ export default function ProposalDetailsPage() {
     <div className="p-6 w-full mx-auto space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
-          <button className="p-2 hover:bg-muted rounded-md" onClick={() => router.push(`/${tenant}/dashboard/platform/proposals`)}>
+          <button className="p-2 hover:bg-muted rounded-md" onClick={() => router.push(`/${tenant}/dashboard/platform?tab=comercial&sub=propostas`)}>
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-2xl font-bold">Proposta {proposal.proposalNumber}</h1>

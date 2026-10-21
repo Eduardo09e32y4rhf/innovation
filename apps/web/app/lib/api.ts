@@ -2,7 +2,7 @@
 
 import { clearAuthSession, persistAuthSession, readAuthSession, readParsedAuthSession } from './auth-session';
 import { refreshSession } from './refresh-session';
-import { resetAllQueryStates } from '@/app/hooks/use-data';
+import { resetAllQueryStates } from '../hooks/use-data';
 import { createSingleFlight, mutationFlightKey } from './single-flight';
 
 /**

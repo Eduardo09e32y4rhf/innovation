@@ -1,3 +1,5 @@
+import { isFeatureEnabled } from '../../../../lib/feature-flags';
+
 export type HubTab = 'resumo' | 'empresas' | 'financeiro' | 'contabilidade' | 'comercial' | 'suporte' | 'auditoria' | 'configuracoes' | 'dossie';
 
 export const TAB_LABEL: Record<HubTab, string> = {
@@ -11,6 +13,12 @@ export const TAB_POLICY: Record<string, HubTab[]> = {
   COMERCIAL: ['resumo', 'empresas', 'dossie', 'comercial', 'configuracoes'],
   CONTABIL: ['resumo'],
 };
+
+/** Abas que o perfil enxerga: 'comercial' (propostas e contratos) so existe com pelo menos um desses modulos ligado. */
+export function visibleTabs(role: string): HubTab[] {
+  const commercial = isFeatureEnabled('proposals') || isFeatureEnabled('manual-contracts');
+  return (TAB_POLICY[role] ?? []).filter((tab) => tab !== 'comercial' || commercial);
+}
 
 export interface CompanyOption { id: string; name: string; slug: string; document: string; status: string; plan: string; billingStatus: string }
 

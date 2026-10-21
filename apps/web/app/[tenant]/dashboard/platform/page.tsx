@@ -26,7 +26,7 @@ import { resolveSub, subsFor } from './_hub/sections';
 import { SubNav } from './_hub/sub-nav';
 import { SuporteView } from './_hub/suporte-view';
 import { ScopePicker } from './_hub/scope-picker';
-import { TAB_LABEL, TAB_POLICY, type CompanyOption, type HubTab } from './_hub/types';
+import { TAB_LABEL, visibleTabs, type CompanyOption, type HubTab } from './_hub/types';
 import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 const SUBTITLE: Record<string, string> = {
@@ -45,13 +45,13 @@ function Hub() {
 
   const companyId = params.get('company') ?? undefined;
   const companyName = params.get('cn') ?? undefined;
-  const allowed = useMemo(() => TAB_POLICY[role] ?? [], [role]);
+  const allowed = useMemo(() => visibleTabs(role), [role]);
   const tabs = useMemo(() => allowed.filter((item) => (companyId ? !['empresas', 'configuracoes'].includes(item) : item !== 'dossie')), [allowed, companyId]);
   const requested = params.get('tab') as HubTab | null;
   const tab = tabs.includes(requested as HubTab) ? (requested as HubTab) : tabs[0] ?? 'resumo';
   const subs = subsFor(tab, role);
   const sub = resolveSub(tab, params.get('sub'), role);
-  const shortcuts = useMemo(() => getPlatformNavGroups(role).filter((group) => !['overview', 'finance', 'plans', 'subscriptions', 'coupons'].includes(group.key)), [role]);
+  const shortcuts = useMemo(() => getPlatformNavGroups(role).filter((group) => !['overview', 'finance'].includes(group.key)), [role]);
 
   // Contabilidade agora e uma aba propria do menu; links antigos (?tab=contabilidade) seguem para ela.
   useEffect(() => {

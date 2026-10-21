@@ -12,6 +12,7 @@ import { useWorkspace } from '../_components/shell-v2/workspace-context';
 import { isAgendaPath } from '../_components/shell-v2/rs-route-access';
 import styles from '../escalas/_components/operational-ui.module.css';
 import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
+import { isFeatureEnabled } from '@/app/lib/feature-flags';
 
 interface NavItem { name: string; href: string; icon: LucideIcon; exact?: boolean }
 interface NavGroup { title: string; icon?: LucideIcon; items: NavItem[] }
@@ -47,7 +48,7 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
         { name: 'Comunicados', href: `${base}/notifications`, icon: Bell },
         ...(canManage ? [
           { name: 'Admissão', href: `${base}/onboarding`, icon: UserRoundPlus },
-          { name: 'Promoções', href: `${base}/promotions`, icon: Award },
+          ...(isFeatureEnabled('promotions') ? [{ name: 'Promoções', href: `${base}/promotions`, icon: Award }] : []),
           { name: 'Folha de pagamento', href: `${base}/payroll`, icon: FileClock },
         ] : []),
       ],

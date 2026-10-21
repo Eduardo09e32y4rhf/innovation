@@ -453,3 +453,12 @@ textarea.form-control { height: auto; min-height: 96px; padding-block: 10px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* WCAG 2.4.7: campos que usam `outline-none` continuam com indicador de foco visível ao navegar pelo teclado. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[contenteditable="true"]:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 1px;
+}

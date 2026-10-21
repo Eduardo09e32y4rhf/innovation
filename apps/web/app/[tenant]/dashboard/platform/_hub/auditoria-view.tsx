@@ -190,7 +190,7 @@ export function AuditoriaView() {
             />
           </label>
 
-          <select
+          <select aria-label="Filtrar por tipo de evento"
             value={type}
             onChange={(e) => { setType(e.target.value); setPage(1); }}
             className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500"
@@ -203,7 +203,7 @@ export function AuditoriaView() {
             ))}
           </select>
 
-          <select
+          <select aria-label="Filtrar por empresa"
             value={companyId}
             onChange={(e) => setCompanyId(e.target.value)}
             className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-teal-500"
