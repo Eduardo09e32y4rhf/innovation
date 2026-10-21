@@ -149,7 +149,7 @@ export class EmployeesService {
     }
     await this.ensureRegistrationAvailable(companyId, dto.registration, id);
     
-    const result = await this.repository.update(companyId, id, this.toData(dto));
+    const result = await this.repository.update(companyId, id, this.toData(dto, true));
     if (!result.count) throw new NotFoundException('Employee not found');
     const employee = await this.get(companyId, actor, id);
     
@@ -525,14 +525,18 @@ export class EmployeesService {
     return 'FUNCIONARIO';
   }
 
-  private toData(dto: CreateEmployeeDto | UpdateEmployeeDto) {
+  /**
+   * `partial` = edicao (PATCH): so grava o que veio no corpo. Os valores padrao (nome, cargo, departamento, status,
+   * admissao = hoje) valem apenas no cadastro; numa edicao eles sobrescreviam dados existentes.
+   */
+  private toData(dto: CreateEmployeeDto | UpdateEmployeeDto, partial = false) {
     const { accessEnabled, accessProfile, firstJob, reservista, ...employeeData } = dto as any;
-    const status = dto.status ?? 'ACTIVE';
+    const status = partial ? dto.status : (dto.status ?? 'ACTIVE');
     return {
       ...employeeData,
-      name: this.emptyToUndefined(dto.name) ?? 'Funcionario sem nome',
-      position: this.emptyToUndefined(dto.position) ?? 'A definir',
-      department: this.emptyToUndefined(dto.department) ?? 'A definir',
+      name: this.emptyToUndefined(dto.name) ?? (partial ? undefined : 'Funcionario sem nome'),
+      position: this.emptyToUndefined(dto.position) ?? (partial ? undefined : 'A definir'),
+      department: this.emptyToUndefined(dto.department) ?? (partial ? undefined : 'A definir'),
       phone: this.emptyToUndefined(dto.phone),
       rg: this.emptyToUndefined(dto.rg),
       rgIssuer: this.emptyToUndefined(dto.rgIssuer),
@@ -552,7 +556,7 @@ export class EmployeesService {
       birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
       registration: this.emptyToUndefined(dto.registration),
       managerId: this.emptyToUndefined(dto.managerId),
-      admissionDate: dto.admissionDate ? new Date(dto.admissionDate) : this.todayInSaoPaulo(),
+      admissionDate: dto.admissionDate ? new Date(dto.admissionDate) : (partial ? undefined : this.todayInSaoPaulo()),
       terminationDate: status === 'ACTIVE' ? undefined : (dto.terminationDate ? new Date(dto.terminationDate) : undefined),
       salary: dto.salary !== undefined ? String(dto.salary) : undefined,
       contractType: this.emptyToUndefined(dto.contractType),

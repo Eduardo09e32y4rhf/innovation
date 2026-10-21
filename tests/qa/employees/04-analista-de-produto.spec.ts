@@ -20,29 +20,34 @@ describe('PRODUTO · editar parcialmente não pode destruir dados (PATCH com um 
     return repository.update.mock.calls[0][2] as Record<string, unknown>;
   }
 
-  check('alterar só o telefone não renomeia a pessoa para "Funcionario sem nome"', 'Q-01', async () => {
+  check('alterar só o telefone não renomeia a pessoa para "Funcionario sem nome"', null, async () => {
     const data = await patch({ phone: '11999990000' });
     expect(data.name === undefined || data.name === 'Ana Souza').toBe(true);
   });
-  check('alterar só o telefone não troca o cargo por "A definir"', 'Q-01', async () => {
+  check('alterar só o telefone não troca o cargo por "A definir"', null, async () => {
     const data = await patch({ phone: '11999990000' });
     expect(data.position === undefined || data.position === 'Analista').toBe(true);
   });
-  check('alterar só o telefone não troca o departamento por "A definir"', 'Q-01', async () => {
+  check('alterar só o telefone não troca o departamento por "A definir"', null, async () => {
     const data = await patch({ phone: '11999990000' });
     expect(data.department === undefined || data.department === 'Financeiro').toBe(true);
   });
-  check('alterar só o telefone não reativa um funcionário DESLIGADO (status vira ACTIVE)', 'Q-01', async () => {
+  check('alterar só o telefone não reativa um funcionário DESLIGADO (status vira ACTIVE)', null, async () => {
     const data = await patch({ phone: '11999990000' });
     expect(data.status === undefined || data.status === 'TERMINATED').toBe(true);
   });
-  check('alterar só o telefone não sobrescreve a data de admissão com "hoje"', 'Q-01', async () => {
+  check('alterar só o telefone não sobrescreve a data de admissão com "hoje"', null, async () => {
     const data = await patch({ phone: '11999990000' });
     expect(data.admissionDate === undefined || +new Date(data.admissionDate as Date) === +admission).toBe(true);
   });
-  check('alterar só o e-mail também não zera nada (cargo, depto, nome, status, admissão)', 'Q-01', async () => {
+  check('alterar só o e-mail também não zera nada (cargo, depto, nome, status, admissão)', null, async () => {
     const data = await patch({ email: 'novo@x.com' });
     expect([data.name, data.position, data.department, data.status, data.admissionDate].every((v) => v === undefined || v !== 'Funcionario sem nome' && v !== 'A definir' && v !== 'ACTIVE')).toBe(true);
+  });
+  it('alterar so o status muda apenas o status (nome, cargo, departamento e admissao ficam de fora do UPDATE)', async () => {
+    const data = await patch({ status: 'INACTIVE' });
+    expect(data.status).toBe('INACTIVE');
+    expect([data.name, data.position, data.department, data.admissionDate, data.phone]).toEqual([undefined, undefined, undefined, undefined, undefined]);
   });
   it('o cadastro completo (todos os campos enviados) grava exatamente o que foi enviado', async () => {
     const data = await patch({ name: 'Ana Maria', position: 'Gerente', department: 'TI', status: 'ACTIVE', admissionDate: '2020-01-02T00:00:00.000Z' });
@@ -113,7 +118,7 @@ describe('PRODUTO · "não consigo criar usuário"', () => {
     expect(repository.countByCompany).not.toHaveBeenCalled();
   });
 
-  check('desbloquear (isActive=true) em lote respeita o limite de licenças', 'S-12', async () => {
+  check('desbloquear (isActive=true) em lote respeita o limite de licenças', null, async () => {
     const { service, repository } = makeService({
       findById: vi.fn().mockResolvedValue(employee({ id: 'e1', userId: 'u1', user: { role: 'FUNCIONARIO' } })),
       countByCompany: vi.fn().mockResolvedValue(10),
