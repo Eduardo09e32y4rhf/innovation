@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // @Body() tipado como any/inline/Record/Partial<Classe> escapa do whitelist/forbidNonWhitelisted do
@@ -24,7 +24,7 @@ describe('@Body() sem DTO validado', () => {
   it('nenhum controller recebe corpo como any, tipo inline, Record ou Partial<Classe>', () => {
     const offenders: string[] = [];
     for (const file of controllers(ROOT)) {
-      const rel = relative(ROOT, file);
+      const rel = relative(ROOT, file).split(sep).join('/'); // mesmo caminho no Windows e no Linux
       if (ALLOWED.has(rel)) continue;
       const src = readFileSync(file, 'utf8');
       const localTypes = new Set([...src.matchAll(/^(?:export\s+)?(?:interface|type)\s+(\w+)/gm)].map((m) => m[1]));
