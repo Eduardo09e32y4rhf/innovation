@@ -1,13 +1,15 @@
 {
   "name": "innovation-e2e-tests",
   "version": "1.0.0",
-  "description": "E2E automated tests for Innovation RH Connect",
+  "description": "E2E automated tests for Innovation RH Connect (public/mobile flows with mocks + logged flows with real API)",
   "scripts": {
     "test": "playwright test --config playwright.config.ts",
     "test:responsivo": "playwright test tests/responsivo.spec.ts --project=chromium-desktop --config playwright.config.ts",
     "test:autoteste": "playwright test --config playwright.autoteste.config.ts",
     "test:legacy": "playwright test --config playwright.config.js",
-    "test:headed": "playwright test --headed --config playwright.config.ts"
+    "test:headed": "playwright test --headed --config playwright.config.ts",
+    "test:public": "playwright test --config playwright.config.ts",
+    "test:flows": "playwright test --config playwright.flows.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.41.2"

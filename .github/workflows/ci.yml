@@ -38,12 +38,22 @@ jobs:
   secrets-scan:
     name: Varredura de segredos (gitleaks)
     runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: '8.21.2'
+      # SHA-256 do gitleaks_8.21.2_linux_x64.tar.gz (conferido com gitleaks_8.21.2_checksums.txt da release oficial)
+      GITLEAKS_SHA256: 5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 } # historico inteiro: segredo apagado num commit antigo continua exposto
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Instalar gitleaks (versao fixa, checksum verificado)
+        run: |
+          curl -sSfL -o gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum -c -
+          tar -xzf gitleaks.tgz gitleaks
+      # Varre TODOS os commits de todas as refs (nao so o PR). Falha em qualquer segredo novo;
+      # so passam os espacos reservados e os commits antigos listados em .gitleaks.toml.
+      - name: Varrer o historico completo
+        run: ./gitleaks detect --source . --config .gitleaks.toml --log-opts="--all" --redact --verbose --no-banner
 
   unit:
     name: Testes unitarios, seguranca e cobertura

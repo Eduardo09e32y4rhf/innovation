@@ -1,0 +1,22 @@
+# Quem precisa revisar mudanças nestas áreas (o ruleset da main exige a revisão do dono do código).
+# Dono do repositório: @Eduardo09e32y4rhf. Adicione um segundo revisor aqui quando houver mais gente no time.
+
+# Dinheiro, folha e cálculo trabalhista
+/apps/api/src/modules/finance/       @Eduardo09e32y4rhf
+/apps/api/src/modules/payroll/       @Eduardo09e32y4rhf
+/apps/api/src/modules/accounting/    @Eduardo09e32y4rhf
+/apps/api/src/modules/time-track/    @Eduardo09e32y4rhf
+
+# Autenticação, acesso e dados pessoais (LGPD)
+/apps/api/src/modules/auth/          @Eduardo09e32y4rhf
+/apps/api/src/modules/privacy/       @Eduardo09e32y4rhf
+/apps/api/src/common/guards/         @Eduardo09e32y4rhf
+
+# Banco de dados: toda migration e todo schema
+/apps/api/prisma/                    @Eduardo09e32y4rhf
+
+# Pipeline, deploy e infraestrutura
+/.github/                            @Eduardo09e32y4rhf
+/infra/                              @Eduardo09e32y4rhf
+/scripts/deploy/                     @Eduardo09e32y4rhf
+/docker-compose.prod.yml             @Eduardo09e32y4rhf

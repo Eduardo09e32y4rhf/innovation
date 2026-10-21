@@ -1,0 +1,56 @@
+# Configuração do gitleaks (job `secrets-scan` do CI e uso local: `gitleaks detect --config .gitleaks.toml`).
+#
+# REGRA: qualquer segredo NOVO falha o CI. Só é perdoado:
+#   1) espaço reservado conhecido (arquivos *.example, valores "TROQUE_...", dado de teste em *.spec.ts);
+#   2) commit antigo já registrado em docs/production/SEGREDOS-NO-HISTORICO.md (a rotacionar no provedor).
+# Não adicione hashes aqui para "fazer o CI passar": um segredo novo deve ser removido e rotacionado.
+title = "Innovation RH Connect"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Espaços reservados conhecidos e commits antigos já registrados"
+
+paths = [
+  # arquivos de exemplo versionados de propósito (.env.example, .env.prod.example, ...)
+  '''(^|/)\.env(\.[A-Za-z0-9_-]+)*\.example$''',
+  # dados de teste (chaves de idempotência, tokens falsos de validação de ambiente)
+  '''(^|/)[^/]+\.spec\.ts$''',
+]
+
+regexes = [
+  # valores de exemplo: "TROQUE_POR_UM_SEGREDO...", "troque-esta-senha"
+  '''(?i)troque[_-]''',
+  # senha do banco do ambiente LOCAL de desenvolvimento (nunca produção)
+  '''innovation_pass''',
+  # token de exemplo usado na documentação
+  '''tk1234567890abcdef''',
+]
+
+commits = [
+  # Documentados em docs/production/SEGREDOS-NO-HISTORICO.md (rotacionar no provedor)
+  "0c7cc43bc6ccaa1672b4a1e0bc15fe45d59d4ecc", # 0c7cc43b: itens 1, 4 e 5: scripts/deploy_vps_completo.sh (chaves Google, Asaas homologação, segredo JWT/webhook)
+  "6159882e2c901287ffe869f689278e50dc483c61", # 6159882e: itens 1 e 7: scripts/run_local_debug.ps1
+  "2f5393f648b4b30abd7324332204ebd9c7608d86", # 2f5393f6: itens 1 e 7: iniciar_local.ps1
+  "e1e702eb8e5091eb8ff471df215fdaddcbaf70cf", # e1e702eb: item 4: backend/src/services/asaas_service.py (Asaas homologação)
+  "41b1a0dedd5d16c4d6f3a2353a29cbb90939248a", # 41b1a0de: item 4: Asaas homologação
+  "0d4e8f54b2525c01ba75ac916c6667c67346d127", # 0d4e8f54: item 4: Asaas homologação
+  "626a24001c628dc30b16a86130a0a536937089b4", # 626a2400: item 4: Asaas homologação
+  "22d16e538eb30bd5ce32bccd16e85388ace2bd4e", # 22d16e53: item 2: VERCEL_DEPLOY_GUIDE.md
+  "6f5ebda9b4ec53f8e00773c51cc862c78359e17a", # 6f5ebda9: item 3: tema Tabler (site.json, docs.ts), chaves de demonstração
+  "e25bf67bf4d430efa2a315e09441e75e7591f384", # e25bf67b: item 3: tema Tabler
+  "4c791ed8ef88fc1605c76361ecbecfb2c415b777", # 4c791ed8: item 3: tema Tabler
+  "a13ccb41caec1c6acbb2a47949eb77a5aba10aa0", # a13ccb41: item 3: tema Tabler
+  "9d650da8f80ca873b1c038177ddeba5f5a42744a", # 9d650da8: item 3: tema Tabler
+  "353dec6782f24286605568fc653220aa2b47010c", # 353dec67: item 6: test-ghost.js (a confirmar se era dado real)
+  "e98bf933fab99b617613c8e784e1b33b0bcdeef5", # e98bf933: item 8: docker-compose.prod.yml (segredo fraco padrão)
+
+  # ACHADOS NOVOS pelo gitleaks, ainda NÃO documentados em SEGREDOS-NO-HISTORICO.md (avaliar e rotacionar)
+  "8daba4e22f85a0ce7616dd9f8b98663c19cb4d1d", # 8daba4e2: SESSÕES DO WHATSAPP versionadas: storage/whatsapp/**/session-*.json (68 achados). Desconectar os aparelhos vinculados
+  "d5d3a7880bf58bf9622ea6f8f6e32001ce68593d", # d5d3a788: SESSÕES DO WHATSAPP versionadas: storage/whatsapp/** (6 achados). Desconectar os aparelhos vinculados
+  "2e8946fe3d7245705e86b4531c9fd24aa615fecc", # 2e8946fe: frontend/utils/stripe/config.ts e supabase/admin.ts (padrão de chave Stripe). Conferir se eram valores reais
+  "e54c54d23fd3112c95a0e66a836aaaca23548ec6", # e54c54d2: test-ghost.js (versão anterior ao item 6)
+  "0d16b3904c7a8ab3f506cd99c5421cba36ac89e4", # 0d16b390: .github/workflows/ci-cd.yml (valor de teste do JWT, antigo)
+  "d99c271b27130fce1ce2ba4bad64bae4742c02e0", # d99c271b: SECURITY.md (exemplo de chave em documentação)
+]

@@ -1,6 +1,6 @@
 # Segredos encontrados no histórico do git (item L10)
 
-Levantamento de 21/10/2026 sobre os **1.557 commits** de todas as branches. **Este arquivo não contém nenhum valor secreto**, só onde estão e o que fazer.
+Levantamento de 21/10/2026 sobre os **1.557 commits** (itens 10 e 11 vieram da varredura com `gitleaks` feita no CI) de todas as branches. **Este arquivo não contém nenhum valor secreto**, só onde estão e o que fazer.
 
 > **O repositório `Eduardo09e32y4rhf/innovation` é PÚBLICO** (`visibility: public`). Tudo abaixo está ao alcance de qualquer pessoa. Trate cada item como **comprometido**: o que resolve é **revogar/rotacionar**, não apagar o histórico.
 
@@ -20,6 +20,8 @@ Nenhum desses valores existe nos arquivos atuais (`git grep` em `HEAD`). Eles s�
 | 7 | Tokens de teste do Mercado Pago (`TEST-…`) | `iniciar_local.ps1`, `scripts/run_local_debug.ps1` (fev–mar/2026) | Baixo: credencial de teste | Revogar no painel do Mercado Pago |
 | 8 | Senha padrão do banco em compose de produção | `docker-compose.prod.yml` @ `e98bf933` (12/09/2026): valor de 10 caracteres | Médio se a senha de produção ainda for a padrão | Confirmar que a senha do Postgres de produção foi trocada (`scripts/security/rotate-db-password.sh`) |
 | 9 | Arquivos `.env.prod` e `innovation/.env` já foram versionados | fev/2026 | Baixo: continham quase só espaços reservados (a maior "senha" tinha 10 caracteres) | Nada além do item 8 |
+| 10 | **Sessões do WhatsApp** (28 arquivos de credenciais de sessão, 74 achados do gitleaks) | 2 commits de maio/2026: `8daba4e2` e `d5d3a788` | **Alto**: quem tiver esses arquivos pode assumir a conta do WhatsApp conectada | No WhatsApp: **desvincular todos os aparelhos conectados** (Configurações > Aparelhos conectados) e reconectar |
+| 11 | Chave com padrão de chave Stripe | `frontend/utils/stripe/config.ts` @ `2e8946fe` | A confirmar: pode ser exemplo | Conferir no painel da Stripe se existe e revogar |
 
 **Limites da varredura:** feita com um script próprio (padrões de chave e entropia), sem `gitleaks` (não está instalado no ambiente). Ignora arquivos binários e `package-lock.json`. Pode haver falso negativo; rode `gitleaks detect` com o histórico completo (`fetch-depth: 0`) para conferir.
 

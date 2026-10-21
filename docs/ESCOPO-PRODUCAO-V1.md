@@ -23,7 +23,7 @@ Documento único de planejamento: o que limpar, o que fazer, em quanto tempo, qu
 | Módulos da API / controllers / services | 39 / 71 / 116 |
 | Tabelas / migrations | 134 / 35 |
 | Telas | ~115 |
-| Testes | ~1.500 (vitest) + Playwright em `tests/e2e` |
+| Testes | ~1.500 (vitest) + Playwright em `tests-e2e` |
 | Usos de `any` | 586 (API) + 187 (web) |
 | Maiores módulos | finance 7,3 mil linhas, jobs 7,1 mil, time-track 4 mil |
 
@@ -72,7 +72,7 @@ Regra: **nada é apagado sem evidência de que não é usado** (referência no m
 | L9 | Documentação | 20 arquivos em `docs/`, vários de organização pontual (`ORGANIZACAO-2026-10-03`, `REVISAO-SITES-2026-10-07`, `AGENT_CANVAS_MVP`) | Mover o obsoleto para `docs/archive/`; manter README, SECURITY, DEPLOY, HANDOFF, este escopo, manual do usuário | `docs/` com ≤ 10 arquivos vivos |
 | L10 | Segredos e histórico | `PROXIMOS-PASSOS.md` cita senha exposta no histórico do git | **Verificar** se foi rotacionada; rodar varredura (gitleaks) no histórico inteiro; se houver, rotacionar tudo e `git filter-repo` | Varredura limpa; segredos rotacionados e registrados |
 | L11 | Dados de teste e demonstração | usuários `qa-*`, "Race Test", empresas de teste, seeds de demonstração | Garantir que nenhum seed de demonstração rode em produção (já existe teste `no-demo-data-in-production`) e limpar bancos de staging | Staging e produção sem dado de teste |
-| L12 | Testes órfãos | `tests/qa/` fora do CI | Migrar o que vale para `tests/unit`/`tests/e2e` e apagar o resto | 0 testes fora do CI |
+| L12 | Testes órfãos | `tests/qa/` fora do CI | Migrar o que vale para `tests/unit`/`tests-e2e` e apagar o resto | 0 testes fora do CI |
 
 ---
 

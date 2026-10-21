@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, type Browser, type BrowserContext } from '@playwright/test';
-import { PASSWORD, USERS, WEB_URL, type UserKey } from './env';
+import { PASSWORD, USERS, VIEWPORT, VIEWPORT_KEY, WEB_URL, type UserKey } from './env';
 import { settle } from './ui';
 
 const AUTH_DIR = path.join(__dirname, '..', '.auth');
@@ -9,7 +9,7 @@ const AUTH_DIR = path.join(__dirname, '..', '.auth');
 export type Session = { context: BrowserContext; tenant: string; who: UserKey; logins: number; save: () => Promise<void> };
 
 const contextOptions = {
-  viewport: { width: 1280, height: 800 },
+  viewport: VIEWPORT,
   locale: 'pt-BR',
   timezoneId: 'America/Sao_Paulo',
   permissions: ['geolocation'],
@@ -25,12 +25,12 @@ const tenantOf = (url: string) => new URL(url).pathname.split('/')[1];
  */
 export async function openSession(browser: Browser, who: UserKey): Promise<Session> {
   fs.mkdirSync(AUTH_DIR, { recursive: true });
-  const file = path.join(AUTH_DIR, `${who}.json`);
+  const file = path.join(AUTH_DIR, `${who}-${VIEWPORT_KEY}.json`);
   let logins = 0;
   let context: BrowserContext | null = null;
   let tenant = '';
 
-  const metaFile = path.join(AUTH_DIR, `${who}.meta.json`);
+  const metaFile = path.join(AUTH_DIR, `${who}-${VIEWPORT_KEY}.meta.json`);
   if (fs.existsSync(file) && fs.existsSync(metaFile)) {
     const savedTenant = JSON.parse(fs.readFileSync(metaFile, 'utf8')).tenant as string;
     const reused = await browser.newContext({ ...contextOptions, storageState: file });

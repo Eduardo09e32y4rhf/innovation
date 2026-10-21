@@ -1,0 +1,32 @@
+# Fonte única dos rótulos do repositório. Aplicado por .github/workflows/labels-sync.yml (manual).
+# Formato: name, color (hex sem #), description.
+
+# Severidade
+- { name: "P0", color: "b60205", description: "Bloqueia produção: dinheiro, vazamento entre empresas, perda de dados" }
+- { name: "P1", color: "d93f0b", description: "Crítico: corrigir antes do lançamento" }
+- { name: "P2", color: "fbca04", description: "Importante: entra no backlog da versão" }
+
+# Tipo
+- { name: "bug", color: "d73a4a", description: "Algo não funciona como deveria" }
+- { name: "tarefa", color: "0e8a16", description: "Trabalho planejado (escopo, limpeza, melhoria)" }
+- { name: "validacao", color: "5319e7", description: "Precisa de validação do contador, do jurídico ou do cliente" }
+- { name: "seguranca", color: "b60205", description: "Segurança ou LGPD" }
+- { name: "divida-tecnica", color: "c5def5", description: "Limpeza, refatoração, tipos" }
+
+# Área
+- { name: "area:auth", color: "1d76db", description: "Login, sessão, MFA, permissões" }
+- { name: "area:ponto", color: "1d76db", description: "Ponto, escalas, banco de horas" }
+- { name: "area:folha", color: "1d76db", description: "Folha, férias, 13º, rescisão, contábil" }
+- { name: "area:recrutamento", color: "1d76db", description: "Vagas, candidatos, banco de talentos" }
+- { name: "area:cobranca", color: "1d76db", description: "Assinatura, faturas, Asaas, nota fiscal" }
+- { name: "area:plataforma", color: "1d76db", description: "Painel DEV/CEO, suporte, auditoria" }
+- { name: "area:front", color: "1d76db", description: "Telas, acessibilidade, responsivo" }
+- { name: "area:infra", color: "1d76db", description: "Deploy, backup, monitoramento, CI" }
+- { name: "area:lgpd", color: "1d76db", description: "Privacidade, consentimento, retenção" }
+
+# Estado
+- { name: "status:triagem", color: "ededed", description: "Ainda não avaliado" }
+- { name: "status:em-andamento", color: "0075ca", description: "Alguém está trabalhando" }
+- { name: "status:bloqueado", color: "e99695", description: "Depende de terceiro ou de decisão" }
+- { name: "status:aguardando-validacao", color: "d4c5f9", description: "Pronto, esperando contador/jurídico/cliente" }
+- { name: "status:pronto-para-teste", color: "bfdadc", description: "Implementado, falta testar em staging" }
