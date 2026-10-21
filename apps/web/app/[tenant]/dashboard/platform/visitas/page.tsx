@@ -78,7 +78,7 @@ export default function VisitasPage() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold text-fg"><Eye size={20} aria-hidden="true" /> Visitas do site</h1>
-          <p className="mt-1 max-w-2xl text-sm text-fg-sub">Acessos à landing page. Sem cookies e sem guardar IP: só data, hora e lugar aproximado. Visualizações de robôs e de quem ativou &quot;não rastrear&quot; não entram.</p>
+          <p className="mt-1 max-w-2xl text-sm text-fg-sub">Acessos à landing page de quem aceitou as estatísticas no aviso de cookies. Sem guardar IP: só data, hora e lugar aproximado. Quem recusou, quem ativou &quot;não rastrear&quot; e os robôs não entram, então o total é menor que o número real de visitantes.</p>
         </div>
         <div className="flex gap-2" role="group" aria-label="Período">
           {PERIODS.map((value) => (
