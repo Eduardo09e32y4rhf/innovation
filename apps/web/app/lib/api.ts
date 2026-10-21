@@ -758,6 +758,23 @@ export interface SessionInfo { id: string; createdAt: string; lastUsedAt?: strin
 
 // Module API
 
+export interface VisitRow { views: number; visitors: number }
+export interface VisitSummary {
+  period: { days: number; from: string; to: string };
+  totals: { views: number; visitors: number; today: VisitRow; avgViewsPerDay: number };
+  byDay: Array<VisitRow & { day: string }>;
+  countries: Array<VisitRow & { country: string | null }>;
+  regions: Array<VisitRow & { country: string | null; region: string | null }>;
+  cities: Array<VisitRow & { country: string | null; region: string | null; city: string | null }>;
+  devices: Array<VisitRow & { device: string | null }>;
+  browsers: Array<VisitRow & { browser: string | null }>;
+  referrers: Array<VisitRow & { referrer: string | null }>;
+  paths: Array<VisitRow & { path: string | null }>;
+  geoReady: boolean;
+}
+export interface RecentVisit { id: string; createdAt: string; path: string; referrer: string | null; country: string | null; region: string | null; city: string | null; device: string; browser: string | null }
+export interface RecentVisits { page: number; limit: number; total: number; items: RecentVisit[] }
+
 export const api = {
   request,
 
@@ -1008,6 +1025,10 @@ export const api = {
 
   platform: {
     stats: () => request<PlatformStats>('/platform/stats'),
+    visits: {
+      summary: (days = 30) => request<VisitSummary>(`/platform/visits/summary${makeQuery({ days })}`),
+      recent: (page = 1, limit = 25) => request<RecentVisits>(`/platform/visits/recent${makeQuery({ page, limit })}`),
+    },
     listCompanies: (params?: { page?: number; limit?: number; search?: string; status?: string; billingStatus?: string }) => request<{ data: PlatformCompany[]; total: number; page: number; limit: number }>(`/platform/companies${makeQuery(params || {})}`, { timeoutMs: 12000 }),
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
     getCompanyAuditLogs: (id: string) => request<any[]>(`/platform/companies/${id}/audit-logs`),

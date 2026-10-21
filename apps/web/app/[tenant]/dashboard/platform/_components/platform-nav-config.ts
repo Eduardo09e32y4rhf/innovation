@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Building2, Calculator, ClipboardSignature, CreditCard, FileKey2, Headset, LayoutDashboard, Megaphone, ReceiptText, ScrollText, ShieldCheck, TicketPercent, UsersRound, type LucideIcon } from 'lucide-react';
+import { Activity, BarChart3, Eye, Building2, Calculator, ClipboardSignature, CreditCard, FileKey2, Headset, LayoutDashboard, Megaphone, ReceiptText, ScrollText, ShieldCheck, TicketPercent, UsersRound, type LucideIcon } from 'lucide-react';
 
 export type PlatformNavGroup = {
   key: string;
@@ -25,6 +25,7 @@ export const PLATFORM_NAV_GROUPS: PlatformNavGroup[] = [
   { key: 'coupons', label: 'Cupons', description: 'Incentivos comerciais', href: '/coupons', matchPrefixes: ['/coupons'], icon: TicketPercent },
   { key: 'whatsapp', label: 'WhatsApp', description: 'WhatsApp e canais', href: '/whatsapp', matchPrefixes: ['/whatsapp'], icon: Megaphone },
   { key: 'audit', label: 'Auditoria', description: 'Logs e rastreabilidade', href: '/audit', matchPrefixes: ['/audit'], icon: ShieldCheck },
+  { key: 'visitas', label: 'Visitas do site', description: 'Acessos à landing page', href: '/visitas', matchPrefixes: ['/visitas'], icon: Eye },
   { key: 'support', label: 'Suporte operacional', description: 'Fila, SLA e atendimento', href: '/support', matchPrefixes: ['/support'], icon: Headset },
 ];
 

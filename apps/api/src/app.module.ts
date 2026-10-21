@@ -61,6 +61,7 @@ import { DocumentTemplatesModule } from './modules/document-templates/document-t
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { CommercialSalesModule } from './modules/commercial-sales/commercial-sales.module';
 import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -115,6 +116,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     OnboardingModule,
     CommercialSalesModule,
     CeoOnboardingModule,
+    AnalyticsModule,
     PayrollModule,
     PromotionsModule,
     DocumentTemplatesModule,

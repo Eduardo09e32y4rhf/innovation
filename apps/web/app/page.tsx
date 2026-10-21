@@ -12,6 +12,7 @@ import { PricingSection } from './_components/pricing-section';
 import { PontoDemo, RotatingWord, VagasBoard } from './_components/landing/interactive';
 import { PortalVagas } from './_components/landing/portal-vagas';
 import { Reveal } from './_components/landing/motion';
+import { trackVisit } from './lib/track-visit';
 import './landing.css';
 
 const NAV = [['Portal de vagas', '/carreiras'], ['Recrutamento', '#vagas'], ['Gestão', '#gestao'], ['Ponto', '#ponto'], ['Planos', '#planos'], ['Dúvidas', '#faq']] as const;
@@ -58,6 +59,8 @@ export default function Home() {
   const [open, setOpen] = useState<number | null>(0);
   const [menu, setMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => { trackVisit('/'); }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);

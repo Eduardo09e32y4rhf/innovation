@@ -24,6 +24,8 @@ export default function PrivacidadePage() {
           <p>Seus dados são criptografados e armazenados em servidores seguros. Não compartilhamos, vendemos ou alugamos dados de colaboradores para terceiros. O acesso às informações é restrito aos gestores e administradores autorizados pela sua empresa.</p>
           <h2 className="text-xl font-bold text-white mt-8 mb-4">3. Conformidade com a LGPD</h2>
           <p>Adotamos medidas técnicas e organizacionais para atender à Lei Geral de Proteção de Dados (LGPD). Todos os colaboradores cadastrados possuem o direito de solicitar a exclusão, portabilidade ou revisão dos seus dados diretamente junto ao RH da empresa contratante.</p>
+          <h2 className="text-xl font-bold text-white mt-8 mb-4">4. Estatísticas de visitas ao site</h2>
+          <p>Para saber quantas pessoas visitam nossa página inicial, registramos de forma anônima a data e a hora do acesso, a página aberta, o tipo de dispositivo e navegador e a cidade, o estado e o país aproximados, estimados a partir do endereço de rede. Não usamos cookies para isso, não gravamos o endereço de rede e não identificamos o visitante. Respeitamos o sinal &quot;não rastrear&quot; do navegador. Esses registros são apagados após 400 dias.</p>
         </div>
         <CompanyIdentity claro className="mt-8 text-center text-xs" />
       </div>

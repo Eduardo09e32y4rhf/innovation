@@ -3870,3 +3870,22 @@ model TerminationRecord {
   @@unique([employeeId, terminationDate])
   @@index([companyId, terminationDate])
 }
+
+/// Visita anonima a landing page. Sem cookie e sem IP: so data/hora, lugar aproximado e dispositivo.
+/// visitorKey e um hash que muda todo dia (so serve para contar visitantes unicos no dia) e e apagado em 48h.
+model SiteVisit {
+  id         String   @id @default(uuid()) @db.Uuid
+  createdAt  DateTime @default(now())
+  path       String   @db.VarChar(200)
+  referrer   String?  @db.VarChar(120)
+  country    String?  @db.VarChar(2)
+  region     String?  @db.VarChar(80)
+  city       String?  @db.VarChar(80)
+  device     String   @db.VarChar(10)
+  browser    String?  @db.VarChar(20)
+  firstOfDay Boolean  @default(false)
+  visitorKey String?  @db.VarChar(32)
+
+  @@index([createdAt])
+  @@index([visitorKey, createdAt])
+}

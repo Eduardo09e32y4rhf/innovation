@@ -20,8 +20,10 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   const section = pathname.slice(base.length).split('/').filter(Boolean)[0] ?? '';
   const specialist = ['DEV', 'CEO', 'COMERCIAL'].includes(role) || (role === 'CONTABIL' && ['plans', 'coupons', 'contracts', 'finance', 'subscriptions', 'audit'].includes(section));
 
+  const devOnly = section === 'visitas' && role !== 'DEV';
+
   if (!user) return <p role="status" className="p-4 text-sm text-fg-mut">Carregando acesso à Plataforma...</p>;
-  if (!allowed || (!isHub && !specialist)) {
+  if (!allowed || (!isHub && !specialist) || devOnly) {
     return <section className="card-v2 m-4 p-5"><h1 className="text-xl font-semibold text-fg">Acesso restrito</h1><p className="mt-2 text-sm text-fg-mut">Seu perfil não tem autorização para esta área da Plataforma.</p><Link href={`/${tenant}/dashboard`} className="btn btn-outline mt-4">Voltar ao Dashboard</Link></section>;
   }
 
