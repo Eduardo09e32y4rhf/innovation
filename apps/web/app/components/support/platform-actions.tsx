@@ -25,12 +25,14 @@ export function PlatformActions({ ticket, userId, onChanged }: { ticket: Support
     if (!code) { toast.error('Informe o código do chamado original.'); return; }
     if (!(await confirm({
       title: 'Marcar como duplicado?', confirmText: 'Marcar duplicado', variant: 'primary',
-      description: `O cliente será avisado de que este chamado segue junto com ${code} e o chamado será encerrado.`,
+      description: `O cliente será avisado de que este chamado segue junto com ${code} e este será encerrado como duplicado.`,
     }))) return;
-    await run.run('Chamado encerrado como duplicado.', async () => {
-      await api.platformSupport.internalNote(ticket.id, { message: `Marcado como duplicado de ${code}.` });
-      await api.platformSupport.reply(ticket.id, { message: `Este chamado é igual ao ${code}, que seguirá com o atendimento. Encerramos este para não duplicar o trabalho.` });
-      await api.platformSupport.updateStatus(ticket.id, 'CLOSED');
+    await run.run('Chamado marcado como duplicado.', async () => {
+      const candidates = await api.platformSupport.list(ticket.company?.id ? { companyId: ticket.company.id } : undefined);
+      const original = (Array.isArray(candidates) ? candidates : []).find((t: SupportTicket) => String(t.ticketNumber || '').toUpperCase() === code);
+      if (!original) throw new Error(`Não encontramos o chamado ${code} nesta empresa.`);
+      if (original.id === ticket.id) throw new Error('Um chamado não pode ser duplicado de si mesmo.');
+      await api.platformSupport.markDuplicate(ticket.id, original.id);
       setDupOpen(false); setDupOf('');
     });
   };

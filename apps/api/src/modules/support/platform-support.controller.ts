@@ -10,6 +10,11 @@ import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportTicketPriority, SupportTicketStatus } from '@prisma/client';
 import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
 import { UpdateSupportStatusDto } from './dto/update-support-status.dto';
+import { SupportRefundService } from './support-refund.service';
+import { SupportNotificationService } from './support-notification.service';
+import { SupportDuplicateService } from './support-duplicate.service';
+import { MarkSupportDuplicateDto } from './dto/mark-support-duplicate.dto';
+import { RefundDecisionDto, RefundRejectDto } from './dto/support-refund.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'COMERCIAL')
@@ -18,8 +23,29 @@ export class PlatformSupportController {
   constructor(
     private readonly supportService: SupportService,
     private readonly repository: SupportRepository,
-    private readonly authService: SupportAuthorizationService
+    private readonly authService: SupportAuthorizationService,
+    private readonly refundService: SupportRefundService,
+    private readonly notifier: SupportNotificationService,
+    private readonly duplicateService: SupportDuplicateService,
   ) {}
+
+  @Post(':id/duplicate')
+  @Roles('DEV', 'CEO')
+  async markDuplicate(@Req() req: any, @Param('id') id: string, @Body() body: MarkSupportDuplicateDto) {
+    return this.duplicateService.markDuplicate(req.user, id, body.duplicateOfId);
+  }
+
+  @Post(':id/refund/approve')
+  @Roles('DEV', 'CEO')
+  async approveRefund(@Req() req: any, @Param('id') id: string, @Body() body: RefundDecisionDto) {
+    return this.refundService.approve(req.user, id, body?.reason);
+  }
+
+  @Post(':id/refund/reject')
+  @Roles('DEV', 'CEO')
+  async rejectRefund(@Req() req: any, @Param('id') id: string, @Body() body: RefundRejectDto) {
+    return this.refundService.reject(req.user, id, body.reason);
+  }
 
   @Get('stats')
   async getStats(@Req() req: any) {
@@ -83,6 +109,7 @@ export class PlatformSupportController {
     }
     const ticket = await this.repository.updateTicket(id, lifecycle);
     await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'STATUS_CHANGED', newValue: { status } });
+    await this.notifier.notifyStatusChange(id, status);
     return ticket;
   }
 
@@ -104,6 +131,7 @@ export class PlatformSupportController {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { status: 'RESOLVED', resolvedAt: new Date() });
     await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'TICKET_RESOLVED' });
+    await this.notifier.notifyStatusChange(id, 'RESOLVED');
     return ticket;
   }
 

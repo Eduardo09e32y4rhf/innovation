@@ -2,6 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { Prisma, $Enums } from '@prisma/client';
 
+/** Campos de reembolso e avaliação (CSAT) expostos junto do chamado. */
+export const REFUND_CSAT_SELECT = {
+  invoiceId: true, refundKind: true, refundAmount: true, refundStatus: true, refundReason: true,
+  refundDecisionById: true, refundDecisionAt: true, refundDecisionReason: true,
+  refundSecondApproverId: true, refundSecondApproverAt: true, paymentRefundId: true,
+  satisfactionScore: true, satisfactionComment: true, satisfactionAt: true, closedAt: true, duplicateOfId: true,
+};
+
 export const SAFE_USER_SELECT = {
   id: true,
   name: true,
@@ -34,6 +42,7 @@ export class SupportRepository {
         firstRespondedAt: true,
         resolvedAt: true,
         slaBreached: true,
+        ...REFUND_CSAT_SELECT,
         createdAt: true,
         updatedAt: true,
         createdBy: { select: SAFE_USER_SELECT },
@@ -65,6 +74,7 @@ export class SupportRepository {
         firstRespondedAt: true,
         resolvedAt: true,
         slaBreached: true,
+        ...REFUND_CSAT_SELECT,
         createdAt: true,
         updatedAt: true,
         createdBy: { select: SAFE_USER_SELECT },
@@ -121,6 +131,7 @@ export class SupportRepository {
         firstRespondedAt: true,
         resolvedAt: true,
         slaBreached: true,
+        ...REFUND_CSAT_SELECT,
         createdAt: true,
         updatedAt: true,
         createdBy: { select: SAFE_USER_SELECT },
@@ -175,6 +186,7 @@ export class SupportRepository {
         firstRespondedAt: true,
         resolvedAt: true,
         slaBreached: true,
+        ...REFUND_CSAT_SELECT,
         createdAt: true,
         updatedAt: true,
         createdBy: { select: SAFE_USER_SELECT },

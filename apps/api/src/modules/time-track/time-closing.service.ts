@@ -665,10 +665,26 @@ export class TimeClosingService {
   private async ownPublishedClosings(companyId: string, actor: JwtUser, id?: string) {
     const employee = await this.prisma.employee.findFirst({ where: { companyId, userId: actor.sub }, select: { id: true } });
     if (!employee) return [];
-    return this.prisma.timeClosing.findMany({
+    const closings = await this.prisma.timeClosing.findMany({
       where: { companyId, employeeId: employee.id, status: { in: [TimeClosingStatus.APPROVED, TimeClosingStatus.CLOSED] }, ...(id ? { id } : {}) },
       include: { employee: true, company: true },
       orderBy: { periodStart: 'desc' },
+    });
+    return this.onlyReleasedByAccounting(companyId, closings);
+  }
+
+  /**
+   * Empresa com fluxo do contador (AccountingPeriod) para o mês: o holerite só aparece depois que o RH libera (RELEASED/PAID).
+   * Empresa sem contador (sem AccountingPeriod no mês) continua como antes.
+   */
+  private async onlyReleasedByAccounting<T extends { periodEnd: Date }>(companyId: string, closings: T[]): Promise<T[]> {
+    if (!closings.length) return closings;
+    const monthOf = (date: Date) => date.toISOString().slice(0, 7);
+    const periods = await this.prisma.accountingPeriod.findMany({ where: { companyId, month: { in: [...new Set(closings.map((row) => monthOf(row.periodEnd)))] } }, select: { month: true, status: true } });
+    const status = new Map(periods.map((row) => [row.month, row.status as string]));
+    return closings.filter((row) => {
+      const current = status.get(monthOf(row.periodEnd));
+      return current === undefined || current === 'RELEASED' || current === 'PAID';
     });
   }
 

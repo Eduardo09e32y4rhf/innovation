@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { SupportRepository } from './support.repository';
 import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportSlaService } from './support-sla.service';
 import { SupportTicketPriority } from '@prisma/client';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
+import { SupportNotificationService } from './support-notification.service';
 
 @Injectable()
 export class SupportService {
@@ -12,6 +13,7 @@ export class SupportService {
     private readonly repository: SupportRepository,
     private readonly authService: SupportAuthorizationService,
     private readonly slaService: SupportSlaService,
+    @Optional() private readonly notifier?: SupportNotificationService,
   ) {}
 
   async createTicket(actor: JwtUser, data: any) {
@@ -134,6 +136,7 @@ export class SupportService {
     if (Object.keys(updateData).length > 0) {
       await this.repository.updateTicket(id, updateData);
     }
+    if (visibility === 'PUBLIC' && actor.role === 'DEV') await this.notifier?.notifyPlatformReply(id);
 
     return msg;
   }
@@ -152,6 +155,7 @@ export class SupportService {
       actorUserId: actor.sub,
       eventType: 'TICKET_CLOSED',
     });
+    if (actor.role === 'DEV') await this.notifier?.notifyStatusChange(id, 'CLOSED');
   }
 
   async reopenTicket(actor: JwtUser, id: string) {

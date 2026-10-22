@@ -11,8 +11,14 @@ import { SupportAttachmentService } from './support-attachment.service';
 import { SupportFileValidationService } from './support-file-validation.service';
 import { LocalSupportStorageService } from './local-support-storage.service';
 import { SupportStorageService } from './support-storage.service';
+import { SupportNotificationService } from './support-notification.service';
+import { SupportRefundService } from './support-refund.service';
+import { SupportSatisfactionService } from './support-satisfaction.service';
+import { SupportDuplicateService } from './support-duplicate.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
+  imports: [NotificationsModule],
   controllers: [SupportController, PublicSupportController, PlatformSupportController],
   providers: [
     SupportService,
@@ -22,6 +28,10 @@ import { SupportStorageService } from './support-storage.service';
     SupportSlaScheduler,
     SupportAttachmentService,
     SupportFileValidationService,
+    SupportNotificationService,
+    SupportRefundService,
+    SupportSatisfactionService,
+    SupportDuplicateService,
     LocalSupportStorageService,
     { provide: SupportStorageService, useClass: LocalSupportStorageService }
   ],

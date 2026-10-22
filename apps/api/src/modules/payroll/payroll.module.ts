@@ -8,11 +8,15 @@ import { PayrollService } from './payroll.service';
 import { TerminationController } from './termination.controller';
 import { TerminationService } from './termination.service';
 import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
+import { TimeTrackModule } from '../time-track/time-track.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { AccountingPeriodService } from './accounting-period.service';
+import { PayrollPeriodsController } from './payroll-periods.controller';
 
 @Module({
-  imports: [SupportModule],
-  controllers: [TerminationController, PayrollController, DeductionRulesController],
-  providers: [TerminationService, PayrollService, PayrollRepository, PrismaService, PayrollCalculationService],
-  exports: [PayrollService],
+  imports: [SupportModule, TimeTrackModule, NotificationsModule],
+  controllers: [TerminationController, PayrollPeriodsController, PayrollController, DeductionRulesController],
+  providers: [TerminationService, PayrollService, PayrollRepository, PrismaService, PayrollCalculationService, AccountingPeriodService],
+  exports: [PayrollService, AccountingPeriodService],
 })
 export class PayrollModule {}

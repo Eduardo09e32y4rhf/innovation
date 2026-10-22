@@ -2028,6 +2028,7 @@ model PlatformInvoice {
   company Company       @relation(fields: [companyId], references: [id])
   plan    PlatformPlan? @relation(fields: [planId], references: [id])
   adjustments InvoiceAdjustment[]
+  supportTickets SupportTicket[]
 
   @@index([companyId, status, dueDate])
   @@index([deletedAt])
@@ -2476,6 +2477,7 @@ enum SupportTicketCategory {
   PERFORMANCE
   SECURITY
   INTEGRATION
+  REFUND
   OTHER
 }
 
@@ -2490,6 +2492,21 @@ enum SupportTicketStatus {
   REOPENED
   DUPLICATE
   CANCELLED
+}
+
+enum SupportRefundKind {
+  TOTAL
+  PARTIAL
+}
+
+enum SupportRefundStatus {
+  REQUESTED
+  AWAITING_SECOND_APPROVAL
+  APPROVED
+  REJECTED
+  PROCESSING
+  CONFIRMED
+  FAILED
 }
 
 enum SupportTicketPriority {
@@ -2570,9 +2587,26 @@ model SupportTicket {
   lastCustomerReplyAt DateTime?
   lastDevReplyAt      DateTime?
 
+  invoiceId              String?              @db.Uuid
+  refundKind             SupportRefundKind?
+  refundAmount           Decimal?             @db.Decimal(14, 2)
+  refundStatus           SupportRefundStatus?
+  refundReason           String?              @db.Text
+  refundDecisionById     String?              @db.Uuid
+  refundDecisionAt       DateTime?
+  refundDecisionReason   String?              @db.Text
+  refundSecondApproverId String?              @db.Uuid
+  refundSecondApproverAt DateTime?
+  paymentRefundId        String?              @db.Uuid
+
+  satisfactionScore   Int?
+  satisfactionComment String? @db.Text
+  satisfactionAt      DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  invoice          PlatformInvoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   company          Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
   createdBy        User?           @relation("SupportTicketCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   affectedUser     User?           @relation("SupportTicketAffectedUser", fields: [affectedUserId], references: [id], onDelete: SetNull)
@@ -2594,6 +2628,8 @@ model SupportTicket {
   @@index([firstResponseDueAt])
   @@index([resolutionDueAt])
   @@index([createdAt])
+  @@index([invoiceId])
+  @@index([refundStatus])
 }
 
 model SupportTicketMessage {
@@ -3888,4 +3924,45 @@ model SiteVisit {
 
   @@index([createdAt])
   @@index([visitorKey, createdAt])
+}
+
+enum AccountingPeriodStatus {
+  DRAFT
+  CALCULATED
+  PUBLISHED
+  RETURNED
+  RELEASED
+  PAID
+}
+
+/// Fluxo do mês entre o contador e o RH da empresa: calcular -> publicar -> (devolver) -> liberar holerites -> pagar.
+model AccountingPeriod {
+  id                String                 @id @default(uuid()) @db.Uuid
+  companyId         String                 @db.Uuid
+  /// Competência no formato YYYY-MM.
+  month             String                 @db.VarChar(7)
+  status            AccountingPeriodStatus @default(DRAFT)
+  gross             Decimal                @default(0) @db.Decimal(14, 2)
+  discounts         Decimal                @default(0) @db.Decimal(14, 2)
+  net               Decimal                @default(0) @db.Decimal(14, 2)
+  inss              Decimal                @default(0) @db.Decimal(14, 2)
+  fgts              Decimal                @default(0) @db.Decimal(14, 2)
+  irrf              Decimal                @default(0) @db.Decimal(14, 2)
+  employees         Int                    @default(0)
+  calculatedById    String?                @db.Uuid
+  calculatedAt      DateTime?
+  publishedById     String?                @db.Uuid
+  publishedAt       DateTime?
+  returnedById      String?                @db.Uuid
+  returnedAt        DateTime?
+  returnComment     String?
+  releasedById      String?                @db.Uuid
+  releasedAt        DateTime?
+  paidById          String?                @db.Uuid
+  paidAt            DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@unique([companyId, month])
+  @@index([companyId, status])
 }

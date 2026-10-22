@@ -9,6 +9,8 @@ import { api } from '@/app/lib/api';
 import { useAction } from '@/app/hooks/use-action';
 import { SupportWorkspace } from '@/app/components/support/support-workspace';
 import { companySupportApi } from '@/app/components/support/support-api';
+import { RefundBlock } from '@/app/components/support/refund-block';
+import { RatingBlock } from '@/app/components/support/rating-block';
 import { COMPANY_FILTERS } from '@/app/components/support/support-model';
 import { SuporteView as PlatformSupportPage } from '../platform/_hub/suporte-view';
 import { TicketWizardSlideover } from './_components/ticket-wizard-slideover';
@@ -68,10 +70,12 @@ function CustomerSupportPage() {
         <SupportWorkspace
           key={reloadKey} mode="company" userId={user?.id} api={companySupportApi} filters={COMPANY_FILTERS}
           emptyListText="Você ainda não abriu nenhum chamado."
+          refundBlock={(ticket, refresh) => <RefundBlock ticket={ticket} userId={user?.id} isPlatform={false} onChanged={refresh} />}
+          ratingBlock={(ticket, refresh) => <RatingBlock ticket={ticket} userId={user?.id} onChanged={refresh} />}
           renderActions={(ticket, refresh) => <CompanyActions ticket={ticket} onChanged={refresh} />}
         />
       </div>
-      <TicketWizardSlideover isOpen={showWizard} onClose={() => { if (!create.busy) setShowWizard(false); }} creating={create.busy} onCreate={async (data) => { await create.run(data); }} />
+      <TicketWizardSlideover canRefund={role === 'ADMIN'} onRefundCreated={() => { setShowWizard(false); setReloadKey((k) => k + 1); }} isOpen={showWizard} onClose={() => { if (!create.busy) setShowWizard(false); }} creating={create.busy} onCreate={async (data) => { await create.run(data); }} />
     </div>
   );
 }

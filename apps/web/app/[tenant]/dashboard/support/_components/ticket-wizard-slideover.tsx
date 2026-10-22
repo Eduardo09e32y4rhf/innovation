@@ -1,29 +1,38 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import { X, ChevronRight, ChevronLeft, Upload, Paperclip } from 'lucide-react';
+import { X, ChevronRight, Upload, Paperclip, Camera } from 'lucide-react';
 import { Button, Drawer, ConfirmDialog } from '@/app/components/ui';
 import { toast } from 'sonner';
+import { RefundForm, REFUND_FORM_ID } from './refund-form';
 
 export function TicketWizardSlideover({
   isOpen,
   onClose,
   onCreate,
-  creating
+  creating,
+  canRefund = false,
+  onRefundCreated,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onCreate: (data: { category: string; title: string; description: string; priority: string; files: File[] }) => Promise<void>;
   creating: boolean;
+  /** Só o administrador da empresa pode pedir reembolso. */
+  canRefund?: boolean;
+  onRefundCreated?: (ticketNumber?: string) => void;
 }) {
+  const [refundBusy, setRefundBusy] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [discard, setDiscard] = useState(false);
-  function requestClose() { if (creating) return; if (title || description || files.length || category || priority) setDiscard(true); else onClose(); }
+  function requestClose() { if (creating || refundBusy) return; if (title || description || files.length || category || priority) setDiscard(true); else onClose(); }
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState('');
   const [priority, setPriority] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const isRefund = category === 'REFUND';
+  const totalSteps = isRefund ? 2 : 4;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -41,9 +50,18 @@ export function TicketWizardSlideover({
 
   const nextStep = () => {
     if (step === 1 && !category) return toast.error('Selecione uma categoria.');
+    if (isRefund) return setStep(2);
     if (step === 2 && !priority) return toast.error('Selecione uma urgência.');
     if (step === 3 && (title.trim().length < 5 || title.trim().length > 150 || description.trim().length < 10 || description.trim().length > 10000)) return toast.error('Informe um título de 5 a 150 caracteres e uma descrição de 10 a 10.000 caracteres.');
     setStep((s) => s + 1);
+  };
+
+  const addSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files || []);
+    const valid = selected.filter(file => (/\.(png|jpe?g|webp|pdf|txt|mp4|webm)$/i.test(file.name) || /^image\//.test(file.type)) && file.size <= 20 * 1024 * 1024);
+    if (valid.length !== selected.length) toast.error('Selecione tipos aceitos com até 20 MB por arquivo.');
+    setFiles(previous => [...previous, ...valid]);
+    e.target.value = '';
   };
 
   const prevStep = () => setStep((s) => s - 1);
@@ -59,14 +77,15 @@ export function TicketWizardSlideover({
 
   return (
     <>
-    <Drawer isOpen={isOpen} onClose={requestClose} title="Novo chamado" description={`Etapa ${step} de 4`} maxWidth="max-w-lg" footer={<div className="flex flex-wrap justify-between gap-2"><Button type="button" variant="outline" disabled={creating} onClick={step > 1 ? prevStep : requestClose}>{step > 1 ? 'Voltar' : 'Cancelar'}</Button>{step < 4 ? <Button type="button" disabled={creating} onClick={nextStep}>Avançar <ChevronRight size={18} /></Button> : <Button type="submit" form="support-wizard" isLoading={creating}>Abrir chamado</Button>}</div>}>
+    <Drawer isOpen={isOpen} onClose={requestClose} title="Novo chamado" description={`Etapa ${step} de ${totalSteps}`} maxWidth="max-w-lg" footer={<div className="flex flex-wrap justify-between gap-2"><Button type="button" variant="outline" disabled={creating || refundBusy} onClick={step > 1 ? prevStep : requestClose}>{step > 1 ? 'Voltar' : 'Cancelar'}</Button>{step < totalSteps ? <Button type="button" disabled={creating} onClick={nextStep}>Avançar <ChevronRight size={18} /></Button> : isRefund ? <Button type="submit" form={REFUND_FORM_ID} isLoading={refundBusy}>Enviar pedido</Button> : <Button type="submit" form="support-wizard" isLoading={creating}>Abrir chamado</Button>}</div>}>
+    {isRefund && step === 2 ? <RefundForm onBusyChange={setRefundBusy} onCreated={(n) => onRefundCreated?.(n)} /> : (
     <form id="support-wizard" onSubmit={handleSubmit} className="space-y-4">
       <h3 ref={headingRef} tabIndex={-1} className="text-sm font-semibold text-fg focus-visible:outline-none">{step === 1 ? 'Categoria' : step === 2 ? 'Impacto' : step === 3 ? 'Descrição' : 'Revisão e anexos'}</h3>
         <div className="flex-1 overflow-y-auto p-6">
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
               <h3 className="mb-2 text-sm font-black text-fg">1. Qual é o motivo do chamado?</h3>
-              {[{ value: 'ACCESS', label: 'Acesso e senha' }, { value: 'BUG', label: 'Erro ou instabilidade' }, { value: 'BILLING', label: 'Financeiro e assinatura' }, { value: 'FEATURE_REQUEST', label: 'Sugestão de melhoria' }, { value: 'OTHER', label: 'Outra dúvida' }].map((cat) => (
+              {[{ value: 'ACCESS', label: 'Acesso e senha' }, { value: 'BUG', label: 'Erro ou instabilidade' }, { value: 'BILLING', label: 'Financeiro e assinatura' }, { value: 'FEATURE_REQUEST', label: 'Sugestão de melhoria' }, { value: 'OTHER', label: 'Outra dúvida' }, ...(canRefund ? [{ value: 'REFUND', label: 'Pedir reembolso' }] : [])].map((cat) => (
                 <button
                   key={cat.value}
                   type="button"
@@ -139,6 +158,10 @@ export function TicketWizardSlideover({
           {step === 4 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
               <div className="rounded-xl bg-bg-sub p-3 text-sm text-fg"><p className="font-semibold">{title}</p><p className="mt-1 whitespace-pre-wrap break-words">{description}</p><p className="mt-2">Categoria: {({ ACCESS: 'Acesso e senha', BUG: 'Erro ou instabilidade', BILLING: 'Financeiro e assinatura', FEATURE_REQUEST: 'Sugestão', OTHER: 'Outra dúvida' } as Record<string, string>)[category]} · Impacto: {({ LOW: 'Baixo', NORMAL: 'Normal', HIGH: 'Alto', CRITICAL: 'Crítico' } as Record<string, string>)[priority]}</p></div><h3 className="mb-2 text-sm font-black text-fg">4. Adicione evidências <span className="font-medium text-fg-sub">(opcional)</span></h3>
+              <label className="mb-2 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-v2 border border-border bg-bg-elev px-4 text-sm font-bold text-fg hover:bg-bg-sub focus-within:outline focus-within:outline-2 focus-within:outline-brand">
+                <Camera size={18} aria-hidden />Tirar foto com a câmera
+                <input aria-label="Tirar foto com a câmera do celular" type="file" accept="image/*" capture="environment" disabled={creating} className="sr-only" onChange={addSelected} />
+              </label>
               <label className="flex cursor-pointer flex-col items-center justify-center rounded-v2 border-2 border-dashed border-border bg-bg-sub p-8 transition-colors hover:border-brand/40 hover:bg-brand/5">
                 <Upload size={24} className="mb-3 text-brand" />
                 <span className="text-sm font-bold text-fg-mut">Clique para anexar arquivos</span>
@@ -149,13 +172,7 @@ export function TicketWizardSlideover({
                   accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.mp4,.webm"
                   disabled={creating}
                   className="hidden"
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.files || []);
-                    const valid = selected.filter(file => /\.(png|jpe?g|webp|pdf|txt|mp4|webm)$/i.test(file.name) && file.size <= 20 * 1024 * 1024);
-                    if (valid.length !== selected.length) toast.error('Selecione tipos aceitos com até 20 MB por arquivo.');
-                    setFiles(previous => [...previous, ...valid]);
-                    e.target.value = '';
-                  }}
+                  onChange={addSelected}
                 />
               </label>
 
@@ -184,7 +201,7 @@ export function TicketWizardSlideover({
           )}
         </div>
 
-    </form>
+    </form>)}
     </Drawer>
     <ConfirmDialog isOpen={discard} title="Descartar novo chamado?" description="O conteúdo digitado e os anexos selecionados serão descartados." confirmText="Descartar" onClose={() => setDiscard(false)} onConfirm={() => { setDiscard(false); onClose(); }} />
     </>

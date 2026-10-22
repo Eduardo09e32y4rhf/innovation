@@ -624,6 +624,17 @@ export interface EmpresaResumo {
   invoices: { openCount: number; openTotal: number; overdueCount: number; next: { id: string; amount: number; dueDate: string; status: string; description?: string | null } | null };
   asaasReady: boolean;
 }
+export type AccountingPeriodStatus = 'DRAFT' | 'CALCULATED' | 'PUBLISHED' | 'RETURNED' | 'RELEASED' | 'PAID';
+export interface AccountingPeriodEmployee { employeeId: string; name: string; closingId: string; closingStatus: string; gross: number; discounts: number; net: number; hasManualAdjustment: boolean }
+export interface AccountingPeriodView {
+  id: string | null; companyId: string; month: string; status: AccountingPeriodStatus | null; statusLabel: string;
+  totals: { gross: number; discounts: number; net: number; inss: number; fgts: number; irrf: number; employees: number };
+  calculatedAt: string | null; publishedAt: string | null; publishedById: string | null;
+  returnedAt: string | null; returnedById: string | null; returnComment: string | null;
+  releasedAt: string | null; releasedById: string | null; paidAt: string | null; paidById: string | null;
+  employees: AccountingPeriodEmployee[];
+  reappliedAdjustments?: number;
+}
 export interface EmpresaPlano { id: string; name: string; description?: string | null; maxUsers: number; maxEmployees: number; commitmentMonths: number; activeModules: string[]; isFree: boolean; isRecommended?: boolean; monthlyTotal: number | null; current: boolean }
 export interface FaturaDetalhes {
   invoice: { id: string; description?: string | null; amount: number; dueDate: string; status: string; paidAt?: string | null; billingType: string; provider: string };
@@ -946,6 +957,19 @@ export const api = {
       request<AccountingCompanyTimeSheets>(`/accounting/companies/${companyId}/time-sheets${month ? `?month=${encodeURIComponent(month)}` : ''}`),
     employeeTimeSheet: (companyId: string, employeeId: string, month?: string) =>
       request<AccountingEmployeeTimeSheet>(`/accounting/companies/${companyId}/employees/${employeeId}/time-sheet${month ? `?month=${encodeURIComponent(month)}` : ''}`),
+    /** Fluxo do mês com o RH (contador): month = AAAA-MM. */
+    period: (companyId: string, month: string) => request<AccountingPeriodView>(`/accounting/companies/${companyId}/periods/${encodeURIComponent(month)}`),
+    calculatePeriod: (companyId: string, month: string, discardManual = false) =>
+      request<AccountingPeriodView>(`/accounting/companies/${companyId}/periods/${encodeURIComponent(month)}/calculate`, { method: 'POST', body: { discardManual } }),
+    publishPeriod: (companyId: string, month: string) =>
+      request<AccountingPeriodView>(`/accounting/companies/${companyId}/periods/${encodeURIComponent(month)}/publish`, { method: 'POST' }),
+  },
+  payrollPeriods: {
+    /** Fluxo do mês (RH/ADMIN da empresa): month = AAAA-MM. */
+    get: (month: string) => request<AccountingPeriodView>(`/payroll/periods/${encodeURIComponent(month)}`),
+    return: (month: string, comment: string) => request<AccountingPeriodView>(`/payroll/periods/${encodeURIComponent(month)}/return`, { method: 'POST', body: { comment } }),
+    release: (month: string) => request<AccountingPeriodView>(`/payroll/periods/${encodeURIComponent(month)}/release`, { method: 'POST' }),
+    paid: (month: string) => request<AccountingPeriodView>(`/payroll/periods/${encodeURIComponent(month)}/paid`, { method: 'POST' }),
   },
   timeOccurrences: {
     list: () => request<any[]>('/time-occurrences'),
@@ -1256,6 +1280,8 @@ export const api = {
     resolve: (id: string) => request<any>(`/platform/support/tickets/${id}/resolve`, { method: 'POST' }),
     approveRefund: (id: string, reason?: string) =>
       request<{ idempotent: boolean; refundStatus: string; ticketId: string }>(`/platform/support/${id}/refund/approve`, { method: 'POST', body: { reason } }),
+    markDuplicate: (id: string, duplicateOfId: string) =>
+      request<{ success: boolean; status: string; duplicateOfId: string; duplicateOfNumber: string }>(`/platform/support/${id}/duplicate`, { method: 'POST', body: { duplicateOfId } }),
     rejectRefund: (id: string, reason: string) =>
       request<{ idempotent: boolean; refundStatus: string; ticketId: string }>(`/platform/support/${id}/refund/reject`, { method: 'POST', body: { reason } }),
   },

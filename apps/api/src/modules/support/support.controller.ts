@@ -10,6 +10,9 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CreateSupportTicketDto } from './dto/create-support-ticket.dto';
 import { AddSupportMessageDto } from './dto/add-support-message.dto';
 import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
+import { SupportRefundService } from './support-refund.service';
+import { SupportSatisfactionService } from './support-satisfaction.service';
+import { CreateRefundRequestDto, RateTicketDto } from './dto/support-refund.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
@@ -17,8 +20,26 @@ import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto
 export class SupportController {
   constructor(
     private readonly supportService: SupportService,
-    private readonly attachmentService: SupportAttachmentService
+    private readonly attachmentService: SupportAttachmentService,
+    private readonly refundService: SupportRefundService,
+    private readonly satisfactionService: SupportSatisfactionService,
   ) {}
+
+  @Post('refund-requests')
+  @Roles('ADMIN')
+  async createRefundRequest(@Req() req: any, @Body() dto: CreateRefundRequestDto) {
+    return this.refundService.createRequest(req.user, dto);
+  }
+
+  @Post(':id/rating')
+  async rate(@Req() req: any, @Param('id') id: string, @Body() dto: RateTicketDto) {
+    return this.satisfactionService.rate(req.user, id, dto.score, dto.comment);
+  }
+
+  @Post(':id/reopen')
+  async reopenResolved(@Req() req: any, @Param('id') id: string) {
+    return this.satisfactionService.reopen(req.user, id);
+  }
 
   @Get('stats')
   async getStats(@Req() req: any) {

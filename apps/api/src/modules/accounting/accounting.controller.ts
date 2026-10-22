@@ -4,7 +4,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
-import { AdjustClosingDto, CorrectPayrollDto, MonthQueryDto, RecalculateClosingsDto, SaveRuleDto, SimulateDto, TimeSheetQueryDto, WorkflowDto } from './accounting.dto';
+import { AccountingPeriodService } from '../payroll/accounting-period.service';
+import { AdjustClosingDto, CalculatePeriodDto, CorrectPayrollDto, MonthQueryDto, RecalculateClosingsDto, SaveRuleDto, SimulateDto, TimeSheetQueryDto, WorkflowDto } from './accounting.dto';
 import { AccountingOfficeService } from './accounting-office.service';
 import { ChecklistToggleDto, CreateDocRequestDto, CreateTaskDto, GenerateFeesDto, PayFeeDto, SaveClientDto, UpdateDocRequestDto, UpdateTaskDto } from './accounting-office.dto';
 import { AccountingHubService } from './accounting-hub.service';
@@ -25,6 +26,7 @@ export class AccountingController {
     private readonly ledger: PlatformLedgerService,
     private readonly timeSheets: AccountingTimeSheetService,
     private readonly access: AccountingAccessService,
+    private readonly periods: AccountingPeriodService,
   ) {}
 
   @Get('overview')
@@ -37,6 +39,26 @@ export class AccountingController {
   async platformLedger(@CurrentUser() actor: JwtUser, @Query() query: MonthQueryDto) {
     if (query.companyId) await this.access.assertAccountantCanAccess(actor, query.companyId);
     return this.ledger.month(query.month, query.companyId, query.companyId ? null : await this.access.accessibleCompanyIds(actor));
+  }
+
+  // ---------- fluxo do mês com o RH da empresa ----------
+
+  @Get('companies/:companyId/periods/:month')
+  async getPeriod(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Param('month') month: string) {
+    await this.access.assertAccountantCanAccess(actor, companyId);
+    return this.periods.viewForAccountant(companyId, month);
+  }
+
+  @Post('companies/:companyId/periods/:month/calculate')
+  async calculatePeriod(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Param('month') month: string, @Body() dto: CalculatePeriodDto) {
+    await this.access.assertAccountantCanAccess(actor, companyId);
+    return this.periods.calculate(actor, companyId, month, dto?.discardManual === true);
+  }
+
+  @Post('companies/:companyId/periods/:month/publish')
+  async publishPeriod(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Param('month') month: string) {
+    await this.access.assertAccountantCanAccess(actor, companyId);
+    return this.periods.publish(actor, companyId, month);
   }
 
   @Get('report/pdf')

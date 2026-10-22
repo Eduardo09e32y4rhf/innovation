@@ -25,6 +25,10 @@ export interface SupportTicket {
   resolvedAt?: string | null; slaBreached?: boolean;
   assignedToUserId?: string | null; assignedTo?: SupportPerson | null;
   createdBy?: SupportPerson | null; company?: { id?: string; name?: string } | null;
+  createdByUserId?: string | null; closedAt?: string | null; duplicateOfId?: string | null;
+  invoiceId?: string | null; refundKind?: 'TOTAL' | 'PARTIAL' | null; refundAmount?: number | string | null;
+  refundStatus?: string | null; refundReason?: string | null; refundDecisionById?: string | null; refundDecisionReason?: string | null;
+  satisfactionScore?: number | null; satisfactionComment?: string | null; satisfactionAt?: string | null;
   messages?: SupportMessage[]; attachments?: SupportAttachment[]; events?: SupportEvent[];
 }
 
@@ -124,6 +128,10 @@ const EVENT_LABEL: Record<string, string> = {
   TICKET_CREATED: 'Chamado aberto', TICKET_RESOLVED: 'Chamado resolvido', TICKET_CLOSED: 'Chamado encerrado',
   TICKET_REOPENED: 'Chamado reaberto', ASSIGNED: 'Chamado atribuído a um atendente',
   PRIORITY_CHANGED: 'Prioridade alterada', STATUS_CHANGED: 'Situação alterada',
+  TICKET_DUPLICATE: 'Marcado como duplicado', TICKET_RATED: 'Atendimento avaliado',
+  REFUND_REQUESTED: 'Reembolso solicitado', REFUND_FIRST_APPROVAL: 'Reembolso aprovado, aguardando 2ª aprovação',
+  REFUND_SECOND_APPROVED: 'Reembolso aprovado', REFUND_APPROVED: 'Reembolso aprovado', REFUND_REJECTED: 'Reembolso recusado',
+  REFUND_PROCESSING: 'Reembolso em processamento', REFUND_CONFIRMED: 'Reembolso confirmado', REFUND_FAILED: 'Reembolso não concluído',
   PASSWORD_RESET_REQUESTED: 'Redefinição de senha solicitada',
 };
 export function getEventLabel(eventType: string): string { return EVENT_LABEL[eventType] ?? 'Atualização do chamado'; }

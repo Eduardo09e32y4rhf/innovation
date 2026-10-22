@@ -55,7 +55,7 @@ function build() {
   const tracks: any = { list: vi.fn(async () => []), listEmployeeMonth: vi.fn(async () => []) };
   const sheets = new AccountingTimeSheetService(prisma, access, tracks, closing, new TimeZoneService());
   const ledger: any = { month: vi.fn(async () => ({})) };
-  const controller = new AccountingController(hub, rules, office, ledger, sheets, access);
+  const controller = new AccountingController(hub, rules, office, ledger, sheets, access, {} as any);
   return { prisma, access, controller, closing, tracks, sheets };
 }
 

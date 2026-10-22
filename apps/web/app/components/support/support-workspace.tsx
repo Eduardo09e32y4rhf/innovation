@@ -29,8 +29,8 @@ export interface SupportWorkspaceProps {
   filters: Array<{ value: TicketFilter; label: string }>;
   /** Botões do cabeçalho da conversa; recebe `refresh` para recarregar lista e conversa. */
   renderActions?: (ticket: SupportTicket, refresh: () => void) => React.ReactNode;
-  refundBlock?: (ticket: SupportTicket) => React.ReactNode;
-  ratingBlock?: (ticket: SupportTicket) => React.ReactNode;
+  refundBlock?: (ticket: SupportTicket, refresh: () => void) => React.ReactNode;
+  ratingBlock?: (ticket: SupportTicket, refresh: () => void) => React.ReactNode;
   /** Id para abrir direto (ex.: link com ?ticket=). */
   initialTicketId?: string | null;
   emptyListText?: string;
@@ -151,8 +151,8 @@ export function SupportWorkspace(p: SupportWorkspaceProps) {
             onBack={() => { setSelectedId(null); setListOpen(true); }}
             onDownload={download}
             actions={ticket ? p.renderActions?.(ticket, refresh) : undefined}
-            refundBlock={ticket ? p.refundBlock?.(ticket) : undefined}
-            ratingBlock={ticket ? p.ratingBlock?.(ticket) : undefined}
+            refundBlock={ticket ? p.refundBlock?.(ticket, refresh) : undefined}
+            ratingBlock={ticket ? p.ratingBlock?.(ticket, refresh) : undefined}
             footer={<ReplyBox key={current.id} sticky onSubmit={send} disabled={!canReplyNow} allowInternal={p.mode === 'platform'}
               disabledReason={!ticket ? 'Carregando o chamado...' : finished ? 'Este chamado está finalizado. Reabra para enviar novas mensagens.' : undefined} />}
           />
