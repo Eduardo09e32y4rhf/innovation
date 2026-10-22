@@ -4,6 +4,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { couponDiscount } from '../coupons/coupon-rules';
 import { AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
+import { planPricingForSubscription, PricingPlanInput } from './pricing';
 
 /** Tenta o provedor e devolve null em falha: a tela mostra o que existir em vez de quebrar. */
 async function attempt<T>(logger: Logger, label: string, run: () => Promise<T>): Promise<T | null> {
@@ -42,7 +43,7 @@ export class FaturasEmpresaService {
     let quote: { total: number; couponDiscount: number } | null = null;
     if (plan && !plan.isFree) {
       const coupon = sub?.couponType && (sub.couponCyclesLeft ?? 1) > 0 ? couponDiscount({ type: sub.couponType, value: sub.couponValue }) : null;
-      const q = this.pricing.calculate((plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, sub?.seatQuantity || 1, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price, includedUnits: plan.includedUnits }, coupon);
+      const q = this.pricing.calculate((plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, sub?.seatQuantity || 1, plan, coupon);
       quote = { total: Number(q.total), couponDiscount: Number(q.couponDiscount ?? 0) };
     }
     const overdue = open.filter((i) => i.status === 'OVERDUE');
@@ -149,7 +150,7 @@ export class FaturasEmpresaService {
     return plans.map((p) => {
       let monthlyTotal: number | null = null;
       if (!p.isFree) {
-        try { monthlyTotal = Number(this.pricing.calculate((p.commitmentMonths as 1 | 3 | 6 | 12) || 1, seats, { baseMonthlyPrice: p.baseMonthlyPrice, userMonthlyPrice: p.userMonthlyPrice, price: p.price, includedUnits: p.includedUnits }).total); } catch { monthlyTotal = null; }
+        try { monthlyTotal = Number(this.pricing.calculate((p.commitmentMonths as 1 | 3 | 6 | 12) || 1, seats, p).total); } catch { monthlyTotal = null; }
       } else monthlyTotal = 0;
       return { id: p.id, name: p.name, description: p.description, maxUsers: p.maxUsers, maxEmployees: p.maxEmployees, commitmentMonths: p.commitmentMonths, activeModules: p.activeModules, isFree: p.isFree, isRecommended: p.isRecommended, monthlyTotal, current: p.id === sub?.planId };
     });

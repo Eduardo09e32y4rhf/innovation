@@ -31,10 +31,10 @@ export function checkCouponEligibility(coupon: CouponLike | null | undefined, ct
 }
 
 /** Desconto monetário do cupom (null quando for apenas teste grátis). */
-export function couponDiscount(coupon: Pick<CouponLike, 'type' | 'value'>): { type: 'PERCENT' | 'FIXED'; value: number } | null {
+export function couponDiscount(coupon: Pick<CouponLike, 'type' | 'value'> & Partial<Pick<CouponLike, 'startsAt' | 'expiresAt'>>): { type: 'PERCENT' | 'FIXED'; value: number; startsAt?: Date | null; expiresAt?: Date | null } | null {
   if (coupon.type !== 'PERCENT' && coupon.type !== 'FIXED') return null;
   const value = Number(coupon.value);
-  return Number.isFinite(value) && value > 0 ? { type: coupon.type, value } : null;
+  return Number.isFinite(value) && value > 0 ? { type: coupon.type, value, ...(coupon.startsAt ? { startsAt: coupon.startsAt } : {}), ...(coupon.expiresAt ? { expiresAt: coupon.expiresAt } : {}) } : null;
 }
 
 /** Acima deste percentual (ou valor fixo mensal), só DEV/CEO podem criar o cupom. */

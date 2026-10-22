@@ -9,10 +9,13 @@ import { FinanceNotificationService } from './finance-notification.service';
 import { AsaasService } from './asaas.service';
 import { AsaasFiscalService } from './asaas-fiscal.service';
 import { PricingService } from './pricing.service';
+import { planPricingForSubscription, PricingPlanInput } from './pricing';
 import { PlatformFinanceService } from './platform-finance.service';
 import { FaturasAcoesService } from './faturas-acoes.service';
 import { couponDiscount } from '../coupons/coupon-rules';
 import { NotificationsService } from '../notifications/notifications.service';
+import { isFeatureEnabled } from '../../common/feature-flags';
+import { TrialConversionService } from './trial-conversion.service';
 import { shouldSendTrialNotice, trialNoticeContent, trialOutcome } from './trial-lifecycle';
 
 @Injectable()
@@ -29,6 +32,7 @@ export class BillingCronService {
     private readonly redis: RedisService,
     private readonly fiscal: AsaasFiscalService,
     private readonly notifications: NotificationsService,
+    private readonly trialConversion: TrialConversionService,
   ) {}
 
   /** Notas fiscais: agenda as que faltam e puxa número/PDF/XML das que ainda não chegaram pelo webhook. */
@@ -137,7 +141,7 @@ export class BillingCronService {
         const quote = this.pricing.calculate(
           subscription.plan.commitmentMonths as 1 | 3 | 6 | 12,
           nextSeatQuantity,
-          { baseMonthlyPrice: subscription.plan.baseMonthlyPrice, userMonthlyPrice: subscription.plan.userMonthlyPrice, price: subscription.plan.price, includedUnits: subscription.plan.includedUnits },
+          planPricingForSubscription(subscription.plan, subscription),
           coupon,
         );
         const asaasSubscriptionId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
@@ -149,11 +153,8 @@ export class BillingCronService {
           where: { id: subscription.id },
           data: {
             seatQuantity: nextSeatQuantity,
+            // O cliente mantem a pricingVersion e os precos contratados: so a quantidade muda.
             pendingSeatQuantity: null,
-            pricingVersion: subscription.plan.pricingVersion,
-            baseMonthlyPrice: subscription.plan.baseMonthlyPrice,
-            userMonthlyPrice: subscription.plan.userMonthlyPrice,
-            discountPercent: subscription.plan.discountPercent,
           },
         });
       } catch (error) {
@@ -185,7 +186,7 @@ export class BillingCronService {
       try {
         const plan = subscription.pendingPlanId ? await this.prisma.platformPlan.findUnique({ where: { id: subscription.pendingPlanId } }) : null;
         if (!plan) { await this.prisma.companySubscription.update({ where: { id: subscription.id }, data: { pendingPlanId: null } }); continue; }
-        const quote = this.pricing.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, subscription.seatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price, includedUnits: plan.includedUnits }, subscription.couponType && !(subscription.couponCyclesLeft !== null && subscription.couponCyclesLeft <= 0) ? couponDiscount({ type: subscription.couponType, value: subscription.couponValue }) : null);
+        const quote = this.pricing.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, subscription.seatQuantity, plan, subscription.couponType && !(subscription.couponCyclesLeft !== null && subscription.couponCyclesLeft <= 0) ? couponDiscount({ type: subscription.couponType, value: subscription.couponValue }) : null);
         const asaasSubscriptionId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
         if (asaasSubscriptionId && this.asaas.isConfigured()) await this.asaas.updateSubscription(asaasSubscriptionId, { value: quote.total });
         await this.platformFinance.syncMercadoPagoAmount(subscription.companyId, quote.total);
@@ -205,6 +206,8 @@ export class BillingCronService {
   @Cron('30 3 * * *')
   @CronLock('billing.createTrialConversionProposals', 3600)
   async createTrialConversionProposals() {
+    // Propostas estao congeladas (FEATURE_PROPOSALS): sem a flag, a conversao do teste gera a primeira fatura em checkExpiredTrials.
+    if (!isFeatureEnabled('proposals')) return;
     const now = new Date();
     const windowStart = new Date(now.getTime() + 4.5 * 24 * 60 * 60 * 1000);
     const windowEnd = new Date(now.getTime() + 5.5 * 24 * 60 * 60 * 1000);
@@ -243,7 +246,7 @@ export class BillingCronService {
           description: 'Proposta gerada automaticamente cinco dias antes do encerramento do período de avaliação.',
           startDate: company.trialEndsAt,
           planType: plan.code || plan.name,
-          monthlyPrice: this.pricing.calculate(1, company.subscription!.seatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price, includedUnits: plan.includedUnits }).total,
+          monthlyPrice: this.pricing.calculate(1, company.subscription!.seatQuantity, plan).total,
           usersLimit: company.subscription!.seatQuantity,
           employeesLimit: plan.maxEmployees,
           features: plan.activeModules,
@@ -264,6 +267,14 @@ export class BillingCronService {
     if (companies.length) this.logger.log(`Rotina de conversão de trial analisou ${companies.length} empresa(s).`);
   }
 
+  /** Avisos 7, 3 e 1 dia antes do fim do teste (e-mail + notificação no sistema), idempotentes por empresa, ciclo e aviso. */
+  @Cron('10 * * * *')
+  @CronLock('billing.sendTrialCountdownWarnings', 3000)
+  async sendTrialCountdownWarnings() {
+    const result = await this.trialConversion.sendCountdownWarnings(new Date());
+    if (result.internal || result.emails) this.logger.log(`Avisos de fim do teste: ${result.internal} notificacao(oes), ${result.emails} e-mail(s).`);
+  }
+
   /** 9º dia do teste grátis: avisa o administrador (aba Notificações) e pede a decisão: continuar ou recusar. */
   @Cron('0 * * * *')
   @CronLock('billing.sendTrialEndNotices', 3000)
@@ -282,7 +293,7 @@ export class BillingCronService {
       if (!shouldSendTrialNotice({ trialEndsAt: subscription.trialEndsAt, trialNoticeAt: subscription.trialNoticeAt, now })) continue;
       try {
         const plan = subscription.plan;
-        const amount = plan ? this.pricing.calculate((plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, subscription.seatQuantity || 1, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price, includedUnits: plan.includedUnits }).total : 0;
+        const amount = plan ? this.pricing.calculate((plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, subscription.seatQuantity || 1, plan).total : 0;
         const content = trialNoticeContent({ trialEndsAt: subscription.trialEndsAt as Date, planName: plan?.name ?? 'contratado', amount });
         const sent = await this.notifications.createSystemNotice(subscription.companyId, {
           ...content, priority: 'URGENT', targetRoles: ['ADMIN'], source: 'TRIAL_NOTICE', requiresAcceptance: true, allowsRefusal: true,
@@ -336,6 +347,23 @@ export class BillingCronService {
             suspensionReason: 'trial_aguardando_pagamento',
           },
         });
+        // Sem o modulo de propostas, a primeira fatura sai direto (idempotente por empresa e ciclo, valor pela funcao unica de preco).
+        if (!isFeatureEnabled('proposals')) {
+          try {
+            const first = await this.trialConversion.generateFirstInvoice(company.id, today);
+            this.logger.log(`Primeira fatura do fim do teste (${company.id}): ${first.created ? first.invoiceId : first.reason}`);
+          } catch (error) {
+            this.logger.error(`Falha ao gerar a primeira fatura da empresa ${company.id}: ${String(error)}`);
+          }
+        }
+      }
+      if (!isFeatureEnabled('proposals')) {
+        // Repescagem: empresas que ja aguardam o primeiro pagamento e ficaram sem fatura (falha anterior). A chave de idempotencia evita duplicar.
+        const waiting = await this.prisma.company.findMany({ where: { billingStatus: 'PENDING_PAYMENT', suspensionReason: 'trial_aguardando_pagamento' }, select: { id: true }, take: 100 });
+        for (const { id } of waiting) {
+          try { await this.trialConversion.generateFirstInvoice(id, today); }
+          catch (error) { this.logger.error(`Falha na repescagem da primeira fatura da empresa ${id}: ${String(error)}`); }
+        }
       }
       this.logger.log(`Rotina de trial finalizada. Analisadas ${expiredCompanies.length} empresas.`);
     } catch (error) {
@@ -346,6 +374,7 @@ export class BillingCronService {
   @Cron('30 4 * * *')
   @CronLock('billing.checkExpiredManualContracts', 3600)
   async checkExpiredManualContracts() {
+    if (!isFeatureEnabled('manual-contracts')) return;
     const now = new Date();
     const expired = await this.prisma.manualContract.findMany({
       where: { status: 'ACTIVE', endsAt: { lt: now } },

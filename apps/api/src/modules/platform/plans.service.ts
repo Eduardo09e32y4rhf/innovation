@@ -69,6 +69,9 @@ export class PlatformPlansService {
     if (payload.baseMonthlyPrice !== undefined) payload.baseMonthlyPrice = this.moneyToNumber(payload.baseMonthlyPrice);
     if (payload.userMonthlyPrice !== undefined) payload.userMonthlyPrice = this.moneyToNumber(payload.userMonthlyPrice);
     if (payload.commitmentMonths !== undefined) payload.commitmentMonths = Number(payload.commitmentMonths) || 1;
+    // A funcao de preco (finance/pricing.ts) so aceita ciclos de 1, 3, 6 ou 12 meses e desconto entre 0 e 100%.
+    if (payload.commitmentMonths !== undefined && ![1, 3, 6, 12].includes(payload.commitmentMonths)) throw new BadRequestException('O ciclo do plano deve ser de 1, 3, 6 ou 12 meses.');
+    if (payload.discountPercent !== undefined && !(payload.discountPercent >= 0 && payload.discountPercent <= 100)) throw new BadRequestException('O desconto do ciclo deve ficar entre 0% e 100%.');
     
     // O card de venda e o checkout leem o valor base: mantem os dois iguais quando so o preco e editado.
     if (payload.price !== undefined && payload.baseMonthlyPrice === undefined) payload.baseMonthlyPrice = payload.price;

@@ -26,6 +26,7 @@ import { PaymentRefundService } from './payment-refund.service';
 import { PaymentReconciliationService } from './payment-reconciliation.service';
 import { ReconciliationController } from './reconciliation.controller';
 import { PricingService } from './pricing.service';
+import { TrialConversionService } from './trial-conversion.service';
 import { QueueModule } from '../queue/queue.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { TimeTrackModule } from '../time-track/time-track.module';
@@ -55,6 +56,7 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     PaymentReconciliationService,
     FinanceNotificationService,
     PricingService,
+    TrialConversionService,
     FaturasService,
     FaturasAcoesService,
     FaturasEmpresaService,

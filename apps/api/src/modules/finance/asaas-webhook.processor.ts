@@ -6,6 +6,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AsaasService } from './asaas.service';
 import { FinanceNotificationService, FinanceNotificationType } from './finance-notification.service';
 import { PricingService } from './pricing.service';
+import { planPricingForSubscription, PricingPlanInput } from './pricing';
 import { PaymentRefundService } from './payment-refund.service';
 import { AsaasFiscalService } from './asaas-fiscal.service';
 import { cancelRedundantSignupCharges } from './signup-charges';
@@ -205,7 +206,7 @@ export class AsaasWebhookProcessorService {
     const remoteId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
     try {
       if (remoteId && subscription.plan && this.asaas.isConfigured()) {
-        const full = this.pricing.calculate((subscription.plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, subscription.seatQuantity, { baseMonthlyPrice: subscription.plan.baseMonthlyPrice, userMonthlyPrice: subscription.plan.userMonthlyPrice, price: subscription.plan.price, includedUnits: subscription.plan.includedUnits });
+        const full = this.pricing.calculate((subscription.plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, subscription.seatQuantity, planPricingForSubscription(subscription.plan, subscription));
         await this.asaas.updateSubscription(remoteId, { value: full.total });
       }
       await this.prisma.companySubscription.update({ where: { companyId }, data: { couponCyclesLeft: 0, couponType: null, couponValue: null } });

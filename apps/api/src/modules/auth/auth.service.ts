@@ -34,6 +34,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { resetNoticeRoles } from '../notifications/notice-rules';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
 import { PricingService } from '../finance/pricing.service';
+import { computePrice } from '../finance/pricing';
 import { checkCouponEligibility, couponDiscount } from '../coupons/coupon-rules';
 
 // SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
@@ -78,7 +79,13 @@ export class AuthService {
   /** Valores em número: o Decimal do Prisma sai no JSON como objeto {s,e,d} e o site lia R$ 0,00. */
   async publicPlans() {
     const plans = await this.repository.listPublicPlans();
-    return plans.map((plan) => ({ ...plan, price: Number(plan.price), discountPercent: Number(plan.discountPercent), baseMonthlyPrice: Number(plan.baseMonthlyPrice), userMonthlyPrice: Number(plan.userMonthlyPrice) }));
+    return plans.map((plan) => {
+      // Preco de vitrine pela funcao unica de preco: a base cobre as unidades incluidas (minimo 1) por mes.
+      const units = Math.max(1, plan.includedUnits ?? 0);
+      let startingMonthly: number | null = null;
+      try { startingMonthly = plan.isFree ? 0 : computePrice({ plan: { ...plan, commitmentMonths: 1 }, units }).cycleTotalCents / 100; } catch { startingMonthly = null; }
+      return { ...plan, price: Number(plan.price), discountPercent: Number(plan.discountPercent), baseMonthlyPrice: Number(plan.baseMonthlyPrice), userMonthlyPrice: Number(plan.userMonthlyPrice), startingMonthlyPrice: startingMonthly, startingUnits: units };
+    });
   }
 
   async quotePublicPlan(dto: { planId: string; seatQuantity: number; couponCode?: string }) {
@@ -89,6 +96,7 @@ export class AuthService {
       userMonthlyPrice: plan.userMonthlyPrice ? Number(plan.userMonthlyPrice) : undefined,
       price: plan.price ? Number(plan.price) : undefined,
       includedUnits: plan.includedUnits ?? 0,
+      discountPercent: plan.discountPercent ? Number(plan.discountPercent) : undefined,
     };
     if (!dto.couponCode) return { ...this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, pricing), trialDays: 0, couponApplied: false };
     const coupon = await this.repository.findCouponByCode(dto.couponCode);
