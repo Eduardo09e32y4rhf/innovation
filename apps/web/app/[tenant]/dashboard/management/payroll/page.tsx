@@ -12,6 +12,7 @@ import { useQuery } from '@/app/hooks/use-data';
 import { api, ApiError, type Employee } from '@/app/lib/api';
 
 import { ConfirmDialog, Modal } from '../../escalas/_components/operational-dialog';
+import { PeriodBlock } from './_period-block';
 import { payrollApi } from './payroll-api';
 import { MANUAL_ITEM_LABEL, PAYROLL_STATUS_LABEL, type ManualItemInput, type ManualItemType, type PayrollItem, type PayrollStatus } from './types';
 import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
@@ -143,6 +144,8 @@ export default function PayrollPage() {
         subtitle="Escolha o ciclo (início e fim), calcule, edite, aprove e registre o pagamento."
         actions={<Button onClick={() => setCreateOpen(true)}><Plus size={18} /> Nova folha</Button>}
       />
+
+      <PeriodBlock month={from.slice(0, 7)} role={role} />
 
       <section className="ops-card space-y-3 rounded-[14px] border border-slate-200 bg-white p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">

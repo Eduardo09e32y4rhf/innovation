@@ -963,6 +963,9 @@ export const api = {
       request<AccountingPeriodView>(`/accounting/companies/${companyId}/periods/${encodeURIComponent(month)}/calculate`, { method: 'POST', body: { discardManual } }),
     publishPeriod: (companyId: string, month: string) =>
       request<AccountingPeriodView>(`/accounting/companies/${companyId}/periods/${encodeURIComponent(month)}/publish`, { method: 'POST' }),
+    /** Ajuste manual de um item do fechamento (motivo obrigatório). */
+    adjustClosing: (closingId: string, field: string, newValue: number, reason: string) =>
+      request<unknown>(`/accounting/closings/${encodeURIComponent(closingId)}/adjust`, { method: 'PATCH', body: { field, newValue, reason } }),
   },
   payrollPeriods: {
     /** Fluxo do mês (RH/ADMIN da empresa): month = AAAA-MM. */
