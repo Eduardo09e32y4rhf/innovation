@@ -174,4 +174,20 @@ describe('TimeCalculationRulesService - jornada CLT', () => {
     }, { ...employee, dailyWorkload: '09:00', standardEntry: '22:00', standardExit: '07:00' }, { ...rule, dailyMinutes: 540, breakMinutes: 0 }, null);
     expect(result.nightShiftMinutes).toBe(617);
   });
+
+  it('segunda-feira com data-so (meia-noite UTC): 10h numa jornada de 9h = 1h extra 50%, sem adicional noturno', () => {
+    const monday = new Date('2026-10-05T00:00:00.000Z');
+    const result = service.calculateTotals({
+      entryTime: at('2026-10-05', '08:00'),
+      lunchStartTime: at('2026-10-05', '12:00'),
+      lunchReturnTime: at('2026-10-05', '13:00'),
+      exitTime: at('2026-10-05', '19:00'),
+      workDate: monday,
+    }, { ...employee, standardExit: '17:00' }, { ...rule, dailyMinutes: 540, standardExit: '18:00' }, null);
+    expect(result.isRest).toBe(false);
+    expect(result.overtime100Minutes).toBe(0);
+    expect(result.totalWorkedMinutes).toBe(600);
+    expect(result.dailyBalanceMinutes).toBe(60);
+    expect(result.nightShiftMinutes).toBe(0);
+  });
 });

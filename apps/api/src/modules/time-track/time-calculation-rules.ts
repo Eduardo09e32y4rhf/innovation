@@ -331,7 +331,10 @@ export class TimeCalculationRulesService {
   }
 
   private localDayOfWeek(date: Date): number {
-    return this.localParts(date).weekday;
+    // workDate e uma data (meia-noite UTC, ver toDateOnly): o dia da semana e o do proprio calendario.
+    // Convertida para America/Sao_Paulo ela cairia na vespera (segunda virava domingo = hora extra 100%).
+    const isDateOnly = date.getUTCHours() === 0 && date.getUTCMinutes() === 0 && date.getUTCSeconds() === 0;
+    return isDateOnly ? date.getUTCDay() : this.localParts(date).weekday;
   }
 
   private forwardDifference(from: number, to: number): number {
