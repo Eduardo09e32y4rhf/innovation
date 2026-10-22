@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { PayrollCalculationService } from './payroll-calculation.service';
+import { monthlySalaryFraction } from './salary-period';
 import { getOvertimePolicy, overtimePaymentRatio } from './overtime-policy';
 import { PDF, PdfReport } from '../../common/pdf/pdf-report';
 import { computeDeductions } from '../payroll/deduction-rules';
@@ -190,6 +191,7 @@ export class TimeClosingService {
       for (const key of vacationKeys) justifiedDates.add(key);
       let vacationDaysInPeriod = 0;
       let nonEmployedDaysInPeriod = 0;
+      let unpaidCalendarFraction = 0;
       const admissionKey = this.dateKey(new Date(employee.admissionDate));
       const terminationKey = employee.terminationDate ? this.dateKey(new Date(employee.terminationDate)) : null;
       let payableWorkdays = 0;
@@ -213,10 +215,12 @@ export class TimeClosingService {
         const outsideContract = key < admissionKey || (terminationKey !== null && key > terminationKey);
         if (outsideContract) {
           nonEmployedDaysInPeriod++;
+          unpaidCalendarFraction += monthlySalaryFraction(date, date);
           expectedForDay = 0;
           justifiedDates.add(key);
         } else if (vacationKeys.has(key)) {
           vacationDaysInPeriod++;
+          unpaidCalendarFraction += monthlySalaryFraction(date, date);
           expectedForDay = 0;
         } else if (holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule)) {
           expectedForDay = 0;
@@ -279,15 +283,15 @@ export class TimeClosingService {
       const weeklyMinutes = this.weeklyMinutesFromSchedule(schedules[0]?.schedule)
         ?? employee.workScheduleRule?.weeklyMinutes
         ?? this.defaultWeeklyMinutes(employee.dailyWorkload, employee.workScale);
-      
-      const totalDaysInPeriod = Math.round((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1;
-      const isPartialMonth = totalDaysInPeriod < 28 || totalDaysInPeriod > 31;
 
+      const totalDaysInPeriod = Math.round((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1;
+      const fullCalendarMonth = periodStart.getUTCDate() === 1 && periodEnd.getUTCDate() === new Date(Date.UTC(periodEnd.getUTCFullYear(), periodEnd.getUTCMonth() + 1, 0)).getUTCDate() && periodStart.getUTCMonth() === periodEnd.getUTCMonth() && periodStart.getUTCFullYear() === periodEnd.getUTCFullYear();
       const dependents = countDependents(employee.dependents);
       const financial = this.payroll.calculate({
         salary: Number(employee.salary),
         weeklyMinutes,
-        isPartialMonth,
+        isPartialMonth: !fullCalendarMonth,
+        salaryPeriodFraction: fullCalendarMonth ? 1 : Math.max(0, monthlySalaryFraction(periodStart, periodEnd) - unpaidCalendarFraction),
         scheduledMinutesInPeriod,
         overtime50Minutes,
         overtime100Minutes,

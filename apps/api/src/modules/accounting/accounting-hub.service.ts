@@ -10,6 +10,8 @@ import { TimeClosingService } from '../time-track/time-closing.service';
 import { AccountingAccessService } from '../../common/accounting-access';
 import { AdjustClosingDto, CorrectPayrollDto } from './accounting.dto';
 import { AccountingRulesService } from './accounting-rules.service';
+import { accountingEntries, accountingTotals } from './accounting-totals';
+import { reconcilePayroll } from '../payroll/payroll-reconciliation';
 
 const num = (value: unknown) => Number(value ?? 0);
 const round = (value: number) => roundMoney(value);
@@ -59,49 +61,56 @@ export class AccountingHubService {
       const [closings, payrolls] = await Promise.all([
         this.prisma.timeClosing.findMany({
           where: { companyId, periodEnd: { gte: period.start, lt: period.end } },
-          select: { id: true, status: true, periodStart: true, periodEnd: true, grossPay: true, netPay: true, inssDiscount: true, irrfDiscount: true, fgtsAmount: true, overtime50: true, overtime100: true, nightShift: true, calculationVersion: true, updatedAt: true, employee: { select: { name: true, position: true } } },
+          select: { id: true, companyId: true, employeeId: true, status: true, periodStart: true, periodEnd: true, grossPay: true, netPay: true, inssDiscount: true, irrfDiscount: true, fgtsAmount: true, overtime50: true, overtime100: true, nightShift: true, calculationVersion: true, updatedAt: true, employee: { select: { name: true, position: true } } },
           orderBy: [{ status: 'asc' }, { employee: { name: 'asc' } }],
-          take: 500,
         }),
         this.prisma.payroll.findMany({
-          where: { companyId, referenceYear: period.year, referenceMonth: period.month, deletedAt: null },
-          select: { id: true, status: true, baseSalary: true, overtimeAmount: true, nightShiftAmount: true, grossSalary: true, inssAmount: true, irrfAmount: true, fgtsAmount: true, netSalary: true, calculationVersion: true, updatedAt: true, employee: { select: { name: true, position: true } } },
+          where: { companyId, referenceYear: period.year, referenceMonth: period.month, deletedAt: null, status: { not: 'CANCELLED' } },
+          select: { id: true, companyId: true, employeeId: true, status: true, periodStart: true, periodEnd: true, baseSalary: true, overtimeAmount: true, nightShiftAmount: true, grossSalary: true, inssAmount: true, irrfAmount: true, fgtsAmount: true, netSalary: true, calculationVersion: true, updatedAt: true, employee: { select: { name: true, position: true } }, items: { select: { type: true, description: true, amount: true, isDeduction: true }, orderBy: { createdAt: 'asc' } } },
           orderBy: { employee: { name: 'asc' } },
-          take: 500,
         }),
       ]);
-      const sum = (rows: any[], key: string) => round(rows.reduce((total, row) => total + num(row[key]), 0));
+      const amounts = accountingTotals(closings, payrolls);
       return {
         scope: 'COMPANY', period: { year: period.year, month: period.month, key: period.key }, company, ruleVersions,
         totals: {
           closings: closings.length,
-          gross: sum(closings, 'grossPay'), net: sum(closings, 'netPay'), inss: sum(closings, 'inssDiscount'), irrf: sum(closings, 'irrfDiscount'), fgts: sum(closings, 'fgtsAmount'),
-          payrolls: payrolls.length, payrollGross: sum(payrolls, 'grossSalary'), payrollNet: sum(payrolls, 'netSalary'),
+          gross: amounts.gross, net: amounts.net, inss: amounts.inss, irrf: amounts.irrf, fgts: amounts.fgts,
+          estimatedClosings: amounts.estimatedClosings,
+          payrolls: payrolls.length,
         },
         closings: closings.map((row) => ({ ...row, grossPay: num(row.grossPay), netPay: num(row.netPay), inssDiscount: num(row.inssDiscount), irrfDiscount: num(row.irrfDiscount), fgtsAmount: num(row.fgtsAmount) })),
-        payrolls: payrolls.map((row) => ({ ...row, baseSalary: num(row.baseSalary), overtimeAmount: num(row.overtimeAmount), nightShiftAmount: num(row.nightShiftAmount), grossSalary: num(row.grossSalary), inssAmount: num(row.inssAmount), irrfAmount: num(row.irrfAmount), fgtsAmount: num(row.fgtsAmount), netSalary: num(row.netSalary) })),
+        payrolls: payrolls.map((row) => ({ ...row, needsRecalculation: !reconcilePayroll(row), baseSalary: num(row.baseSalary), overtimeAmount: num(row.overtimeAmount), nightShiftAmount: num(row.nightShiftAmount), grossSalary: num(row.grossSalary), inssAmount: num(row.inssAmount), irrfAmount: num(row.irrfAmount), fgtsAmount: num(row.fgtsAmount), netSalary: num(row.netSalary), items: row.items.map((item) => ({ ...item, amount: num(item.amount) })) })),
       };
     }
 
     const [companies, closings, payrolls] = await Promise.all([
-      this.prisma.company.findMany({ where: allowedIds ? { id: { in: allowedIds } } : undefined, select: { id: true, name: true, document: true, status: true }, orderBy: { name: 'asc' }, take: 1000 }),
-      this.prisma.timeClosing.groupBy({ by: ['companyId', 'status'], where: { ...(allowedIds ? { companyId: { in: allowedIds } } : {}), periodEnd: { gte: period.start, lt: period.end } }, _count: true, _sum: { grossPay: true, netPay: true, inssDiscount: true, irrfDiscount: true, fgtsAmount: true } }),
-      this.prisma.payroll.groupBy({ by: ['companyId', 'status'], where: { ...(allowedIds ? { companyId: { in: allowedIds } } : {}), referenceYear: period.year, referenceMonth: period.month, deletedAt: null }, _count: true, _sum: { grossSalary: true, netSalary: true } }),
+      this.prisma.company.findMany({ where: allowedIds ? { id: { in: allowedIds } } : undefined, select: { id: true, name: true, document: true, status: true }, orderBy: { name: 'asc' } }),
+      this.prisma.timeClosing.findMany({ where: { ...(allowedIds ? { companyId: { in: allowedIds } } : {}), periodEnd: { gte: period.start, lt: period.end } }, select: { companyId: true, employeeId: true, status: true, periodStart: true, periodEnd: true, grossPay: true, netPay: true, inssDiscount: true, irrfDiscount: true, fgtsAmount: true } }),
+      this.prisma.payroll.findMany({ where: { ...(allowedIds ? { companyId: { in: allowedIds } } : {}), referenceYear: period.year, referenceMonth: period.month, deletedAt: null, status: { not: 'CANCELLED' } }, select: { companyId: true, employeeId: true, status: true, periodStart: true, periodEnd: true, grossSalary: true, netSalary: true, inssAmount: true, irrfAmount: true, fgtsAmount: true } }),
     ]);
+    const byCompany = <T extends { companyId: string }>(records: T[]) => {
+      const groups = new Map<string, T[]>();
+      for (const record of records) {
+        if (!groups.has(record.companyId)) groups.set(record.companyId, []);
+        groups.get(record.companyId)!.push(record);
+      }
+      return groups;
+    };
+    const closingGroups = byCompany(closings);
+    const payrollGroups = byCompany(payrolls);
     const rows = companies.map((company) => {
-      const cl = closings.filter((row) => row.companyId === company.id);
-      const pr = payrolls.filter((row) => row.companyId === company.id);
-      const countStatus = (rows: any[], statuses: string[]) => rows.filter((row) => statuses.includes(row.status)).reduce((total, row) => total + row._count, 0);
+      const cl = closingGroups.get(company.id) ?? [];
+      const pr = payrollGroups.get(company.id) ?? [];
+      const countStatus = (rows: { status: string }[], statuses: string[]) => rows.filter((row) => statuses.includes(row.status)).length;
+      const amounts = accountingTotals(cl, pr);
       return {
         ...company,
-        closings: cl.reduce((total, row) => total + row._count, 0),
+        closings: cl.length,
         closingsPending: countStatus(cl, ['DRAFT', 'IN_REVIEW']),
-        gross: round(cl.reduce((total, row) => total + num(row._sum.grossPay), 0)),
-        net: round(cl.reduce((total, row) => total + num(row._sum.netPay), 0)),
-        inss: round(cl.reduce((total, row) => total + num(row._sum.inssDiscount), 0)),
-        irrf: round(cl.reduce((total, row) => total + num(row._sum.irrfDiscount), 0)),
-        fgts: round(cl.reduce((total, row) => total + num(row._sum.fgtsAmount), 0)),
-        payrolls: pr.reduce((total, row) => total + row._count, 0),
+        gross: amounts.gross, net: amounts.net, inss: amounts.inss, irrf: amounts.irrf, fgts: amounts.fgts,
+        estimatedClosings: amounts.estimatedClosings,
+        payrolls: pr.length,
         payrollsPending: countStatus(pr, ['DRAFT', 'PROCESSING']),
       };
     });
@@ -109,7 +118,9 @@ export class AccountingHubService {
       scope: 'GLOBAL', period: { year: period.year, month: period.month, key: period.key }, ruleVersions,
       totals: {
         companies: rows.length,
-        withClosings: rows.filter((row) => row.closings > 0).length,
+        withClosings: rows.filter((row) => row.closings > 0 || row.payrolls > 0).length,
+        payrolls: rows.reduce((total, row) => total + row.payrolls, 0),
+        estimatedClosings: rows.reduce((total, row) => total + row.estimatedClosings, 0),
         closings: rows.reduce((total, row) => total + row.closings, 0),
         closingsPending: rows.reduce((total, row) => total + row.closingsPending, 0),
         payrollsPending: rows.reduce((total, row) => total + row.payrollsPending, 0),
@@ -127,8 +138,7 @@ export class AccountingHubService {
   private async recalcPayrollRow(tx: any, payroll: any) {
     const reference = new Date(payroll.periodEnd ?? Date.UTC(payroll.referenceYear, payroll.referenceMonth - 1, 1));
     const ctx = await this.payroll.resolveTaxContext(reference);
-    const dependentsData = payroll.employee?.dependents as unknown;
-    const dependents = countDependents(dependentsData);
+    const dependents = countDependents(payroll.employee?.dependents);
 
     // Valores corrigidos nas colunas viram lançamentos (salário, horas extras, noturno).
     const ensureItem = async (type: 'BASE_SALARY' | 'OVERTIME' | 'NIGHT_SHIFT', description: string, amount: number) => {
@@ -144,11 +154,34 @@ export class AccountingHubService {
     await ensureItem('OVERTIME', 'Horas extras', num(payroll.overtimeAmount));
     await ensureItem('NIGHT_SHIFT', 'Adicional noturno', num(payroll.nightShiftAmount));
 
+    // O DSR das verbas variáveis acompanha qualquer correção monetária de extras ou noturno.
+    if (payroll.periodStart && payroll.periodEnd && payroll.employee) {
+      const rule = payroll.employee.workScheduleRule as { restDaysOfWeek?: number[] } | null;
+      const scale = String(payroll.employee.workScale ?? '5X2').toUpperCase();
+      const restDays = Array.isArray(rule?.restDaysOfWeek) && rule.restDaysOfWeek.length ? rule.restDaysOfWeek : scale === '6X1' ? [0] : [0, 6];
+      const dsrDay = restDays.includes(0) ? 0 : restDays[0];
+      let workdays = 0; let dsrDays = 0;
+      for (let day = payroll.periodStart.getTime(); day <= payroll.periodEnd.getTime(); day += 86_400_000) {
+        const weekday = new Date(day).getUTCDay();
+        if (!restDays.includes(weekday)) workdays++;
+        if (weekday === dsrDay) dsrDays++;
+      }
+      const variable = num(payroll.overtimeAmount) + num(payroll.nightShiftAmount);
+      const dsr = workdays > 0 ? round((variable / workdays) * dsrDays) : 0;
+      const existing = await tx.payrollItem.findFirst({ where: { payrollId: payroll.id, type: 'OTHER_EARNING', description: { startsWith: 'DSR' } } });
+      if (existing && dsr > 0) await tx.payrollItem.update({ where: { id: existing.id }, data: { amount: dsr } });
+      else if (existing) await tx.payrollItem.delete({ where: { id: existing.id } });
+      else if (dsr > 0) await tx.payrollItem.create({ data: { payrollId: payroll.id, companyId: payroll.companyId, type: 'OTHER_EARNING', description: 'DSR sobre horas variáveis', amount: dsr, isDeduction: false } });
+    }
+
     const items: Array<{ type: string; amount: unknown; isDeduction: boolean }> = await tx.payrollItem.findMany({ where: { payrollId: payroll.id } });
+    if (items.some((item) => !Number.isFinite(Number(item.amount)) || Number(item.amount) < 0)) {
+      throw new BadRequestException('Há lançamentos inválidos nesta folha. Corrija os valores antes de recalcular.');
+    }
     const sum = (pick: (i: (typeof items)[number]) => boolean) => round(items.filter(pick).reduce((total, i) => total + num(i.amount), 0));
     const earnings = sum((i) => !i.isDeduction && i.type !== 'FGTS');
     const preTaxDeductions = sum((i) => i.type === 'ABSENCE_DEDUCTION');
-    const postTaxDeductions = sum((i) => i.type === 'ADVANCE' || i.type === 'OTHER_DEDUCTION');
+    const postTaxDeductions = sum((i) => i.isDeduction && i.type !== 'ABSENCE_DEDUCTION' && i.type !== 'INSS' && i.type !== 'IRRF');
     const gross = round(Math.max(0, earnings - preTaxDeductions));
     const taxes = this.payroll.applyTaxes(gross, dependents, ctx);
     const net = round(Math.max(0, taxes.netPay - postTaxDeductions));
@@ -162,13 +195,19 @@ export class AccountingHubService {
         taxTableSnapshot: JSON.parse(JSON.stringify(ctx)),
       },
     });
-    for (const [type, amount] of [['INSS', result.inssDiscount], ['IRRF', result.irrfDiscount], ['FGTS', result.fgtsAmount]] as const) {
-      await tx.payrollItem.updateMany({ where: { payrollId: payroll.id, type }, data: { amount } });
+    for (const [type, amount, isDeduction, description] of [
+      ['INSS', result.inssDiscount, true, 'Contribuição INSS'],
+      ['IRRF', result.irrfDiscount, true, 'Imposto de Renda Retido na Fonte'],
+      ['FGTS', result.fgtsAmount, false, 'FGTS (encargo patronal)'],
+    ] as const) {
+      const existing = await tx.payrollItem.findFirst({ where: { payrollId: payroll.id, type } });
+      if (existing) await tx.payrollItem.update({ where: { id: existing.id }, data: { amount, isDeduction } });
+      else await tx.payrollItem.create({ data: { payrollId: payroll.id, companyId: payroll.companyId, type, description, amount, isDeduction } });
     }
     return { updated, result, builtin: ctx.builtin ?? [] };
   }
   private async loadEditablePayroll(actor: JwtUser, id: string) {
-    const payroll = await this.prisma.payroll.findFirst({ where: { id, deletedAt: null }, include: { employee: { select: { name: true, dependents: true } } } });
+    const payroll = await this.prisma.payroll.findFirst({ where: { id, deletedAt: null }, include: { employee: { select: { name: true, dependents: true, workScale: true, workScheduleRule: true } } } });
     if (!payroll) throw new NotFoundException('Folha não encontrada.');
     await this.access.assertAccountantCanAccess(actor, payroll.companyId, 'Folha não encontrada.');
     if (!['DRAFT', 'PROCESSING'].includes(payroll.status)) throw new BadRequestException('Somente folhas em rascunho ou processamento podem ser recalculadas ou corrigidas.');
@@ -196,7 +235,7 @@ export class AccountingHubService {
       const next = await tx.payroll.update({
         where: { id },
         data: { ...changes, observations: `${payroll.observations ? `${payroll.observations}\n` : ''}[${new Date().toISOString()}] ${reason}` },
-        include: { employee: { select: { name: true, dependents: true } } },
+        include: { employee: { select: { name: true, dependents: true, workScale: true, workScheduleRule: true } } },
       });
       const recalculated = await this.recalcPayrollRow(tx, next);
       await tx.auditLog.create({ data: { companyId: payroll.companyId, userId: actor.sub, action: 'ACCOUNTING_PAYROLL_CORRECTED', entity: 'Payroll', entityId: id, metadata: { reason, changes } } });
@@ -242,12 +281,13 @@ export class AccountingHubService {
 
   /** Fluxo da contabilidade nas folhas: aprovar ou devolver ao RH (com motivo). */
   async payrollWorkflow(actor: JwtUser, id: string, action: 'APPROVE' | 'RETURN', reason?: string) {
-    const payroll = await this.prisma.payroll.findFirst({ where: { id, deletedAt: null }, select: { companyId: true, status: true, grossSalary: true, netSalary: true } });
+    const payroll = await this.prisma.payroll.findFirst({ where: { id, deletedAt: null }, select: { companyId: true, status: true, grossSalary: true, netSalary: true, inssAmount: true, irrfAmount: true, fgtsAmount: true, items: { select: { type: true, amount: true, isDeduction: true } } } });
     if (!payroll) throw new NotFoundException('Folha não encontrada.');
     await this.access.assertAccountantCanAccess(actor, payroll.companyId, 'Folha não encontrada.');
     if (action === 'APPROVE') {
       if (payroll.status !== 'DRAFT') throw new BadRequestException('Só folha em rascunho pode ser aprovada.');
       if (!Number.isFinite(Number(payroll.grossSalary)) || !Number.isFinite(Number(payroll.netSalary))) throw new BadRequestException('A folha tem valores inválidos. Recalcule antes de aprovar.');
+      if (!reconcilePayroll(payroll)) throw new BadRequestException('Os totais da folha não conferem com os lançamentos. Recalcule e confira antes de aprovar.');
       await this.prisma.payroll.update({ where: { id }, data: { status: 'APPROVED', approvedBy: actor.sub, approvedAt: new Date() } });
     } else {
       if (!reason?.trim()) throw new BadRequestException('Informe o motivo da devolução ao RH.');
@@ -273,21 +313,26 @@ export class AccountingHubService {
     const t = data.totals as any;
     report.section('Totais da competência');
     report.stats([['Bruto', fmt.money(t.gross)], ['INSS', fmt.money(t.inss)], ['IRRF', fmt.money(t.irrf)], ['FGTS', fmt.money(t.fgts)], ['Líquido', fmt.money(t.net)]]);
+    report.paragraph(`${t.payrolls} folha(s) e ${t.estimatedClosings} fechamento(s) sem folha. A folha substitui o fechamento do mesmo funcionário e ciclo nos totais. INSS e IRRF são retenções; FGTS é encargo da empresa.`, { size: 8, color: PDF.color.mut });
 
     const right = 'right' as const;
     if (data.scope === 'COMPANY') {
-      report.section('Fechamentos', 'por colaborador');
+      const { activePayrolls: payrollRows, estimates: estimateRows } = accountingEntries((data as any).closings, (data as any).payrolls);
+      report.section('Folhas e previsões do ponto', 'por colaborador');
       report.table(
-        [{ label: 'Colaborador', width: 155 }, { label: 'Status', width: 70 }, { label: 'Bruto', width: 70, align: right }, { label: 'INSS', width: 55, align: right }, { label: 'IRRF', width: 55, align: right }, { label: 'FGTS', width: 55, align: right }, { label: 'Líquido', width: 55, align: right }],
-        (data as any).closings.map((row: any) => [row.employee?.name ?? '-', row.status, fmt.money(row.grossPay), fmt.money(row.inssDiscount), fmt.money(row.irrfDiscount), fmt.money(row.fgtsAmount), { text: fmt.money(row.netPay), bold: true }]),
-        { fontSize: 8, emptyText: 'Nenhum fechamento na competência.' },
+        [{ label: 'Colaborador', width: 140 }, { label: 'Origem', width: 85 }, { label: 'Bruto', width: 70, align: right }, { label: 'INSS', width: 55, align: right }, { label: 'IRRF', width: 55, align: right }, { label: 'FGTS', width: 55, align: right }, { label: 'Líquido', width: 55, align: right }],
+        [
+          ...payrollRows.map((row) => [row.employee?.name ?? '-', `Folha ${row.status}`, fmt.money(row.grossSalary), fmt.money(row.inssAmount), fmt.money(row.irrfAmount), fmt.money(row.fgtsAmount), { text: fmt.money(row.netSalary), bold: true }]),
+          ...estimateRows.map((row) => [row.employee?.name ?? '-', `Ponto ${row.status}`, fmt.money(row.grossPay), fmt.money(row.inssDiscount), fmt.money(row.irrfDiscount), fmt.money(row.fgtsAmount), { text: fmt.money(row.netPay), bold: true }]),
+        ],
+        { fontSize: 8, emptyText: 'Nenhuma folha ou fechamento na competência.' },
       );
     } else {
-      report.section('Empresas', 'com fechamento na competência');
+      report.section('Empresas', 'com folha ou fechamento na competência');
       report.table(
         [{ label: 'Empresa', width: 165 }, { label: 'Fech.', width: 40, align: right }, { label: 'Pend.', width: 40, align: right }, { label: 'Bruto', width: 70, align: right }, { label: 'INSS', width: 65, align: right }, { label: 'IRRF', width: 65, align: right }, { label: 'Líquido', width: 70, align: right }],
-        (data as any).companies.filter((row: any) => row.closings > 0).map((row: any) => [row.name, String(row.closings), String(row.closingsPending), fmt.money(row.gross), fmt.money(row.inss), fmt.money(row.irrf), { text: fmt.money(row.net), bold: true }]),
-        { fontSize: 8, emptyText: 'Nenhum fechamento na competência.' },
+        (data as any).companies.filter((row: any) => row.closings > 0 || row.payrolls > 0).map((row: any) => [row.name, String(row.closings), String(row.closingsPending + row.payrollsPending), fmt.money(row.gross), fmt.money(row.inss), fmt.money(row.irrf), { text: fmt.money(row.net), bold: true }]),
+        { fontSize: 8, emptyText: 'Nenhuma folha ou fechamento na competência.' },
       );
     }
 

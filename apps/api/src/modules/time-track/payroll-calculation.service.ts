@@ -68,6 +68,8 @@ export interface PayrollCalculationInput {
   /** Dias de contrato na competência em base comercial (0 a 30; mês inteiro = 30), igual ao saldo de salário da rescisão (labor-dates). Omitido = 30. */
   contractDaysInPeriod?: number;
   scheduledMinutesInPeriod?: number;
+  /** Fração por dias corridos para ciclos incompletos; inclui repousos remunerados. */
+  salaryPeriodFraction?: number;
   taxContext?: PayrollTaxContext;
 }
 
@@ -191,7 +193,10 @@ export class PayrollCalculationService {
     const nightShiftPercent = Math.max(rules.nightMinPercent, input.nightShiftPercent ?? rules.nightMinPercent) / 100;
 
     const isPartialMonth = input.isPartialMonth === true;
-    if (isPartialMonth && (input.scheduledMinutesInPeriod ?? 0) > 0) {
+    if (input.salaryPeriodFraction !== undefined) {
+      if (!Number.isFinite(input.salaryPeriodFraction) || input.salaryPeriodFraction < 0) throw new BadRequestException('Período salarial inválido.');
+      salaryBase = this.money(input.salary * input.salaryPeriodFraction);
+    } else if (isPartialMonth && (input.scheduledMinutesInPeriod ?? 0) > 0) {
       salaryBase = this.money(hourlyRate * (input.scheduledMinutesInPeriod! / 60));
     }
 
@@ -212,7 +217,7 @@ export class PayrollCalculationService {
     
     // In partial months, absences might have been correctly accounted for in the reduced salary base depending on interpretation.
     // However, if we reduced the salary base based on scheduled hours of that short period, we should STILL deduct absences that happened in that period.
-    const dsrLossDiscount = this.money(Math.max(0, input.dsrLossDays ?? 0) * (salaryBase / 30));
+    const dsrLossDiscount = this.money(Math.max(0, input.dsrLossDays ?? 0) * (input.salary / 30));
     const absenceDiscount = this.money((Math.max(0, input.absenceMinutes) / 60) * hourlyRate + dsrLossDiscount);
     const lateDiscount = this.money((Math.max(0, input.lateMinutes ?? 0) / 60) * hourlyRate);
     const earlyLeaveDiscount = this.money((Math.max(0, input.earlyLeaveMinutes ?? 0) / 60) * hourlyRate);

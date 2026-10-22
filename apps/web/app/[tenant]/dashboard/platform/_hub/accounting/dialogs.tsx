@@ -9,7 +9,7 @@ import { platformHub } from '../hub-api';
 import { input, CLOSING_FIELDS, Closing, Payroll } from './parts';
 
 /** Fluxo da contabilidade: revisar, aprovar ou devolver ao RH com motivo. */
-export function WorkflowBar({ kind, id, status, onDone, onClose }: { kind: 'closing' | 'payroll'; id: string; status: string; onDone: () => void; onClose: () => void }) {
+export function WorkflowBar({ kind, id, status, onDone, onClose, blocked = false }: { kind: 'closing' | 'payroll'; id: string; status: string; onDone: () => void; onClose: () => void; blocked?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [returning, setReturning] = useState(false);
   const [reason, setReason] = useState('');
@@ -39,7 +39,7 @@ export function WorkflowBar({ kind, id, status, onDone, onClose }: { kind: 'clos
       ) : (
         <div className="flex flex-wrap gap-2">
           {canReview && <Button variant="outline" size="sm" isLoading={busy} onClick={() => run('REVIEW', 'Marcado em revisão.')}>Marcar em revisão</Button>}
-          {canApprove && <Button size="sm" isLoading={busy} onClick={() => run('APPROVE', 'Aprovado pela contabilidade.')}><CheckCircle2 size={14} aria-hidden="true" /> Aprovar</Button>}
+          {canApprove && <Button size="sm" isLoading={busy} disabled={blocked} onClick={() => run('APPROVE', 'Aprovado pela contabilidade.')}><CheckCircle2 size={14} aria-hidden="true" /> Aprovar</Button>}
           {canReturn && <Button variant="outline" size="sm" disabled={busy} onClick={() => setReturning(true)}>Devolver ao RH</Button>}
         </div>
       )}
@@ -62,15 +62,26 @@ export function PayrollDialog({ item, canEdit, onClose, onDone }: { item: Payrol
     finally { setBusy(false); }
   }
 
-  const rows: Array<[string, number, boolean?]> = [['Salário base', item.baseSalary], ['Horas extras', item.overtimeAmount], ['Adicional noturno', item.nightShiftAmount], ['Bruto', item.grossSalary], ['INSS', item.inssAmount, true], ['IRRF', item.irrfAmount, true], ['FGTS (patronal)', item.fgtsAmount], ['Líquido', item.netSalary]];
+  const rows: Array<[string, number, boolean?]> = [['Bruto tributável', item.grossSalary], ['INSS descontado', item.inssAmount, true], ['IRRF descontado', item.irrfAmount, true], ['Líquido a pagar', item.netSalary], ['FGTS da empresa (fora do líquido)', item.fgtsAmount]];
+  const earnings = item.items.filter((line) => !line.isDeduction && line.type !== 'FGTS');
+  const deductions = item.items.filter((line) => line.isDeduction);
   return (
     <Modal isOpen onClose={() => !busy && onClose()} title={`Folha de ${item.employee?.name ?? 'funcionário'}`} description={`${WORKFLOW_STATUS[item.status] ?? item.status} · regras ${item.calculationVersion ?? 'não registradas'}`} maxWidth="max-w-xl">
       <dl className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
         {rows.map(([label, value, deduction]) => (
-          <div key={label} className="flex justify-between border-b border-border/60 py-1.5"><dt className="text-fg-sub">{label}</dt><dd className={`font-semibold tabular-nums ${deduction ? 'text-rose-600' : label === 'Líquido' ? 'text-emerald-600' : ''}`}>{money(value)}</dd></div>
+          <div key={label} className="flex justify-between border-b border-border/60 py-1.5"><dt className="text-fg-sub">{label}</dt><dd className={`font-semibold tabular-nums ${deduction ? 'text-rose-600' : label === 'Líquido a pagar' ? 'text-emerald-600' : ''}`}>{money(value)}</dd></div>
         ))}
       </dl>
-      {canEdit && <WorkflowBar kind="payroll" id={item.id} status={item.status} onDone={onDone} onClose={onClose} />}
+      {item.needsRecalculation && <p className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-900">Os totais não conferem com os lançamentos. Recalcule e confira antes de aprovar.</p>}
+      <section className="mb-4 rounded-xl border border-border p-3 text-sm">
+        <h3 className="font-bold">Como esta folha foi calculada</h3>
+        <p className="mt-1 text-xs text-fg-sub">Proventos menos faltas formam o bruto. Do bruto saem INSS, IRRF e demais descontos. O FGTS é pago pela empresa.</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div><h4 className="mb-1 text-xs font-bold uppercase text-fg-sub">Proventos</h4>{earnings.map((line, index) => <p key={`${line.type}-${index}`} className="flex justify-between gap-2 border-b border-border/60 py-1"><span>{line.description}</span><span className="tabular-nums">{money(line.amount)}</span></p>)}</div>
+          <div><h4 className="mb-1 text-xs font-bold uppercase text-fg-sub">Descontos</h4>{deductions.map((line, index) => <p key={`${line.type}-${index}`} className="flex justify-between gap-2 border-b border-border/60 py-1"><span>{line.description}</span><span className="tabular-nums text-rose-600">{money(line.amount)}</span></p>)}</div>
+        </div>
+      </section>
+      {canEdit && <WorkflowBar kind="payroll" id={item.id} status={item.status} onDone={onDone} onClose={onClose} blocked={item.needsRecalculation} />}
       {!editable ? <p className="rounded-xl bg-bg-sub p-3 text-sm text-fg-sub">Folhas aprovadas ou pagas não podem ser alteradas por aqui. O RH precisa reabrir a folha.</p> : (
         <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void run(() => platformHub.correctPayroll(item.id, { ...(values.baseSalary ? { baseSalary: Number(values.baseSalary) } : {}), ...(values.overtimeAmount ? { overtimeAmount: Number(values.overtimeAmount) } : {}), ...(values.nightShiftAmount ? { nightShiftAmount: Number(values.nightShiftAmount) } : {}), reason: reason.trim() }), 'Folha corrigida e impostos recalculados.'); }}>
           <p className="text-xs text-fg-sub">Corrija só os proventos. INSS, IRRF, FGTS e líquido são sempre recalculados pelas regras da Contabilidade.</p>
