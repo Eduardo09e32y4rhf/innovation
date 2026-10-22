@@ -70,13 +70,19 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/:path*',
+        // So paginas (HTML/RSC) ficam sem cache. Antes o '/:path*' pegava tambem /_next/static e os arquivos de public/
+        // (logo, fontes, imagens), obrigando o navegador a rebaixa-los a cada visita. Arquivos com extensao e /_next/* ficam de fora.
+        source: '/((?!_next/|.*\\..*).*)',
         headers: [
           {
             key: 'Cache-Control',
             value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
           },
         ],
+      },
+      {
+        source: '/(.+)\\.(png|jpg|jpeg|gif|webp|avif|svg|ico|woff2?|ttf|otf)',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],
       },
     ];
   },

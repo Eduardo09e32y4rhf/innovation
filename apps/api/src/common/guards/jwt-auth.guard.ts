@@ -28,10 +28,23 @@ export class JwtAuthGuard implements CanActivate {
     try {
       const payload = await this.jwtService.verifyAsync(token, { secret: process.env.JWT_SECRET });
       assertAccessToken(payload);
-      const freshUser = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-        include: { company: true },
-      });
+      // Usuario e sessao nao dependem um do outro (sub e family vem do token): uma ida ao banco em paralelo, e so as colunas usadas.
+      const [freshUser, session] = await Promise.all([
+        this.prisma.user.findUnique({
+          where: { id: payload.sub },
+          select: {
+            id: true, isActive: true, role: true, email: true, name: true, companyId: true, customPermissions: true,
+            passwordChangedAt: true, forcePasswordChange: true, onboardingState: true,
+            company: { select: { status: true, billingStatus: true } },
+          },
+        }),
+        typeof payload.sessionFamily === 'string'
+          ? this.prisma.refreshSession.findFirst({
+              where: { userId: payload.sub, family: payload.sessionFamily, revokedAt: null, expiresAt: { gt: new Date() } },
+              select: { id: true },
+            })
+          : Promise.resolve(null),
+      ]);
       if (!freshUser || !freshUser.isActive) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
       const role = freshUser.role;
@@ -47,10 +60,6 @@ export class JwtAuthGuard implements CanActivate {
       if (payload.passwordVersion !== passwordChangedAt || typeof payload.sessionFamily !== 'string') {
         throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
       }
-      const session = await this.prisma.refreshSession.findFirst({
-        where: { userId: freshUser.id, family: payload.sessionFamily, revokedAt: null, expiresAt: { gt: new Date() } },
-        select: { id: true },
-      });
       if (!session) throw new UnauthorizedException(SESSION_DENIED_MESSAGE);
 
       const changedAt = freshUser.passwordChangedAt ? new Date(freshUser.passwordChangedAt).getTime() : 0;

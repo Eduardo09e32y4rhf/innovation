@@ -11,6 +11,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: ${POSTGRES_DB:-innovation_db}
     # Sem "ports": o banco sÃ³ Ã© acessÃ­vel pela rede interna do compose.
+    # Ajuste fino para VPS pequena (padrao do postgres e 128MB de shared_buffers e work_mem 4MB). Sobrescreva no .env conforme a RAM.
+    command: ["postgres", "-c", "shared_buffers=${PG_SHARED_BUFFERS:-256MB}", "-c", "effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-768MB}", "-c", "work_mem=${PG_WORK_MEM:-8MB}", "-c", "max_connections=${PG_MAX_CONNECTIONS:-60}", "-c", "random_page_cost=1.1"]
+    mem_limit: ${DB_MEM_LIMIT:-1g}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -32,6 +35,7 @@ services:
       retries: 10
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+    mem_limit: ${REDIS_MEM_LIMIT:-384m}
     restart: always
 
   api:
@@ -41,6 +45,8 @@ services:
       dockerfile: apps/api/Dockerfile
     environment:
       NODE_ENV: production
+      # Heap do V8 abaixo do mem_limit do container (sobra para buffers/PDF); sem isso o Node estima pelo RAM do host e pode estourar o limite.
+      NODE_OPTIONS: ${API_NODE_OPTIONS:---max-old-space-size=640}
       DATABASE_URL: "postgresql://${POSTGRES_USER:-innovation}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-innovation_db}?schema=public"
       REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
@@ -118,6 +124,7 @@ services:
       LOKI_HOST: ${LOKI_HOST:-}
     volumes:
       - api_data:/data
+    mem_limit: ${API_MEM_LIMIT:-1g}
     # SÃ³ o proxy reverso do servidor (localhost) fala com a API.
     ports: ["127.0.0.1:3333:3333"]
     depends_on:
@@ -136,6 +143,9 @@ services:
   clamav:
     image: clamav/clamav:stable
     # Sem 'ports': so a API (rede interna) usa o scanner. Na 1a subida baixa as definicoes (alguns minutos; ~1-2 GB de RAM).
+    # Nao reduza abaixo de ~1.5g: o clamd carrega o banco de assinaturas inteiro e e morto por OOM em loop.
+    # Sem ele, em producao a API RECUSA anexos/curriculos (503). Para liberar RAM, veja docs/DEPLOY-VPS.md (secao Desempenho).
+    mem_limit: ${CLAMAV_MEM_LIMIT:-2g}
     volumes:
       - clamav_data:/var/lib/clamav
     restart: always
@@ -150,6 +160,10 @@ services:
         NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL: ${NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL:-false}
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      NODE_OPTIONS: ${WEB_NODE_OPTIONS:---max-old-space-size=384}
+    mem_limit: ${WEB_MEM_LIMIT:-640m}
     ports: ["127.0.0.1:3000:3000"]
     depends_on:
       - api

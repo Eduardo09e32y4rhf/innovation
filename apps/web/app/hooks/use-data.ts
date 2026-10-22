@@ -103,8 +103,12 @@ export function useQuery<T>(
   useEffect(() => { run(); }, [run]);
   useEffect(() => {
     if (!pollMs || !enabled) return;
-    const id = setInterval(run, pollMs);
-    return () => clearInterval(id);
+    // Polling em segundo plano: pula aba oculta (nao gasta API/CPU) e nao pisca o estado de loading.
+    const tick = () => { if (typeof document === 'undefined' || document.visibilityState === 'visible') void run(true); };
+    const id = setInterval(tick, pollMs);
+    const onVisible = () => { if (document.visibilityState === 'visible') void run(true); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVisible); };
   }, [pollMs, enabled, run]);
 
   return {

@@ -194,7 +194,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (pendingBilling) return;
     api.users.ping().catch(() => {});
     const interval = setInterval(() => {
-      api.users.ping().catch(() => {});
+      if (document.visibilityState === 'visible') api.users.ping().catch(() => {});
     }, 60000);
     return () => clearInterval(interval);
   }, [token, user]);

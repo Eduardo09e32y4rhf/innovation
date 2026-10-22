@@ -14,7 +14,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const widget = useQuery(() => api.notifications.dashboardWidget(), [], { pollMs: 15000 });
+  const widget = useQuery(() => api.notifications.dashboardWidget(), [], { pollMs: 60000 });
   const markReadMut = useMutation((id: string) => api.notifications.markAsRead(id), { onSuccess: () => widget.refetch() });
   const markAllReadMut = useMutation(() => api.notifications.markAllAsRead(), { onSuccess: () => widget.refetch() });
 

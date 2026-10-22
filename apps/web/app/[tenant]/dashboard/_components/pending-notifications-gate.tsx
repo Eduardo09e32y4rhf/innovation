@@ -18,7 +18,7 @@ const fmtDate = (value?: string | null) => {
 
 /** Tudo que o RH envia aparece assim que a pessoa entra, até ela confirmar. */
 export function PendingNotificationsGate({ children }: { children: ReactNode }) {
-  const { data: widget, refetch } = useQuery(() => api.notifications.dashboardWidget(), [], { pollMs: 30000 });
+  const { data: widget, refetch } = useQuery(() => api.notifications.dashboardWidget(), [], { pollMs: 60000 });
   const [error, setError] = useState('');
   const [refusing, setRefusing] = useState(false);
   const [reason, setReason] = useState('');

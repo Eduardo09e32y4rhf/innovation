@@ -57,3 +57,37 @@ Configuracao unica no GitHub (Settings):
 - `APP_URL` precisa estar definido (usado em `back_url`). Aplique a migration `20261006110000_mp_subscription` (`apply-migrations.sh`).
 - Cobranca recusada pelo cartao: a fatura fica aberta/vencida e a regua de inadimplencia (`DUNNING_*`) bloqueia e cancela; ao pagar, o webhook reativa.
 - Ainda falta: trocar o valor da assinatura ao mudar plano/usuarios (`updateSubscriptionAmount` ja existe no servico, falta ligar) e cancelar a assinatura ao cancelar a empresa.
+
+## Desempenho (VPS pequena)
+O que ja vem configurado no `docker-compose.prod.yml` (todos os valores sao sobrescritiveis no `.env`):
+
+| Servico | Limite (padrao) | Variaveis |
+|---|---|---|
+| db (Postgres) | 1 GB; `shared_buffers=256MB`, `work_mem=8MB`, `max_connections=60` | `DB_MEM_LIMIT`, `PG_SHARED_BUFFERS`, `PG_EFFECTIVE_CACHE_SIZE`, `PG_WORK_MEM`, `PG_MAX_CONNECTIONS` |
+| redis | 384 MB | `REDIS_MEM_LIMIT` |
+| api | 1 GB; `NODE_OPTIONS=--max-old-space-size=640` | `API_MEM_LIMIT`, `API_NODE_OPTIONS` |
+| web | 640 MB; `NODE_OPTIONS=--max-old-space-size=384` | `WEB_MEM_LIMIT`, `WEB_NODE_OPTIONS` |
+| clamav | 2 GB | `CLAMAV_MEM_LIMIT` |
+
+Soma dos limites padrao: ~5 GB. Em VPS com menos RAM, reduza `PG_*`/limites proporcionalmente; o heap do Node deve ficar ~60-65% do `mem_limit` do container.
+
+### nginx do host
+Copie as diretivas de `infra/nginx-host-performance.conf` (gzip, keepalive para os containers, cache imutavel de `/_next/static/`). Depois `sudo nginx -t && sudo systemctl reload nginx`. O Next ja serve `/_next/static` como imutavel e agora os arquivos de `public/` (logo, fontes, imagens) deixaram de receber `no-store`; so as paginas continuam sem cache.
+
+### ClamAV (antivirus de anexos)
+Consome ~1-1,5 GB de RAM fixos (carrega o banco de assinaturas) e e o maior ofensor de memoria da stack. **Nao foi desligado**: em producao a API recusa curriculos/anexos de suporte com 503 quando o scanner nao responde (`candidate-document-scanner.service.ts`). Se a VPS tiver pouca RAM e voce aceitar ficar sem upload de anexos/curriculos, pare so o scanner: `docker compose -f docker-compose.prod.yml stop clamav`. Para voltar: `start clamav` (a primeira subida baixa as definicoes). Nao reduza `CLAMAV_MEM_LIMIT` abaixo de 1,5g (OOM em loop). Alternativa que mantem a verificacao: scanner em outra maquina e `CLAMAV_HOST` apontando para ela.
+
+### Migration de indices
+`20261022190000_performance_indexes` e aditiva (`CREATE INDEX IF NOT EXISTS`); `apply-migrations.sh` aplica no proximo deploy. Em tabelas grandes o Postgres bloqueia escritas durante a criacao: aplique fora do horario de pico.
+
+### O que medir na VPS (antes e depois)
+```bash
+free -h && swapon --show                       # RAM livre e se esta usando swap (swap alto = causa provavel da lentidao)
+docker stats --no-stream                       # CPU/RAM por container; veja quem encosta no limite
+uptime; nproc                                  # load average vs nucleos
+docker compose -f docker-compose.prod.yml logs --since 10m api | grep -i "oom\|heap\|killed"
+dmesg -T | grep -i "out of memory"             # OOM killer do kernel
+docker compose -f docker-compose.prod.yml exec db psql -U innovation -d innovation_db -c "SELECT calls, round(mean_exec_time::numeric,1) AS ms, left(query,90) FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 15;"   # exige a extensao pg_stat_statements
+curl -s -o /dev/null -w 'ttfb=%{time_starttransfer}s total=%{time_total}s\n' https://SEU-DOMINIO/api/health
+curl -sI https://SEU-DOMINIO/_next/static/ | head   # confira Cache-Control imutavel apos aplicar o nginx
+```

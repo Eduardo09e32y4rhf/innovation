@@ -693,6 +693,7 @@ model Employee {
   @@index([companyId])
   @@index([companyId, status])
   @@index([companyId, name])
+  @@index([companyId, managerId])
   @@index([cpf])
 }
 
@@ -754,6 +755,7 @@ model TimeTrack {
   @@index([date])
   @@index([companyId, date])
   @@index([companyId, employeeId, date])
+  @@index([employeeId, manualStatus])
 }
 
 model WorkScheduleRule {
@@ -860,6 +862,8 @@ model Vacation {
   auditLogs   VacationAuditLog[]
 
   @@index([employeeId])
+  @@index([employeeId, status])
+  @@index([status])
   @@index([entitlementId])
 }
 
@@ -1165,6 +1169,7 @@ model Notification {
   recipients    NotificationRecipient[]
 
   @@index([companyId])
+  @@index([companyId, createdAt])
   @@index([type])
   @@index([priority])
   @@index([startsAt])
@@ -1189,6 +1194,7 @@ model NotificationRecipient {
 
   @@unique([notificationId, userId])
   @@index([userId])
+  @@index([userId, status])
   @@index([status])
   @@map("notification_recipients")
 }
@@ -1234,6 +1240,7 @@ model AuditLog {
 
   @@index([companyId])
   @@index([companyId, entity])
+  @@index([companyId, createdAt])
   @@index([userId])
   @@index([userId, createdAt])
   @@index([entity, entityId, createdAt])
@@ -3354,6 +3361,7 @@ model RefreshSession {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, revokedAt])
+  @@index([userId, family])
   @@index([family])
   @@index([expiresAt])
 }
