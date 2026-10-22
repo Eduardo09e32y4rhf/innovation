@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { GeoService, normalizePlace, publicIp } from './geo.service';
 
 describe('publicIp', () => {
@@ -29,6 +29,8 @@ describe('normalizePlace', () => {
 
 describe('GeoService (base real do pacote npm)', () => {
   const geo = new GeoService();
+  // Abrir os ~134 MB da base pode passar dos 5 s padrao em maquina carregada.
+  beforeAll(() => geo.available(), 60_000);
 
   it('localiza IPv4 e IPv6 brasileiros e estrangeiros', async () => {
     expect(await geo.available()).toBe(true);
