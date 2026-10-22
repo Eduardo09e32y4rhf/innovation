@@ -4,6 +4,19 @@
  * - Fim do teste: recusou = conta cancelada e nada é cobrado; sem recusa = o pagamento é solicitado (fatura automática).
  * - O CPF/CNPJ nunca pode usar o cupom de novo (a trava fica no resgate, por hash do documento).
  */
+/** Dias de teste grátis de todo cadastro em plano pago (env TRIAL_DAYS_DEFAULT, padrão 30; limite 1 a 365). */
+export function trialDaysDefault(env: Record<string, string | undefined> = process.env): number {
+  const n = Math.floor(Number(env.TRIAL_DAYS_DEFAULT));
+  return Number.isFinite(n) && n >= 1 ? Math.min(n, 365) : 30;
+}
+
+/** Dias do teste: o padrão; cupom TRIAL_DAYS só vale se der MAIS dias que o padrão (nunca reduz). */
+export function resolveTrialDays(couponTrialDays?: number | null, env: Record<string, string | undefined> = process.env): number {
+  const base = trialDaysDefault(env);
+  const extra = Math.floor(Number(couponTrialDays));
+  return Number.isFinite(extra) && extra > base ? Math.min(extra, 365) : base;
+}
+
 export type TrialOutcome = 'CANCEL' | 'CHARGE';
 export function trialOutcome(input: { trialDeclinedAt: Date | null }): TrialOutcome {
   return input.trialDeclinedAt ? 'CANCEL' : 'CHARGE';

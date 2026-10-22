@@ -40,6 +40,7 @@ export function PlanCard({ plan, tone = 'dark', selected, onSelect, footer }: { 
       <p className="mt-5 flex items-baseline gap-1 font-bold tabular-nums">
         {plan.isFree ? <span className="text-4xl">Grátis</span> : (<><span className="text-sm">R$</span><span className="text-5xl">{reais},{cents}</span><span className={`text-xs font-medium ${light ? 'text-zinc-500' : 'text-white/60'}`}>/mês</span></>)}
       </p>
+      {!plan.isFree && <p className={`mt-2 text-xs font-semibold ${light ? 'text-emerald-700' : 'text-emerald-300'}`}>30 dias grátis, sem cartão. Depois, preço cheio do plano.</p>}
       <hr className={`my-4 ${light ? 'border-zinc-200' : 'border-white/15'}`} />
       <ul className={`flex-1 space-y-2 text-sm ${light ? 'text-zinc-700' : 'text-white/85'}`}>
         {features.map((item) => <li key={item} className="flex items-start gap-2"><Check size={16} className="mt-0.5 shrink-0 text-[var(--color-brand-400)]" aria-hidden="true" />{item}</li>)}

@@ -47,7 +47,8 @@ export class TrialConversionService {
     const previous = await this.prisma.platformInvoice.findUnique({ where: { chargeRequestKey: key }, select: { id: true } });
     if (previous) return { created: false, reason: 'ALREADY_CREATED', invoiceId: previous.id };
 
-    const coupon = sub?.couponType && !(sub.couponCyclesLeft !== null && sub.couponCyclesLeft !== undefined && sub.couponCyclesLeft <= 0)
+    // Só desconto PERCENT/FIXED explicitamente resgatado (couponId gravado) entra; teste não dá desconto.
+    const coupon = sub?.couponId && (sub.couponType === 'PERCENT' || sub.couponType === 'FIXED') && !(sub.couponCyclesLeft !== null && sub.couponCyclesLeft !== undefined && sub.couponCyclesLeft <= 0)
       ? couponDiscount({ type: sub.couponType, value: sub.couponValue })
       : null;
     const price = computePrice({ plan: planPricingForSubscription(plan, sub), units: sub?.seatQuantity || 1, coupon, now });

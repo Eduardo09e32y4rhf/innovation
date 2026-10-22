@@ -163,8 +163,10 @@ function CadastroForm() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="c-seats" label={plan?.code === 'RS' ? 'Vagas por mês' : 'Colaboradores'}><input id="c-seats" type="number" min={1} max={plan?.maxUsers || 10000} required className={authInput} value={seats} onChange={(e) => setSeats(Math.max(1, Math.floor(Number(e.target.value)) || 1))} /></Field>
-            <Field id="c-coupon" label="Cupom (opcional)"><input id="c-coupon" autoComplete="off" className={authInput} value={form.couponCode} onChange={(e) => set('couponCode', e.target.value.trim())} /></Field>
+            <Field id="c-coupon" label="Cupom (opcional, não altera o teste grátis)"><input id="c-coupon" autoComplete="off" className={authInput} value={form.couponCode} onChange={(e) => set('couponCode', e.target.value.trim())} /></Field>
           </div>
+
+          {plan && !plan.isFree && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800"><strong>30 dias grátis, sem cartão.</strong> Depois, preço cheio do plano. Um teste grátis por CPF/CNPJ.</p>}
 
           {plan && !plan.isFree && estimate > 0 && (
             <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">Estimativa mensal: <strong>{brl(estimate)}</strong> <span className="text-xs text-zinc-500">(plano + {seats} {plan?.code === 'RS' ? 'vaga' : 'colaborador'}{seats > 1 ? (plan?.code === 'RS' ? 's' : 'es') : ''}, o valor final com descontos aparece no checkout)</span></p>

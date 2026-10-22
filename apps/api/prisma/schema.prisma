@@ -2419,13 +2419,14 @@ model PromotionCoupon {
 
 model CouponRedemption {
   id           String   @id @default(uuid()) @db.Uuid
-  couponId     String   @db.Uuid
+  /// Nulo no teste grátis padrão (sem cupom): o documentHash continua único e marca que o CPF/CNPJ já usou o teste.
+  couponId     String?  @db.Uuid
   companyId    String?  @db.Uuid
   documentHash String   @unique
   redeemedAt   DateTime @default(now())
 
-  coupon  PromotionCoupon @relation(fields: [couponId], references: [id], onDelete: Restrict)
-  company Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  coupon  PromotionCoupon? @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  company Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([couponId])
   @@index([companyId])

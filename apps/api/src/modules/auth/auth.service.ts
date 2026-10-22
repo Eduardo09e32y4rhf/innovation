@@ -35,6 +35,7 @@ import { resetNoticeRoles } from '../notifications/notice-rules';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
 import { PricingService } from '../finance/pricing.service';
 import { computePrice } from '../finance/pricing';
+import { resolveTrialDays, trialDaysDefault } from '../finance/trial-lifecycle';
 import { checkCouponEligibility, couponDiscount } from '../coupons/coupon-rules';
 
 // SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
@@ -59,6 +60,8 @@ export function lockDurationMs(failedAttempts: number): number {
   if (failedAttempts < 5) return 0;
   return Math.min(24 * 60, 15 * 2 ** (failedAttempts - 5)) * 60_000;
 }
+
+const trialDaysCount = (end: Date | null) => (end ? Math.max(1, Math.round((end.getTime() - Date.now()) / 86_400_000)) : 0);
 
 @Injectable()
 export class AuthService {
@@ -98,12 +101,12 @@ export class AuthService {
       includedUnits: plan.includedUnits ?? 0,
       discountPercent: plan.discountPercent ? Number(plan.discountPercent) : undefined,
     };
-    if (!dto.couponCode) return { ...this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, pricing), trialDays: 0, couponApplied: false };
+    if (!dto.couponCode) return { ...this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, pricing), trialDays: plan.isFree ? 0 : trialDaysDefault(), couponApplied: false };
     const coupon = await this.repository.findCouponByCode(dto.couponCode);
     const check = checkCouponEligibility(coupon, { planId: plan.id, seats: dto.seatQuantity });
     if (!check.ok || !coupon) throw new BadRequestException({ code: check.ok ? 'COUPON_INVALID' : check.code, message: check.ok ? 'Cupom invalido, expirado ou indisponivel.' : check.message });
     const quote = this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, pricing, couponDiscount(coupon));
-    return { ...quote, trialDays: coupon.type === 'TRIAL_DAYS' ? coupon.trialDays : 0, couponApplied: true, couponType: coupon.type, couponDurationCycles: coupon.durationCycles };
+    return { ...quote, trialDays: plan.isFree ? 0 : resolveTrialDays(coupon.type === 'TRIAL_DAYS' ? coupon.trialDays : null), couponApplied: true, couponType: coupon.type, couponDurationCycles: coupon.durationCycles };
   }
   async registerCompany(dto: RegisterCompanyDto, requestMeta?: RequestMeta) {
     const email = dto.email.trim().toLowerCase();
@@ -158,27 +161,40 @@ export class AuthService {
 
     let trial = false;
     let trialEndsAt: Date | null = null;
+    let trialAlreadyUsed = false;
     try {
-      if (coupon && coupon.type !== 'TRIAL_DAYS') {
-        const documentHash = this.documentHash(document as string); // com cupom, o documento ja foi exigido acima
-        const redemption = await this.repository.redeemDiscountCoupon({ ...subscriptionData, couponId: coupon.id, documentHash, seatQuantity: dto.seatQuantity });
+      const isTrialCoupon = coupon?.type === 'TRIAL_DAYS';
+      const discountCoupon = coupon && !isTrialCoupon ? coupon : null;
+      const redeemDiscount = async () => {
+        const redemption = await this.repository.redeemDiscountCoupon({ ...subscriptionData, couponId: discountCoupon!.id, documentHash: this.documentHash(document as string), seatQuantity: dto.seatQuantity });
         if (!redemption.applied) {
           throw new ConflictException({ code: redemption.reason, message: redemption.reason === 'COUPON_ALREADY_USED' ? 'Este documento ja utilizou este cupom.' : 'Cupom indisponivel.' });
         }
-      } else if (coupon) {
-        const documentHash = this.documentHash(document as string);
-        const redemption = await this.repository.redeemTrialCoupon({
-          ...subscriptionData,
-          couponId: coupon.id,
-          documentHash,
-          trialDays: coupon.trialDays,
-        });
-        if (!redemption.applied) {
-          throw new ConflictException({ code: redemption.reason, message: redemption.reason === 'TRIAL_ALREADY_USED' ? 'Este documento ja utilizou um periodo de teste.' : 'Cupom indisponivel.' });
+      };
+      if (selectedPlan.isFree) {
+        // Plano gratis: ACTIVE, sem teste.
+        if (discountCoupon) await redeemDiscount();
+        else await this.repository.createSubscription(subscriptionData);
+      } else if (document) {
+        // Todo plano pago ganha teste (sem desconto). Cupom TRIAL_DAYS so vale se der MAIS dias que o padrao.
+        const documentHash = this.documentHash(document);
+        const days = resolveTrialDays(isTrialCoupon ? coupon!.trialDays : null);
+        const started = isTrialCoupon && days > trialDaysDefault()
+          ? await this.repository.redeemTrialCoupon({ ...subscriptionData, couponId: coupon!.id, documentHash, trialDays: days })
+          : await this.repository.startDefaultTrial({ ...subscriptionData, documentHash, trialDays: days, discountCouponId: discountCoupon?.id });
+        if (started.applied) {
+          trial = true;
+          trialEndsAt = started.trialEndsAt;
+        } else if (started.reason === 'TRIAL_ALREADY_USED' && !isTrialCoupon) {
+          // Documento ja usou o teste: segue como antes (pagar na hora), com aviso claro.
+          trialAlreadyUsed = true;
+          if (discountCoupon) await redeemDiscount();
+          else await this.repository.createSubscription(subscriptionData);
+        } else {
+          throw new ConflictException({ code: started.reason, message: started.reason === 'TRIAL_ALREADY_USED' ? 'Este documento ja utilizou um periodo de teste.' : started.reason === 'COUPON_ALREADY_USED' ? 'Este documento ja utilizou este cupom.' : 'Cupom indisponivel.' });
         }
-        trial = true;
-        trialEndsAt = redemption.trialEndsAt;
       } else {
+        // Sem documento (somente ambiente de robo) nao ha como travar o teste: cobra na hora.
         await this.repository.createSubscription(subscriptionData);
       }
     } catch (error) {
@@ -194,7 +210,7 @@ export class AuthService {
 
     let checkout: { active: boolean; paymentUrl: string | null | undefined } = { active: Boolean(selectedPlan?.isFree), paymentUrl: null };
     let billingSetupPending = false;
-    if (!selectedPlan.isFree) {
+    if (!selectedPlan.isFree && !trial) {
       try {
         checkout = await this.platformFinance.ensureCompanyOnboardingBilling(company.id);
       } catch (error) {
@@ -220,6 +236,8 @@ export class AuthService {
       billingSetupPending,
       trial,
       trialEndsAt,
+      trialAlreadyUsed,
+      trialMessage: trial ? `Seu teste gratis de ${trialDaysCount(trialEndsAt)} dias comecou. Nao pedimos cartao agora; depois do teste cobramos o preco cheio do plano.` : trialAlreadyUsed ? 'Este CPF/CNPJ ja usou o teste gratis. Para ativar o plano, conclua o pagamento.' : null,
     };
   }
 

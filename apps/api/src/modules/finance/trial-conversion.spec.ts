@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { TrialConversionService } from './trial-conversion.service';
 import { trialCountdownContent, trialCountdownKey, trialCountdownStage, trialDaysLeft } from './trial-lifecycle';
+import { computePrice, planPricingForSubscription } from './pricing';
 import { isFeatureEnabled } from '../../common/feature-flags';
 
 const d = (s: string) => new Date(s);
@@ -102,15 +103,34 @@ describe('primeira fatura no fim do teste (sem propostas)', () => {
     expect(await service.generateFirstInvoice('c1', now)).toMatchObject({ created: false, reason: 'ALREADY_CREATED' });
   });
   it('aplica o cupom vigente e o preco contratado (pricingVersion antiga)', async () => {
-    const { service } = setup({ company: company({ couponType: 'PERCENT', couponValue: 10, couponCyclesLeft: 2, pricingVersion: '2026.1', baseMonthlyPrice: 79.99 }) });
+    const { service } = setup({ company: company({ couponId: 'k1', couponType: 'PERCENT', couponValue: 10, couponCyclesLeft: 2, pricingVersion: '2026.1', baseMonthlyPrice: 79.99 }) });
     // base 7999 + 2 x 250 = 8499; cupom 10% = 850 (849,9); total 7649
     expect(await service.generateFirstInvoice('c1', now)).toMatchObject({ created: true, amountCents: 7649 });
   });
   it('plano gratis, cupom 100% e recorrencia ja criada no provedor nao geram fatura', async () => {
     expect(await setup({ company: { ...company(), platformPlan: { ...plan, isFree: true } } }).service.generateFirstInvoice('c1', now)).toMatchObject({ created: false, reason: 'FREE_OR_NO_PLAN' });
-    expect(await setup({ company: company({ couponType: 'PERCENT', couponValue: 100 }) }).service.generateFirstInvoice('c1', now)).toMatchObject({ created: false, reason: 'ZERO_AMOUNT' });
+    expect(await setup({ company: company({ couponId: 'k1', couponType: 'PERCENT', couponValue: 100 }) }).service.generateFirstInvoice('c1', now)).toMatchObject({ created: false, reason: 'ZERO_AMOUNT' });
     expect(await setup({ company: company({ asaasSubscriptionId: 'sub_1' }) }).service.generateFirstInvoice('c1', now)).toMatchObject({ created: false, reason: 'PROVIDER_RECURRING' });
     expect(await setup({ company: null as any }).service.generateFirstInvoice('x', now)).toMatchObject({ created: false, reason: 'NO_COMPANY' });
+  });
+  it('primeira fatura do teste = preco cheio (igual a computePrice sem cupom)', async () => {
+    const { service, invoices } = setup({ company: company() });
+    const full = computePrice({ plan: planPricingForSubscription(plan as any, { pricingVersion: '2026.2' } as any), units: 12, now });
+    const r = await service.generateFirstInvoice('c1', now);
+    expect(r).toMatchObject({ created: true, amountCents: full.totalCents });
+    expect(([...invoices.values()][0].pricingSnapshot as any).discountCents ?? 0).toBe(0);
+  });
+  it('cupom TRIAL_DAYS na assinatura nao da desconto na conversao', async () => {
+    const full = (await setup({ company: company() }).service.generateFirstInvoice('c1', now)) as any;
+    const withTrial = (await setup({ company: company({ couponId: 'k2', couponType: 'TRIAL_DAYS', couponValue: 50, couponCyclesLeft: 5 }) }).service.generateFirstInvoice('c1', now)) as any;
+    expect(withTrial.amountCents).toBe(full.amountCents);
+  });
+  it('cupom PERCENT so entra se foi resgatado de verdade (couponId); so vale depois do teste', async () => {
+    const full = (await setup({ company: company() }).service.generateFirstInvoice('c1', now)) as any;
+    const orphan = (await setup({ company: company({ couponType: 'PERCENT', couponValue: 50 }) }).service.generateFirstInvoice('c1', now)) as any;
+    expect(orphan.amountCents).toBe(full.amountCents);
+    const redeemed = (await setup({ company: company({ couponId: 'k1', couponType: 'PERCENT', couponValue: 50, couponCyclesLeft: 1 }) }).service.generateFirstInvoice('c1', now)) as any;
+    expect(redeemed.amountCents).toBeLessThan(full.amountCents);
   });
   it('falha ao gerar o link nao desfaz a fatura local', async () => {
     const { service, invoices, platformFinance } = setup({ company: company() });
