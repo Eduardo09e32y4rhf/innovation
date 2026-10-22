@@ -206,15 +206,25 @@ export default function EmployeesPage() {
         {deletionQuery.error && <ErrorState message={deletionQuery.error} onRetry={deletionQuery.refetch} />}
         {deletionQuery.data && <DeletionImpact dossier={deletionQuery.data} />}
         {!!deletionQuery.data?.deletionImpact.total && (
-          <fieldset className="space-y-2 text-sm">
-            <legend className="font-medium">O que fazer com o histórico?</legend>
-            <label className="flex items-start gap-2"><input type="radio" name="delete-mode" checked={!forceDelete} onChange={() => setForceDelete(false)} /><span><strong>Arquivar</strong> (recomendado): bloqueia o acesso e guarda ponto, folha e férias.</span></label>
-            <label className="flex items-start gap-2"><input type="radio" name="delete-mode" checked={forceDelete} onChange={() => setForceDelete(true)} /><span><strong>Excluir definitivamente</strong>: apaga o funcionário e todo o histórico (ponto, folha, férias, ASO). Não dá para desfazer. Baixe o dossiê antes se precisar guardar.</span></label>
+          <fieldset className="space-y-3">
+            <legend className="mb-2 text-sm font-semibold">O que fazer com o histórico?</legend>
+            {([
+              { force: false, title: 'Arquivar', badge: 'Recomendado', text: 'Bloqueia o acesso e guarda ponto, folha e férias.', tone: 'border-emerald-500 bg-emerald-50' },
+              { force: true, title: 'Excluir definitivamente', badge: 'Sem volta', text: 'Apaga o funcionário e todo o histórico (ponto, folha, férias, ASO). Baixe o dossiê antes se precisar guardar.', tone: 'border-rose-500 bg-rose-50' },
+            ] as const).map(option => (
+              <label key={option.title} className={`flex min-h-[64px] cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition-colors focus-within:ring-2 focus-within:ring-offset-1 ${forceDelete === option.force ? option.tone : 'border-border bg-bg'}`}>
+                <input type="radio" name="delete-mode" className="mt-1 h-5 w-5 shrink-0 accent-current" checked={forceDelete === option.force} onChange={() => setForceDelete(option.force)} />
+                <span className="min-w-0 space-y-1">
+                  <span className="flex flex-wrap items-center gap-2 text-base font-semibold">{option.title}<span className={`rounded-full px-2 py-0.5 text-xs font-medium ${option.force ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>{option.badge}</span></span>
+                  <span className="block text-sm text-fg-sub">{option.text}</span>
+                </span>
+              </label>
+            ))}
           </fieldset>
         )}
         <label className="block space-y-1 text-sm font-medium">Digite {normalizeDisplayName(deleting?.name ?? '')} para confirmar<input className="input-v2 text-base" value={confirmationName} onChange={e => setConfirmationName(e.target.value)} autoComplete="off" /></label>
         {remove.error && <p role="alert" className="text-sm text-rose-700">{remove.error}</p>}
-        <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" disabled={remove.loading} onClick={() => setDeleting(null)}>Cancelar</Button><Button type="button" variant="danger" isLoading={remove.loading} disabled={!deletionQuery.data || !!deletionQuery.error || deletionQuery.loading || confirmationName !== normalizeDisplayName(deleting?.name ?? '')} onClick={async () => {
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="outline" className="w-full sm:w-auto" disabled={remove.loading} onClick={() => setDeleting(null)}>Cancelar</Button><Button type="button" variant={deletionQuery.data?.deletionImpact.total && !forceDelete ? 'primary' : 'danger'} className="w-full sm:w-auto" isLoading={remove.loading} disabled={!deletionQuery.data || !!deletionQuery.error || deletionQuery.loading || confirmationName !== normalizeDisplayName(deleting?.name ?? '')} onClick={async () => {
           if (!deleting || remove.loading) return;
           try { const result = await remove.mutate({ id: deleting.id, force: forceDelete }); setFeedback(result.archived ? 'Funcionário arquivado. Histórico preservado e acesso bloqueado.' : 'Funcionário excluído definitivamente.'); setDeleting(null); } catch { /* mantém os dados */ }
         }}>Confirmar {deletionQuery.data?.deletionImpact.total && !forceDelete ? 'arquivamento' : 'exclusão'}</Button></div>
