@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { AccountingAccessService } from '../../common/accounting-access';
 import type { JwtUser } from '../../common/types/auth.types';
 import { roundMoney } from '../../common/utils/money';
 import type { CreateDocRequestDto, CreateTaskDto, GenerateFeesDto, SaveClientDto, UpdateDocRequestDto, UpdateTaskDto } from './accounting-office.dto';
@@ -46,7 +47,7 @@ function lastBusinessDay(year: number, month: number) {
 
 @Injectable()
 export class AccountingOfficeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly access: AccountingAccessService) {}
 
   // ---------- calendário de obrigações ----------
 
@@ -85,17 +86,19 @@ export class AccountingOfficeService {
 
   // ---------- painel ----------
 
-  async dashboard(month?: string) {
+  async dashboard(actor: JwtUser, month?: string) {
     const period = resolveMonth(month);
+    const allowed = await this.access.accessibleCompanyIds(actor);
+    const byCompany = allowed ? { companyId: { in: allowed } } : {};
     const [companies, clients, closings, payrolls, docs, tasks, fees, manual] = await Promise.all([
-      this.prisma.company.findMany({ select: { id: true, name: true, document: true, status: true }, orderBy: { name: 'asc' }, take: 1000 }),
-      this.prisma.accountingClient.findMany(),
-      this.prisma.timeClosing.groupBy({ by: ['companyId', 'status'], where: { periodStart: { gte: period.start, lt: period.end } }, _count: true }),
-      this.prisma.payroll.groupBy({ by: ['companyId', 'status'], where: { referenceYear: period.year, referenceMonth: period.month, deletedAt: null }, _count: true }),
-      this.prisma.accountingDocRequest.groupBy({ by: ['companyId', 'status'], where: { month: period.key }, _count: true }),
-      this.prisma.accountingTask.groupBy({ by: ['companyId'], where: { status: { not: 'DONE' } }, _count: true }),
-      this.prisma.accountingFee.findMany({ where: { month: period.key } }),
-      this.prisma.accountingChecklistItem.groupBy({ by: ['companyId'], where: { month: period.key, done: true }, _count: true }),
+      this.prisma.company.findMany({ where: allowed ? { id: { in: allowed } } : undefined, select: { id: true, name: true, document: true, status: true }, orderBy: { name: 'asc' }, take: 1000 }),
+      this.prisma.accountingClient.findMany({ where: byCompany }),
+      this.prisma.timeClosing.groupBy({ by: ['companyId', 'status'], where: { ...byCompany, periodEnd: { gte: period.start, lt: period.end } }, _count: true }),
+      this.prisma.payroll.groupBy({ by: ['companyId', 'status'], where: { ...byCompany, referenceYear: period.year, referenceMonth: period.month, deletedAt: null }, _count: true }),
+      this.prisma.accountingDocRequest.groupBy({ by: ['companyId', 'status'], where: { ...byCompany, month: period.key }, _count: true }),
+      this.prisma.accountingTask.groupBy({ by: ['companyId'], where: { ...byCompany, status: { not: 'DONE' } }, _count: true }),
+      this.prisma.accountingFee.findMany({ where: { ...byCompany, month: period.key } }),
+      this.prisma.accountingChecklistItem.groupBy({ by: ['companyId'], where: { ...byCompany, month: period.key, done: true }, _count: true }),
     ]);
     const clientBy = new Map(clients.map((c) => [c.companyId, c]));
     const feeBy = new Map(fees.map((f) => [f.companyId, f]));
@@ -147,7 +150,8 @@ export class AccountingOfficeService {
 
   // ---------- clientes ----------
 
-  async saveClient(companyId: string, dto: SaveClientDto) {
+  async saveClient(actor: JwtUser, companyId: string, dto: SaveClientDto) {
+    await this.access.assertAccountantCanAccess(actor, companyId);
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { id: true } });
     if (!company) throw new NotFoundException('Empresa não encontrada.');
     if (dto.taxRegime && !REGIMES.includes(dto.taxRegime)) throw new BadRequestException('Regime tributário inválido.');
@@ -155,7 +159,8 @@ export class AccountingOfficeService {
     return this.prisma.accountingClient.upsert({ where: { companyId }, update: data, create: { companyId, ...data } });
   }
 
-  async getClient(companyId: string) {
+  async getClient(actor: JwtUser, companyId: string) {
+    await this.access.assertAccountantCanAccess(actor, companyId);
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { id: true, name: true, document: true } });
     if (!company) throw new NotFoundException('Empresa não encontrada.');
     const client = await this.prisma.accountingClient.findUnique({ where: { companyId } });
@@ -169,10 +174,11 @@ export class AccountingOfficeService {
 
   // ---------- checklist ----------
 
-  async checklist(companyId: string, month?: string) {
+  async checklist(actor: JwtUser, companyId: string, month?: string) {
+    await this.access.assertAccountantCanAccess(actor, companyId);
     const period = resolveMonth(month);
     const [closings, payrolls, manual, employees] = await Promise.all([
-      this.prisma.timeClosing.groupBy({ by: ['status'], where: { companyId, periodStart: { gte: period.start, lt: period.end } }, _count: true }),
+      this.prisma.timeClosing.groupBy({ by: ['status'], where: { companyId, periodEnd: { gte: period.start, lt: period.end } }, _count: true }),
       this.prisma.payroll.groupBy({ by: ['status'], where: { companyId, referenceYear: period.year, referenceMonth: period.month, deletedAt: null }, _count: true }),
       this.prisma.accountingChecklistItem.findMany({ where: { companyId, month: period.key } }),
       this.dpMovements(companyId, period),
@@ -193,6 +199,7 @@ export class AccountingOfficeService {
   }
 
   async toggleChecklist(actor: JwtUser, companyId: string, month: string, itemKey: string, done: boolean, note?: string) {
+    await this.access.assertAccountantCanAccess(actor, companyId);
     if (!MANUAL_CHECKLIST.some((item) => item.key === itemKey)) throw new BadRequestException('Item do checklist inválido.');
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { id: true } });
     if (!company) throw new NotFoundException('Empresa não encontrada.');
@@ -219,21 +226,35 @@ export class AccountingOfficeService {
 
   // ---------- tarefas ----------
 
-  listTasks(filters: { status?: string; companyId?: string; assigneeId?: string }) {
+  /** Filtro de empresa do usuário: com companyId explícito valida o acesso; sem ele, restringe às empresas atendidas. */
+  private async companyScope(actor: JwtUser, companyId?: string, allowNull = false): Promise<Record<string, unknown>> {
+    if (companyId) {
+      await this.access.assertAccountantCanAccess(actor, companyId);
+      return { companyId };
+    }
+    const allowed = await this.access.accessibleCompanyIds(actor);
+    if (!allowed) return {};
+    return allowNull ? { OR: [{ companyId: { in: allowed } }, { companyId: null }] } : { companyId: { in: allowed } };
+  }
+
+  async listTasks(actor: JwtUser, filters: { status?: string; companyId?: string; assigneeId?: string }) {
+    const scope = await this.companyScope(actor, filters.companyId, true);
     return this.prisma.accountingTask.findMany({
-      where: { ...(filters.status === 'OPEN' ? { status: { not: 'DONE' } } : filters.status ? { status: filters.status } : {}), ...(filters.companyId ? { companyId: filters.companyId } : {}), ...(filters.assigneeId ? { assigneeId: filters.assigneeId } : {}) },
+      where: { ...scope, ...(filters.status === 'OPEN' ? { status: { not: 'DONE' } } : filters.status ? { status: filters.status } : {}), ...(filters.assigneeId ? { assigneeId: filters.assigneeId } : {}) },
       orderBy: [{ status: 'asc' }, { dueDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
       take: 300,
     });
   }
 
-  createTask(actor: JwtUser, dto: CreateTaskDto) {
+  async createTask(actor: JwtUser, dto: CreateTaskDto) {
+    if (dto.companyId) await this.access.assertAccountantCanAccess(actor, dto.companyId);
     return this.prisma.accountingTask.create({ data: { ...dto, dueDate: dto.dueDate ? new Date(dto.dueDate) : null, createdById: actor.sub } });
   }
 
-  async updateTask(id: string, dto: UpdateTaskDto) {
-    const task = await this.prisma.accountingTask.findUnique({ where: { id }, select: { id: true, status: true } });
+  async updateTask(actor: JwtUser, id: string, dto: UpdateTaskDto) {
+    const task = await this.prisma.accountingTask.findUnique({ where: { id }, select: { id: true, status: true, companyId: true } });
     if (!task) throw new NotFoundException('Tarefa não encontrada.');
+    if (task.companyId) await this.access.assertAccountantCanAccess(actor, task.companyId, 'Tarefa não encontrada.');
     const { dueDate, ...rest } = dto;
     return this.prisma.accountingTask.update({
       where: { id },
@@ -241,23 +262,27 @@ export class AccountingOfficeService {
     });
   }
 
-  async deleteTask(id: string) {
-    const result = await this.prisma.accountingTask.deleteMany({ where: { id } });
-    if (!result.count) throw new NotFoundException('Tarefa não encontrada.');
+  async deleteTask(actor: JwtUser, id: string) {
+    const task = await this.prisma.accountingTask.findUnique({ where: { id }, select: { companyId: true } });
+    if (!task) throw new NotFoundException('Tarefa não encontrada.');
+    if (task.companyId) await this.access.assertAccountantCanAccess(actor, task.companyId, 'Tarefa não encontrada.');
+    await this.prisma.accountingTask.deleteMany({ where: { id } });
     return { ok: true };
   }
 
   // ---------- cobrança de documentos ----------
 
-  listDocs(filters: { month?: string; companyId?: string; status?: string }) {
+  async listDocs(actor: JwtUser, filters: { month?: string; companyId?: string; status?: string }) {
+    const scope = await this.companyScope(actor, filters.companyId);
     return this.prisma.accountingDocRequest.findMany({
-      where: { ...(filters.month ? { month: filters.month } : {}), ...(filters.companyId ? { companyId: filters.companyId } : {}), ...(filters.status ? { status: filters.status } : {}) },
+      where: { ...scope, ...(filters.month ? { month: filters.month } : {}), ...(filters.status ? { status: filters.status } : {}) },
       orderBy: [{ status: 'asc' }, { dueDate: { sort: 'asc', nulls: 'last' } }],
       take: 500,
     });
   }
 
   async createDocs(actor: JwtUser, dto: CreateDocRequestDto) {
+    await this.access.assertAccountantCanAccess(actor, dto.companyId);
     const company = await this.prisma.company.findUnique({ where: { id: dto.companyId }, select: { id: true } });
     if (!company) throw new NotFoundException('Empresa não encontrada.');
     const dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
@@ -265,9 +290,10 @@ export class AccountingOfficeService {
     return { created: dto.items.length };
   }
 
-  async updateDoc(id: string, dto: UpdateDocRequestDto) {
-    const doc = await this.prisma.accountingDocRequest.findUnique({ where: { id }, select: { id: true } });
+  async updateDoc(actor: JwtUser, id: string, dto: UpdateDocRequestDto) {
+    const doc = await this.prisma.accountingDocRequest.findUnique({ where: { id }, select: { id: true, companyId: true } });
     if (!doc) throw new NotFoundException('Pedido de documento não encontrado.');
+    await this.access.assertAccountantCanAccess(actor, doc.companyId, 'Pedido de documento não encontrado.');
     const data: Record<string, unknown> = {};
     if (dto.status === 'RECEIVED') { data.status = 'RECEIVED'; data.receivedAt = new Date(); }
     else if (dto.status) { data.status = dto.status; data.receivedAt = null; }
@@ -277,25 +303,29 @@ export class AccountingOfficeService {
     return this.prisma.accountingDocRequest.update({ where: { id }, data });
   }
 
-  async deleteDoc(id: string) {
-    const result = await this.prisma.accountingDocRequest.deleteMany({ where: { id } });
-    if (!result.count) throw new NotFoundException('Pedido de documento não encontrado.');
+  async deleteDoc(actor: JwtUser, id: string) {
+    const doc = await this.prisma.accountingDocRequest.findUnique({ where: { id }, select: { companyId: true } });
+    if (!doc) throw new NotFoundException('Pedido de documento não encontrado.');
+    await this.access.assertAccountantCanAccess(actor, doc.companyId, 'Pedido de documento não encontrado.');
+    await this.prisma.accountingDocRequest.deleteMany({ where: { id } });
     return { ok: true };
   }
 
   // ---------- honorários ----------
 
-  async listFees(month?: string) {
+  async listFees(actor: JwtUser, month?: string) {
     const period = resolveMonth(month);
-    const fees = await this.prisma.accountingFee.findMany({ where: { month: period.key }, orderBy: { dueDate: 'asc' }, take: 1000 });
+    const scope = await this.companyScope(actor);
+    const fees = await this.prisma.accountingFee.findMany({ where: { ...scope, month: period.key }, orderBy: { dueDate: 'asc' }, take: 1000 });
     const now = Date.now();
     return fees.map((f) => ({ ...f, amount: num(f.amount), status: f.status === 'PAID' ? 'PAID' : f.dueDate.getTime() < now ? 'OVERDUE' : 'OPEN' }));
   }
 
   /** Gera o honorário do mês para todo cliente com valor definido (não duplica o que já existe). */
-  async generateFees(dto: GenerateFeesDto) {
+  async generateFees(actor: JwtUser, dto: GenerateFeesDto) {
     const period = resolveMonth(dto.month);
-    const clients = await this.prisma.accountingClient.findMany({ where: { monthlyFee: { gt: 0 } } });
+    const scope = await this.companyScope(actor);
+    const clients = await this.prisma.accountingClient.findMany({ where: { ...scope, monthlyFee: { gt: 0 } } });
     const result = await this.prisma.accountingFee.createMany({
       data: clients.map((c) => ({ companyId: c.companyId, month: period.key, amount: c.monthlyFee, dueDate: new Date(Date.UTC(period.year, period.month - 1, Math.min(Math.max(c.feeDueDay, 1), 28))) })),
       skipDuplicates: true,
@@ -303,9 +333,10 @@ export class AccountingOfficeService {
     return { generated: result.count };
   }
 
-  async payFee(id: string, paid: boolean) {
-    const fee = await this.prisma.accountingFee.findUnique({ where: { id }, select: { id: true } });
+  async payFee(actor: JwtUser, id: string, paid: boolean) {
+    const fee = await this.prisma.accountingFee.findUnique({ where: { id }, select: { id: true, companyId: true } });
     if (!fee) throw new NotFoundException('Honorário não encontrado.');
+    await this.access.assertAccountantCanAccess(actor, fee.companyId, 'Honorário não encontrado.');
     return this.prisma.accountingFee.update({ where: { id }, data: paid ? { status: 'PAID', paidAt: new Date() } : { status: 'OPEN', paidAt: null } });
   }
 }

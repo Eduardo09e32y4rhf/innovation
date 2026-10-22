@@ -77,6 +77,27 @@ export function companyInitials(name?: string | null) {
   return (words.length === 1 ? words[0].slice(0, 2) : words[0][0] + words[words.length - 1][0]).toLocaleUpperCase('pt-BR');
 }
 
+// Fontes padrão do PDF (Helvetica) só têm o alfabeto WinAnsi: o que estiver fora dele sairia como lixo ("Dvož²Aukasz").
+const WIN_ANSI_EXTRA = new Set('€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ');
+const TRANSLIT: Record<string, string> = { Ł: 'L', ł: 'l', Đ: 'D', đ: 'd', Ħ: 'H', ħ: 'h', ı: 'i', ĸ: 'k', Ŋ: 'N', ŋ: 'n', Þ: 'Th', þ: 'th', '≥': '>=', '≤': '<=', '≠': '!=', '→': '->', '←': '<-', '✓': 'v', '✔': 'v', '×': 'x', '‐': '-', '‑': '-', '‒': '-', '−': '-', '′': "'", '″': '"' };
+// Controles, espaços de largura zero, separadores de linha e seletores de variação: não têm glifo e não devem virar "?".
+const INVISIBLE = new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u200b-\\u200f\\u2028-\\u202e\\ufe0f\\ufeff]');
+const isWinAnsi = (ch: string) => { const c = ch.codePointAt(0)!; return (c >= 0x20 && c <= 0x7e) || (c >= 0xa0 && c <= 0xff) || WIN_ANSI_EXTRA.has(ch); };
+
+/** Troca por equivalente legível (ř→r, Ł→L, ≥→>=) o que a fonte do PDF não desenha; o resto vira "?". Quebra de linha é preservada. */
+export function pdfSafeText(value: string): string {
+  let out = '';
+  for (const ch of value) {
+    if (ch === '\n' || ch === '\t' || isWinAnsi(ch)) { out += ch; continue; }
+    if (TRANSLIT[ch] !== undefined) { out += TRANSLIT[ch]; continue; }
+    const base = ch.normalize('NFKD').replace(/\p{M}/gu, '');
+    if (base && base !== ch && [...base].every(isWinAnsi)) { out += base; continue; }
+    if (INVISIBLE.test(ch) || /^\p{M}$/u.test(ch)) continue;
+    out += '?';
+  }
+  return out;
+}
+
 const isPng = (b: Buffer) => b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
 const isJpeg = (b: Buffer) => b.length > 3 && b[0] === 0xff && b[1] === 0xd8;
 const MAX_LOGO_BYTES = 1_500_000;
@@ -119,8 +140,16 @@ export class PdfReport {
     this.logoSrc = logo ? `data:image/${isPng(logo) ? 'png' : 'jpeg'};base64,${logo.toString('base64')}` : null;
     this.doc = new PDFDocument({
       size: 'A4', margins: { top: PDF.TOP, bottom: 30, left: PDF.L, right: 40 }, bufferPages: true,
-      info: { Title: `${options.title}${options.number ? ` ${options.number}` : ''}`, Author: options.author ?? options.brand.name, Subject: options.title },
+      info: { Title: `${options.title}${options.number ? ` ${options.number}` : ''}`, Author: options.author ?? options.brand.name, Subject: options.title, CreationDate: options.generatedAt ?? new Date(), ModDate: options.generatedAt ?? new Date() },
     });
+    // Todo texto passa pelo filtro de glifos, inclusive o que cada documento escreve direto em `report.doc`.
+    const doc = this.doc as any;
+    for (const method of ['text', 'widthOfString', 'heightOfString'] as const) {
+      const original = doc[method];
+      doc[method] = function patched(this: unknown, text: unknown, ...rest: unknown[]) {
+        return original.call(this, typeof text === 'string' ? pdfSafeText(text) : text, ...rest);
+      };
+    }
     this.doc.pipe(this.sink.stream);
   }
 

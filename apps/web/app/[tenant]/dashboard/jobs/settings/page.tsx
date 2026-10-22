@@ -15,11 +15,14 @@ import { PrivacySettings } from '../_components/privacy-settings';
 import { WorkflowSettings } from '../_components/workflow-settings';
 import { jobsApi } from '../jobs-api';
 import { STAGE_KIND_LABEL, type Stage, type StageKind } from '../types';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { useGuard } from '@/app/hooks/use-action';
 
 const COLORS = ['#6366f1', '#0ea5e9', '#14b8a6', '#f59e0b', '#8b5cf6', '#10b981', '#f43f5e', '#6b7280'];
 const message = (cause: unknown, fallback: string) => (cause instanceof ApiError ? cause.message : fallback);
 
 export default function RecruitmentSettingsPage() {
+  const askConfirm = useConfirm();
   const { tenant = '' } = useParams<{ tenant: string }>();
   const { user, company } = useAuth();
   const role = (user?.profile ?? user?.role ?? '').toUpperCase();
@@ -48,11 +51,12 @@ export default function RecruitmentSettingsPage() {
     finally { setSaving(false); }
   }
 
-  async function addTag() {
+  const { guard } = useGuard();
+  const addTag = guard('addTag', async () => {
     if (!tagName.trim()) return;
     try { await jobsApi.createTag(tagName.trim(), tagColor); setTagName(''); tags.refetch(); }
     catch (cause) { toast.error(message(cause, 'Não foi possível criar a tag.')); }
-  }
+  });
 
   if (!allowed) return <div className="p-6"><EmptyState message="Apenas Admin, RH ou Dev configuram o funil." /></div>;
 
@@ -99,7 +103,7 @@ export default function RecruitmentSettingsPage() {
           {(tags.data ?? []).map((tag) => (
             <li key={tag.id} className="inline-flex items-center gap-1">
               <TagChip name={tag.name} color={tag.color} />
-              <button type="button" className="text-rose-600" aria-label={`Excluir tag ${tag.name}`} onClick={async () => { try { await jobsApi.deleteTag(tag.id); tags.refetch(); } catch (cause) { toast.error(message(cause, 'Falha ao excluir.')); } }}><Trash2 size={13} /></button>
+              <button type="button" className="text-rose-600" aria-label={`Excluir tag ${tag.name}`} onClick={async () => { if (!(await askConfirm({ title: 'Excluir tag', description: `Excluir a tag "${tag.name}"? Ela sai de todos os candidatos que a usam.`, confirmText: 'Excluir tag' }))) return; try { await jobsApi.deleteTag(tag.id); tags.refetch(); } catch (cause) { toast.error(message(cause, 'Falha ao excluir.')); } }}><Trash2 size={13} /></button>
             </li>
           ))}
           {tags.data?.length === 0 && <li className="text-sm text-fg-sub">Nenhuma tag criada.</li>}

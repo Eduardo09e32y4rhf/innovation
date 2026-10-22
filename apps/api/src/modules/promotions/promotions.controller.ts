@@ -1,3 +1,5 @@
+import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
+import { PromotionPolicyDto } from './dto/promotion-policy.dto';
 import { Body, Controller, ForbiddenException, Get, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -11,6 +13,7 @@ import { PromotionsService, type PromotionDto } from './promotions.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'ADMIN', 'RH', 'CEO')
 @Controller('promotions')
+@RequiresFeature('promotions')
 export class PromotionsController {
   constructor(private readonly service: PromotionsService) {}
 
@@ -22,7 +25,7 @@ export class PromotionsController {
   policy(@CurrentCompany() companyId: string) { return this.service.getPolicy(companyId); }
 
   @Put('policy')
-  savePolicy(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: any) { this.assertWriter(actor); return this.service.savePolicy(companyId, actor, body); }
+  savePolicy(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: PromotionPolicyDto) { this.assertWriter(actor); return this.service.savePolicy(companyId, actor, body); }
 
   @Get()
   list(@CurrentCompany() companyId: string, @Query('status') status?: string) { return this.service.list(companyId, status); }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActionShell, Notice, actionCard, primaryBtn } from '../../_components/action-shell';
 import { errorMessage, processPublic, type PublicAssessment } from '../../_lib/process-public';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 type Item = { id: string; title: string; options: { value: number; text: string }[] };
 
@@ -35,9 +36,10 @@ export function AssessmentClient({ token }: { token: string }) {
     setBusy(true); setError('');
     try { setData(await processPublic.startAssessment(token)); } catch (cause) { setError(errorMessage(cause, 'Não foi possível começar.')); } finally { setBusy(false); }
   }
+  const askConfirm = useConfirm();
   async function submit() {
     if (behavioral && answered < items.length) { setError('Responda todas as situações antes de enviar.'); return; }
-    if (!behavioral && answered < items.length && !window.confirm(`Você respondeu ${answered} de ${items.length}. Perguntas em branco contam como erradas. Enviar mesmo assim?`)) return;
+    if (!behavioral && answered < items.length && !(await askConfirm({ title: 'Enviar com perguntas em branco', description: `Você respondeu ${answered} de ${items.length}. Perguntas em branco contam como erradas.`, confirmText: 'Enviar mesmo assim', cancelText: 'Voltar e responder', variant: 'primary' }))) return;
     setBusy(true); setError('');
     try { await processPublic.submitAssessment(token, answers); setDone(true); try { window.sessionStorage.removeItem(`teste-${token}`); } catch { /* ok */ } }
     catch (cause) { setError(errorMessage(cause, 'Não foi possível enviar.')); } finally { setBusy(false); }

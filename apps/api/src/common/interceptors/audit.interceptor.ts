@@ -3,7 +3,7 @@ import { Observable, tap } from 'rxjs';
 import { PrismaService } from '../../database/prisma.service';
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-const SECRET_KEYS = ['password', 'currentPassword', 'newPassword', 'passwordHash', 'token', 'access_token', 'authorization', 'cpf', 'email', 'document', 'phone'];
+const SECRET_KEY = /password|token|secret|authorization|otp|mfa|code$|cpf|cnpj|^rg|pis|email|document|phone|salary|salario|bank|pix|card|cvv|birth|mothername|fathername|cnh|votertitle/i;
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
@@ -63,7 +63,7 @@ function sanitize(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map(sanitize);
   return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => {
-    if (SECRET_KEYS.includes(key)) return [key, '[REDACTED]'];
+    if (SECRET_KEY.test(key)) return [key, '[REDACTED]'];
     return [key, sanitize(entry)];
   }));
 }

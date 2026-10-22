@@ -35,8 +35,8 @@ export const employee = (over: Record<string, unknown> = {}) => ({
 
 const REPOSITORY_METHODS = [
   'list', 'count', 'findById', 'findByUserId', 'listByManager', 'listSwapCandidates', 'countByManager', 'findByCpf',
-  'findByRegistration', 'create', 'update', 'updateUserLink', 'findUserByEmail', 'findUserById', 'createUser', 'updateUser',
-  'getDeletionImpact', 'getDossier', 'getOfficialDocumentData', 'delete', 'createAuditLog', 'countByCompany', 'getCompanyLimits',
+  'findByRegistration', 'create', 'update', 'terminateOnce', 'updateUserLink', 'findUserByEmail', 'findUserById', 'createUser', 'updateUser',
+  'getDeletionImpact', 'getDossier', 'getOfficialDocumentData', 'delete', 'createAuditLog', 'countByCompany', 'getCompanyLimits', 'reissueTemporaryPassword',
 ] as const;
 
 export type FakeRepo = Record<(typeof REPOSITORY_METHODS)[number], ReturnType<typeof vi.fn>>;
@@ -48,8 +48,10 @@ export function makeRepo(over: Partial<FakeRepo> = {}): FakeRepo {
   repo.listByManager.mockResolvedValue([]);
   repo.listSwapCandidates.mockResolvedValue([]);
   repo.update.mockResolvedValue({ count: 1 });
+  repo.terminateOnce.mockResolvedValue({ count: 1 });
   repo.delete.mockResolvedValue({ count: 1 });
   repo.updateUser.mockResolvedValue({ count: 1 });
+  repo.reissueTemporaryPassword.mockResolvedValue({ count: 1 });
   repo.updateUserLink.mockResolvedValue({ count: 1 });
   repo.countByCompany.mockResolvedValue(0);
   repo.getCompanyLimits.mockResolvedValue({ subscription: { seatQuantity: 10 } });
@@ -71,13 +73,16 @@ export function makeService(over: Partial<FakeRepo> = {}) {
   return { service, repository, aso };
 }
 
+/** Defeitos ja corrigidos no codigo: seus casos passam a valer como regressao (rodam como `it` normal). */
+export const FIXED_BUGS = new Set<string>(['S-04']);
+
 /**
  * Registra um caso. Quando `bug` é informado, o caso descreve o comportamento CORRETO e hoje falha:
  * usamos it.fails, então a suíte fica verde e acusa (fica vermelha) quando o defeito for corrigido
  * — hora de remover a marca `bug` e deixar o teste valer como regressão.
  */
 export function check(name: string, bug: string | null, fn: () => unknown | Promise<unknown>) {
-  if (bug) it.fails(`[${bug}] ${name}`, fn as never);
+  if (bug && !FIXED_BUGS.has(bug)) it.fails(`[${bug}] ${name}`, fn as never);
   else it(name, fn as never);
 }
 

@@ -31,7 +31,9 @@ describe('HACKER · tomada de conta em lote (block / unblock / reset-password / 
         const name = `${attacker} ${allowed ? 'pode' : 'NÃO pode'} ${action} em conta ${targetRole}`;
         check(name, allowed ? null : 'S-04', async () => {
           const target = targetEmployee(targetRole);
-          const { service, repository } = makeService({ findById: vi.fn().mockResolvedValue(target) } as never);
+          // O servico consulta o usuario ligado por id (assertCanActOnLinkedUser); sem isso o item falha com "Usuario nao encontrado".
+          const linkedUser = { id: LINKED_USER, role: targetRole, isActive: true, passwordHash: 'hash-atual', previousPasswords: [] as string[] };
+          const { service, repository } = makeService({ findById: vi.fn().mockResolvedValue(target), findUserById: vi.fn().mockResolvedValue(linkedUser) } as never);
           const dto = { employeeIds: ['emp-alvo'], action, role: action === 'set-role' ? 'FUNCIONARIO' : undefined };
           const [result] = await service.bulkAccess(COMPANY_A, actor(attacker), dto as never);
           if (allowed) {

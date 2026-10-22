@@ -1,10 +1,16 @@
-import { BadRequestException, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Optional, Param, Post, Req } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { RedisService } from '../../common/redis/redis.service';
+import { ApplyLimiter, assertApplyAllowed } from './apply-abuse';
 import { JobsService } from './jobs.service';
 
 @Controller('public/jobs')
 export class PublicJobsController {
-  constructor(private readonly service: JobsService) {}
+  private readonly limiter: ApplyLimiter;
+
+  constructor(private readonly service: JobsService, @Optional() redis?: RedisService) {
+    this.limiter = new ApplyLimiter(redis);
+  }
 
   @Get()
   listAll() {
@@ -24,7 +30,9 @@ export class PublicJobsController {
   @Post(':jobId/apply')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async apply(@Param('jobId') jobId: string, @Req() request: any) {
+    const ip = String(request.ip ?? 'unknown');
     if (!request.isMultipart?.()) {
+      await assertApplyAllowed(this.limiter, ip, jobId, request.body?.email);
       return this.service.apply(jobId, request.body || {}, undefined);
     }
     const fields: Record<string, unknown> = {};
@@ -48,6 +56,7 @@ export class PublicJobsController {
       }
       throw new BadRequestException('Nao foi possivel ler o formulario enviado. Tente novamente.');
     }
+    await assertApplyAllowed(this.limiter, ip, jobId, fields.email);
     return this.service.apply(jobId, fields, file);
   }
 }

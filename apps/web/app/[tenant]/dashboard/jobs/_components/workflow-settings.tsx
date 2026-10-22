@@ -9,12 +9,15 @@ import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
 import { workflowApi } from '../workflow-api';
 import { SectionCard, inputClass } from './bits';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { useGuard } from '@/app/hooks/use-action';
 
 const STEPS: Array<[string, string]> = [['GESTOR', 'Gestor'], ['RH', 'RH'], ['FINANCEIRO', 'Financeiro']];
 const message = (cause: unknown, fallback: string) => (cause instanceof ApiError ? cause.message : fallback);
 
 /** Requisição de vaga: etapas de aprovação, orçamento por área e modelos de vaga. */
 export function WorkflowSettings() {
+  const askConfirm = useConfirm();
   const steps = useQuery(() => workflowApi.steps(), []);
   const budgets = useQuery(() => workflowApi.budgets(), []);
   const templates = useQuery(() => workflowApi.templates(), []);
@@ -22,14 +25,15 @@ export function WorkflowSettings() {
   const [dept, setDept] = useState(''); const [value, setValue] = useState('');
   useEffect(() => { if (steps.data) setPicked(steps.data.steps); }, [steps.data]);
 
-  async function saveSteps() {
+  const { guard } = useGuard();
+  const saveSteps = guard('saveSteps', async () => {
     try { await workflowApi.saveSteps(picked); toast.success(picked.length ? 'Etapas de aprovação salvas.' : 'Aprovação desligada: vagas abrem direto.'); steps.refetch(); }
     catch (cause) { toast.error(message(cause, 'Não foi possível salvar.')); }
-  }
-  async function saveBudget(department: string, budget: number | null) {
+  });
+  const saveBudget = guard('saveBudget', async (department: string, budget: number | null) => {
     try { await workflowApi.saveBudget(department, budget); budgets.refetch(); toast.success('Orçamento atualizado.'); }
     catch (cause) { toast.error(message(cause, 'Não foi possível salvar.')); }
-  }
+  });
 
   return (
     <>
@@ -62,7 +66,7 @@ export function WorkflowSettings() {
 
       <SectionCard title="Modelos de vaga" description="Crie um modelo a partir de uma vaga (botão Modelo no card da vaga) e abra vagas parecidas com um clique.">
         {templates.loading && !templates.data ? <LoadingState label="Carregando…" /> : (templates.data ?? []).length === 0 ? <EmptyState message="Nenhum modelo salvo." /> : (
-          <ul className="space-y-1">{(templates.data ?? []).map((item) => <li key={item.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">{item.name}<button type="button" className="text-rose-600" aria-label={`Excluir modelo ${item.name}`} onClick={async () => { try { await workflowApi.removeTemplate(item.id); templates.refetch(); } catch (cause) { toast.error(message(cause, 'Falha ao excluir.')); } }}><Trash2 size={14} /></button></li>)}</ul>
+          <ul className="space-y-1">{(templates.data ?? []).map((item) => <li key={item.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm">{item.name}<button type="button" className="text-rose-600" aria-label={`Excluir modelo ${item.name}`} onClick={async () => { if (!(await askConfirm({ title: 'Excluir modelo', description: `Excluir o modelo "${item.name}"?`, confirmText: 'Excluir modelo' }))) return; try { await workflowApi.removeTemplate(item.id); templates.refetch(); } catch (cause) { toast.error(message(cause, 'Falha ao excluir.')); } }}><Trash2 size={14} /></button></li>)}</ul>
         )}
       </SectionCard>
     </>

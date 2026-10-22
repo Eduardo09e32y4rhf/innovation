@@ -232,7 +232,7 @@ export class VacationsService {
   }
 
   async generateReceiptPdf(companyId: string, actor: JwtUser, id: string) {
-    const vacation = await this.repository.findById(companyId, id);
+    const vacation = await this.repository.findForReceipt(companyId, id);
     if (!vacation) throw new NotFoundException('Solicitacao de ferias nao encontrada.');
     await this.ensureCanAccessEmployee(companyId, actor, vacation.employeeId);
     if (!this.receiptService) throw new BadRequestException('Servico de recibo de ferias indisponivel.');

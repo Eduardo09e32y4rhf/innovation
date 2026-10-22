@@ -6,6 +6,7 @@ import { LookupModule } from './modules/lookup/lookup.module';
 import { WelcomeModule } from './modules/welcome/welcome.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { UserThrottlerGuard } from './common/guards/user-throttler.guard';
+import { FeatureFlagGuard } from './common/guards/feature-flag.guard';
 import { HealthModule } from './health/health.module';
 import { appConfig } from './config/app.config';
 import { validateEnv } from './config/env.validation';
@@ -27,6 +28,7 @@ import { QueueModule } from './modules/queue/queue.module';
 import { ProposalsModule } from './modules/proposals/proposals.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { SanitizeInputInterceptor } from './common/pipes/sanitize-input.interceptor';
 import { CryptoModule } from './common/crypto/crypto.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -45,6 +47,7 @@ import { CouponsModule } from './modules/coupons/coupons.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { MetricsController } from './common/metrics/metrics.controller';
 
 import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -59,11 +62,12 @@ import { DocumentTemplatesModule } from './modules/document-templates/document-t
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { CommercialSalesModule } from './modules/commercial-sales/commercial-sales.module';
 import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
     PartnersModule,
-    PrometheusModule.register(),
+    PrometheusModule.register({ controller: MetricsController }),
     CacheModule.registerAsync({
       isGlobal: true,
       useFactory: async () => ({
@@ -113,6 +117,7 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     OnboardingModule,
     CommercialSalesModule,
     CeoOnboardingModule,
+    AnalyticsModule,
     PayrollModule,
     PromotionsModule,
     DocumentTemplatesModule,
@@ -121,8 +126,11 @@ import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.mod
     ScheduleModule.forRoot(),
   ],
   providers: [
+    { provide: APP_INTERCEPTOR, useClass: SanitizeInputInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     { provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
+    // Primeiro: rota de modulo congelado responde 404 antes de qualquer outra checagem.
+    { provide: APP_GUARD, useClass: FeatureFlagGuard },
     { provide: APP_GUARD, useClass: UserThrottlerGuard },
     { provide: APP_GUARD, useClass: MfaEnrollmentGuard },
     { provide: APP_GUARD, useClass: TenantGuard },

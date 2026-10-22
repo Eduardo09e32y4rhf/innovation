@@ -1,18 +1,21 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { roundMoney } from '../../common/utils/money';
 import { createHash } from 'crypto';
 import { PDF, PdfReport, type PdfCell } from '../../common/pdf/pdf-report';
 import type { JwtUser } from '../../common/types/auth.types';
 import { SupportStorageService } from '../support/support-storage.service';
 import { VacationsRepository } from './vacations.repository';
+import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
+import { vacationTaxableGross } from './vacation-tax-base';
 
-export const VACATION_RECEIPT_VERSION = 'VACATION_RECEIPT_V1';
+export const VACATION_RECEIPT_VERSION = 'VACATION_RECEIPT_V2';
 
 @Injectable()
 export class VacationReceiptService {
   constructor(
     private readonly repository: VacationsRepository,
     private readonly storage: SupportStorageService,
+    @Optional() private readonly payroll: PayrollCalculationService = new PayrollCalculationService(),
   ) {}
 
   async generate(companyId: string, actor: JwtUser, vacation: any) {
@@ -44,6 +47,16 @@ export class VacationReceiptService {
     const soldDaysPay = this.roundCurrency((salary / 30) * (vacation.soldDays ?? 0));
     const soldDaysThird = this.roundCurrency(soldDaysPay / 3);
     const calculatedGross = this.roundCurrency(vacationPay + constitutionalThird + soldDaysPay + soldDaysThird);
+    // INSS/IRRF incidem so sobre ferias gozadas + 1/3, em separado do salario do mes;
+    // abono pecuniario (CLT art. 143) e seu 1/3 sao isentos (Lei 8.212 art. 28 §9 "e" 6; AD PGFN 6/2006).
+    const taxableGross = vacationTaxableGross(salary, vacation.daysUsed);
+    const dependents = this.countDependents(vacation.employee?.dependents);
+    const taxContext = await this.payroll.resolveTaxContext(new Date(vacation.startDate));
+    const taxes = this.payroll.applyTaxes(taxableGross, dependents, taxContext);
+    const inssDiscount = taxes.inssDiscount;
+    const irrfDiscount = taxes.irrfDiscount;
+    const exemptAmount = this.roundCurrency(soldDaysPay + soldDaysThird);
+    const calculatedNet = this.roundCurrency(calculatedGross - inssDiscount - irrfDiscount);
     const paidAmount = Number(paidPayment.amount);
     const buffer = await this.buildPdf({
       identifier,
@@ -59,6 +72,13 @@ export class VacationReceiptService {
       soldDaysPay,
       soldDaysThird,
       calculatedGross,
+      taxableGross,
+      exemptAmount,
+      dependents,
+      inssDiscount,
+      irrfBase: taxes.irrfBase,
+      irrfDiscount,
+      calculatedNet,
       paidAmount,
     });
     const sha256 = createHash('sha256').update(buffer).digest('hex');
@@ -94,6 +114,14 @@ export class VacationReceiptService {
             soldDaysPay,
             soldDaysThird,
             calculatedGross,
+            taxableGross,
+            exemptAmount,
+            dependents,
+            inssDiscount,
+            irrfBase: taxes.irrfBase,
+            irrfDiscount,
+            calculatedNet,
+            taxTables: { inss: taxContext.inss.version, irrf: taxContext.irrf.version },
             paidAmount,
           },
         },
@@ -145,8 +173,20 @@ export class VacationReceiptService {
       rows.push([`Abono pecuniário (${vacation.soldDays} dias)`, { text: this.currency(input.soldDaysPay), bold: true }]);
       rows.push(['Adicional de 1/3 sobre o abono', { text: this.currency(input.soldDaysThird), bold: true }]);
     }
-    report.table([{ label: 'Descrição', width: 395 }, { label: 'Valor', width: 120, align: 'right' }], rows, { totals: ['Total bruto calculado', this.currency(input.calculatedGross)] });
-    report.total('Valor líquido pago', this.currency(input.paidAmount));
+    report.table([{ label: 'Proventos', width: 395 }, { label: 'Valor', width: 120, align: 'right' }], rows, { totals: ['Total de proventos', this.currency(input.calculatedGross)] });
+
+    const discounts: PdfCell[][] = [
+      [`INSS sobre férias + 1/3 (base ${this.currency(input.taxableGross)})`, { text: this.currency(input.inssDiscount), bold: true }],
+      [`IRRF sobre férias + 1/3 (base ${this.currency(input.irrfBase)}; ${input.dependents} dependente(s))`, { text: this.currency(input.irrfDiscount), bold: true }],
+    ];
+    report.table([{ label: 'Descontos', width: 395 }, { label: 'Valor', width: 120, align: 'right' }], discounts, { totals: ['Total de descontos', this.currency(this.roundCurrency(input.inssDiscount + input.irrfDiscount))] });
+    if (input.exemptAmount > 0) {
+      report.paragraph(`Abono pecuniário e respectivo 1/3 (${this.currency(input.exemptAmount)}) isentos de INSS e IRRF.`, { size: 8.5, color: PDF.color.mut });
+    }
+    report.total('Valor líquido calculado', this.currency(input.calculatedNet));
+    if (Math.abs(input.paidAmount - input.calculatedNet) >= 0.01) {
+      report.paragraph(`Atenção: valor pago registrado (${this.currency(input.paidAmount)}) difere do líquido calculado.`, { size: 8.5, color: PDF.color.mut });
+    }
 
     report.paragraph(
       `Recebi da empresa a importância líquida de ${this.currency(input.paidAmount)}, referente às férias acima descritas, paga em ${this.formatDate(input.payment.paidAt)} por ${input.payment.paymentMethod || 'forma não informada'}.`,
@@ -155,6 +195,14 @@ export class VacationReceiptService {
     report.signatures([{ label: 'Assinatura do colaborador', sub: vacation.employee.name }, { label: 'Empregador / RH' }]);
     return report.finish();
   }
+  private countDependents(value: unknown): number {
+    let parsed = value;
+    if (typeof value === 'string') {
+      try { parsed = JSON.parse(value); } catch { return 0; }
+    }
+    return Array.isArray(parsed) ? parsed.length : 0;
+  }
+
   private currency(value: number) {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }

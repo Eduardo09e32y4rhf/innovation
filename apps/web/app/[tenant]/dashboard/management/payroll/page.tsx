@@ -12,10 +12,12 @@ import { useQuery } from '@/app/hooks/use-data';
 import { api, ApiError, type Employee } from '@/app/lib/api';
 
 import { ConfirmDialog, Modal } from '../../escalas/_components/operational-dialog';
+import { PeriodBlock } from './_period-block';
 import { payrollApi } from './payroll-api';
 import { MANUAL_ITEM_LABEL, PAYROLL_STATUS_LABEL, type ManualItemInput, type ManualItemType, type PayrollItem, type PayrollStatus } from './types';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
-const ALLOWED_ROLES = new Set(['DEV', 'ADMIN', 'RH']);
+const ALLOWED_ROLES = new Set(ROLE_ACCESS.payrollAccess);
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const MANUAL_TYPES = Object.keys(MANUAL_ITEM_LABEL) as ManualItemType[];
 
@@ -142,6 +144,8 @@ export default function PayrollPage() {
         subtitle="Escolha o ciclo (início e fim), calcule, edite, aprove e registre o pagamento."
         actions={<Button onClick={() => setCreateOpen(true)}><Plus size={18} /> Nova folha</Button>}
       />
+
+      <PeriodBlock month={from.slice(0, 7)} role={role} />
 
       <section className="ops-card space-y-3 rounded-[14px] border border-slate-200 bg-white p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -342,7 +346,7 @@ function CreateModal({ initialFrom, initialTo, onClose, onDone }: { initialFrom:
         <div>
           <div className="mb-1 flex items-center justify-between"><span className="text-sm font-semibold">Funcionários * ({selected.length} escolhido(s))</span>
             <button type="button" className="text-xs font-semibold text-violet-700 underline" onClick={() => setSelected(selected.length === shown.length ? [] : shown.map((x) => x.id))}>{selected.length === shown.length && shown.length ? 'Limpar' : 'Selecionar todos'}</button></div>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar funcionário" className="input-v2 mb-2" />
+          <input aria-label="Buscar funcionário" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar funcionário" className="input-v2 mb-2" />
           <ul className="max-h-56 divide-y divide-slate-100 overflow-auto rounded-xl border border-slate-200">
             {employeesQuery.loading && <li className="p-3 text-sm text-slate-500">Carregando funcionários...</li>}
             {employeesQuery.error && <li className="p-3 text-sm text-rose-700">{employeesQuery.error}</li>}
@@ -404,9 +408,9 @@ function EditModal({ item, onClose, onDone }: { item: PayrollItem; onClose: () =
           {!lines.length && <p className="text-xs text-slate-500">Nenhum lançamento manual.</p>}
           {lines.map((line, i) => (
             <div key={i} className="grid grid-cols-[1fr_1.4fr_90px_auto] items-center gap-2">
-              <select value={line.type} onChange={(e) => setLine(i, { type: e.target.value as ManualItemType })} className="input-v2">{MANUAL_TYPES.map((t) => <option key={t} value={t}>{MANUAL_ITEM_LABEL[t]}</option>)}</select>
-              <input value={line.description} onChange={(e) => setLine(i, { description: e.target.value })} placeholder="Descrição" className="input-v2" />
-              <input inputMode="decimal" value={line.amount || ''} onChange={(e) => setLine(i, { amount: Number(e.target.value.replace(',', '.')) || 0 })} placeholder="R$" className="input-v2" />
+              <select aria-label="Tipo do lançamento" value={line.type} onChange={(e) => setLine(i, { type: e.target.value as ManualItemType })} className="input-v2">{MANUAL_TYPES.map((t) => <option key={t} value={t}>{MANUAL_ITEM_LABEL[t]}</option>)}</select>
+              <input aria-label="Descrição do lançamento" value={line.description} onChange={(e) => setLine(i, { description: e.target.value })} placeholder="Descrição" className="input-v2" />
+              <input aria-label="Valor do lançamento em reais" inputMode="decimal" value={line.amount || ''} onChange={(e) => setLine(i, { amount: Number(e.target.value.replace(',', '.')) || 0 })} placeholder="R$" className="input-v2" />
               <button type="button" aria-label="Remover lançamento" onClick={() => setLines((l) => l.filter((_, idx) => idx !== i))} className="text-rose-600"><Trash2 size={16} /></button>
             </div>
           ))}

@@ -2,11 +2,15 @@
  * Enquanto o CEO nao conclui o onboarding (troca de senha, facial, dados, contrato), a sessao
  * so alcanca as rotas do proprio onboarding e de autenticacao. Qualquer outra rota e negada no guard.
  */
+import { isFeatureEnabled } from '../feature-flags';
+
 const CEO_RESTRICTED_STATES = new Set(['INVITED', 'PASSWORD_CHANGE', 'FACE_ENROLLMENT', 'PROFILE_REQUIRED', 'CONTRACT_PENDING']);
 const ALLOWED_PREFIXES = ['auth', 'me', 'ceo-onboarding', 'legal'];
 
 /** CEO_ONBOARDING_ENFORCEMENT=off desliga a restricao (saida temporaria enquanto a facial real nao existe). Padrao: ativa. */
 export function isCeoOnboardingRestricted(role?: string | null, onboardingState?: string | null): boolean {
+  // Modulo congelado (padrao): nao existe onboarding do CEO e as rotas dele dao 404; barrar o CEO aqui o trancaria fora do sistema.
+  if (!isFeatureEnabled('ceo-onboarding')) return false;
   if ((process.env.CEO_ONBOARDING_ENFORCEMENT ?? '').toLowerCase() === 'off') return false;
   return role === 'CEO' && Boolean(onboardingState) && CEO_RESTRICTED_STATES.has(String(onboardingState));
 }

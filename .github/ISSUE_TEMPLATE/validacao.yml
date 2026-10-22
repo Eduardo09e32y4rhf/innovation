@@ -1,0 +1,36 @@
+name: Validação (contador ou jurídico)
+description: Regra de cálculo, fiscal ou legal que precisa ser conferida por um especialista
+title: "docs(validacao): "
+labels: ["validacao", "status:aguardando-validacao"]
+body:
+  - type: dropdown
+    id: quem
+    attributes:
+      label: Quem valida
+      options: ["Contador", "Jurídico / DPO", "Cliente beta"]
+    validations:
+      required: true
+  - type: textarea
+    id: regra
+    attributes:
+      label: Regra implementada
+      description: O que o sistema faz hoje, com um exemplo numérico quando houver (salário, datas, resultado).
+    validations:
+      required: true
+  - type: textarea
+    id: fonte
+    attributes:
+      label: Fonte consultada
+      description: Link ou artigo da lei, norma ou documentação oficial. Diga se a fonte é oficial ou secundária.
+    validations:
+      required: true
+  - type: textarea
+    id: duvida
+    attributes:
+      label: Dúvida ou divergência
+      description: Onde as fontes divergem ou o que precisa ser confirmado.
+  - type: textarea
+    id: parecer
+    attributes:
+      label: Parecer (preenchido por quem valida)
+      description: Aprovado, reprovado ou ajuste necessário, com data e nome.

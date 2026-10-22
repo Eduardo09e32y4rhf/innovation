@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Redis from 'ioredis';
 import { redisConnection } from './redis-config';
+import { setCronLockRedis } from './cron-lock.decorator';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -12,15 +13,17 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       ...redisConnection(),
       lazyConnect: true,
       enableAutoPipelining: true,
-      maxRetriesPerRequest: 3,
-      retryStrategy(times: number) {
-        if (times > 5) return null;
-        return Math.min(times * 200, 2000);
-      },
+      maxRetriesPerRequest: 1,
+      connectTimeout: 3000,
+      commandTimeout: 1500,
+      // Nunca desiste: o Redis e opcional, mas a API precisa voltar a usa-lo sozinha quando ele reaparecer.
+      retryStrategy: (times: number) => Math.min(times * 200, 5000),
     });
 
-    this.client.on('connect', () => {
+    this.client.on('ready', () => {
+      if (!this.isConnected) console.log('[Redis] Connected successfully');
       this.isConnected = true;
+      this.outageLogged = false;
     });
 
     this.client.on('close', () => {
@@ -28,24 +31,29 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.client.on('error', (err: any) => {
-      console.error('[Redis] Connection error:', err.message);
+      // Um aviso por queda, nao um por tentativa de reconexao.
+      if (this.isConnected || !this.outageLogged) console.error('[Redis] Connection error:', err.message);
+      this.outageLogged = true;
       this.isConnected = false;
     });
   }
 
-  async onModuleInit() {
-    try {
-      await this.client.connect();
-      this.isConnected = true;
-      console.log('[Redis] Connected successfully');
-    } catch (error) {
-      this.isConnected = false;
+  private outageLogged = false;
+
+  onModuleInit() {
+    setCronLockRedis(this);
+    // Nao aguardar: com Redis fora no boot a API sobe degradada e conecta quando ele voltar.
+    this.client.connect().catch((error: unknown) => {
       console.warn('[Redis] Not available — running without Redis cache:', error instanceof Error ? error.message : String(error));
-    }
+    });
   }
 
   async onModuleDestroy() {
-    await this.client.quit();
+    try {
+      await this.client.quit();
+    } catch {
+      this.client.disconnect();
+    }
   }
 
   getClient(): any {
@@ -62,14 +70,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async acquireLock(lockKey: string, ttlSeconds = 10): Promise<boolean> {
     if (!this.isConnected) return true; // fallback: allow if Redis is down
-    const result = await this.client.set(
-      `lock:${lockKey}`,
-      Date.now().toString(),
-      'PX',
-      ttlSeconds * 1000,
-      'NX',
-    );
-    return result === 'OK';
+    try {
+      const result = await this.client.set(`lock:${lockKey}`, Date.now().toString(), 'PX', ttlSeconds * 1000, 'NX');
+      return result === 'OK';
+    } catch {
+      return true;
+    }
   }
 
   /**
@@ -77,7 +83,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async releaseLock(lockKey: string): Promise<void> {
     if (!this.isConnected) return;
-    await this.client.del(`lock:${lockKey}`);
+    await this.client.del(`lock:${lockKey}`).catch(() => undefined);
   }
 
   /**
@@ -85,7 +91,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async get(key: string): Promise<string | null> {
     if (!this.isConnected) return null;
-    return this.client.get(key);
+    try {
+      return await this.client.get(key);
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -93,10 +103,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
     if (!this.isConnected) return;
-    if (ttlSeconds) {
-      await this.client.setex(key, ttlSeconds, value);
-    } else {
-      await this.client.set(key, value);
+    try {
+      if (ttlSeconds) await this.client.setex(key, ttlSeconds, value);
+      else await this.client.set(key, value);
+    } catch {
+      /* cache e opcional */
     }
   }
 
@@ -105,7 +116,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async del(key: string): Promise<void> {
     if (!this.isConnected) return;
-    await this.client.del(key);
+    await this.client.del(key).catch(() => undefined);
   }
 
   /**
@@ -113,7 +124,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async incr(key: string): Promise<number> {
     if (!this.isConnected) return 0;
-    return this.client.incr(key);
+    try {
+      return await this.client.incr(key);
+    } catch {
+      return 0;
+    }
   }
 
   /**
@@ -121,6 +136,6 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async expire(key: string, seconds: number): Promise<void> {
     if (!this.isConnected) return;
-    await this.client.expire(key, seconds);
+    await this.client.expire(key, seconds).catch(() => undefined);
   }
 }

@@ -3,6 +3,7 @@ import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ScheduleScopeService } from '../schedule/access/schedule-scope.service';
 import { CreateOccurrenceDto } from './dto/occurrence.dto';
+import { assertTimePeriodOpen } from './period-lock';
 
 @Injectable()
 export class TimeOccurrencesService {
@@ -33,6 +34,7 @@ export class TimeOccurrencesService {
     await this.scope.assertEmployee(actor, 'schedule.write', dto.employeeId);
     const date = new Date(dto.date);
     if (Number.isNaN(date.getTime())) throw new BadRequestException('Data invalida.');
+    await assertTimePeriodOpen(this.prisma, actor.companyId, dto.employeeId, date);
     return this.prisma.timeOccurrence.create({
       data: {
         companyId: actor.companyId,
@@ -55,6 +57,7 @@ export class TimeOccurrencesService {
     if (!occurrence) throw new NotFoundException('Ocorrencia nao encontrada.');
     await this.scope.assertEmployee(actor, 'approvals', occurrence.employeeId);
     if (occurrence.status !== 'PENDING') throw new BadRequestException('Esta ocorrencia ja foi decidida.');
+    await assertTimePeriodOpen(this.prisma, actor.companyId, occurrence.employeeId, occurrence.date);
     return this.prisma.timeOccurrence.update({
       where: { id },
       data: { status, approvedByUserId: actor.sub, approvedAt: new Date() },

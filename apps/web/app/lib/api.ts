@@ -2,7 +2,8 @@
 
 import { clearAuthSession, persistAuthSession, readAuthSession, readParsedAuthSession } from './auth-session';
 import { refreshSession } from './refresh-session';
-import { resetAllQueryStates } from '@/app/hooks/use-data';
+import { resetAllQueryStates } from '../hooks/use-data';
+import { createSingleFlight, mutationFlightKey } from './single-flight';
 
 /**
  * Cliente HTTP central do Innovation RH System.
@@ -45,7 +46,16 @@ function clearSession() {
 
 type Opts = { method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; body?: unknown; silent?: boolean; timeoutMs?: number; keepSessionOn401?: boolean };
 
-export async function request<T>(path: string, opts: Opts = {}): Promise<T> {
+const mutationFlight = createSingleFlight();
+
+/** Mutações idênticas (mesmo método, rota e corpo) em andamento compartilham uma única requisição: o duplo clique nunca vira duas gravações. */
+export function request<T>(path: string, opts: Opts = {}): Promise<T> {
+  const key = mutationFlightKey(opts.method, path, opts.body);
+  if (key === null) return requestOnce<T>(path, opts);
+  return mutationFlight.run(key, () => requestOnce<T>(path, opts));
+}
+
+async function requestOnce<T>(path: string, opts: Opts = {}): Promise<T> {
   const { method = 'GET', body, silent, timeoutMs, keepSessionOn401 } = opts;
   const headers: Record<string, string> = {};
   if (body !== undefined) {
@@ -524,6 +534,22 @@ export interface PlatformFinanceSummary {
   mrr: number;
   activeSubscriptions: number;
 }
+export interface PlatformRevenuePlanRow {
+  planId: string; planName: string;
+  grossReceipts: number; refunds: number; gatewayFees: number; estimatedTaxes: number; netRevenue: number;
+  mrr: number; activeCustomers: number; newCustomers: number; canceledCustomers: number;
+}
+export interface PlatformRevenueReport {
+  month: string; timezone: string;
+  totals: {
+    grossReceipts: number; refunds: number; gatewayFees: number; estimatedTaxes: number; netRevenue: number;
+    mrr: number; activeCustomers: number; newCustomers: number; canceledCustomers: number; churnRatePercent: number | null; customersAtStart: number;
+  };
+  tax: { ratePercent: number; estimate: boolean; warning: string };
+  gateway: { receiptsWithoutNetValue: number; complete: boolean };
+  ledger: { grossReceipts: number; refunds: number; netRevenue: number; reconciles: boolean };
+  byPlan: PlatformRevenuePlanRow[];
+}
 export interface PlatformBillingAuditLog {
   id: string;
   companyId: string;
@@ -571,6 +597,12 @@ export interface CreatePlatformInvoiceInput {
   companyId: string; planId?: string; description: string; amount: number; dueDate: string;
   billingType?: PlatformBillingType; sendToAsaas?: boolean; idempotencyKey?: string;
 }
+export interface FiscalAdjustment {
+  id: string; kind: 'MANUAL_REVIEW' | 'CANCEL_PENDING'; reasonCode: string; reason: string; invoiceId: string;
+  company: { id: string; name: string } | null; amount: number; description: string | null;
+  asaasInvoiceId: string | null; invoiceStatus: string | null; createdAt: string;
+}
+export type FiscalAdjustmentAction = 'RETRY_CANCEL' | 'REISSUE' | 'MARK_RESOLVED';
 export interface UpdatePlatformInvoiceInput {
   description?: string; amount?: number; dueDate?: string; billingType?: PlatformBillingType; status?: PlatformInvoiceStatus;
 }
@@ -607,6 +639,17 @@ export interface EmpresaResumo {
   usage: { users: number; maxUsers: number | null; employees: number; maxEmployees: number | null };
   invoices: { openCount: number; openTotal: number; overdueCount: number; next: { id: string; amount: number; dueDate: string; status: string; description?: string | null } | null };
   asaasReady: boolean;
+}
+export type AccountingPeriodStatus = 'DRAFT' | 'CALCULATED' | 'PUBLISHED' | 'RETURNED' | 'RELEASED' | 'PAID';
+export interface AccountingPeriodEmployee { employeeId: string; name: string; closingId: string; closingStatus: string; gross: number; discounts: number; net: number; hasManualAdjustment: boolean }
+export interface AccountingPeriodView {
+  id: string | null; companyId: string; month: string; status: AccountingPeriodStatus | null; statusLabel: string;
+  totals: { gross: number; discounts: number; net: number; inss: number; fgts: number; irrf: number; employees: number };
+  calculatedAt: string | null; publishedAt: string | null; publishedById: string | null;
+  returnedAt: string | null; returnedById: string | null; returnComment: string | null;
+  releasedAt: string | null; releasedById: string | null; paidAt: string | null; paidById: string | null;
+  employees: AccountingPeriodEmployee[];
+  reappliedAdjustments?: number;
 }
 export interface EmpresaPlano { id: string; name: string; description?: string | null; maxUsers: number; maxEmployees: number; commitmentMonths: number; activeModules: string[]; isFree: boolean; isRecommended?: boolean; monthlyTotal: number | null; current: boolean }
 export interface FaturaDetalhes {
@@ -645,6 +688,43 @@ export interface AccountingOverview {
   recentClosings: AccountingClosing[];
   recentPayrolls: AccountingPayroll[];
   recentInvoices: PlatformInvoice[];
+}
+export type AccountingTimeSheetClosingStatus = 'NO_CLOSING' | 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'CLOSED' | (string & {});
+export interface AccountingTimeSheetPeriod { key: string; year: number; month: number; timezone: 'America/Sao_Paulo' }
+export interface AccountingTimeSheetEmployeeRow {
+  employeeId: string; name: string; position: string | null; daysRecorded: number;
+  workedMinutes: number; overtime50Minutes: number; overtime100Minutes: number; nightShiftMinutes: number;
+  absenceDays: number; absenceMinutes: number; lateMinutes: number; lateDays: number;
+  monthBalanceMinutes: number; hourBankBalanceMinutes: number; pendingIssues: number;
+  closingStatus: AccountingTimeSheetClosingStatus;
+}
+export interface AccountingCompanyTimeSheets {
+  period: AccountingTimeSheetPeriod;
+  company: { id: string; name: string; document: string | null };
+  employees: AccountingTimeSheetEmployeeRow[];
+}
+export interface AccountingTimeSheetDay {
+  date: string;
+  punches: { entry: string | null; lunchStart: string | null; lunchReturn: string | null; exit: string | null };
+  workedMinutes: number; balanceMinutes: number; overtime50Minutes: number; overtime100Minutes: number; nightShiftMinutes: number;
+  lateMinutes: number; earlyLeaveMinutes: number; absenceMinutes: number; incidentType: string | null; occurrence: string;
+  overtimeApprovalStatus: string; overtimeHandling: string;
+  manualAdjustment: { reason: string | null; status: string | null } | null;
+  observation: string | null;
+}
+export interface AccountingEmployeeTimeSheet {
+  period: AccountingTimeSheetPeriod;
+  employee: { id: string; name: string; position: string | null };
+  totals: {
+    daysRecorded: number; workedMinutes: number; overtime50Minutes: number; overtime100Minutes: number; nightShiftMinutes: number;
+    lateMinutes: number; absenceMinutes: number; absenceDays: number; balanceMinutes: number; hourBankBalanceMinutes: number;
+  };
+  days: AccountingTimeSheetDay[];
+  occurrences: Array<{ id: string; date: string; type: string; minutes: number; status: string; reason: string | null; observation: string | null }>;
+  closings: Array<{
+    id: string; status: AccountingTimeSheetClosingStatus; periodStart: string; periodEnd: string;
+    adjustments: Array<{ id: string; field: string; oldValue: string; newValue: string; reason: string; createdAt: string }>;
+  }>;
 }
 export interface CreatePlatformCompanyInput {
   name: string; document: string; slug: string;
@@ -741,6 +821,23 @@ export interface UpdateAsoInput {
 export interface SessionInfo { id: string; createdAt: string; lastUsedAt?: string; ip?: string; userAgent?: string; current?: boolean; }
 
 // Module API
+
+export interface VisitRow { views: number; visitors: number }
+export interface VisitSummary {
+  period: { days: number; from: string; to: string };
+  totals: { views: number; visitors: number; today: VisitRow; avgViewsPerDay: number };
+  byDay: Array<VisitRow & { day: string }>;
+  countries: Array<VisitRow & { country: string | null }>;
+  regions: Array<VisitRow & { country: string | null; region: string | null }>;
+  cities: Array<VisitRow & { country: string | null; region: string | null; city: string | null }>;
+  devices: Array<VisitRow & { device: string | null }>;
+  browsers: Array<VisitRow & { browser: string | null }>;
+  referrers: Array<VisitRow & { referrer: string | null }>;
+  paths: Array<VisitRow & { path: string | null }>;
+  geoReady: boolean;
+}
+export interface RecentVisit { id: string; createdAt: string; path: string; referrer: string | null; country: string | null; region: string | null; city: string | null; device: string; browser: string | null }
+export interface RecentVisits { page: number; limit: number; total: number; items: RecentVisit[] }
 
 export const api = {
   request,
@@ -870,6 +967,29 @@ export const api = {
     reopen: (id: string, reason: string) => request<any>(`/time-closing/${id}/reopen`, { method: 'POST', body: { reason } }),
     delete: (id: string) => request<any>(`/time-closing/${id}`, { method: 'DELETE' }),
   },
+  accounting: {
+    /** Folha de ponto (somente leitura) das empresas atendidas pelo contador. month = AAAA-MM (America/Sao_Paulo). */
+    companyTimeSheets: (companyId: string, month?: string) =>
+      request<AccountingCompanyTimeSheets>(`/accounting/companies/${companyId}/time-sheets${month ? `?month=${encodeURIComponent(month)}` : ''}`),
+    employeeTimeSheet: (companyId: string, employeeId: string, month?: string) =>
+      request<AccountingEmployeeTimeSheet>(`/accounting/companies/${companyId}/employees/${employeeId}/time-sheet${month ? `?month=${encodeURIComponent(month)}` : ''}`),
+    /** Fluxo do mês com o RH (contador): month = AAAA-MM. */
+    period: (companyId: string, month: string) => request<AccountingPeriodView>(`/accounting/companies/${companyId}/periods/${encodeURIComponent(month)}`),
+    calculatePeriod: (companyId: string, month: string, discardManual = false) =>
+      request<AccountingPeriodView>(`/accounting/companies/${companyId}/periods/${encodeURIComponent(month)}/calculate`, { method: 'POST', body: { discardManual } }),
+    publishPeriod: (companyId: string, month: string) =>
+      request<AccountingPeriodView>(`/accounting/companies/${companyId}/periods/${encodeURIComponent(month)}/publish`, { method: 'POST' }),
+    /** Ajuste manual de um item do fechamento (motivo obrigatório). */
+    adjustClosing: (closingId: string, field: string, newValue: number, reason: string) =>
+      request<unknown>(`/accounting/closings/${encodeURIComponent(closingId)}/adjust`, { method: 'PATCH', body: { field, newValue, reason } }),
+  },
+  payrollPeriods: {
+    /** Fluxo do mês (RH/ADMIN da empresa): month = AAAA-MM. */
+    get: (month: string) => request<AccountingPeriodView>(`/payroll/periods/${encodeURIComponent(month)}`),
+    return: (month: string, comment: string) => request<AccountingPeriodView>(`/payroll/periods/${encodeURIComponent(month)}/return`, { method: 'POST', body: { comment } }),
+    release: (month: string) => request<AccountingPeriodView>(`/payroll/periods/${encodeURIComponent(month)}/release`, { method: 'POST' }),
+    paid: (month: string) => request<AccountingPeriodView>(`/payroll/periods/${encodeURIComponent(month)}/paid`, { method: 'POST' }),
+  },
   timeOccurrences: {
     list: () => request<any[]>('/time-occurrences'),
     listByEmployee: (employeeId: string) => request<any[]>(`/time-occurrences/employee/${employeeId}`),
@@ -992,6 +1112,10 @@ export const api = {
 
   platform: {
     stats: () => request<PlatformStats>('/platform/stats'),
+    visits: {
+      summary: (days = 30) => request<VisitSummary>(`/platform/visits/summary${makeQuery({ days })}`),
+      recent: (page = 1, limit = 25) => request<RecentVisits>(`/platform/visits/recent${makeQuery({ page, limit })}`),
+    },
     listCompanies: (params?: { page?: number; limit?: number; search?: string; status?: string; billingStatus?: string }) => request<{ data: PlatformCompany[]; total: number; page: number; limit: number }>(`/platform/companies${makeQuery(params || {})}`, { timeoutMs: 12000 }),
     getCompany: (id: string) => request<PlatformCompany>(`/platform/companies/${id}`),
     getCompanyAuditLogs: (id: string) => request<any[]>(`/platform/companies/${id}/audit-logs`),
@@ -1022,6 +1146,11 @@ export const api = {
       retryWebhookEvent: (id: string) => request<{ queued: boolean; id: string }>(`/finance/platform/webhook-events/${id}/retry`, { method: 'POST' }),
       billingAuditLogs: (query: { companyId?: string; limit?: number } = {}) => request<PlatformBillingAuditLog[]>(`/finance/platform/audit-logs${makeQuery(query)}`),
       delete: (id: string) => request<{ id: string }>(`/finance/platform/invoices/${id}`, { method: 'DELETE' }),
+      fiscalAdjustments: (query: { companyId?: string } = {}) => request<FiscalAdjustment[]>(`/finance/fiscal-adjustments${makeQuery(query)}`),
+      resolveFiscalAdjustment: (invoiceId: string, input: { action: FiscalAdjustmentAction; note?: string }) =>
+        request<{ invoiceId: string; action: FiscalAdjustmentAction; outcome: string }>(`/finance/fiscal-adjustments/${invoiceId}/resolve`, { method: 'POST', body: input }),
+      monthlyRevenueReport: (month: string) => request<PlatformRevenueReport>(`/finance/platform/reports/monthly${makeQuery({ month })}`),
+      downloadMonthlyRevenueCsv: (month: string) => downloadRequest(`/finance/platform/reports/monthly.csv${makeQuery({ month })}`),
       downloadCostCentersPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'from' | 'to'> = {}) => downloadRequest(`/faturas/plataforma/cost-centers/pdf${makeQuery(query)}`),
     downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to' | 'companyId'> = {}) =>
         downloadRequest(`/finance/platform/statements/pdf${makeQuery(query)}`),
@@ -1146,6 +1275,11 @@ export const api = {
     reply: (id: string, data: any) => request<any>(`/support/tickets/${id}/messages`, { method: 'POST', body: data }),
     close: (id: string) => request<any>(`/support/tickets/${id}/close`, { method: 'POST' }),
     reopen: (id: string) => request<any>(`/support/tickets/${id}/reopen`, { method: 'POST' }),
+    requestRefund: (data: { invoiceId: string; kind: 'TOTAL' | 'PARTIAL'; amount?: number; reason: string }) =>
+      request<any>('/support/refund-requests', { method: 'POST', body: data }),
+    rate: (id: string, data: { score: number; comment?: string }) =>
+      request<{ success: boolean; satisfactionScore: number; satisfactionComment: string | null; satisfactionAt: string }>(`/support/${id}/rating`, { method: 'POST', body: data }),
+    reopenResolved: (id: string) => request<{ success: boolean; status: string }>(`/support/${id}/reopen`, { method: 'POST' }),
     uploadAttachment: (id: string, file: File) => {
       const body = new FormData();
       body.append('file', file);
@@ -1165,6 +1299,12 @@ export const api = {
     updatePriority: (id: string, priority: string) => request<any>(`/platform/support/tickets/${id}/priority`, { method: 'PATCH', body: { priority } }),
     assign: (id: string, userId?: string) => request<any>(`/platform/support/tickets/${id}/assign`, { method: 'PATCH', body: { userId } }),
     resolve: (id: string) => request<any>(`/platform/support/tickets/${id}/resolve`, { method: 'POST' }),
+    approveRefund: (id: string, reason?: string) =>
+      request<{ idempotent: boolean; refundStatus: string; ticketId: string }>(`/platform/support/${id}/refund/approve`, { method: 'POST', body: { reason } }),
+    markDuplicate: (id: string, duplicateOfId: string) =>
+      request<{ success: boolean; status: string; duplicateOfId: string; duplicateOfNumber: string }>(`/platform/support/${id}/duplicate`, { method: 'POST', body: { duplicateOfId } }),
+    rejectRefund: (id: string, reason: string) =>
+      request<{ idempotent: boolean; refundStatus: string; ticketId: string }>(`/platform/support/${id}/refund/reject`, { method: 'POST', body: { reason } }),
   },
 
   publicSupport: {

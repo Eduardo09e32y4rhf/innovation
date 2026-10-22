@@ -4,11 +4,15 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
-import { AdjustClosingDto, CorrectPayrollDto, MonthQueryDto, RecalculateClosingsDto, SaveRuleDto, SimulateDto, WorkflowDto } from './accounting.dto';
+import { AccountingPeriodService } from '../payroll/accounting-period.service';
+import { AdjustClosingDto, CalculatePeriodDto, CorrectPayrollDto, MonthQueryDto, RecalculateClosingsDto, SaveRuleDto, SimulateDto, TimeSheetQueryDto, WorkflowDto } from './accounting.dto';
 import { AccountingOfficeService } from './accounting-office.service';
 import { ChecklistToggleDto, CreateDocRequestDto, CreateTaskDto, GenerateFeesDto, PayFeeDto, SaveClientDto, UpdateDocRequestDto, UpdateTaskDto } from './accounting-office.dto';
 import { AccountingHubService } from './accounting-hub.service';
 import { AccountingRulesService } from './accounting-rules.service';
+import { AccountingTimeSheetService } from './accounting-time-sheet.service';
+import { AccountingAccessService } from '../../common/accounting-access';
+import { PlatformLedgerService } from './platform-ledger.service';
 
 /** Contabilidade: DEV, CEO e CONTABIL (fonte única das regras de cálculo). */
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -19,11 +23,42 @@ export class AccountingController {
     private readonly hub: AccountingHubService,
     private readonly rules: AccountingRulesService,
     private readonly office: AccountingOfficeService,
+    private readonly ledger: PlatformLedgerService,
+    private readonly timeSheets: AccountingTimeSheetService,
+    private readonly access: AccountingAccessService,
+    private readonly periods: AccountingPeriodService,
   ) {}
 
   @Get('overview')
-  overview(@Query() query: MonthQueryDto) {
-    return this.hub.overview(query.month, query.companyId);
+  overview(@CurrentUser() actor: JwtUser, @Query() query: MonthQueryDto) {
+    return this.hub.overviewFor(actor, query.month, query.companyId);
+  }
+
+  /** Razão da receita de assinaturas: recebimentos, devoluções confirmadas, competência e alertas fiscais. */
+  @Get('platform-ledger')
+  async platformLedger(@CurrentUser() actor: JwtUser, @Query() query: MonthQueryDto) {
+    if (query.companyId) await this.access.assertAccountantCanAccess(actor, query.companyId);
+    return this.ledger.month(query.month, query.companyId, query.companyId ? null : await this.access.accessibleCompanyIds(actor));
+  }
+
+  // ---------- fluxo do mês com o RH da empresa ----------
+
+  @Get('companies/:companyId/periods/:month')
+  async getPeriod(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Param('month') month: string) {
+    await this.access.assertAccountantCanAccess(actor, companyId);
+    return this.periods.viewForAccountant(companyId, month);
+  }
+
+  @Post('companies/:companyId/periods/:month/calculate')
+  async calculatePeriod(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Param('month') month: string, @Body() dto: CalculatePeriodDto) {
+    await this.access.assertAccountantCanAccess(actor, companyId);
+    return this.periods.calculate(actor, companyId, month, dto?.discardManual === true);
+  }
+
+  @Post('companies/:companyId/periods/:month/publish')
+  async publishPeriod(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Param('month') month: string) {
+    await this.access.assertAccountantCanAccess(actor, companyId);
+    return this.periods.publish(actor, companyId, month);
   }
 
   @Get('report/pdf')
@@ -86,8 +121,8 @@ export class AccountingController {
   // ---------- escritório: painel, clientes, checklist, tarefas, documentos e honorários ----------
 
   @Get('office/dashboard')
-  officeDashboard(@Query() query: MonthQueryDto) {
-    return this.office.dashboard(query.month);
+  officeDashboard(@CurrentUser() actor: JwtUser, @Query() query: MonthQueryDto) {
+    return this.office.dashboard(actor, query.month);
   }
 
   @Get('office/team')
@@ -96,18 +131,18 @@ export class AccountingController {
   }
 
   @Get('office/clients/:companyId')
-  getClient(@Param('companyId', ParseUUIDPipe) companyId: string) {
-    return this.office.getClient(companyId);
+  getClient(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string) {
+    return this.office.getClient(actor, companyId);
   }
 
   @Put('office/clients/:companyId')
-  saveClient(@Param('companyId', ParseUUIDPipe) companyId: string, @Body() dto: SaveClientDto) {
-    return this.office.saveClient(companyId, dto);
+  saveClient(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Body() dto: SaveClientDto) {
+    return this.office.saveClient(actor, companyId, dto);
   }
 
   @Get('office/clients/:companyId/checklist')
-  checklist(@Param('companyId', ParseUUIDPipe) companyId: string, @Query() query: MonthQueryDto) {
-    return this.office.checklist(companyId, query.month);
+  checklist(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Query() query: MonthQueryDto) {
+    return this.office.checklist(actor, companyId, query.month);
   }
 
   @Put('office/clients/:companyId/checklist')
@@ -116,8 +151,8 @@ export class AccountingController {
   }
 
   @Get('office/tasks')
-  listTasks(@Query('status') status?: string, @Query('companyId') companyId?: string, @Query('assigneeId') assigneeId?: string) {
-    return this.office.listTasks({ status, companyId, assigneeId });
+  listTasks(@CurrentUser() actor: JwtUser, @Query('status') status?: string, @Query('companyId') companyId?: string, @Query('assigneeId') assigneeId?: string) {
+    return this.office.listTasks(actor, { status, companyId, assigneeId });
   }
 
   @Post('office/tasks')
@@ -126,18 +161,18 @@ export class AccountingController {
   }
 
   @Patch('office/tasks/:id')
-  updateTask(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateTaskDto) {
-    return this.office.updateTask(id, dto);
+  updateTask(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateTaskDto) {
+    return this.office.updateTask(actor, id, dto);
   }
 
   @Delete('office/tasks/:id')
-  deleteTask(@Param('id', ParseUUIDPipe) id: string) {
-    return this.office.deleteTask(id);
+  deleteTask(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.office.deleteTask(actor, id);
   }
 
   @Get('office/docs')
-  listDocs(@Query('month') month?: string, @Query('companyId') companyId?: string, @Query('status') status?: string) {
-    return this.office.listDocs({ month, companyId, status });
+  listDocs(@CurrentUser() actor: JwtUser, @Query('month') month?: string, @Query('companyId') companyId?: string, @Query('status') status?: string) {
+    return this.office.listDocs(actor, { month, companyId, status });
   }
 
   @Post('office/docs')
@@ -146,27 +181,46 @@ export class AccountingController {
   }
 
   @Patch('office/docs/:id')
-  updateDoc(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateDocRequestDto) {
-    return this.office.updateDoc(id, dto);
+  updateDoc(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateDocRequestDto) {
+    return this.office.updateDoc(actor, id, dto);
   }
 
   @Delete('office/docs/:id')
-  deleteDoc(@Param('id', ParseUUIDPipe) id: string) {
-    return this.office.deleteDoc(id);
+  deleteDoc(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.office.deleteDoc(actor, id);
   }
 
   @Get('office/fees')
-  listFees(@Query() query: MonthQueryDto) {
-    return this.office.listFees(query.month);
+  listFees(@CurrentUser() actor: JwtUser, @Query() query: MonthQueryDto) {
+    return this.office.listFees(actor, query.month);
   }
 
   @Post('office/fees/generate')
-  generateFees(@Body() dto: GenerateFeesDto) {
-    return this.office.generateFees(dto);
+  generateFees(@CurrentUser() actor: JwtUser, @Body() dto: GenerateFeesDto) {
+    return this.office.generateFees(actor, dto);
   }
 
   @Patch('office/fees/:id')
-  payFee(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PayFeeDto) {
-    return this.office.payFee(id, dto.paid);
+  payFee(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: PayFeeDto) {
+    return this.office.payFee(actor, id, dto.paid);
+  }
+
+  // ---------- folha de ponto (somente leitura) ----------
+
+  /** Resumo do mês de todos os funcionários da empresa (só empresas atendidas pelo contador). */
+  @Get('companies/:companyId/time-sheets')
+  companyTimeSheets(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Query() query: TimeSheetQueryDto) {
+    return this.timeSheets.companySheets(actor, companyId, query.month);
+  }
+
+  /** Folha de ponto detalhada de um funcionário: batidas, horas calculadas por dia, ocorrências e ajustes. */
+  @Get('companies/:companyId/employees/:employeeId/time-sheet')
+  employeeTimeSheet(
+    @CurrentUser() actor: JwtUser,
+    @Param('companyId', ParseUUIDPipe) companyId: string,
+    @Param('employeeId', ParseUUIDPipe) employeeId: string,
+    @Query() query: TimeSheetQueryDto,
+  ) {
+    return this.timeSheets.employeeSheet(actor, companyId, employeeId, query.month);
   }
 }

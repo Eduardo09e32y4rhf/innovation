@@ -1,3 +1,4 @@
+import { AsoClinicPresetDto, AsoRecordDto } from './dto/aso.dto';
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -36,7 +37,7 @@ export class AsoController {
   }
 
   @Post('clinic-presets')
-  createClinicPreset(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Body() body: any) {
+  createClinicPreset(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Body() body: AsoClinicPresetDto) {
     return this.svc.createClinicPreset(companyId, body);
   }
 
@@ -53,12 +54,12 @@ export class AsoController {
   }
 
   @Post()
-  create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: any) {
+  create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: AsoRecordDto) {
     return this.svc.create(companyId, actor.sub, body);
   }
 
   @Patch(':id')
-  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: any) {
+  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: AsoRecordDto) {
     return this.svc.update(companyId, id, actor.sub, body);
   }
 

@@ -1,3 +1,4 @@
+import { ConfirmImportDto } from './dto/confirm-import.dto';
 import { BadRequestException, Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { MultipartFile } from '@fastify/multipart';
@@ -41,7 +42,7 @@ export class EmployeesImportController {
   }
 
   @Post('confirm')
-  confirm(@Req() req: FastifyRequest, @CurrentUser() user: JwtUser, @Body() body: { importToken?: string }) {
+  confirm(@Req() req: FastifyRequest, @CurrentUser() user: JwtUser, @Body() body: ConfirmImportDto) {
     if (!body.importToken) throw new BadRequestException('importToken é obrigatório.');
     return this.importService.confirm(user.companyId, user.sub, body.importToken);
   }

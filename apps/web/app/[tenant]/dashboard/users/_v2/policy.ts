@@ -1,4 +1,5 @@
 import type { AppUser, UserRole } from '@/app/lib/api';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 export const ROLE_INFO: Record<UserRole, { label: string; vision: string }> = {
   DEV: { label: 'Desenvolvedor', vision: 'Plataforma completa, todas as empresas.' },
@@ -23,7 +24,7 @@ const MANAGES: Record<string, UserRole[]> = {
 
 export const rolesFor = (actorRole: string): UserRole[] => MANAGES[actorRole] ?? [];
 export const canManage = (actorRole: string, targetRole: UserRole) => rolesFor(actorRole).includes(targetRole);
-export const canOpenPage = (role: string) => ['DEV', 'CEO', 'ADMIN', 'RH'].includes(role);
+export const canOpenPage = (role: string) => roleIn(ROLE_ACCESS.usersPage, role);
 
 export type AccessStatus = 'ATIVO' | 'BLOQUEADO' | 'CANCELADO';
 export const accessStatus = (user: Pick<AppUser, 'isActive' | 'blockedAt' | 'canceledAt'>): AccessStatus =>

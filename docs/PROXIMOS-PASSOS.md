@@ -1,3 +1,18 @@
+> **SUPERADO EM PARTE por [`ESCOPO-PRODUCAO-V1.md`](ESCOPO-PRODUCAO-V1.md) (plano vigente, 21/10/2026).** Este roteiro e de 03/10/2026; use-o so como historico e como lista de comandos da VPS.
+>
+> | Fase deste roteiro | Onde esta hoje no escopo vigente |
+> |---|---|
+> | 1. Front de auth (refresh, MFA, sessoes) | H2/S2 (sessao e MFA foram endurecidos; **verificar** as telas `/mfa`, `/verify-email` e "Sessoes e dispositivos") |
+> | 2. Seguranca de dados | S1 a S8 (criptografia de campo, pentest, revisao senior); RLS vai para a v1.1 |
+> | 3. DevOps | O1 a O8, Q1 a Q8, L5 (unificar modulos de escala) |
+> | 4. Cobranca | M3, M4 (Asaas em producao); recorrencia no Mercado Pago fica fora da v1 |
+> | 5. Conformidade | M1 (Portaria 671, depende da decisao D2), S7 (LGPD) |
+> | 6. Folha completa | M2 (13o e rescisao ja existem); **eSocial e NFS-e de folha fora da v1** |
+> | 7. Front (PWA, `any`, E2E) | H3, L7 (PWA offline fora da v1) |
+> | 8. API publica | Fora da v1 |
+>
+> A senha exposta no historico do git (secao 1) esta detalhada em [`production/SEGREDOS-NO-HISTORICO.md`](production/SEGREDOS-NO-HISTORICO.md): o que resolve e **rotacionar**, nao so reescrever o historico. Em producao, as migrations seguem `scripts/README_SCRIPTS.md` (secao "Migrations em producao").
+
 # Próximos passos (roteiro para continuar)
 
 ## 1. Na VPS agora (não muda nada para os usuários)

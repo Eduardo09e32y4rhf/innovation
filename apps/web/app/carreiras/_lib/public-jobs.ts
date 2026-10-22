@@ -1,3 +1,5 @@
+import { createSingleFlight, mutationFlightKey } from '@/app/lib/single-flight';
+
 export const CAREERS_API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 export const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 export const ACCEPTED_RESUME_EXTENSIONS = ['pdf', 'docx'] as const;
@@ -194,7 +196,16 @@ function normalizeJob(value: unknown, fallbackCompanyId: string): PublicJob | nu
   };
 }
 
-export async function fetchPublic(path: string, init?: RequestInit): Promise<unknown> {
+const publicFlight = createSingleFlight();
+
+/** Envios idênticos em andamento (duplo clique em candidatar-se, cadastrar, entrar) compartilham uma única requisição. */
+export function fetchPublic(path: string, init?: RequestInit): Promise<unknown> {
+  const key = mutationFlightKey(init?.method, path, init?.body);
+  if (key === null) return fetchPublicOnce(path, init);
+  return publicFlight.run(key, () => fetchPublicOnce(path, init));
+}
+
+async function fetchPublicOnce(path: string, init?: RequestInit): Promise<unknown> {
   let response: Response;
 
   try {

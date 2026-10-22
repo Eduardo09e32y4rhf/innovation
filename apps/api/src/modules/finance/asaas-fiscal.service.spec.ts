@@ -7,11 +7,14 @@ const ON = { ASAAS_NFSE_ENABLED: 'true', ASAAS_NFSE_SERVICE_ID: 'svc-1', ASAAS_N
 function setup(env: Record<string, string>, invoice: Record<string, unknown>, existing: unknown[] = []) {
   const prisma = {
     platformInvoice: {
-      findUnique: vi.fn().mockResolvedValue({ id: 'inv-1', status: 'PAID', provider: 'ASAAS', asaasPaymentId: 'pay_1', asaasInvoiceId: null, invoiceStatus: null, amount: 199.9, description: 'Mensalidade', deletedAt: null, ...invoice }),
+      findUnique: vi.fn().mockResolvedValue({ id: 'inv-1', companyId: 'co-1', refundStatus: null, company: { document: '12345678000199' }, status: 'PAID', provider: 'ASAAS', asaasPaymentId: 'pay_1', asaasInvoiceId: null, invoiceStatus: null, amount: 199.9, description: 'Mensalidade', deletedAt: null, ...invoice }),
       update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
+    auditLog: { findFirst: vi.fn().mockResolvedValue(null), count: vi.fn().mockResolvedValue(0), create: vi.fn().mockResolvedValue({}) },
   };
   const asaas = {
+    getCharge: vi.fn().mockResolvedValue({ id: 'pay_1', status: 'RECEIVED', value: 199.9 }),
     isConfigured: () => true,
     listInvoicesByPayment: vi.fn().mockResolvedValue({ data: existing }),
     scheduleFiscalInvoice: vi.fn().mockResolvedValue({ id: 'nf_1', status: 'SCHEDULED' }),
@@ -61,11 +64,19 @@ describe('AsaasFiscalService', () => {
     expect(asaas.listInvoicesByPayment).not.toHaveBeenCalled();
   });
 
-  it('falha no Asaas nao lanca: marca ERROR para a rotina/botao refazer', async () => {
+  it('falha do provedor nao lanca: marca RETRY para nova tentativa com espera', async () => {
     const { service, asaas, prisma } = setup(ON, {});
-    asaas.scheduleFiscalInvoice.mockRejectedValue(new Error('Asaas: servico municipal invalido'));
+    asaas.scheduleFiscalInvoice.mockRejectedValue(new Error('Asaas: servico indisponivel'));
     const out = await service.ensureForInvoice('inv-1');
-    expect(out).toMatchObject({ result: 'FAILED', message: 'Asaas: servico municipal invalido' });
+    expect(out).toMatchObject({ result: 'FAILED', message: 'Asaas: servico indisponivel' });
+    expect(prisma.platformInvoice.update).toHaveBeenCalledWith(expect.objectContaining({ data: { invoiceStatus: 'RETRY', nfeStatus: 'RETRY' } }));
+  });
+
+  it('recusa definitiva do Asaas marca ERROR (sem nova tentativa automatica)', async () => {
+    const { service, asaas, prisma } = setup(ON, {});
+    asaas.scheduleFiscalInvoice.mockRejectedValue(new AsaasRejectedException('Asaas recusou: servico municipal invalido'));
+    const out = await service.ensureForInvoice('inv-1');
+    expect(out.result).toBe('FAILED');
     expect(prisma.platformInvoice.update).toHaveBeenCalledWith(expect.objectContaining({ data: { invoiceStatus: 'ERROR', nfeStatus: 'ERROR' } }));
   });
 });

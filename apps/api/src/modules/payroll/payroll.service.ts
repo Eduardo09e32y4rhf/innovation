@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { countDependents } from '../../common/utils/dependents';
 import { PayrollItemType, PayrollStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { computeDeductions, DEDUCTION_PREFIX } from './deduction-rules';
@@ -173,8 +174,7 @@ export class PayrollService {
     const suspensionDays = tracks.filter((t) => t.incidentType === 'SUSPENSÃO' && (t.absenceMinutes ?? 0) > 0).length;
 
     const taxContext = await this.officialCalculator.resolveTaxContext(end);
-    const dependentsRaw = typeof employee.dependents === 'string' ? safeJson(employee.dependents) : employee.dependents;
-    const dependents = Array.isArray(dependentsRaw) ? dependentsRaw.length : 0;
+    const dependents = countDependents(employee.dependents);
 
     const calc = this.officialCalculator.calculate({
       salary,
@@ -323,6 +323,3 @@ export class PayrollService {
   }
 }
 
-function safeJson(text: string): unknown {
-  try { return JSON.parse(text); } catch { return null; }
-}

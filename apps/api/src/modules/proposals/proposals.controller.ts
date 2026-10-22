@@ -1,3 +1,4 @@
+import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { Controller, Get, Post, Body, Param, UseGuards, Request, Patch } from '@nestjs/common';
 import { ProposalsService, CreateProposalDto, AcceptTermsDto } from './proposals.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -5,6 +6,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 
 @Controller('proposals')
+@RequiresFeature('proposals')
 export class ProposalsController {
   constructor(private readonly proposalsService: ProposalsService) {}
 

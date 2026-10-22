@@ -1,9 +1,13 @@
+import { isFeatureEnabled } from '../lib/feature-flags';
+
 export type OnboardingState = 'INVITED' | 'PASSWORD_CHANGE' | 'FACE_ENROLLMENT' | 'PROFILE_REQUIRED' | 'CONTRACT_PENDING' | 'ACTIVE' | null | undefined;
 
 const PENDING = new Set(['INVITED', 'PASSWORD_CHANGE', 'FACE_ENROLLMENT', 'PROFILE_REQUIRED', 'CONTRACT_PENDING']);
 
 /** CEO que ainda nao concluiu o onboarding nao abre o dashboard (a API tambem barra). */
 export function ceoOnboardingPending(user: { role?: string; profile?: string; onboardingState?: OnboardingState } | null | undefined): boolean {
+  // Modulo congelado: nao ha onboarding do CEO (a API tambem libera); redirecionar prenderia o usuario numa pagina inexistente.
+  if (!isFeatureEnabled('ceo-onboarding')) return false;
   const role = String(user?.profile ?? user?.role ?? '').toUpperCase();
   return role === 'CEO' && Boolean(user?.onboardingState) && PENDING.has(String(user?.onboardingState));
 }

@@ -8,6 +8,7 @@ import { Button, Drawer } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
+import { safeHref } from '@/app/lib/text';
 import { jobsApi } from '../jobs-api';
 import type { Pipeline, Tag } from '../types';
 import { Field, Pill, TagChip, inputClass } from './bits';
@@ -16,6 +17,8 @@ import { InterviewDialog } from './interview-dialog';
 import { AssessmentsPanel, FeedbackDialog, FeedbackSummary, OffersPanel, ResponseBadge, SlotOfferDialog, SlotOffersList } from './candidate-process';
 import { processApi } from '../process-api';
 import { meetingLabel } from '../../management/agenda/meeting-link';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 const TABS = [['summary', 'Resumo'], ['evaluation', 'Avaliação'], ['notes', 'Notas'], ['interviews', 'Entrevistas'], ['assessments', 'Testes'], ['offer', 'Proposta'], ['history', 'Histórico'], ['documents', 'Documentos']] as const;
 type TabKey = (typeof TABS)[number][0];
@@ -29,6 +32,7 @@ export function CandidateDrawer({
   applicationId: string | null; pipeline: Pipeline | undefined; tags: Tag[];
   onClose: () => void; onChanged: () => void; onRequestMove: (applicationId: string, stageId: string) => void;
 }) {
+  const askConfirm = useConfirm();
   const { user } = useAuth();
   const detail = useQuery(() => jobsApi.application(applicationId ?? ''), [applicationId], { enabled: Boolean(applicationId) });
   const [tab, setTab] = useState<TabKey>('summary');
@@ -41,9 +45,9 @@ export function CandidateDrawer({
   const [busy, setBusy] = useState(false);
   const data = detail.data;
   const role = String(user?.profile ?? '').toUpperCase();
-  const canSeeDocuments = ['DEV', 'ADMIN', 'RH', 'RH_RS'].includes(role);
+  const canSeeDocuments = roleIn(ROLE_ACCESS.recruitmentConduct, role);
   // Gestor avalia entrevistas e ve testes/propostas; quem conduz (RH) agenda, envia testes e monta proposta.
-  const canConduct = ['DEV', 'ADMIN', 'RH', 'RH_RS'].includes(role);
+  const canConduct = roleIn(ROLE_ACCESS.recruitmentConduct, role);
   const feedback = useQuery(() => processApi.feedback(applicationId ?? ''), [applicationId], { enabled: Boolean(applicationId) && tab === 'interviews' });
 
   useEffect(() => { setTab('summary'); setNote(''); }, [applicationId]);
@@ -98,7 +102,7 @@ export function CandidateDrawer({
               <ul className="space-y-1.5 text-sm">
                 {data.candidate?.email && <li className="flex items-center gap-2"><Mail size={15} aria-hidden="true" /><a className="underline" href={`mailto:${data.candidate.email}`}>{data.candidate.email}</a></li>}
                 {data.candidate?.phone && <li className="flex items-center gap-2"><Phone size={15} aria-hidden="true" /><a className="underline" href={`https://wa.me/${data.candidate.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">{data.candidate.phone}</a></li>}
-                {data.linkedinUrl && <li className="flex items-center gap-2"><ExternalLink size={15} aria-hidden="true" /><a className="underline" href={data.linkedinUrl} target="_blank" rel="noreferrer noopener">LinkedIn</a></li>}
+                {safeHref(data.linkedinUrl) && <li className="flex items-center gap-2"><ExternalLink size={15} aria-hidden="true" /><a className="underline" href={safeHref(data.linkedinUrl)} target="_blank" rel="noreferrer noopener">LinkedIn</a></li>}
               </ul>
               {data.resumeAvailable && <Button variant="outline" onClick={download}><Download size={16} aria-hidden="true" /> Baixar currículo</Button>}
 
@@ -152,7 +156,7 @@ export function CandidateDrawer({
                               className={`h-9 w-9 rounded-md border text-sm font-medium ${current?.score === score ? 'border-purple-600 bg-purple-600 text-white' : 'border-border hover:bg-bg-sub'}`}>{score}</button>
                           ))}
                         </div>
-                        <input className={inputClass} placeholder="Comentário (opcional)" value={current?.comment ?? ''} maxLength={500} onChange={(event) => setRatings({ ...ratings, [criterion.id]: { score: current?.score ?? 3, comment: event.target.value } })} />
+                        <input aria-label="Comentário opcional sobre este critério" className={inputClass} placeholder="Comentário (opcional)" value={current?.comment ?? ''} maxLength={500} onChange={(event) => setRatings({ ...ratings, [criterion.id]: { score: current?.score ?? 3, comment: event.target.value } })} />
                       </div>
                     );
                   })}
@@ -214,7 +218,7 @@ export function CandidateDrawer({
                         <button type="button" className="inline-flex min-h-9 items-center text-xs font-semibold text-brand-700 hover:underline" onClick={() => setFeedbackFor(item.id)}>{(feedback.data?.items ?? []).some((row) => row.interviewId === item.id && row.userId === user?.id) ? 'Editar minha avaliação' : 'Avaliar entrevista'}</button>
                       </div>
                       <button type="button" className="btn-icon text-rose-600" aria-label="Cancelar entrevista" title={item.notifiedAt && future ? 'Cancelar e avisar o candidato' : 'Cancelar entrevista'}
-                        onClick={() => { if (window.confirm(item.notifiedAt && future ? 'Cancelar esta entrevista? O candidato recebe um e-mail avisando.' : 'Cancelar esta entrevista?')) run(() => jobsApi.removeInterview(data.id, item.id), 'Entrevista cancelada.'); }}><Trash2 size={15} /></button>
+                        onClick={async () => { if (await askConfirm({ title: 'Cancelar entrevista', description: item.notifiedAt && future ? 'O candidato recebe um e-mail avisando do cancelamento.' : 'Esta entrevista será cancelada.', confirmText: 'Cancelar entrevista' })) run(() => jobsApi.removeInterview(data.id, item.id), 'Entrevista cancelada.'); }}><Trash2 size={15} /></button>
                     </li>
                   );
                 })}

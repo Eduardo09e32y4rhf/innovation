@@ -24,6 +24,12 @@ export default function PrivacidadePage() {
           <p>Seus dados são criptografados e armazenados em servidores seguros. Não compartilhamos, vendemos ou alugamos dados de colaboradores para terceiros. O acesso às informações é restrito aos gestores e administradores autorizados pela sua empresa.</p>
           <h2 className="text-xl font-bold text-white mt-8 mb-4">3. Conformidade com a LGPD</h2>
           <p>Adotamos medidas técnicas e organizacionais para atender à Lei Geral de Proteção de Dados (LGPD). Todos os colaboradores cadastrados possuem o direito de solicitar a exclusão, portabilidade ou revisão dos seus dados diretamente junto ao RH da empresa contratante.</p>
+          <h2 id="cookies" className="text-xl font-bold text-white mt-8 mb-4">4. Cookies e estatísticas de visitas</h2>
+          <p>Na página inicial você escolhe entre <strong>Aceitar</strong> e <strong>Recusar</strong>. A escolha vale por 180 dias e pode ser alterada a qualquer momento em &quot;Preferências de cookies&quot;, no rodapé da página.</p>
+          <ul className="list-disc space-y-2 pl-5">
+            <li><strong>Essenciais (sempre ativos):</strong> o cookie <code>innovation_cookie_consent</code>, que guarda a sua escolha, e os dados de sessão que mantêm você conectado e protegido depois do login. Sem eles o site não funciona com segurança.</li>
+            <li><strong>Estatísticas de visitas (somente se você aceitar):</strong> registramos de forma anônima a data e a hora do acesso, a página aberta, o tipo de dispositivo e de navegador e a cidade, o estado e o país aproximados, estimados a partir do endereço de rede. Não criamos cookie de rastreio, não gravamos o endereço de rede e não identificamos o visitante. Se você recusar, ou se o seu navegador enviar o sinal &quot;não rastrear&quot;, nada disso é registrado. Esses registros são apagados após 400 dias.</li>
+          </ul>
         </div>
         <CompanyIdentity claro className="mt-8 text-center text-xs" />
       </div>

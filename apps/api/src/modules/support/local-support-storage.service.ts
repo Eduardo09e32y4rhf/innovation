@@ -22,6 +22,8 @@ export class LocalSupportStorageService implements SupportStorageService {
 
   async saveFile(key: string, buffer: Buffer): Promise<string> {
     const filePath = path.join(this.basePath, key);
+    // Chaves como docs/<empresa>/<arquivo>.pdf têm subpasta: sem criá-la o PDF imutável falha com ENOENT (500).
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, buffer);
     return filePath;
   }

@@ -21,6 +21,7 @@ import { api } from '@/app/lib/api';
 import { VACATION_STATUS_LABEL, formatMinutes, formatPeriod, formatTime } from '@/app/lib/format';
 import { cn } from '@/app/lib/cn';
 import type { LucideIcon } from 'lucide-react';
+import { isFeatureEnabled } from '@/app/lib/feature-flags';
 
 const EmployeeDashboard = dynamic(
   () => import('./_components/employee-dashboard').then((m) => m.EmployeeDashboard),
@@ -237,8 +238,8 @@ function DashboardContent({ tenant }: { tenant: string }) {
   const shortcuts = profile === 'COMERCIAL'
     ? [
         { label: 'Plataforma', href: `/${tenant}/dashboard/platform`, icon: TrendingUp },
-        { label: 'Propostas', href: `/${tenant}/dashboard/platform/proposals`, icon: FileText },
-        { label: 'Empresas', href: `/${tenant}/dashboard/platform/companies`, icon: Users },
+        ...(isFeatureEnabled('proposals') ? [{ label: 'Propostas', href: `/${tenant}/dashboard/platform?tab=comercial&sub=propostas`, icon: FileText }] : []),
+        { label: 'Empresas', href: `/${tenant}/dashboard/platform?tab=empresas`, icon: Users },
       ]
     : roleActions[profile || ''] ?? roleActions.ADMIN;
 

@@ -1,0 +1,30 @@
+name: Labels sync
+
+# Manual: cria/atualiza os rotulos descritos em .github/labels.yml. Nao apaga rotulos existentes.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sync:
+    name: Sincronizar rótulos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Criar ou atualizar rótulos
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PY' > labels.tsv
+          import yaml
+          for item in yaml.safe_load(open('.github/labels.yml', encoding='utf-8')):
+              print('\t'.join([item['name'], str(item['color']), item.get('description', '')]))
+          PY
+          while IFS=$'\t' read -r name color description; do
+            gh label create "$name" --color "$color" --description "$description" --repo "$REPO" --force
+          done < labels.tsv
+          echo "Rótulos sincronizados: $(wc -l < labels.tsv)"

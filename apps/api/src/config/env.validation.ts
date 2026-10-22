@@ -1,4 +1,8 @@
+import { featureFlagProblems } from '../common/feature-flags';
+
 const WEAK_JWT_MARKERS = ['TROQUE_', 'local-development', 'innovation-secret-key', 'changeme', 'secret'];
+
+const PLACEHOLDER_MARKERS = ['troque_', 'token_seguro', 'sua_', 'your_', 'changeme', 'example'];
 
 /** Retorna os problemas encontrados (lista vazia = ambiente seguro). Função pura, testável. */
 export function productionEnvProblems(config: Record<string, unknown>): string[] {
@@ -33,14 +37,18 @@ export function productionEnvProblems(config: Record<string, unknown>): string[]
     problems.push('Redis must require a password in production (REDIS_URL=redis://:password@host:6379 or REDIS_PASSWORD).');
   }
 
-  // Provedores de pagamento: só exigimos o segredo do webhook de quem está configurado.
-  if (text('ASAAS_API_KEY') && !(text('ASAAS_WEBHOOK_TOKEN') || text('ASAAS_WEBHOOK_SECRET'))) {
-    problems.push('ASAAS_WEBHOOK_TOKEN is required when ASAAS_API_KEY is set.');
-  }
-  if (text('ASAAS_WEBHOOK_TOKEN') && text('ASAAS_WEBHOOK_TOKEN').length < 32) problems.push('ASAAS_WEBHOOK_TOKEN must have at least 32 characters.');
-  if (text('MERCADOPAGO_ACCESS_TOKEN') && !text('MERCADOPAGO_WEBHOOK_SECRET')) {
-    problems.push('MERCADOPAGO_WEBHOOK_SECRET is required when MERCADOPAGO_ACCESS_TOKEN is set.');
-  }
+  // Segredos de webhook/métricas são obrigatórios em produção, independentemente do provedor configurado.
+  const required = (key: string, minLength: number) => {
+    const value = text(key);
+    if (!value) problems.push(`${key} is required in production.`);
+    else if (value.length < minLength || PLACEHOLDER_MARKERS.some((m) => value.toLowerCase().includes(m))) {
+      problems.push(`${key} must be a real secret with at least ${minLength} characters (not an example value).`);
+    }
+  };
+  required('METRICS_TOKEN', 16);
+  if (!text('ASAAS_WEBHOOK_TOKEN') && text('ASAAS_WEBHOOK_SECRET')) required('ASAAS_WEBHOOK_SECRET', 32);
+  else required('ASAAS_WEBHOOK_TOKEN', 32);
+  required('MERCADOPAGO_WEBHOOK_SECRET', 16);
   return problems;
 }
 
@@ -55,6 +63,9 @@ export function validateEnv(config: Record<string, unknown>) {
   for (const key of ['DATABASE_URL', 'JWT_SECRET']) {
     if (!config[key]) throw new Error(`Missing required environment variable: ${key}`);
   }
+
+  const flagProblems = featureFlagProblems(config);
+  if (flagProblems.length) throw new Error(`Invalid feature flags:\n - ${flagProblems.join('\n - ')}`);
 
   if (process.env.NODE_ENV === 'production') {
     const problems = productionEnvProblems(config);

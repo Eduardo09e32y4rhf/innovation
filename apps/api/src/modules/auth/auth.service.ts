@@ -21,6 +21,7 @@ import { RegisterCompanyDto } from './dto/register-company.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SessionService } from './session.service';
+import { SecurityStore } from './security-store';
 import { MfaService } from './mfa.service';
 import { MailService } from '../mail/mail.service';
 import { emailVerificationEmail, passwordResetEmail, securityAlertEmail } from '../mail/mail-templates';
@@ -33,12 +34,22 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { resetNoticeRoles } from '../notifications/notice-rules';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
 import { PricingService } from '../finance/pricing.service';
+import { computePrice } from '../finance/pricing';
+import { resolveTrialDays, trialDaysDefault } from '../finance/trial-lifecycle';
 import { checkCouponEligibility, couponDiscount } from '../coupons/coupon-rules';
 
 // SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
 const LOGIN_DENIED_MESSAGE = 'Não foi possível entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
 const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
+const RESET_DENIED_MESSAGE = 'Dados de validação incorretos';
+const RESET_MAX_ATTEMPTS = 5;
+// Hash falso com o mesmo custo (12) dos reais: quem não existe gasta o mesmo tempo de bcrypt de quem existe.
+let dummyHash: Promise<string> | null = null;
+const burnPasswordCheck = async (password: string) => {
+  dummyHash ??= bcrypt.hash('timing-equalizer', 12);
+  await bcrypt.compare(password, await dummyHash);
+};
 const MFA_LOGIN_PURPOSE = 'MFA_LOGIN';
 const EMAIL_VERIFY_PURPOSE = 'EMAIL_VERIFY';
 
@@ -49,6 +60,8 @@ export function lockDurationMs(failedAttempts: number): number {
   if (failedAttempts < 5) return 0;
   return Math.min(24 * 60, 15 * 2 ** (failedAttempts - 5)) * 60_000;
 }
+
+const trialDaysCount = (end: Date | null) => (end ? Math.max(1, Math.round((end.getTime() - Date.now()) / 86_400_000)) : 0);
 
 @Injectable()
 export class AuthService {
@@ -63,12 +76,19 @@ export class AuthService {
     private readonly sessions: SessionService,
     private readonly mfa: MfaService,
     private readonly mail: MailService,
+    private readonly store: SecurityStore,
   ) {}
 
   /** Valores em número: o Decimal do Prisma sai no JSON como objeto {s,e,d} e o site lia R$ 0,00. */
   async publicPlans() {
     const plans = await this.repository.listPublicPlans();
-    return plans.map((plan) => ({ ...plan, price: Number(plan.price), discountPercent: Number(plan.discountPercent), baseMonthlyPrice: Number(plan.baseMonthlyPrice), userMonthlyPrice: Number(plan.userMonthlyPrice) }));
+    return plans.map((plan) => {
+      // Preco de vitrine pela funcao unica de preco: a base cobre as unidades incluidas (minimo 1) por mes.
+      const units = Math.max(1, plan.includedUnits ?? 0);
+      let startingMonthly: number | null = null;
+      try { startingMonthly = plan.isFree ? 0 : computePrice({ plan: { ...plan, commitmentMonths: 1 }, units }).cycleTotalCents / 100; } catch { startingMonthly = null; }
+      return { ...plan, price: Number(plan.price), discountPercent: Number(plan.discountPercent), baseMonthlyPrice: Number(plan.baseMonthlyPrice), userMonthlyPrice: Number(plan.userMonthlyPrice), startingMonthlyPrice: startingMonthly, startingUnits: units };
+    });
   }
 
   async quotePublicPlan(dto: { planId: string; seatQuantity: number; couponCode?: string }) {
@@ -79,13 +99,14 @@ export class AuthService {
       userMonthlyPrice: plan.userMonthlyPrice ? Number(plan.userMonthlyPrice) : undefined,
       price: plan.price ? Number(plan.price) : undefined,
       includedUnits: plan.includedUnits ?? 0,
+      discountPercent: plan.discountPercent ? Number(plan.discountPercent) : undefined,
     };
-    if (!dto.couponCode) return { ...this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, pricing), trialDays: 0, couponApplied: false };
+    if (!dto.couponCode) return { ...this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, pricing), trialDays: plan.isFree ? 0 : trialDaysDefault(), couponApplied: false };
     const coupon = await this.repository.findCouponByCode(dto.couponCode);
     const check = checkCouponEligibility(coupon, { planId: plan.id, seats: dto.seatQuantity });
     if (!check.ok || !coupon) throw new BadRequestException({ code: check.ok ? 'COUPON_INVALID' : check.code, message: check.ok ? 'Cupom invalido, expirado ou indisponivel.' : check.message });
     const quote = this.pricingService.calculate(plan.commitmentMonths as 1 | 3 | 6 | 12, dto.seatQuantity, pricing, couponDiscount(coupon));
-    return { ...quote, trialDays: coupon.type === 'TRIAL_DAYS' ? coupon.trialDays : 0, couponApplied: true, couponType: coupon.type, couponDurationCycles: coupon.durationCycles };
+    return { ...quote, trialDays: plan.isFree ? 0 : resolveTrialDays(coupon.type === 'TRIAL_DAYS' ? coupon.trialDays : null), couponApplied: true, couponType: coupon.type, couponDurationCycles: coupon.durationCycles };
   }
   async registerCompany(dto: RegisterCompanyDto, requestMeta?: RequestMeta) {
     const email = dto.email.trim().toLowerCase();
@@ -140,27 +161,40 @@ export class AuthService {
 
     let trial = false;
     let trialEndsAt: Date | null = null;
+    let trialAlreadyUsed = false;
     try {
-      if (coupon && coupon.type !== 'TRIAL_DAYS') {
-        const documentHash = this.documentHash(document as string); // com cupom, o documento ja foi exigido acima
-        const redemption = await this.repository.redeemDiscountCoupon({ ...subscriptionData, couponId: coupon.id, documentHash, seatQuantity: dto.seatQuantity });
+      const isTrialCoupon = coupon?.type === 'TRIAL_DAYS';
+      const discountCoupon = coupon && !isTrialCoupon ? coupon : null;
+      const redeemDiscount = async () => {
+        const redemption = await this.repository.redeemDiscountCoupon({ ...subscriptionData, couponId: discountCoupon!.id, documentHash: this.documentHash(document as string), seatQuantity: dto.seatQuantity });
         if (!redemption.applied) {
           throw new ConflictException({ code: redemption.reason, message: redemption.reason === 'COUPON_ALREADY_USED' ? 'Este documento ja utilizou este cupom.' : 'Cupom indisponivel.' });
         }
-      } else if (coupon) {
-        const documentHash = this.documentHash(document as string);
-        const redemption = await this.repository.redeemTrialCoupon({
-          ...subscriptionData,
-          couponId: coupon.id,
-          documentHash,
-          trialDays: coupon.trialDays,
-        });
-        if (!redemption.applied) {
-          throw new ConflictException({ code: redemption.reason, message: redemption.reason === 'TRIAL_ALREADY_USED' ? 'Este documento ja utilizou um periodo de teste.' : 'Cupom indisponivel.' });
+      };
+      if (selectedPlan.isFree) {
+        // Plano gratis: ACTIVE, sem teste.
+        if (discountCoupon) await redeemDiscount();
+        else await this.repository.createSubscription(subscriptionData);
+      } else if (document) {
+        // Todo plano pago ganha teste (sem desconto). Cupom TRIAL_DAYS so vale se der MAIS dias que o padrao.
+        const documentHash = this.documentHash(document);
+        const days = resolveTrialDays(isTrialCoupon ? coupon!.trialDays : null);
+        const started = isTrialCoupon && days > trialDaysDefault()
+          ? await this.repository.redeemTrialCoupon({ ...subscriptionData, couponId: coupon!.id, documentHash, trialDays: days })
+          : await this.repository.startDefaultTrial({ ...subscriptionData, documentHash, trialDays: days, discountCouponId: discountCoupon?.id });
+        if (started.applied) {
+          trial = true;
+          trialEndsAt = started.trialEndsAt;
+        } else if (started.reason === 'TRIAL_ALREADY_USED' && !isTrialCoupon) {
+          // Documento ja usou o teste: segue como antes (pagar na hora), com aviso claro.
+          trialAlreadyUsed = true;
+          if (discountCoupon) await redeemDiscount();
+          else await this.repository.createSubscription(subscriptionData);
+        } else {
+          throw new ConflictException({ code: started.reason, message: started.reason === 'TRIAL_ALREADY_USED' ? 'Este documento ja utilizou um periodo de teste.' : started.reason === 'COUPON_ALREADY_USED' ? 'Este documento ja utilizou este cupom.' : 'Cupom indisponivel.' });
         }
-        trial = true;
-        trialEndsAt = redemption.trialEndsAt;
       } else {
+        // Sem documento (somente ambiente de robo) nao ha como travar o teste: cobra na hora.
         await this.repository.createSubscription(subscriptionData);
       }
     } catch (error) {
@@ -176,7 +210,7 @@ export class AuthService {
 
     let checkout: { active: boolean; paymentUrl: string | null | undefined } = { active: Boolean(selectedPlan?.isFree), paymentUrl: null };
     let billingSetupPending = false;
-    if (!selectedPlan.isFree) {
+    if (!selectedPlan.isFree && !trial) {
       try {
         checkout = await this.platformFinance.ensureCompanyOnboardingBilling(company.id);
       } catch (error) {
@@ -202,6 +236,8 @@ export class AuthService {
       billingSetupPending,
       trial,
       trialEndsAt,
+      trialAlreadyUsed,
+      trialMessage: trial ? `Seu teste gratis de ${trialDaysCount(trialEndsAt)} dias comecou. Nao pedimos cartao agora; depois do teste cobramos o preco cheio do plano.` : trialAlreadyUsed ? 'Este CPF/CNPJ ja usou o teste gratis. Para ativar o plano, conclua o pagamento.' : null,
     };
   }
 
@@ -212,6 +248,7 @@ export class AuthService {
   private async loginInner(dto: LoginDto, requestMeta?: RequestMeta) {
     const user = await this.repository.findUserByEmail(dto.email);
     if (!user || !user.isActive) {
+      await burnPasswordCheck(dto.password);
       await this.auditInvalidLogin(dto.email, requestMeta);
       throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     }
@@ -220,6 +257,7 @@ export class AuthService {
 
     const role = this.resolveRole(user);
     if (!this.canAccessCompany(user.company, role)) {
+      await burnPasswordCheck(dto.password);
       await this.auditInvalidLogin(dto.email, requestMeta, user.companyId, user.id);
       throw new UnauthorizedException(LOGIN_DENIED_MESSAGE);
     }
@@ -399,7 +437,13 @@ export class AuthService {
   }
 
 
-  async requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
+  /** Resposta e tempo idênticos para e-mail existente ou não: o trabalho real roda em segundo plano (sem enumeração de contas). */
+  requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
+    void this.processPasswordResetRequest(dto, requestMeta).catch((err) => this.logger.error(`Falha ao processar pedido de recuperacao: ${String(err)}`));
+    return { requested: true };
+  }
+
+  private async processPasswordResetRequest(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
     const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
     if (!user || !user.isActive) return { requested: true };
     const role = this.resolveRole(user);
@@ -453,33 +497,37 @@ export class AuthService {
     return { requested: true };
   }
 
+  /** Cada falha conta; ao atingir o limite o código é invalidado (um código de 6 caracteres não pode ser forçado dentro das 2 h de validade). */
+  private async failResetValidation(userId: string, email: string): Promise<never> {
+    const key = `reset-attempts:${email}`;
+    if ((await this.store.hit(key, 2 * 60 * 60)) >= RESET_MAX_ATTEMPTS) {
+      await this.repository.clearResetCode(userId);
+      await this.store.reset(key);
+    }
+    throw new UnauthorizedException(RESET_DENIED_MESSAGE);
+  }
+
   async validateResetCode(dto: ValidateResetCodeDto) {
+    const email = dto.email.trim().toLowerCase();
     const user = await this.repository.findUserWithEmployeeByEmail(dto.email);
-    if (!user || !user.isActive) throw new UnauthorizedException('Dados de validação incorretos');
-    
+    // Mesma mensagem em todas as falhas: não revela se a conta existe, se o código errou ou se expirou.
+    if (!user || !user.isActive) throw new UnauthorizedException(RESET_DENIED_MESSAGE);
+
     const storedCode = Buffer.from(user.resetPasswordCode ?? '');
     const providedCode = Buffer.from(dto.code.trim().toUpperCase());
     const codesMatch = storedCode.length === providedCode.length && timingSafeEqual(storedCode, providedCode);
 
-    if (!user.resetPasswordCode || !codesMatch) {
-      throw new UnauthorizedException('Código inválido ou expirado');
-    }
-    if (user.resetPasswordExpires && new Date() > user.resetPasswordExpires) {
-      throw new UnauthorizedException('Código expirado');
-    }
+    if (!user.resetPasswordCode || !codesMatch) return this.failResetValidation(user.id, email);
+    if (user.resetPasswordExpires && new Date() > user.resetPasswordExpires) return this.failResetValidation(user.id, email);
 
     // Usuários sem ficha de funcionário (ADMIN, CEO, contabilidade...) são validados apenas pelo código entregue pela empresa.
     const employee = user.employee;
     if (employee) {
       const rawCpf = employee.cpf ? employee.cpf.replace(/\D/g, '') : '';
       const cpfStart = (dto.cpfStart ?? '').trim();
-      if (rawCpf && (!cpfStart || !rawCpf.startsWith(cpfStart))) {
-        throw new UnauthorizedException('Dados de validação incorretos');
-      }
+      if (rawCpf && (!cpfStart || !rawCpf.startsWith(cpfStart))) return this.failResetValidation(user.id, email);
       const empReg = (employee.registration || '').trim().toLowerCase();
-      if (empReg && empReg !== (dto.registration ?? '').trim().toLowerCase()) {
-        throw new UnauthorizedException('Dados de validação incorretos');
-      }
+      if (empReg && empReg !== (dto.registration ?? '').trim().toLowerCase()) return this.failResetValidation(user.id, email);
     }
 
     const token = await this.jwtService.signAsync({

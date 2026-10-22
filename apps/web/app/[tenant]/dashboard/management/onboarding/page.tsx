@@ -13,13 +13,14 @@ import { PageHeader } from '@/app/components/ui/page-header';
 import { LoadingState, ErrorState, EmptyState } from '@/app/components/data-states';
 import { Modal, Drawer, ConfirmDialog } from '../../escalas/_components/operational-dialog';
 import { onboardingApi, type OnboardingFlow, type OnboardingTask } from './onboarding-api';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 const STATUS: Record<string, string> = { PENDING: 'Pendente', IN_PROGRESS: 'Em andamento', COMPLETED: 'Concluído', CANCELLED: 'Cancelado' };
 
 export default function OnboardingPage() {
   const { user, loading: authLoading } = useAuth();
   const { tenant } = useParams() as { tenant: string };
-  const canManage = ['DEV', 'ADMIN', 'RH'].includes(String(user?.profile ?? user?.role ?? '').toUpperCase());
+  const canManage = roleIn(ROLE_ACCESS.onboardingManage, user?.profile ?? user?.role);
   const [creating, setCreating] = useState(false);
   const [employeeId, setEmployeeId] = useState('');
   const [status, setStatus] = useState('');

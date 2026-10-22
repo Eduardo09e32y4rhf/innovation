@@ -1,3 +1,4 @@
+import { inspectFile } from '../../common/utils/file-validation';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
@@ -297,8 +298,9 @@ export class EmployeesImportService {
 
     if (!file.buffer.length || file.buffer.length > MAX_BYTES) throw new BadRequestException('O arquivo deve ter no máximo 2 MB.');
 
-    // Validar assinatura do arquivo
-    if (isXLSX && (file.buffer[0] !== 0x50 || file.buffer[1] !== 0x4b)) throw new BadRequestException('Assinatura do arquivo XLSX inválida.');
+    // Conteúdo real (XLSX é ZIP que o ExcelJS descompacta no servidor: bloqueia zip-bomb, caminhos '..' e executável renomeado).
+    const checked = inspectFile(file.buffer, { allow: isXLSX ? ['xlsx'] : ['text'], maxBytes: MAX_BYTES, filename: file.filename });
+    if (!checked.ok) throw new BadRequestException(isXLSX ? `Arquivo XLSX inválido: ${checked.message}` : `Arquivo CSV inválido: ${checked.message}`);
   }
 
   private parseCSV(buffer: Buffer): string[][] {

@@ -16,7 +16,7 @@ async function fillIdentity(page: Page) {
 test('landing oferece entrada e cadastro sem promessa jurídica absoluta', async ({ page }) => {
   await plans(page);
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Ponto, escalas e folha.*sem planilhas/i })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: /A hora de .*chegou/i })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Criar minha empresa' }).first()).toHaveAttribute('href', '/cadastro');
   await expect(page.getByText('100% em conformidade')).toHaveCount(0);
   await expect(page.getByText('validade jurídica garantida')).toHaveCount(0);

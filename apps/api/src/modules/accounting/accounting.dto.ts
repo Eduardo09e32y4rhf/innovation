@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import {
-  ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, ValidateNested,
+  ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, ValidateNested,
 } from 'class-validator';
 
 export const RULE_TYPES = ['INSS', 'IRRF', 'FGTS', 'PAYROLL_PARAMS'] as const;
@@ -42,6 +42,10 @@ export class MonthQueryDto {
   @IsOptional() @IsUUID() companyId?: string;
 }
 
+export class TimeSheetQueryDto {
+  @IsOptional() @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, { message: 'Mes invalido. Use AAAA-MM.' }) month?: string;
+}
+
 export class CorrectPayrollDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(10_000_000) baseSalary?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(10_000_000) overtimeAmount?: number;
@@ -65,4 +69,10 @@ export class RecalculateClosingsDto {
 export class WorkflowDto {
   @IsIn(['REVIEW', 'APPROVE', 'RETURN']) action!: 'REVIEW' | 'APPROVE' | 'RETURN';
   @IsOptional() @IsString() @MaxLength(500) reason?: string;
+}
+
+/** Cálculo da competência: por padrão preserva os ajustes manuais; `discardManual` descarta tudo e recalcula do zero. */
+export class CalculatePeriodDto {
+  @IsOptional() @IsBoolean()
+  discardManual?: boolean;
 }

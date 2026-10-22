@@ -24,7 +24,7 @@ function build(over: any = {}) {
   };
   const files: Record<string, Buffer> = { 'doc-orig': original, 'doc-s1': signedOnce };
   const documents: any = {
-    readBuffer: vi.fn(async (id: string) => files[id]),
+    readBuffer: vi.fn(async (_companyId: string, id: string) => files[id]),
     storeExternalPdf: vi.fn(async () => ({ id: 'doc-new', storageKey: 'k', sha256: 'abc' })),
   };
   return { svc: new CeoOnboardingService(prisma, documents), prisma, tx, documents, contract };
@@ -55,7 +55,7 @@ describe('assinatura do contrato do CEO pelo gov.br', () => {
     const { svc, documents } = build({ signedPdfDocumentId: 'doc-s1', signatureCount: 1 });
     const out = await svc.uploadSigned(dev, 'k1', signedTwice);
     expect(out).toMatchObject({ signatureCount: 2, awaitingOtherParty: false });
-    expect(documents.readBuffer).toHaveBeenCalledWith('doc-s1');
+    expect(documents.readBuffer).toHaveBeenCalledWith(expect.any(String), 'doc-s1');
   });
 
   it('CEO de outro contrato recebe 404; fora da etapa CONTRACT_PENDING e bloqueado', async () => {

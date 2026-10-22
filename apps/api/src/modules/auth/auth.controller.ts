@@ -25,7 +25,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AdminResetEmployeePasswordDto } from './dto/admin-reset-employee-password.dto';
 import { PublicPlanQuoteDto } from './dto/public-plan-quote.dto';
-import { MfaCodeDto, MfaVerifyDto, VerifyEmailDto } from './dto/mfa.dto';
+import { MfaCodeDto, MfaDisableDto, MfaVerifyDto, VerifyEmailDto } from './dto/mfa.dto';
 import { MfaService } from './mfa.service';
 import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 
@@ -34,11 +34,13 @@ import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 export class AuthController {
   constructor(private readonly service: AuthService, private readonly mfa: MfaService) {}
 
+  @Throttle({ default: { limit: 60, ttl: 60000 } })
   @Get('public-plans')
   publicPlans() {
     return this.service.publicPlans();
   }
 
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Post('public-plans/quote')
   quotePublicPlan(@Body() dto: PublicPlanQuoteDto) {
     return this.service.quotePublicPlan(dto);
@@ -134,9 +136,10 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 600000 } })
   @Post('mfa/disable')
-  async mfaDisable(@CurrentUser() user: JwtUser) {
-    await this.mfa.disable(user.sub);
+  async mfaDisable(@CurrentUser() user: JwtUser, @Body() dto: MfaDisableDto) {
+    await this.mfa.disable(user.sub, dto);
     return { disabled: true };
   }
 
@@ -202,20 +205,10 @@ export class AuthController {
   }
 }
 
+/** O IP vem de request.ip (Fastify resolve conforme TRUST_PROXY); cabeçalhos enviados pelo cliente podem ser forjados. */
 function getRequestMeta(request: any) {
-  const forwardedFor = request.headers['x-forwarded-for'];
-  const cfIp = request.headers['cf-connecting-ip'];
-  const realIp = request.headers['x-real-ip'];
-
-  let ipAddress = cfIp || realIp;
-  if (!ipAddress) {
-    ipAddress = Array.isArray(forwardedFor)
-      ? forwardedFor[0]
-      : forwardedFor?.split(',')[0]?.trim() || request.ip;
-  }
-
   return {
-    ipAddress: ipAddress || 'unknown',
+    ipAddress: request.ip || 'unknown',
     userAgent: request.headers['user-agent'] || 'unknown',
   };
 }

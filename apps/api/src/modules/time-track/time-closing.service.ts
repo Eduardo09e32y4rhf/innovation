@@ -1,4 +1,5 @@
 import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
+import { countDependents } from '../../common/utils/dependents';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { TimeClosingStatus } from '@prisma/client';
@@ -10,8 +11,9 @@ import { getOvertimePolicy, overtimePaymentRatio } from './overtime-policy';
 import { PDF, PdfReport } from '../../common/pdf/pdf-report';
 import { computeDeductions } from '../payroll/deduction-rules';
 import { appendMirror, buildPayslipPdf, buildTimeSheetPdf, timeSheetBrand } from './time-sheet-pdf';
-import { saoPauloDayOfWeek, toSaoPauloDateKey } from '../../common/utils/date.utils';
+import { toSaoPauloDateKey } from '../../common/utils/date.utils';
 import { analyzeTimesheet, salaryDeadline, type ComplianceIssue } from './closing-compliance';
+import { vacationEnjoymentDates, vacationTaxableGross } from '../vacations/vacation-tax-base';
 
 interface GenerateClosingDto {
   employeeIds?: string[];
@@ -113,7 +115,7 @@ export class TimeClosingService {
     const blockingByEmployee: Array<{ employeeId: string; name: string; issues: ComplianceIssue[] }> = [];
 
     const employeeIds = employees.map(e => e.id);
-    const [allTracks, allOccurrences, allSchedules, allDayOffs] = await Promise.all([
+    const [allTracks, allOccurrences, allSchedules, allDayOffs, allVacations] = await Promise.all([
       this.prisma.timeTrack.findMany({
         where: { companyId, employeeId: { in: employeeIds }, date: { gte: periodStart, lte: periodEnd } },
         orderBy: { date: 'asc' },
@@ -135,6 +137,18 @@ export class TimeClosingService {
       this.prisma.scheduleException.findMany({
         where: { companyId, employeeId: { in: employeeIds }, date: { gte: periodStart, lte: periodEnd }, exceptionType: { in: ['FOLGA', 'FERIADO_LOCAL', 'ATESTADO'] } },
         select: { employeeId: true, date: true },
+      }),
+      // Férias pagas (mesma condição do recibo) que tocam a competência: os dias de gozo saem do salário do mês e,
+      // se iniciam nela, o INSS do recibo entra na base unificada.
+      this.prisma.vacation.findMany({
+        where: {
+          employeeId: { in: employeeIds },
+          status: { in: ['APPROVED', 'COMPLETED'] },
+          startDate: { lte: periodEnd },
+          endDate: { gte: periodStart },
+          payments: { some: { status: 'PAID' } },
+        },
+        select: { employeeId: true, daysUsed: true, startDate: true },
       }),
     ]);
     const dayOffKeys = new Map<string, Set<string>>();
@@ -170,6 +184,14 @@ export class TimeClosingService {
         .filter((item) => this.isJustifyingOccurrence(item.type))
         .map((item) => this.dateKey(item.date)));
       for (const key of dayOffKeys.get(employee.id) ?? []) justifiedDates.add(key);
+      const employeeVacations = allVacations.filter((item) => item.employeeId === employee.id);
+      const vacationKeys = new Set<string>();
+      for (const vacation of employeeVacations) for (const day of vacationEnjoymentDates(vacation)) vacationKeys.add(this.dateKey(day));
+      for (const key of vacationKeys) justifiedDates.add(key);
+      let vacationDaysInPeriod = 0;
+      let nonEmployedDaysInPeriod = 0;
+      const admissionKey = this.dateKey(new Date(employee.admissionDate));
+      const terminationKey = employee.terminationDate ? this.dateKey(new Date(employee.terminationDate)) : null;
       let payableWorkdays = 0;
       let paidRestDays = 0;
       let missingAbsenceMinutes = 0;
@@ -178,17 +200,25 @@ export class TimeClosingService {
       let scheduledMinutesInPeriod = 0;
 
       const today = new Date();
-      const todayKey = this.dateKey(today);
+      const todayKey = toSaoPauloDateKey(today); // instante real, este sim lido pelo fuso de Sao Paulo
 
       for (const date of this.eachDate(periodStart, periodEnd)) {
         const key = this.dateKey(date);
         const schedule = schedules.find((item) => item.startDate <= date && (!item.endDate || item.endDate >= date));
         const restDays = schedule?.schedule.restDays ?? employee.workScheduleRule?.restDaysOfWeek ?? [0, 6];
-        const dayOfWeek = saoPauloDayOfWeek(date);
+        const dayOfWeek = date.getUTCDay();
         const isRest = restDays.includes(dayOfWeek) || holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule);
         
         let expectedForDay = this.expectedMinutes(employee, schedule?.schedule);
-        if (holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule)) {
+        const outsideContract = key < admissionKey || (terminationKey !== null && key > terminationKey);
+        if (outsideContract) {
+          nonEmployedDaysInPeriod++;
+          expectedForDay = 0;
+          justifiedDates.add(key);
+        } else if (vacationKeys.has(key)) {
+          vacationDaysInPeriod++;
+          expectedForDay = 0;
+        } else if (holidayKeys.has(key) || this.isOffCycle12x36(date, schedule?.schedule)) {
           expectedForDay = 0;
         } else if (restDays.includes(dayOfWeek)) {
           expectedForDay = 0;
@@ -253,7 +283,7 @@ export class TimeClosingService {
       const totalDaysInPeriod = Math.round((periodEnd.getTime() - periodStart.getTime()) / 86400000) + 1;
       const isPartialMonth = totalDaysInPeriod < 28 || totalDaysInPeriod > 31;
 
-      const dependents = Array.isArray(employee.dependents) ? employee.dependents.length : 0;
+      const dependents = countDependents(employee.dependents);
       const financial = this.payroll.calculate({
         salary: Number(employee.salary),
         weeklyMinutes,
@@ -273,6 +303,11 @@ export class TimeClosingService {
         overtime100Factor: Number(overtimeRule.sundayHolidayRate),
         nightShiftPercent: (Number(overtimeRule.nightShiftRate) - 1) * 100,
         dsrEnabled: overtimeRule.dsrEnabled,
+        vacationDaysInPeriod,
+        contractDaysInPeriod: nonEmployedDaysInPeriod === 0 ? 30 : Math.min(30, totalDaysInPeriod - nonEmployedDaysInPeriod),
+        vacationTaxableGrosses: employeeVacations
+          .filter((item) => item.startDate >= periodStart && item.startDate <= periodEnd)
+          .map((item) => vacationTaxableGross(Number(employee.salary), item.daysUsed)),
         taxContext,
       });
 
@@ -348,7 +383,7 @@ export class TimeClosingService {
       const absences: string[] = [];
       for (const date of this.eachDate(periodStart, periodEnd)) {
         const key = this.dateKey(date);
-        const weekday = saoPauloDayOfWeek(date);
+        const weekday = date.getUTCDay();
         if (date > today || weekday === 0 || weekday === 6 || holidayKeys.has(key) || byDate.has(key) || justified.has(key)) continue;
         absences.push(key);
       }
@@ -445,7 +480,7 @@ export class TimeClosingService {
         earlyLeaveMinutes: Number(updated.earlyLeaveMinutes),
         payableWorkdays: Number(updated.payableWorkdays),
         paidRestDays: Number(updated.paidRestDays),
-        dependents: Array.isArray(updated.employee.dependents) ? updated.employee.dependents.length : 0,
+        dependents: countDependents(updated.employee.dependents),
         taxContext,
       });
       const rules = await tx.payrollDeductionRule.findMany({ where: { companyId, isActive: true } });
@@ -485,11 +520,17 @@ export class TimeClosingService {
   async reopen(companyId: string, actor: JwtUser, id: string, reason: string) {
     if (!reason?.trim()) throw new BadRequestException('Informe o motivo da reabertura.');
     const closing = await this.prisma.timeClosing.findFirst({ where: { id, companyId } });
-    if (!closing || closing.status !== TimeClosingStatus.CLOSED) throw new BadRequestException('Somente fechamento concluido pode ser reaberto.');
-    return this.prisma.timeClosing.update({
+    if (!closing || (closing.status !== TimeClosingStatus.CLOSED && closing.status !== TimeClosingStatus.APPROVED)) {
+      throw new BadRequestException('Somente fechamento aprovado ou concluido pode ser reaberto.');
+    }
+    const reopened = await this.prisma.timeClosing.update({
       where: { id },
       data: { status: TimeClosingStatus.DRAFT, reopenedAt: new Date(), reopenedBy: actor.sub, reopenReason: reason.trim(), closedAt: null, closedBy: null },
     });
+    await this.prisma.auditLog
+      .create({ data: { companyId, userId: actor.sub, action: 'TIME_CLOSING_REOPENED', entity: 'TimeClosing', entityId: id, metadata: { from: closing.status, reason: reason.trim(), employeeId: closing.employeeId, periodStart: closing.periodStart, periodEnd: closing.periodEnd } } })
+      .catch(() => undefined);
+    return reopened;
   }
 
   async delete(companyId: string, id: string) {
@@ -624,10 +665,26 @@ export class TimeClosingService {
   private async ownPublishedClosings(companyId: string, actor: JwtUser, id?: string) {
     const employee = await this.prisma.employee.findFirst({ where: { companyId, userId: actor.sub }, select: { id: true } });
     if (!employee) return [];
-    return this.prisma.timeClosing.findMany({
+    const closings = await this.prisma.timeClosing.findMany({
       where: { companyId, employeeId: employee.id, status: { in: [TimeClosingStatus.APPROVED, TimeClosingStatus.CLOSED] }, ...(id ? { id } : {}) },
       include: { employee: true, company: true },
       orderBy: { periodStart: 'desc' },
+    });
+    return this.onlyReleasedByAccounting(companyId, closings);
+  }
+
+  /**
+   * Empresa com fluxo do contador (AccountingPeriod) para o mês: o holerite só aparece depois que o RH libera (RELEASED/PAID).
+   * Empresa sem contador (sem AccountingPeriod no mês) continua como antes.
+   */
+  private async onlyReleasedByAccounting<T extends { periodEnd: Date }>(companyId: string, closings: T[]): Promise<T[]> {
+    if (!closings.length) return closings;
+    const monthOf = (date: Date) => date.toISOString().slice(0, 7);
+    const periods = await this.prisma.accountingPeriod.findMany({ where: { companyId, month: { in: [...new Set(closings.map((row) => monthOf(row.periodEnd)))] } }, select: { month: true, status: true } });
+    const status = new Map(periods.map((row) => [row.month, row.status as string]));
+    return closings.filter((row) => {
+      const current = status.get(monthOf(row.periodEnd));
+      return current === undefined || current === 'RELEASED' || current === 'PAID';
     });
   }
 
@@ -829,7 +886,8 @@ export class TimeClosingService {
   }
 
   private hours(minutes: number): number { return Math.round((minutes / 60) * 10000) / 10000; }
-  private dateKey(date: Date): string { return toSaoPauloDateKey(date); }
+  /** Chave do dia de calendario (as datas do periodo, marcacao, feriado e admissao sao gravadas em 00:00 UTC; ler pelo fuso recuaria um dia). */
+  private dateKey(date: Date): string { return date.toISOString().slice(0, 10); }
   private isJustifyingOccurrence(type: string): boolean {
     return ['JUSTIFIED_ABSENCE', 'MEDICAL_CERTIFICATE', 'VACATION', 'LEAVE', 'DAY_OFF', 'DSR', 'HOLIDAY', 'EXTERNAL_WORK', 'HOME_OFFICE', 'TRAINING'].includes(String(type));
   }

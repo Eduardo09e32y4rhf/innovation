@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { PdfReport, fmt } from '../../common/pdf/pdf-report';
 import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
 import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
@@ -8,6 +9,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasRejectedException, AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
+import { planPricingForSubscription } from './pricing';
 import { MercadoPagoService } from './mercadopago.service';
 import { couponDiscount } from '../coupons/coupon-rules';
 import { PaymentProviderService } from './payment-provider.service';
@@ -231,6 +233,46 @@ export class PlatformFinanceService {
     return { paymentUrl: payment.invoiceUrl, invoice };
   }
 
+  /**
+   * Gera o link de pagamento (Asaas ou Mercado Pago) de uma fatura local criada no fim do teste.
+   * Sem provedor configurado ou sem dados de cobrança a fatura continua local (o financeiro acompanha).
+   * Só tenta uma vez: depois de PROCESSING, uma falha vira UNKNOWN para conciliação (evita cobrança em dobro).
+   */
+  async attachFirstInvoiceLink(invoiceId: string) {
+    const invoice = await this.prisma.platformInvoice.findUnique({
+      where: { id: invoiceId },
+      include: { company: { include: { subscription: true, users: { where: { role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, take: 1 } } } },
+    });
+    if (!invoice || invoice.paymentProcessingStatus !== 'LOCAL' || invoice.asaasPaymentId || invoice.mpPreferenceId) return invoice;
+    const company = invoice.company;
+    const admin = company.users[0];
+    const amount = Number(invoice.amount);
+    const provider = await this.providers.active();
+    const claimed = await this.prisma.platformInvoice.updateMany({ where: { id: invoice.id, paymentProcessingStatus: 'LOCAL' }, data: { paymentProcessingStatus: 'PROCESSING' } });
+    if (claimed.count === 0) return invoice;
+    const release = () => this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { paymentProcessingStatus: 'LOCAL' } });
+    try {
+      if (provider === 'MERCADOPAGO') {
+        if (!this.mercadoPago.isConfigured()) return await release();
+        const preference = await this.mercadoPago.createCheckoutPreference({ title: invoice.description ?? 'Mensalidade', amount, externalReference: `inv:${invoice.id}`, payerEmail: admin?.email });
+        const url = this.mercadoPago.mode() === 'sandbox' ? preference.sandbox_init_point ?? preference.init_point : preference.init_point;
+        if (!preference.id || !url) throw new Error('Resposta incompleta do provedor.');
+        return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { provider: 'MERCADOPAGO', invoiceUrl: url, mpPreferenceId: preference.id, paymentProcessingStatus: 'LINK_READY' } });
+      }
+      if (!this.asaas.isConfigured() || !company.document || !admin) return await release();
+      const customerId = await this.ensureAsaasCustomer(company, admin);
+      const payment = await this.asaas.createCharge(customerId, {
+        value: amount, dueDate: invoice.dueDate.toISOString().slice(0, 10), description: invoice.description ?? 'Mensalidade',
+        billingType: 'UNDEFINED', externalReference: `first:${invoice.chargeRequestKey ?? invoice.id}`, successPath: '/pagamento/retorno',
+      });
+      if (!payment.id || !payment.invoiceUrl) throw new Error('O Asaas não retornou o link da cobrança.');
+      return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { provider: 'ASAAS', asaasPaymentId: payment.id, invoiceUrl: payment.invoiceUrl, paymentProcessingStatus: 'LINK_READY' } });
+    } catch (error) {
+      await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { paymentProcessingStatus: 'UNKNOWN' } }).catch(() => undefined);
+      throw error;
+    }
+  }
+
   async createRecurringSubscription(company: any, customerId: string, amount: number, requestedNextDueDate?: Date | null) {
     const existingSubscriptionId = company.subscription?.asaasSubscriptionId || company.asaasSubscriptionId;
     if (existingSubscriptionId) return existingSubscriptionId;
@@ -346,12 +388,7 @@ export class PlatformFinanceService {
       const pricing = plan ? this.pricingService.calculate(
         (plan.commitmentMonths as any) || 1,
         company.subscription?.seatQuantity || 1,
-        {
-          baseMonthlyPrice: plan.baseMonthlyPrice,
-          userMonthlyPrice: plan.userMonthlyPrice,
-          price: plan.price,
-          includedUnits: plan.includedUnits,
-        },
+        planPricingForSubscription(plan, company.subscription),
         this.subscriptionCoupon(company.subscription),
       ) : null;
       const amount = pricing?.total ?? Number(plan?.price ?? 0);
@@ -374,12 +411,7 @@ export class PlatformFinanceService {
       const pricing = this.pricingService.calculate(
         (plan.commitmentMonths as any) || 1,
         company.subscription?.seatQuantity || 1,
-        {
-          baseMonthlyPrice: plan.baseMonthlyPrice,
-          userMonthlyPrice: plan.userMonthlyPrice,
-          price: plan.price,
-          includedUnits: plan.includedUnits,
-        },
+        planPricingForSubscription(plan, company.subscription),
         this.subscriptionCoupon(company.subscription),
       );
       amount = pricing.total;
@@ -472,12 +504,7 @@ export class PlatformFinanceService {
       : this.pricingService.calculate(
           (plan.commitmentMonths as any) || 1,
           company.subscription?.seatQuantity || 1,
-          {
-            baseMonthlyPrice: plan.baseMonthlyPrice,
-            userMonthlyPrice: plan.userMonthlyPrice,
-            price: plan.price,
-            includedUnits: plan.includedUnits,
-          },
+          planPricingForSubscription(plan, company.subscription),
           this.subscriptionCoupon(company.subscription),
         );
     const amount = quote?.total ?? Number(plan.price);
@@ -727,7 +754,7 @@ export class PlatformFinanceService {
     const quote = this.pricingService.calculate(
       (company.platformPlan.commitmentMonths as any) || 1,
       subscription.seatQuantity,
-      { baseMonthlyPrice: company.platformPlan.baseMonthlyPrice, userMonthlyPrice: company.platformPlan.userMonthlyPrice, price: company.platformPlan.price, includedUnits: company.platformPlan.includedUnits },
+      planPricingForSubscription(company.platformPlan, company.subscription),
       this.subscriptionCoupon(subscription),
     );
     const subscriptionId = await this.createRecurringSubscription({ ...company, subscription: { ...subscription, asaasSubscriptionId: null } }, customerId, quote.total);
@@ -764,7 +791,7 @@ export class PlatformFinanceService {
 
     const commitmentMonths = subscription.plan.commitmentMonths as 1 | 3 | 6 | 12;
     const plan = subscription.plan;
-    const quote = this.pricingService.calculate(commitmentMonths, nextSeatQuantity, { baseMonthlyPrice: plan.baseMonthlyPrice, userMonthlyPrice: plan.userMonthlyPrice, price: plan.price, includedUnits: plan.includedUnits }, this.subscriptionCoupon(subscription));
+    const quote = this.pricingService.calculate(commitmentMonths, nextSeatQuantity, planPricingForSubscription(plan, subscription), this.subscriptionCoupon(subscription));
 
     if (nextSeatQuantity < subscription.seatQuantity) {
       const updated = await this.prisma.companySubscription.update({
@@ -1326,7 +1353,7 @@ export class PlatformFinanceService {
     };
   }
 
-  async create(dto: CreatePlatformInvoiceDto) {
+  async create(dto: CreatePlatformInvoiceDto, meta?: { replayed: boolean }) {
     const company = await this.prisma.company.findUnique({
       where: { id: dto.companyId },
       select: {
@@ -1339,11 +1366,12 @@ export class PlatformFinanceService {
     if (Number.isNaN(new Date(dto.dueDate).getTime())) throw new BadRequestException('Informe um vencimento válido.');
 
     const include = { company: { select: { id: true, name: true } }, plan: { select: { id: true, name: true } } } as const;
-    const key = dto.idempotencyKey ? `${dto.companyId}:${dto.idempotencyKey}` : undefined;
+    const key = chargeKey(dto);
     if (key) {
       const previous = await this.prisma.platformInvoice.findUnique({ where: { chargeRequestKey: key }, include });
       if (previous) {
         if (Number(previous.amount) !== dto.amount || previous.description !== dto.description || previous.dueDate.toISOString().slice(0, 10) !== dto.dueDate.slice(0, 10) || previous.billingType !== dto.billingType || (previous.paymentProcessingStatus === 'LOCAL') !== !dto.sendToAsaas) throw new BadRequestException('Chave de cobrança já usada com outros dados.');
+        if (meta) meta.replayed = true;
         return previous;
       }
     }
@@ -1360,6 +1388,7 @@ export class PlatformFinanceService {
       throw error;
     });
     const { invoice } = reserved;
+    if (!reserved.created && meta) meta.replayed = true;
     if (!reserved.created || !dto.sendToAsaas) return invoice;
     try {
       let customerId = company.asaasCustomerId;
@@ -1401,7 +1430,7 @@ export class PlatformFinanceService {
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
     return this.createMercadoPagoInvoice({
       companyId: dto.companyId, planId: dto.planId, description: dto.description, amount: Number(dto.amount),
-      dueDate: new Date(dto.dueDate), payerEmail: company.users[0]?.email, chargeRequestKey: dto.idempotencyKey ? `${dto.companyId}:${dto.idempotencyKey}` : undefined,
+      dueDate: new Date(dto.dueDate), payerEmail: company.users[0]?.email, chargeRequestKey: chargeKey(dto),
     });
   }
   /**
@@ -1606,4 +1635,15 @@ export class PlatformFinanceService {
   private isPaid(status?: string) {
     return !!status && ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(status);
   }
+}
+
+/**
+ * Chave anti-duplicidade da cobrança. Sem chave do cliente, deriva uma dos dados + janela de 5 min:
+ * duplo clique ou retry idêntico devolve a mesma fatura em vez de gerar outra cobrança no gateway.
+ */
+function chargeKey(dto: CreatePlatformInvoiceDto): string {
+  if (dto.idempotencyKey) return `${dto.companyId}:${dto.idempotencyKey}`;
+  const bucket = Math.floor(Date.now() / 300_000);
+  const digest = createHash('sha256').update([dto.companyId, Number(dto.amount).toFixed(2), String(dto.dueDate).slice(0, 10), dto.description ?? '', dto.billingType ?? '', dto.sendToAsaas ? 1 : 0, bucket].join('|')).digest('hex').slice(0, 32);
+  return `${dto.companyId}:auto:${digest}`;
 }

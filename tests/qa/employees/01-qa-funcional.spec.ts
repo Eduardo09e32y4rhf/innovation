@@ -6,6 +6,9 @@ import { EmployeesController } from '../../../apps/api/src/modules/employees/emp
 import { RolesGuard } from '../../../apps/api/src/common/guards/roles.guard';
 import { actor, check, COMPANY_A, employee, makeService, ROLES } from './helpers';
 
+// Senha provisoria: 6 caracteres sem ambiguos (0/O, 1/l/I), com maiuscula, minuscula e numero; expira e exige troca por 10+ (commit 7e53b34c).
+export const TEMP_PASSWORD = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-HJ-NP-Za-km-z2-9]{6}$/;
+
 // ───────────────────────── QA SÊNIOR: uso funcional completo, inclusive o uso errado ─────────────────────────
 
 describe('QA · listagem por perfil', () => {
@@ -123,8 +126,7 @@ describe('QA · criar funcionário', () => {
     await service.create(COMPANY_A, { name: 'X', email: 'novo@x.com', accessEnabled: 'YES', accessProfile: 'GESTOR' } as never);
     const created = repository.createUser.mock.calls[0][0];
     expect(created).toMatchObject({ companyId: COMPANY_A, role: 'GESTOR', forcePasswordChange: true });
-    expect(created.temporaryPassword.value).toMatch(/^Aa1!/);
-    expect(created.temporaryPassword.value.length).toBeGreaterThanOrEqual(20);
+    expect(created.temporaryPassword.value).toMatch(TEMP_PASSWORD);
     expect(created.passwordHash).not.toContain(created.temporaryPassword.value);
   });
 
@@ -160,9 +162,8 @@ describe('QA · consultar, desligar, excluir', () => {
     const target = employee({ id: 'e9', userId: 'u9', status: 'ACTIVE' });
     const { service, repository, aso } = makeService({ findById: vi.fn().mockResolvedValue(target) } as never);
     await service.terminate(COMPANY_A, actor('RH'), 'e9');
-    expect(repository.update).toHaveBeenCalledWith(COMPANY_A, 'e9', { status: 'TERMINATED' });
+    expect(repository.terminateOnce).toHaveBeenCalledWith(COMPANY_A, 'e9', {}, 'u9');
     expect(aso.create).toHaveBeenCalledWith(COMPANY_A, 'user-rh', expect.objectContaining({ asoType: 'DEMISSIONAL' }));
-    expect(repository.updateUser).toHaveBeenCalledWith(COMPANY_A, 'u9', { isActive: false, forcePasswordChange: true });
   });
 
   it('delete com histórico arquiva (não apaga) e bloqueia o acesso', async () => {
@@ -191,7 +192,7 @@ describe('QA · consultar, desligar, excluir', () => {
     const target = employee({ id: 'e9', observations: 'nota antiga' });
     const { service, repository } = makeService({ findById: vi.fn().mockResolvedValue(target), getDeletionImpact: vi.fn().mockResolvedValue({ total: 1 }) } as never);
     await service.delete(COMPANY_A, actor('RH'), 'e9');
-    const note = repository.update.mock.calls[0][2].observations as string;
+    const note = repository.terminateOnce.mock.calls[0][2].observations as string;
     expect(note.startsWith('nota antiga\n[')).toBe(true);
     expect(note).toContain('arquivado');
   });
@@ -202,7 +203,7 @@ describe('QA · acesso ao painel (criar, vincular, desvincular, em lote)', () =>
     const { service, repository } = makeService({ findById: vi.fn().mockResolvedValue(employee({ id: 'e1' })) } as never);
     const result = await service.createAccess(COMPANY_A, actor('RH'), 'e1', { email: '  NOVO@X.com ', role: 'FUNCIONARIO' });
     expect(result).toMatchObject({ success: true, email: 'novo@x.com', role: 'FUNCIONARIO' });
-    expect(result.temporaryPassword).toMatch(/^Aa1!/);
+    expect(result.temporaryPassword).toMatch(TEMP_PASSWORD);
     expect(repository.createAuditLog).toHaveBeenCalledWith(expect.objectContaining({ action: 'USER_CREATED', companyId: COMPANY_A }));
   });
 
@@ -243,7 +244,7 @@ describe('QA · acesso ao painel (criar, vincular, desvincular, em lote)', () =>
     const out = await service.bulkAccess(COMPANY_A, actor('RH'), { employeeIds: ['nao-existe', 'sem-email'], action: 'create' });
     expect(out.map((r) => r.success)).toEqual([false, false]);
     const noUser = await service.bulkAccess(COMPANY_A, actor('RH'), { employeeIds: ['sem-user'], action: 'block' });
-    expect(noUser[0]).toMatchObject({ success: false, error: 'Employee has no linked user' });
+    expect(noUser[0]).toMatchObject({ success: false, error: 'Funcionario sem usuario vinculado' });
     const invalid = await service.bulkAccess(COMPANY_A, actor('RH'), { employeeIds: ['sem-user'], action: 'explode' });
     expect(invalid[0]).toMatchObject({ success: false, error: 'Invalid action' });
   });

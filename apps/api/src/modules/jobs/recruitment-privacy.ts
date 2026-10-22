@@ -1,6 +1,14 @@
 /** Regras puras de LGPD e comunicação do recrutamento (sem banco), para teste fácil. */
 export const PRIVACY_VERSION = '2026-10';
 export const DEFAULT_RETENTION_MONTHS = 12;
+/** Consentimento do banco de talentos vale por este prazo; depois disso o candidato precisa consentir de novo (LGPD art. 8º e 15). */
+export const TALENT_CONSENT_MONTHS = 12;
+
+export function monthsAgo(months: number, from = new Date()): Date {
+  const date = new Date(from);
+  date.setMonth(date.getMonth() - months);
+  return date;
+}
 export const MIN_RETENTION_MONTHS = 3;
 export const MAX_RETENTION_MONTHS = 60;
 

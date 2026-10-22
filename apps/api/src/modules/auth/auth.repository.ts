@@ -143,6 +143,54 @@ export class AuthRepository {
     }, { isolationLevel: 'Serializable' });
   }
 
+  /**
+   * Teste grátis padrão (sem cupom de teste): um por documento. Usa um cupom de sistema inativo (não resgatável por código)
+   * registrado em CouponRedemption sem cupom (couponId nulo). Cupom PERCENT/FIXED opcional
+   * é resgatado na mesma transação e fica guardado na assinatura para as faturas pagas após o teste.
+   */
+  startDefaultTrial(data: {
+    companyId: string; documentHash: string; trialDays: number; discountCouponId?: string | null;
+    planId: string; seatQuantity: number; pricingVersion?: string | null; baseMonthlyPrice?: unknown; userMonthlyPrice?: unknown; discountPercent?: unknown;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      if (await tx.couponRedemption.findUnique({ where: { documentHash: data.documentHash } })) return { applied: false as const, reason: 'TRIAL_ALREADY_USED' };
+      let couponFields: Record<string, unknown> = {};
+      let discountCoupon: any = null;
+      if (data.discountCouponId) {
+        discountCoupon = await tx.promotionCoupon.findUnique({ where: { id: data.discountCouponId } });
+        const check = checkCouponEligibility(discountCoupon, { planId: data.planId, seats: data.seatQuantity });
+        if (!discountCoupon || !check.ok) return { applied: false as const, reason: check.ok ? 'COUPON_INVALID' : check.code };
+        const discountHash = `D:${discountCoupon.id}:${data.documentHash}`;
+        if (await tx.couponRedemption.findUnique({ where: { documentHash: discountHash } })) return { applied: false as const, reason: 'COUPON_ALREADY_USED' };
+        const counted = await tx.promotionCoupon.updateMany({
+          where: { id: discountCoupon.id, ...(discountCoupon.maxRedemptions !== null ? { redemptionCount: { lt: discountCoupon.maxRedemptions } } : {}) },
+          data: { redemptionCount: { increment: 1 } },
+        });
+        if (!counted.count) return { applied: false as const, reason: 'COUPON_LIMIT_REACHED' };
+        await tx.couponRedemption.create({ data: { couponId: discountCoupon.id, companyId: data.companyId, documentHash: discountHash } });
+        couponFields = { couponId: discountCoupon.id, couponType: discountCoupon.type, couponValue: discountCoupon.value, couponCyclesLeft: discountCoupon.durationCycles };
+      }
+      const trialEndsAt = new Date(now);
+      trialEndsAt.setUTCDate(trialEndsAt.getUTCDate() + data.trialDays);
+      // Teste padrão: resgate sem cupom. O documentHash único é o que impede um 2º teste para o mesmo CPF/CNPJ.
+      await tx.couponRedemption.create({ data: { couponId: null, companyId: data.companyId, documentHash: data.documentHash } });
+      await tx.company.update({
+        where: { id: data.companyId },
+        data: { status: 'ACTIVE', isActive: true, billingStatus: 'TRIAL', trialEndsAt, suspensionReason: null },
+      });
+      await tx.companySubscription.create({
+        data: {
+          companyId: data.companyId, planId: data.planId, status: 'TRIAL', seatQuantity: data.seatQuantity,
+          trialStartedAt: now, trialEndsAt, pricingVersion: data.pricingVersion,
+          baseMonthlyPrice: data.baseMonthlyPrice as any, userMonthlyPrice: data.userMonthlyPrice as any, discountPercent: data.discountPercent as any,
+          ...couponFields,
+        } as any,
+      });
+      return { applied: true as const, trialEndsAt };
+    }, { isolationLevel: 'Serializable' });
+  }
+
   /** Resgate atômico de cupom de desconto (PERCENT/FIXED): reconfere regras, conta o uso e grava o desconto na assinatura. */
   redeemDiscountCoupon(data: {
     companyId: string; couponId: string; documentHash: string; planId: string; seatQuantity: number; status: string;

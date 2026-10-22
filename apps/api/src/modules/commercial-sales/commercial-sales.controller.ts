@@ -1,3 +1,4 @@
+import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CommissionStatus } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -10,6 +11,7 @@ import { CommercialSalesService } from './commercial-sales.service';
 
 @Controller('commercial-sales')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@RequiresFeature('commercial-sales')
 export class CommercialSalesController {
   constructor(private readonly service: CommercialSalesService) {}
   @Get() @Roles('DEV', 'CEO', 'COMERCIAL') list(@CurrentUser() actor: JwtUser) { return this.service.list(actor); }

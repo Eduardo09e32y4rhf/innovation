@@ -1,0 +1,26 @@
+name: PR title
+
+# Valida o título do PR no padrao "tipo(area): descricao". Sem dependencia externa.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  title:
+    name: Título do PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar título
+        env:
+          # Via env (nunca interpolado no script) para evitar injecao de comando pelo título.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|chore|docs|test|refactor|perf|ci|build|revert)(\([a-z0-9._/,-]+\))?!?: .{3,}$'
+          if [[ "$PR_TITLE" =~ $pattern ]] && ! [[ "${PR_TITLE,,}" =~ (^|[^a-z])wip([^a-z]|$) ]]; then
+            echo "Título válido: $PR_TITLE"
+          else
+            echo "::error title=Título do PR fora do padrão::Use 'tipo(área): descrição'. Tipos: feat, fix, chore, docs, test, refactor, perf, ci, build, revert. Não use 'wip'. Recebido: $PR_TITLE"
+            exit 1
+          fi

@@ -22,6 +22,8 @@ import {
   type ComplianceRow,
   type ComplianceState,
 } from '../../sst-api';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 const FILTERS: Array<{ value: '' | ComplianceState; label: string }> = [
   { value: '', label: 'Todos' },
@@ -39,8 +41,8 @@ const STATE_CLASS: Record<string, string> = {
 export default function SegurancaAsoPage() {
   const { user } = useAuth();
   const profile = String(user?.profile ?? user?.role ?? '').toUpperCase();
-  const canView = ['DEV', 'ADMIN', 'RH', 'GESTOR', 'CEO', 'CONSULTA'].includes(profile);
-  const canManage = ['DEV', 'ADMIN', 'RH'].includes(profile);
+  const canView = roleIn(ROLE_ACCESS.asoView, profile);
+  const canManage = roleIn(ROLE_ACCESS.asoManage, profile);
 
   const searchParams = useSearchParams();
   const initial = (searchParams?.get('state') ?? '') as '' | ComplianceState;
@@ -204,12 +206,13 @@ export default function SegurancaAsoPage() {
 }
 
 function HistoryDrawer({ employee, canManage, onClose, onChanged }: { employee: ComplianceRow['employee']; canManage: boolean; onClose: () => void; onChanged: () => void }) {
+  const askConfirm = useConfirm();
   const history = useQuery(() => sstApi.history(employee.id), [employee.id]);
   const [pdfId, setPdfId] = useState<string | null>(null);
   const cancel = useMutation((id: string) => api.management.aso.update(id, { status: 'CANCELLED' }), { onSuccess: () => { history.refetch(); onChanged(); } });
 
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && !document.querySelector('[role="dialog"][aria-modal="true"]')) onClose(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
@@ -256,7 +259,7 @@ function HistoryDrawer({ employee, canManage, onClose, onChanged }: { employee: 
                   <FileText size={13} className="mr-1" />{pdfId === record.id ? 'Gerando...' : 'Encaminhamento'}
                 </Button>
                 {canManage && record.status !== 'COMPLETED' && record.status !== 'CANCELLED' ? (
-                  <Button type="button" variant="danger" size="sm" disabled={cancel.loading} onClick={() => { if (window.confirm('Cancelar este ASO?')) cancel.mutate(record.id).catch(() => {}); }}>Cancelar</Button>
+                  <Button type="button" variant="danger" size="sm" disabled={cancel.loading} onClick={async () => { if (await askConfirm({ title: 'Cancelar ASO', description: 'Este atestado de saúde ocupacional será marcado como cancelado.', confirmText: 'Cancelar ASO' })) cancel.mutate(record.id).catch(() => {}); }}>Cancelar</Button>
                 ) : null}
               </div>
             </li>

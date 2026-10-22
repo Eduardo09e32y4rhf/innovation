@@ -72,7 +72,7 @@ export function EmployeeAccessModal({
           <>
             <div>
               <label className="text-sm font-medium">Email</label>
-              <input
+              <input aria-label="E-mail de acesso do funcionário"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -83,7 +83,7 @@ export function EmployeeAccessModal({
             </div>
             <div>
               <label className="text-sm font-medium">Nome (opcional)</label>
-              <input
+              <input aria-label="Nome do funcionário"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -94,7 +94,7 @@ export function EmployeeAccessModal({
             </div>
             <div>
               <label className="text-sm font-medium">Perfil de Acesso</label>
-              <select
+              <select aria-label="Perfil de acesso"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 disabled={loading}

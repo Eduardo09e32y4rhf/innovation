@@ -15,8 +15,8 @@ export class UserThrottlerGuard extends ThrottlerGuard {
     const document = String(body.document ?? body.cpf ?? '').replace(/\D/g, '');
     const ip = this.clientIp(req);
 
-    if (email) return `email:${email}|${ip}`;
-    if (document) return `doc:${document}|${ip}`;
+    if (email) return `email:${email}`;
+    if (document) return `doc:${document}`;
 
     const auth = String(req.headers?.authorization ?? '');
     if (auth.startsWith('Bearer ')) {
@@ -33,15 +33,8 @@ export class UserThrottlerGuard extends ThrottlerGuard {
     return false;
   }
 
+  // req.ip is resolved by Fastify honoring only TRUST_PROXY hops; raw client headers are spoofable.
   private clientIp(req: Record<string, any>): string {
-    const h = req.headers ?? {};
-    const fwd = h['x-forwarded-for'];
-    return (
-      h['cf-connecting-ip'] ||
-      h['x-real-ip'] ||
-      (Array.isArray(fwd) ? fwd[0] : String(fwd ?? '').split(',')[0]?.trim()) ||
-      req.ip ||
-      'unknown'
-    );
+    return req.ip || 'unknown';
   }
 }

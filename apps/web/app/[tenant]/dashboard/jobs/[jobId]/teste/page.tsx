@@ -13,6 +13,7 @@ import { ApiError } from '@/app/lib/api';
 import { Field, SectionCard, inputClass } from '../../_components/bits';
 import { jobsApi } from '../../jobs-api';
 import { processApi, type JobAssessment, type TechnicalQuestion } from '../../process-api';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 const blankQuestion = (): TechnicalQuestion => ({ text: '', options: ['', ''], correct: 0, weight: 1 });
 
@@ -21,7 +22,7 @@ export default function JobTestPage() {
   const { tenant = '', jobId = '' } = useParams<{ tenant: string; jobId: string }>();
   const { user } = useAuth();
   const role = String(user?.profile ?? '').toUpperCase();
-  const canEdit = ['DEV', 'ADMIN', 'RH', 'RH_RS'].includes(role);
+  const canEdit = roleIn(ROLE_ACCESS.recruitmentConduct, role);
   const job = useQuery(() => jobsApi.get(jobId), [jobId]);
   const saved = useQuery(() => processApi.jobAssessment(jobId), [jobId]);
   const [form, setForm] = useState<JobAssessment>({ title: '', instructions: '', timeLimitMinutes: null, passingScore: 60, autoReject: false, questions: [] });

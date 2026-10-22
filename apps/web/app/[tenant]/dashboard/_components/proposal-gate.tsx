@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { api } from '@/app/lib/api';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { toast } from 'sonner';
+import { isFeatureEnabled } from '@/app/lib/feature-flags';
 
 export function ProposalGate({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -18,6 +19,7 @@ export function ProposalGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const p = user?.profile?.toLowerCase();
+    if (!isFeatureEnabled('proposals')) return;
     if (p === 'admin' || p === 'dev') { // o servidor so entrega propostas a ADMIN, CEO e DEV (GESTOR recebia 403)
       checkProposals();
     }

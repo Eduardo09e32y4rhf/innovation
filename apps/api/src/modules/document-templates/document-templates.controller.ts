@@ -6,7 +6,8 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
-import { renderTemplate, TEMPLATE_KINDS, TEMPLATE_VARIABLES, validateTemplate } from './template-render';
+import { malformedPlaceholders, renderTemplate, TEMPLATE_KINDS, TEMPLATE_VARIABLES, unknownVariables, validateTemplate } from './template-render';
+import { CreateDocumentTemplateDto, RenderDocumentTemplateDto, UpdateDocumentTemplateDto } from './document-template.dto';
 
 const clean = (v: unknown) => String(v ?? '').trim();
 const br = (iso?: string | null) => (iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '');
@@ -33,14 +34,14 @@ export class DocumentTemplatesController {
   }
 
   @Post()
-  async create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: any) {
+  async create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: CreateDocumentTemplateDto) {
     const created = await this.prisma.documentTemplate.create({ data: { companyId, createdByUserId: actor.sub, ...this.payload(body) } });
     await this.prisma.auditLog.create({ data: { companyId, userId: actor.sub, action: 'DOCUMENT_TEMPLATE_CREATED', entity: 'DocumentTemplate', entityId: created.id, metadata: { name: created.name, kind: created.kind } } });
     return created;
   }
 
   @Patch(':id')
-  async update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: any) {
+  async update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: UpdateDocumentTemplateDto) {
     const current = await this.prisma.documentTemplate.findFirst({ where: { id, companyId } });
     if (!current) throw new NotFoundException('Modelo não encontrado.');
     const updated = await this.prisma.documentTemplate.update({ where: { id }, data: this.payload({ ...current, ...body }) });
@@ -58,9 +59,12 @@ export class DocumentTemplatesController {
 
   /** Texto do modelo já com os dados do funcionário e da empresa (a tela preenche o comunicado com isso). */
   @Post(':id/render')
-  async render(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string, @Body() body: { employeeId?: string; reason?: string; occurrenceDate?: string; suspensionDays?: number }) {
+  async render(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string, @Body() body: RenderDocumentTemplateDto) {
     const template = await this.prisma.documentTemplate.findFirst({ where: { id, companyId, isActive: true } });
     if (!template) throw new NotFoundException('Modelo não encontrado ou desligado.');
+    // Modelo salvo antes da validação (ou editado direto no banco) nunca pode mandar "{{campo}}" cru para o documento.
+    const invalid = [...unknownVariables(`${template.title}\n${template.body}`).map((k) => `{{${k}}}`), ...malformedPlaceholders(`${template.title}\n${template.body}`)];
+    if (invalid.length) throw new BadRequestException(`O modelo "${template.name}" tem campo inválido (${invalid.slice(0, 3).join(', ')}). Corrija o modelo antes de gerar o documento.`);
     const [company, employee] = await Promise.all([
       this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true, legalName: true, document: true } }),
       body?.employeeId ? this.prisma.employee.findFirst({ where: { id: body.employeeId, companyId }, select: { name: true, cpf: true, position: true, department: true, registration: true } }) : null,

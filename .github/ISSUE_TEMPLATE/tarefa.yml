@@ -1,0 +1,34 @@
+name: Tarefa
+description: Trabalho planejado (item do escopo, limpeza, melhoria)
+title: "chore(área): "
+labels: ["tarefa", "status:triagem"]
+body:
+  - type: input
+    id: escopo
+    attributes:
+      label: Item do escopo
+      description: ID em docs/ESCOPO-PRODUCAO-V1.md (por exemplo L3, M2, Q4).
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+    validations:
+      required: true
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critério de aceite
+      description: Como saber que terminou. Prefira algo mensurável (teste verde, 0 respostas 500, diferença R$ 0,00).
+    validations:
+      required: true
+  - type: dropdown
+    id: severidade
+    attributes:
+      label: Prioridade
+      options: ["P0", "P1", "P2"]
+    validations:
+      required: true
+  - type: textarea
+    id: dependencias
+    attributes:
+      label: Dependências e decisões necessárias

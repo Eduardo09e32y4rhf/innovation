@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { LaunchDto, LaunchService } from './launch/launch.service';
 import { contentDisposition, safeFileName } from '../../common/pdf/pdf-response';
@@ -150,7 +150,7 @@ export class HubController {
   @Roles(...rolesWith('schedule.write'))
   @Post('launch/attachment')
   @UseInterceptors(FileInterceptor('file'))
-  launchAttachment(@CurrentUser() actor: JwtUser, @Body('employeeId') employeeId: string, @UploadedFile() file: any) {
+  launchAttachment(@CurrentUser() actor: JwtUser, @Body('employeeId', ParseUUIDPipe) employeeId: string, @UploadedFile() file: any) {
     return this.launches.saveAttachment(actor, employeeId, file);
   }
 

@@ -133,22 +133,32 @@ export function useMutation<TInput = void, TResult = unknown>(
   const optsRef = useRef(options);
   optsRef.current = options;
 
-  const mutate = useCallback(async (...args: unknown[]) => {
+  // Trava síncrona: dois cliques no mesmo tick chegam antes do re-render, então `loading` (estado) não os impede.
+  const inflight = useRef<Promise<TResult> | null>(null);
+
+  const mutate = useCallback((...args: unknown[]) => {
+    if (inflight.current) return inflight.current;
     const input = args[0] as TInput;
     setLoading(true);
     setError(null);
-    try {
-      const result = await fn(input);
-      optsRef.current.onSuccess?.(result, input);
-      return result;
-    } catch (err) {
-      const message = msgFrom(err);
-      setError(message);
-      optsRef.current.onError?.(message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    const run = (async () => {
+      try {
+        const result = await fn(input);
+        optsRef.current.onSuccess?.(result, input);
+        return result;
+      } catch (err) {
+        const message = msgFrom(err);
+        setError(message);
+        optsRef.current.onError?.(message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    })();
+    inflight.current = run;
+    const release = () => { if (inflight.current === run) inflight.current = null; };
+    run.then(release, release);
+    return run;
   }, [fn]);
 
   return {

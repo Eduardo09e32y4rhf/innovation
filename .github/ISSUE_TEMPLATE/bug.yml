@@ -1,0 +1,49 @@
+name: Bug
+description: Algo não funciona como deveria
+title: "fix(área): "
+labels: ["bug", "status:triagem"]
+body:
+  - type: dropdown
+    id: severidade
+    attributes:
+      label: Severidade
+      description: P0 bloqueia produção (dinheiro errado, vazamento entre empresas, perda de dados). P1 é crítico. P2 é importante.
+      options: ["P0", "P1", "P2"]
+    validations:
+      required: true
+  - type: input
+    id: area
+    attributes:
+      label: Área
+      placeholder: ponto, folha, cobrança, recrutamento, auth...
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Como reproduzir
+      placeholder: "1. Entrar como ADMIN\n2. Abrir...\n3. Clicar em..."
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que deveria acontecer
+    validations:
+      required: true
+  - type: textarea
+    id: obtido
+    attributes:
+      label: O que acontece
+    validations:
+      required: true
+  - type: input
+    id: ambiente
+    attributes:
+      label: Ambiente e perfil
+      placeholder: produção / staging / local; ADMIN, RH, FUNCIONARIO, DEV
+  - type: textarea
+    id: evidencia
+    attributes:
+      label: Evidência
+      description: Captura de tela, trecho de log (sem dados pessoais reais) ou link.

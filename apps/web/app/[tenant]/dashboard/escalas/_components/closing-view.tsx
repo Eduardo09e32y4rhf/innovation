@@ -11,6 +11,7 @@ import { can } from '@/app/lib/schedule-access';
 import { ClosingConference } from './closing-conference';
 import { currentMonthKey, errorMessage, monthLabel, shiftMonth } from '../_lib/format';
 import type { Overview } from '../_lib/types';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const STATUS: Record<string, string> = { DRAFT: 'Rascunho', IN_REVIEW: 'Em revisão', APPROVED: 'Aprovado', CLOSED: 'Fechado' };
 const FIELDS = [
@@ -27,6 +28,7 @@ export function ClosingView({ overview, month, setMonth }: { overview: Overview;
   const canWrite = can(overview.role, 'closing.write');
   const canList = canWrite || ['CEO', 'CONTABIL'].includes(overview.role);
   const list = useQuery(api.timeClosing.list, [], { enabled: canList });
+  const askConfirm = useConfirm();
   const [decision, setDecision] = useState<Decision | null>(null);
   const [adjust, setAdjust] = useState<any>(null);
   const [reopen, setReopen] = useState<any>(null);
@@ -101,7 +103,7 @@ export function ClosingView({ overview, month, setMonth }: { overview: Overview;
         <p className="card-v2 p-5 text-sm text-fg-sub">O fechamento da folha é feito pelo RH. Baixe aqui a folha de ponto do mês ou acompanhe a situação do seu espelho na aba Ponto.</p>
       ) : list.loading && !list.data ? <LoadingState label="Carregando fechamentos…" /> : list.error ? <ErrorState message={list.error} onRetry={list.refetch} /> : (
         <>
-          {canWrite && <ClosingConference month={month} canForce={canWrite} onForce={() => { if (window.confirm('Gerar o fechamento mesmo com pendências no ponto? Isso fica registrado na auditoria.')) void run(() => api.timeClosing.generate({ periodStart, periodEnd, month: monthNumber, year, acknowledgeIssues: true }), () => undefined); }} />}
+          {canWrite && <ClosingConference month={month} canForce={canWrite} onForce={async () => { if (await askConfirm({ title: 'Gerar fechamento com pendências', description: 'Gerar o fechamento mesmo com pendências no ponto? Isso fica registrado na auditoria.', confirmText: 'Gerar mesmo assim', variant: 'primary' })) void run(() => api.timeClosing.generate({ periodStart, periodEnd, month: monthNumber, year, acknowledgeIssues: true }), () => undefined); }} />}
           <p className="text-sm text-fg-sub">Fluxo: Rascunho → Em revisão → Aprovado → Fechado. Após fechado, correções exigem reabertura com motivo.</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
             {[['Fechamentos', String(closings.length)], ['Horas extras (h)', totals.ot.toFixed(1)], ['Bruto', money(totals.gross)], ['INSS', money(totals.inss)], ['IRRF', money(totals.irrf)], ['Benefícios e outros descontos', money(totals.benefits)], ['Líquido', money(totals.net)]].map(([title, value]) => <div key={title} className="card-v2 p-4"><p className="text-xs text-fg-sub">{title}</p><p className="mt-1 text-lg font-semibold tabular-nums">{value}</p></div>)}

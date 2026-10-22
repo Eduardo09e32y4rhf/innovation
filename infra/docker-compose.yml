@@ -78,7 +78,7 @@ services:
     ports:
       - "${API_HOST_PORT:-3001}:3001"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health/live"]
       interval: 15s
       timeout: 10s
       retries: 3

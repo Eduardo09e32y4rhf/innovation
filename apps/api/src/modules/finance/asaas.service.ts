@@ -8,6 +8,8 @@ export interface AsaasPayment {
   subscription?: string;
   status?: string;
   value: number;
+  /** Valor liquido (valor menos a taxa do Asaas). */
+  netValue?: number;
   dueDate: string;
   billingType?: string;
   description?: string;
@@ -242,6 +244,11 @@ export class AsaasService {
   /** Agenda a NFS-e de uma cobrança. O Asaas emite na data informada (ou na confirmação do pagamento). */
   scheduleFiscalInvoice(data: AsaasScheduleInvoiceInput) {
     return this.request<AsaasFiscalInvoice>('/invoices', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  /** Cancela a NFS-e (agendada ou autorizada). Assíncrono: o resultado chega por INVOICE_CANCELED / INVOICE_CANCELLATION_DENIED. */
+  cancelFiscalInvoice(invoiceId: string) {
+    return this.request<AsaasFiscalInvoice>(`/invoices/${encodeURIComponent(invoiceId)}/cancel`, { method: 'POST', body: JSON.stringify({}) });
   }
 
   /** Dados fiscais da conta (prefeitura, RPS, certificado). Responde 404 quando a conta ainda não configurou a emissão. */

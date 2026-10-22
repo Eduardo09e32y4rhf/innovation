@@ -1,3 +1,5 @@
+import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
+import { ClassifyTicketDto, PlatformAssistantDto } from './dto/ai.dto';
 import { Body, Controller, Post, Param, UseGuards, Req, ForbiddenException, Get } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -11,6 +13,7 @@ import { AiGuardrailsService } from './ai-guardrails.service';
 import { PrismaService } from '../../database/prisma.service';
 
 @Controller('ai')
+@RequiresFeature('ai')
 export class AiController {
   constructor(
     private readonly platformAi: PlatformAiService,
@@ -78,7 +81,7 @@ export class AiController {
   @Post('platform/assistant')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV')
-  async queryAssistant(@Body() body: { question: string }, @CurrentUser() actor: JwtUser) {
+  async queryAssistant(@Body() body: PlatformAssistantDto, @CurrentUser() actor: JwtUser) {
     // Busca sumário rápido de métricas para contextualizar o assistente sem expor senhas ou tokens
     const [totalCompanies, overdueCount, openTicketsCount] = await Promise.all([
       this.prisma.company.count({ where: { status: 'ACTIVE' } }),
@@ -91,8 +94,8 @@ export class AiController {
   }
 
   @Post('support/classify')
-  async classifyTicket(@Body() body: { title: string; description?: string }) {
-    // Endpoint público ou autenticado para auxiliar na triagem ao abrir novo chamado
+  @UseGuards(JwtAuthGuard)
+  async classifyTicket(@Body() body: ClassifyTicketDto) {
     return this.supportAi.classifyTicket(body.title || '', body.description || '');
   }
 

@@ -6,6 +6,8 @@ import { validateResume } from '../../_lib/public-jobs';
 import { candidateApi, EDUCATION_LEVELS, EDUCATION_STATUS, LICENSE_CATEGORIES, type CandidateProfile, type EducationItem, type ExperienceItem } from '../../_lib/candidate-api';
 import { profileStrength } from '../../_lib/profile-insights';
 import { useCandidateSession } from '../_components/account-shell';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { useGuard } from '@/app/hooks/use-action';
 
 const digits = (value: string) => value.replace(/\D/g, '');
 function maskCpf(value: string) {
@@ -107,11 +109,13 @@ export function ProfileForm() {
     finally { setResumeBusy(false); if (fileInput.current) fileInput.current.value = ''; }
   }
 
-  async function removeAccount() {
-    if (!window.confirm('Excluir sua conta apaga seu perfil e currículo salvos. Candidaturas já enviadas continuam com as empresas. Continuar?')) return;
+  const askConfirm = useConfirm();
+  const { guard } = useGuard();
+  const removeAccount = guard('removeAccount', async () => {
+    if (!(await askConfirm({ title: 'Excluir minha conta', description: 'Excluir sua conta apaga seu perfil e currículo salvos. Candidaturas já enviadas continuam com as empresas.', confirmText: 'Excluir minha conta' }))) return;
     try { await candidateApi.remove(); await signOut(); }
     catch (cause) { setMessage({ kind: 'error', text: cause instanceof Error ? cause.message : 'Não foi possível excluir a conta.' }); }
-  }
+  });
 
   const updateEdu = (index: number, patch: Partial<EducationItem>) => { setEducation((list) => list.map((item, i) => (i === index ? { ...item, ...patch } : item))); setDirty(true); };
   const updateExp = (index: number, patch: Partial<ExperienceItem>) => { setExperience((list) => list.map((item, i) => (i === index ? { ...item, ...patch } : item))); setDirty(true); };

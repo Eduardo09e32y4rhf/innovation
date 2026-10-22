@@ -2,14 +2,16 @@ import { Module, forwardRef } from '@nestjs/common';
 import { PrivacyController } from './privacy.controller';
 import { PrivacyRepository } from './privacy.repository';
 import { PrivacyService } from './privacy.service';
+import { DataSubjectController } from './data-subject.controller';
+import { DataSubjectService } from './data-subject.service';
 
 import { QueueModule } from '../queue/queue.module';
 import { SupportModule } from '../support/support.module';
 
 @Module({
   imports: [forwardRef(() => QueueModule), SupportModule],
-  controllers: [PrivacyController],
-  providers: [PrivacyService, PrivacyRepository],
+  controllers: [PrivacyController, DataSubjectController],
+  providers: [PrivacyService, PrivacyRepository, DataSubjectService],
   exports: [PrivacyService],
 })
 export class PrivacyModule {}

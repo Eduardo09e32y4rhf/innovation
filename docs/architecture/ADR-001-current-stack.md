@@ -46,7 +46,7 @@ As seguintes tecnologias foram experimentadas e **definitivamente removidas**:
 | Mercado Pago | Substituído por Asaas |
 | Vercel (deploy) | Substituído por Docker na VPS |
 | `agent-canvas/` | Ferramenta interna experimental removida |
-| Kubernetes (`deploy_k8s.ps1`) | Complexidade desnecessária para o porte atual |
+| Kubernetes (`scripts/archive/deploy-legacy/deploy_k8s.ps1`) | Complexidade desnecessária para o porte atual |
 
 ---
 

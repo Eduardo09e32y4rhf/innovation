@@ -129,13 +129,13 @@ export class ProposalsService {
     let asaasPaymentLink = null;
     let asaasSubscriptionId = null;
 
-    if (customerId && proposal.monthlyPrice > 0) {
+    if (customerId && Number(proposal.monthlyPrice) > 0) {
       // Gera a assinatura no Asaas
       const nextDueDate = new Date();
       nextDueDate.setDate(nextDueDate.getDate() + 3); // 3 dias para pagar a 1a mensalidade
 
       const subscription = await this.asaasService.createSubscription(customerId, {
-        value: proposal.monthlyPrice,
+        value: Number(proposal.monthlyPrice),
         nextDueDate: nextDueDate.toISOString().split('T')[0],
         description: `Assinatura ${proposal.planType} - ${proposal.title}`,
         cycle: 'MONTHLY'

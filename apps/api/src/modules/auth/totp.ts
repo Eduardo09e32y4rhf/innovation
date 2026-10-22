@@ -38,18 +38,25 @@ export function hotp(secret: Buffer, counter: number): string {
 
 export const totp = (secretBase32: string, atMs = Date.now(), stepSeconds = 30) => hotp(base32Decode(secretBase32), Math.floor(atMs / 1000 / stepSeconds));
 
-/** Aceita o passo atual e ±1 (tolerância de relógio). Comparação em tempo constante. */
-export function verifyTotp(secretBase32: string, code: string, atMs = Date.now(), window = 1): boolean {
+/**
+ * Devolve o passo (janela de 30 s) em que o código confere, ou null. Aceita o passo atual e ±1 (tolerância de relógio).
+ * Quem chama deve guardar o passo para recusar o MESMO código de novo (RFC 6238 §5.2: o verificador não pode aceitar um OTP já usado).
+ */
+export function matchTotpStep(secretBase32: string, code: string, atMs = Date.now(), window = 1): number | null {
   const normalized = String(code ?? '').replace(/\s+/g, '');
-  if (!/^\d{6}$/.test(normalized)) return false;
+  if (!/^\d{6}$/.test(normalized)) return null;
   const key = base32Decode(secretBase32);
   const step = Math.floor(atMs / 1000 / 30);
-  let ok = false;
+  let matched: number | null = null;
   for (let drift = -window; drift <= window; drift += 1) {
     const expected = Buffer.from(hotp(key, step + drift));
-    if (timingSafeEqual(expected, Buffer.from(normalized))) ok = true;
+    if (timingSafeEqual(expected, Buffer.from(normalized))) matched = step + drift;
   }
-  return ok;
+  return matched;
+}
+
+export function verifyTotp(secretBase32: string, code: string, atMs = Date.now(), window = 1): boolean {
+  return matchTotpStep(secretBase32, code, atMs, window) !== null;
 }
 
 export const otpauthUrl = (secret: string, account: string, issuer = 'Innovation RH Connect') =>

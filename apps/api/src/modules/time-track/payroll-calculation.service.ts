@@ -58,6 +58,15 @@ export interface PayrollCalculationInput {
   nightShiftPercent?: number;
   dsrEnabled?: boolean;
   isPartialMonth?: boolean;
+  /** Base (férias gozadas + 1/3) de cada recibo de férias pago na competência; o INSS de cada recibo já foi retido isoladamente. */
+  vacationTaxableGrosses?: number[];
+  /**
+   * Dias de gozo de férias dentro da competência. Esses dias são pagos pelo recibo de férias (CLT art. 142 e 145),
+   * então o salário do mês cobre só os demais (30 - dias, base comercial). Em mês parcial o chamador já os tira de scheduledMinutesInPeriod.
+   */
+  vacationDaysInPeriod?: number;
+  /** Dias de contrato na competência em base comercial (0 a 30; mês inteiro = 30), igual ao saldo de salário da rescisão (labor-dates). Omitido = 30. */
+  contractDaysInPeriod?: number;
   scheduledMinutesInPeriod?: number;
   taxContext?: PayrollTaxContext;
 }
@@ -186,6 +195,10 @@ export class PayrollCalculationService {
       salaryBase = this.money(hourlyRate * (input.scheduledMinutesInPeriod! / 60));
     }
 
+    const contractDays = Math.min(30, Math.max(0, Math.floor(input.contractDaysInPeriod ?? 30)));
+    const unpaidDays = Math.min(30, 30 - contractDays + Math.max(0, Math.floor(input.vacationDaysInPeriod ?? 0)));
+    if (!isPartialMonth && unpaidDays > 0) salaryBase = this.money((salaryBase * (30 - unpaidDays)) / 30);
+
     const overtime50Value = this.money((input.overtime50Minutes / 60) * hourlyRate * overtime50Factor);
     const overtime100Value = this.money((input.overtime100Minutes / 60) * hourlyRate * overtime100Factor);
     const nightShiftValue = this.money((input.nightShiftMinutes / 60) * hourlyRate * nightShiftPercent);
@@ -206,7 +219,12 @@ export class PayrollCalculationService {
     const totalJornadaDeduction = absenceDiscount + lateDiscount + earlyLeaveDiscount;
     
     const grossPay = this.money(Math.max(0, salaryBase + variablePay + dsrValue - totalJornadaDeduction));
-    const inssDiscount = this.calculateInss(grossPay, input.taxContext?.inss.brackets);
+    const vacationBases = (input.vacationTaxableGrosses ?? []).filter((value) => Number.isFinite(value) && value > 0);
+    const vacationBase = this.money(vacationBases.reduce((sum, value) => sum + value, 0));
+    const inssBrackets = input.taxContext?.inss.brackets;
+    const inssDiscount = vacationBase > 0
+      ? this.calculateInssWithVacation(grossPay, vacationBases, inssBrackets).due
+      : this.calculateInss(grossPay, inssBrackets);
     const irrfParameters = input.taxContext?.irrf.parameters ?? PayrollCalculationService.DEFAULT_IRRF_PARAMETERS;
     const legalDeductions = inssDiscount + Math.max(0, input.dependents ?? 0) * irrfParameters.dependentDeduction;
     const irrfDeduction = Math.max(irrfParameters.simplifiedDeduction, legalDeductions);
@@ -233,7 +251,7 @@ export class PayrollCalculationService {
       lateDiscount,
       earlyLeaveDiscount,
       grossPay,
-      inssBase: grossPay,
+      inssBase: this.money(grossPay + vacationBase),
       inssDiscount,
       irrfBase,
       irrfDiscount,
@@ -257,6 +275,18 @@ export class PayrollCalculationService {
     const fgtsAmount = this.money(gross * (taxContext?.fgts?.rate ?? PayrollCalculationService.DEFAULT_FGTS_RATE));
     const netPay = this.money(Math.max(0, gross - inssDiscount - irrfDiscount));
     return { grossPay: gross, inssDiscount, irrfBase, irrfDiscount, fgtsAmount, netPay };
+  }
+
+  /**
+   * INSS do mês com férias na mesma competência: faixas e teto sobre a base unificada (salário + férias gozadas + 1/3),
+   * abatendo o que cada recibo de férias já reteve (cada um calculado isoladamente), para não descontar duas vezes.
+   */
+  calculateInssWithVacation(monthlyGross: number, vacationTaxableGross: number | number[], bands = PayrollCalculationService.DEFAULT_INSS) {
+    const receipts = (Array.isArray(vacationTaxableGross) ? vacationTaxableGross : [vacationTaxableGross]).filter((value) => Number.isFinite(value) && value > 0);
+    const vacationTotal = receipts.reduce((sum, value) => sum + value, 0);
+    const total = this.calculateInss(Math.max(0, monthlyGross) + vacationTotal, bands);
+    const withheldOnVacation = this.money(receipts.reduce((sum, value) => sum + this.calculateInss(value, bands), 0));
+    return { total, withheldOnVacation, due: this.money(Math.max(0, total - withheldOnVacation)) };
   }
 
   calculateInss(base: number, bands = PayrollCalculationService.DEFAULT_INSS): number {

@@ -65,7 +65,7 @@ export function InterviewClient({ token }: { token: string }) {
             <section className={`${actionCard} space-y-3`}>
               <h2 className="font-bold">Que pena! Quer contar o motivo?</h2>
               <p className="text-sm text-[#5b5473]">Opcional. Ajuda a empresa a remarcar (ex.: melhores dias e horários para você).</p>
-              <textarea className="min-h-[96px] w-full rounded-[12px] border border-[#d9cdee] p-3 text-base outline-none focus:border-[#7240da]" maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Ex.: tenho prova nesse dia, posso na quinta à tarde." />
+              <textarea aria-label="Motivo e melhores dias e horários (opcional)" className="min-h-[96px] w-full rounded-[12px] border border-[#d9cdee] p-3 text-base outline-none focus:border-[#7240da]" maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Ex.: tenho prova nesse dia, posso na quinta à tarde." />
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={primaryBtn} disabled={busy} onClick={() => respond('DECLINED')}>Avisar a empresa</button>
                 <button type="button" className={outlineBtn} disabled={busy} onClick={() => setDeclining(false)}>Voltar</button>

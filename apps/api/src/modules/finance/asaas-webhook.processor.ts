@@ -6,6 +6,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { AsaasService } from './asaas.service';
 import { FinanceNotificationService, FinanceNotificationType } from './finance-notification.service';
 import { PricingService } from './pricing.service';
+import { planPricingForSubscription, PricingPlanInput } from './pricing';
 import { PaymentRefundService } from './payment-refund.service';
 import { AsaasFiscalService } from './asaas-fiscal.service';
 import { cancelRedundantSignupCharges } from './signup-charges';
@@ -18,6 +19,7 @@ interface AsaasWebhookPayment {
   subscription?: string;
   externalReference?: string;
   value: number;
+  netValue?: number;
   dueDate?: string;
   description?: string;
   billingType?: string;
@@ -136,6 +138,11 @@ export class AsaasWebhookProcessorService {
       this.logger.warn(`Evento ${event} ignorado: fatura ${existing.id} já está paga (fora de ordem).`);
       return;
     }
+    // Paga, depois estornada/contestada: um "recebido" atrasado só reabre se o Asaas confirmar que está paga de novo.
+    if (existing?.status === 'CANCELED' && existing.paidAt && status === 'PAID' && !(await this.remotelyPaid(payment.id))) {
+      this.logger.warn(`Evento ${event} ignorado: fatura ${existing.id} foi estornada/contestada (fora de ordem).`);
+      return;
+    }
     const invoiceData = {
       companyId: company.id,
       description: payment.description || 'Cobrança Asaas',
@@ -146,6 +153,8 @@ export class AsaasWebhookProcessorService {
       invoiceUrl: payment.invoiceUrl,
       paidAt: status === 'PAID' ? existing?.paidAt ?? new Date() : existing?.paidAt,
       deletedAt: event === 'PAYMENT_DELETED' ? new Date() : null,
+      // Taxa do gateway: o Asaas informa o liquido no proprio pagamento (so grava quando vier um numero valido).
+      ...(status === 'PAID' && Number.isFinite(payment.netValue) && Number(payment.netValue) >= 0 ? { gatewayNetValue: payment.netValue } : {}),
     };
 
     const companyData: any = status === 'PAID'
@@ -163,6 +172,8 @@ export class AsaasWebhookProcessorService {
         : this.prisma.platformInvoice.create({ data: { ...invoiceData, asaasPaymentId: payment.id, paymentProcessingStatus: 'LINK_READY' } }),
       ...(Object.keys(companyData).length ? [this.prisma.company.update({ where: { id: company.id }, data: companyData })] : []),
     ]);
+
+    if (event === 'PAYMENT_CHARGEBACK_REQUESTED' && this.fiscal) await this.fiscal.handleRefund(invoice.id, 'CHARGEBACK');
 
     if (status === 'PAID' && existing?.status !== 'PAID') {
       await this.advanceCouponCycle(company.id);
@@ -198,7 +209,7 @@ export class AsaasWebhookProcessorService {
     const remoteId = subscription.asaasSubscriptionId || subscription.company.asaasSubscriptionId;
     try {
       if (remoteId && subscription.plan && this.asaas.isConfigured()) {
-        const full = this.pricing.calculate((subscription.plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, subscription.seatQuantity, { baseMonthlyPrice: subscription.plan.baseMonthlyPrice, userMonthlyPrice: subscription.plan.userMonthlyPrice, price: subscription.plan.price, includedUnits: subscription.plan.includedUnits });
+        const full = this.pricing.calculate((subscription.plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, subscription.seatQuantity, planPricingForSubscription(subscription.plan, subscription));
         await this.asaas.updateSubscription(remoteId, { value: full.total });
       }
       await this.prisma.companySubscription.update({ where: { companyId }, data: { couponCyclesLeft: 0, couponType: null, couponValue: null } });
@@ -252,6 +263,12 @@ export class AsaasWebhookProcessorService {
         fiscalXmlUrl: invoice.xmlUrl,
       });
     }
+  }
+
+  private async remotelyPaid(paymentId: string) {
+    if (!this.asaas.isConfigured()) return false;
+    const charge: any = await this.asaas.getCharge(paymentId);
+    return ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(charge?.status);
   }
 
   private statusFromEvent(event: string): InvoiceStatus | undefined {

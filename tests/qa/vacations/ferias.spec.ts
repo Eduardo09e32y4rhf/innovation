@@ -17,7 +17,7 @@ function harness(overrides: Record<string, any> = {}, receiptOverrides: Record<s
     listByEmployee: vi.fn().mockResolvedValue([]), listEntitlements: vi.fn().mockResolvedValue([]),
     findEmployee: vi.fn().mockResolvedValue(employeeRow), findEmployeeByUserId: vi.fn().mockResolvedValue(employeeRow),
     findOverlapping: vi.fn().mockResolvedValue(null), listTimeTracksInPeriod: vi.fn().mockResolvedValue([]), findEntitlement: vi.fn().mockResolvedValue(null),
-    reserveAndCreate: vi.fn().mockResolvedValue(vacation), findById: vi.fn().mockResolvedValue(vacation),
+    reserveAndCreate: vi.fn().mockResolvedValue(vacation), findById: vi.fn().mockResolvedValue(vacation), findForReceipt: vi.fn().mockResolvedValue(vacation),
     updateStatusWithLedger: vi.fn().mockResolvedValue({ ...vacation, status: 'APPROVED' }), recordPayment: vi.fn().mockResolvedValue({ id: 'payment-1' }),
     listMedicalCertificates: vi.fn().mockResolvedValue([]), createMedicalCertificate: vi.fn().mockResolvedValue({ id: 'certificate-1' }),
     findMedicalCertificate: vi.fn().mockResolvedValue({ id: 'certificate-1', status: 'PENDING' }), updateMedicalCertificateStatus: vi.fn().mockResolvedValue({ count: 1 }),
@@ -147,9 +147,12 @@ describe('QA FÉRIAS · fluxos funcionais, regras e segurança', () => {
   });
 
   it('converte insuficiência concorrente de saldo em erro legível e não oculta outros erros', async () => {
+    // Sem batidas no periodo todo dia util vira falta e a regra de faltas barra antes: zera as faltas para testar so a reserva.
     const insufficient = harness({ reserveAndCreate: vi.fn().mockRejectedValue(new Error('VACATION_BALANCE:4')) });
+    vi.spyOn(insufficient.service as any, 'countUnjustifiedAbsences').mockReturnValue(0);
     await expect(insufficient.service.create('company-a', rh, createDto())).rejects.toBeInstanceOf(BadRequestException);
     const unexpected = harness({ reserveAndCreate: vi.fn().mockRejectedValue(new Error('database offline')) });
+    vi.spyOn(unexpected.service as any, 'countUnjustifiedAbsences').mockReturnValue(0);
     await expect(unexpected.service.create('company-a', rh, createDto())).rejects.toThrow('database offline');
   });
 
@@ -170,10 +173,10 @@ describe('QA FÉRIAS · fluxos funcionais, regras e segurança', () => {
 
   it('protege recibo PDF por tenant, identidade do empregado e status elegível', async () => {
     const outsider = { ...employeeRow, id: 'other', managerId: null };
-    const isolated = harness({ findById: vi.fn().mockResolvedValue({ ...vacation, employeeId: outsider.id }), findEmployee: vi.fn().mockResolvedValue(outsider), findEmployeeByUserId: vi.fn().mockResolvedValue(employeeRow) });
+    const isolated = harness({ findForReceipt: vi.fn().mockResolvedValue({ ...vacation, employeeId: outsider.id }), findEmployee: vi.fn().mockResolvedValue(outsider), findEmployeeByUserId: vi.fn().mockResolvedValue(employeeRow) });
     await expect(isolated.service.generateReceiptPdf('company-a', employee, vacation.id)).rejects.toBeInstanceOf(ForbiddenException);
     expect(isolated.receiptService.generate).not.toHaveBeenCalled();
-    const missing = harness({ findById: vi.fn().mockResolvedValue(null) });
+    const missing = harness({ findForReceipt: vi.fn().mockResolvedValue(null) });
     await expect(missing.service.generateReceiptPdf('company-a', rh, 'foreign')).rejects.toBeInstanceOf(NotFoundException);
   });
 

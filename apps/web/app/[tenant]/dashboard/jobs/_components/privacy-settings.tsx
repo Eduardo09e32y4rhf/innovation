@@ -8,6 +8,7 @@ import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
 import { privacyApi, type PrivacyRequest } from '../privacy-api';
 import { SectionCard, inputClass } from './bits';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const TYPE_LABEL: Record<string, string> = { ACCESS: 'Acesso aos dados', CORRECTION: 'Correção', DELETION: 'Exclusão' };
 const message = (cause: unknown, fallback: string) => (cause instanceof ApiError ? cause.message : fallback);
@@ -23,8 +24,9 @@ function RequestRow({ item, onDone }: { item: PrivacyRequest; onDone: () => void
       const a = document.createElement('a'); a.href = url; a.download = 'dados-do-candidato.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } catch (cause) { toast.error(message(cause, 'Não foi possível exportar.')); }
   }
+  const askConfirm = useConfirm();
   async function answer() {
-    if (item.type === 'DELETION' && !window.confirm('Excluir definitivamente os dados deste candidato (currículo, respostas, notas)? Esta ação não pode ser desfeita.')) return;
+    if (item.type === 'DELETION' && !(await askConfirm({ title: 'Excluir dados do candidato', description: 'Excluir definitivamente os dados deste candidato (currículo, respostas, notas)? Esta ação não pode ser desfeita.', confirmText: 'Excluir dados', requireText: 'EXCLUIR' }))) return;
     setBusy(true);
     try { await privacyApi.answer(item.id, { response }); toast.success('Pedido respondido.'); onDone(); }
     catch (cause) { toast.error(message(cause, 'Não foi possível responder.')); }

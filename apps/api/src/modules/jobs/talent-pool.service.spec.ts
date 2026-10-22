@@ -29,7 +29,7 @@ describe('banco de talentos (RH)', () => {
   it('só consulta quem aceitou o banco de talentos e não vaza contato, CPF nem endereço', async () => {
     const { svc, prisma } = build();
     const result = await svc.search('c1', 'u1', { q: 'contadora sped' });
-    expect(prisma.candidateAccount.findMany.mock.calls[0][0].where.talentPoolConsentAt).toEqual({ not: null });
+    expect(prisma.candidateAccount.findMany.mock.calls[0][0].where.talentPoolConsentAt.gte).toBeInstanceOf(Date);
     expect(result.total).toBe(1);
     const json = JSON.stringify(result);
     expect(json).not.toMatch(/52998224725|11999999999|camila@x\.com|Rua Secreta|passwordHash|1990-01-01/);

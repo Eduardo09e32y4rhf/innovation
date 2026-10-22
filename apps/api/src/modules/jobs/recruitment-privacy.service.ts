@@ -8,7 +8,7 @@ import { JobsStorageService } from './jobs-storage.service';
 import { buildInterviewIcs, formatInterviewDate, googleCalendarUrl, interviewerLabel, mailFromAddress, mapsUrl, meetingProvider } from './interview-rules';
 import { applicationReceivedEmail, applicationRejectedEmail, candidateInterviewCanceledEmail, candidateInterviewEmail, candidateRequestAnsweredEmail } from './recruitment-mails';
 import {
-  clampRetention, DEFAULT_RETENTION_MONTHS, phoneKey, GENDER_OPTIONS, newTrackingToken, parsePcd, pickOption, PRIVACY_VERSION, RACE_OPTIONS, REJECTION_CODES,
+  clampRetention, DEFAULT_RETENTION_MONTHS, monthsAgo, phoneKey, GENDER_OPTIONS, newTrackingToken, parsePcd, pickOption, PRIVACY_VERSION, RACE_OPTIONS, REJECTION_CODES,
   REQUEST_TYPES, retentionDate, STAGE_LABEL_FOR_CANDIDATE, type RequestType,
 } from './recruitment-privacy';
 
@@ -237,7 +237,7 @@ export class RecruitmentPrivacyService {
   @Cron('30 3 * * *')
   @CronLock('recruitment.retention', 3600)
   async purgeExpired() {
-    const expired = await this.prisma.application.findMany({ where: { retentionUntil: { lte: new Date() }, anonymizedAt: null, status: { not: 'HIRED' } }, select: { candidateId: true }, distinct: ['candidateId'], take: 500 });
+    const expired = await this.prisma.application.findMany({ where: { anonymizedAt: null, status: { not: 'HIRED' }, OR: [{ retentionUntil: { lte: new Date() } }, { retentionUntil: null, createdAt: { lte: monthsAgo(DEFAULT_RETENTION_MONTHS) } }] }, select: { candidateId: true }, distinct: ['candidateId'], take: 500 });
     let done = 0;
     for (const { candidateId } of expired) done += await this.anonymizeCandidate(candidateId);
     if (expired.length) this.logger.log(`Retenção LGPD: ${done} candidato(s) anonimizado(s).`);

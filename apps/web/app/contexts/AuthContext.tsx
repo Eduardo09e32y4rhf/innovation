@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { resetAllQueryStates } from '@/app/hooks/use-data';
 import {
   clearAuthSession,
@@ -13,6 +13,7 @@ import api from '@/app/lib/api';
 import { setFaturasPermissions } from '@/app/lib/permissions';
 import { toast } from 'sonner';
 import { refreshSession } from '@/app/lib/refresh-session';
+import { createSingleFlight } from '@/app/lib/single-flight';
 
 export interface User {
   id: string;
@@ -248,7 +249,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     resetAllQueryStates();
   };
 
-  const login = async (email: string, password: string) => {
+  const authFlight = useRef(createSingleFlight()).current;
+  const login = (email: string, password: string) => authFlight.run(`login:${email}`, () => loginOnce(email, password));
+  const loginOnce = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
 
@@ -301,7 +304,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const verifyMfa = async (mfaToken: string, code: string, recoveryCode?: string) => {
+  const verifyMfa = (mfaToken: string, code: string, recoveryCode?: string) => authFlight.run(`mfa:${mfaToken}`, () => verifyMfaOnce(mfaToken, code, recoveryCode));
+  const verifyMfaOnce = async (mfaToken: string, code: string, recoveryCode?: string) => {
     setLoading(true); setError(null);
     try {
       const response = await fetch(`${getApiUrl()}/auth/mfa/verify`, {
@@ -328,7 +332,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally { setLoading(false); }
   };
 
-  const changePassword = async (currentPassword: string, newPassword: string) => {
+  const changePassword = (currentPassword: string, newPassword: string) => authFlight.run('change-password', () => changePasswordOnce(currentPassword, newPassword));
+  const changePasswordOnce = async (currentPassword: string, newPassword: string) => {
     if (!token) throw new Error('Sessão expirada. Faça login novamente.');
     const response = await fetch(`${getApiUrl()}/auth/change-password`, {
       method: 'POST',

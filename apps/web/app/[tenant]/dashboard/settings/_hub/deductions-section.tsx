@@ -8,6 +8,7 @@ import { Button, ConfirmDialog, Modal } from '@/app/components/ui';
 import { useQuery } from '@/app/hooks/use-data';
 import { api, type DeductionRule, type DeductionRuleInput } from '@/app/lib/api';
 import { cardClass, errorText, inputClass } from './types';
+import { useGuard } from '@/app/hooks/use-action';
 
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const SCOPE_LABEL = { ALL: 'Todos os funcionários', POSITION: 'Por cargo', DEPARTMENT: 'Por setor', EMPLOYEE: 'Pessoas escolhidas' } as const;
@@ -56,9 +57,10 @@ export function DeductionsSection({ canEdit }: { canEdit: boolean }) {
     } catch (cause) { toast.error(errorText(cause, 'Não foi possível salvar.')); }
     finally { setBusy(false); }
   }
-  async function toggle(rule: DeductionRule) {
+  const { guard } = useGuard();
+  const toggle = guard('toggle', async (rule: DeductionRule) => {
     try { await api.deductionRules.update(rule.id, { isActive: !rule.isActive }); data.refetch(); } catch (cause) { toast.error(errorText(cause, 'Não foi possível alterar.')); }
-  }
+  });
   async function remove() {
     if (!removing) return;
     setBusy(true);

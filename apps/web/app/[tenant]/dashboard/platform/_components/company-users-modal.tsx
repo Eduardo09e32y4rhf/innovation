@@ -7,6 +7,8 @@ import { useMutation, useQuery } from './use-platform-query';
 import { api, type AppUser, type CreatedUser, type PlatformCompany, type PlatformCompanyUserRole } from '@/app/lib/api';
 import { ROLE_LABEL } from '@/app/lib/format';
 import { normalizeDisplayName } from '@/app/lib/text';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
+import { useOverlay } from '@/app/components/ui/use-overlay';
 
 const COMPANY_USER_ROLES: PlatformCompanyUserRole[] = ['ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'];
 type CompanyUserForm = { name: string; email: string; password: string; role: PlatformCompanyUserRole; isActive?: boolean };
@@ -21,19 +23,21 @@ function F({ label, value, onChange, type = 'text', required }: { label: string;
 }
 
 export function CompanyUsersModal({ company, onClose }: { company: PlatformCompany; onClose: () => void }) {
+  const overlayRef = useOverlay<HTMLDivElement>(true, onClose);
   const users = useQuery(() => api.platform.listCompanyUsers(company.id), [company.id]);
   const onlineUsers = useQuery(() => api.platform.getOnlineUsers(), []);
   const [editing, setEditing] = useState<AppUser | null>(null);
   const [openNew, setOpenNew] = useState(false);
   const remove = useMutation((userId: string) => api.platform.deleteCompanyUser(company.id, userId), { onSuccess: () => users.refetch() });
 
+  const askConfirm = useConfirm();
   async function handleDelete(user: AppUser) {
-    if (!window.confirm(`Remover o acesso de ${user.name}?`)) return;
+    if (!(await askConfirm({ title: 'Remover acesso', description: `Remover o acesso de ${user.name}?`, confirmText: 'Remover acesso' }))) return;
     await remove.mutate(user.id).catch(() => {});
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
+    <div ref={overlayRef} role="dialog" aria-modal="true" aria-label="Usuários da empresa" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
       <div className="w-full max-w-3xl rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
@@ -102,6 +106,7 @@ export function CompanyUsersModal({ company, onClose }: { company: PlatformCompa
 }
 
 function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId: string; user?: AppUser; onClose: () => void; onDone: () => void }) {
+  const overlayRef = useOverlay<HTMLDivElement>(true, onClose);
   const [form, setForm] = useState<CompanyUserForm>({
     name: user?.name ?? '',
     email: user?.email ?? '',
@@ -123,7 +128,7 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
 
   if (issued) {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 p-4">
+      <div ref={overlayRef} role="dialog" aria-modal="true" aria-label="Usuário da empresa" tabIndex={-1} className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 p-4">
         <div className="w-full max-w-md space-y-3 rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
           <h4 className="text-base font-black text-slate-950">Usuario criado</h4>
           <p className="text-xs text-slate-600">Senha provisoria gerada pelo sistema. Ela e exibida somente agora, expira em 24 horas e deve ser trocada no primeiro acesso.</p>
@@ -135,7 +140,7 @@ function CompanyUserFormModal({ companyId, user, onClose, onDone }: { companyId:
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 p-4">
+    <div ref={overlayRef} role="dialog" aria-modal="true" aria-label="Usuário da empresa" tabIndex={-1} className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 p-4">
       <div className="w-full max-w-md rounded-[12px] border border-slate-200 bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h4 className="text-base font-black text-slate-950">{user ? 'Editar usuario' : 'Novo usuario'}</h4>

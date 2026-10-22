@@ -10,6 +10,7 @@ import { can } from '@/app/lib/schedule-access';
 import { hubApi } from '../_lib/hub-api';
 import { WEEKDAYS, errorMessage } from '../_lib/format';
 import type { Geofence, Overview, PunchPolicy, ScheduleTemplate } from '../_lib/types';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const input = 'input-v2 w-full text-base sm:text-sm';
 const SCALE_TYPES = ['5x2', '6x1', '12x36', '4x2', 'PERSONALIZADA', 'PLANTAO'];
@@ -83,6 +84,7 @@ function ScheduleEditor({ item, onClose, onSaved }: { item: ScheduleTemplate | '
 }
 
 function SchedulesPanel({ canEdit, onLaunch }: { canEdit: boolean; onLaunch: () => void }) {
+  const askConfirm = useConfirm();
   const list = useQuery(() => hubApi.schedules(), []);
   const [editing, setEditing] = useState<ScheduleTemplate | 'new' | null>(null);
   const rows = (list.data ?? []).filter((item) => item.status === 'ACTIVE');
@@ -103,7 +105,7 @@ function SchedulesPanel({ canEdit, onLaunch }: { canEdit: boolean; onLaunch: () 
               {canEdit && (
                 <div className="flex shrink-0 gap-1">
                   <button type="button" className="btn-icon" aria-label={`Editar ${item.name}`} onClick={() => setEditing(item)}><Pencil size={15} /></button>
-                  <button type="button" className="btn-icon text-rose-600" aria-label={`Arquivar ${item.name}`} onClick={async () => { try { await hubApi.archiveSchedule(item.id); toast.success('Escala arquivada.'); list.refetch(); } catch (cause) { toast.error(errorMessage(cause, 'Falha ao arquivar.')); } }}><Archive size={15} /></button>
+                  <button type="button" className="btn-icon text-rose-600" aria-label={`Arquivar ${item.name}`} onClick={async () => { if (!(await askConfirm({ title: 'Arquivar escala', description: `Arquivar a escala "${item.name}"? Ela deixa de poder ser usada em novos lançamentos.`, confirmText: 'Arquivar escala' }))) return; try { await hubApi.archiveSchedule(item.id); toast.success('Escala arquivada.'); list.refetch(); } catch (cause) { toast.error(errorMessage(cause, 'Falha ao arquivar.')); } }}><Archive size={15} /></button>
                 </div>
               )}
             </li>
@@ -186,6 +188,7 @@ function PolicyPanel() {
 }
 
 function GeofencesPanel() {
+  const askConfirm = useConfirm();
   const fences = useQuery(() => hubApi.geofences(), []);
   const [editing, setEditing] = useState<Geofence | 'new' | null>(null);
   const [form, setForm] = useState({ name: '', latitude: '', longitude: '', radiusMeters: '150' });
@@ -225,7 +228,7 @@ function GeofencesPanel() {
               <div><p className="flex items-center gap-1.5 text-sm font-semibold"><MapPin size={14} aria-hidden="true" />{fence.name}</p><p className="text-xs text-fg-sub">{fence.latitude.toFixed(5)}, {fence.longitude.toFixed(5)} · raio {fence.radiusMeters} m{fence.active ? '' : ' · inativo'}</p></div>
               <div className="flex gap-1">
                 <button type="button" className="btn-icon" aria-label={`Editar ${fence.name}`} onClick={() => setEditing(fence)}><Pencil size={15} /></button>
-                <button type="button" className="btn-icon text-rose-600" aria-label={`Excluir ${fence.name}`} onClick={async () => { try { await hubApi.deleteGeofence(fence.id); toast.success('Local removido.'); fences.refetch(); } catch (cause) { toast.error(errorMessage(cause, 'Falha ao remover.')); } }}><Trash2 size={15} /></button>
+                <button type="button" className="btn-icon text-rose-600" aria-label={`Excluir ${fence.name}`} onClick={async () => { if (!(await askConfirm({ title: 'Remover local de ponto', description: `Remover o local "${fence.name}"? Marcações novas deixam de ser validadas por ele.`, confirmText: 'Remover local' }))) return; try { await hubApi.deleteGeofence(fence.id); toast.success('Local removido.'); fences.refetch(); } catch (cause) { toast.error(errorMessage(cause, 'Falha ao remover.')); } }}><Trash2 size={15} /></button>
               </div>
             </li>
           ))}

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Suporte ao cliente
+    url: https://github.com/Eduardo09e32y4rhf/innovation/blob/main/docs/MANUAL-DO-USUARIO.md
+    about: Dúvida de uso do sistema? Veja o manual do usuário antes de abrir uma issue.

@@ -149,8 +149,8 @@
   .btn-ghost { @apply bg-transparent text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98]; }
   .btn-danger { @apply bg-[var(--color-danger)] text-white hover:bg-[#be123c] active:scale-[0.98]; }
   .btn-warning { @apply bg-[var(--color-warning)] text-white hover:bg-[#b45309] active:scale-[0.98]; }
-  .btn-success { @apply bg-[var(--color-success)] text-white hover:bg-[#047857] active:scale-[0.98]; }
-  .btn-cyan { @apply bg-cyan-500 text-white hover:bg-cyan-600 active:scale-[0.98]; }
+  .btn-success { @apply bg-[#047857] text-white hover:bg-[#065f46] active:scale-[0.98]; }
+  .btn-cyan { @apply bg-cyan-700 text-white hover:bg-cyan-800 active:scale-[0.98]; }
 
   .btn-icon {
     @apply inline-flex items-center justify-center bg-zinc-100 border border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200 hover:border-zinc-300 transition-colors disabled:opacity-50;
@@ -166,14 +166,14 @@
   .form-error { @apply text-[11px] font-bold text-[var(--color-danger)]; }
 
   .form-control {
-    @apply w-full bg-white border border-zinc-300 text-zinc-900 text-sm outline-none transition-all placeholder:text-zinc-400 focus:border-[var(--color-brand)] focus:ring-1 focus:ring-[var(--color-brand)];
+    @apply w-full bg-white border border-zinc-300 text-zinc-900 text-sm outline-none transition-all placeholder:text-zinc-500 focus:border-[var(--color-brand)] focus:ring-1 focus:ring-[var(--color-brand)];
     border-radius: var(--radius-md);
     height: var(--control-md);
     padding: 0 12px;
   }
   .form-select { @apply form-control cursor-pointer pr-8 appearance-none bg-no-repeat bg-[right_12px_center] bg-[length:16px_16px]; }
   .form-textarea {
-    @apply w-full bg-white border border-zinc-300 text-zinc-900 text-sm outline-none transition-all placeholder:text-zinc-400 focus:border-[var(--color-brand)] focus:ring-1 focus:ring-[var(--color-brand)] py-2;
+    @apply w-full bg-white border border-zinc-300 text-zinc-900 text-sm outline-none transition-all placeholder:text-zinc-500 focus:border-[var(--color-brand)] focus:ring-1 focus:ring-[var(--color-brand)] py-2;
     border-radius: var(--radius-md);
     padding: 8px 12px;
     min-height: 80px;
@@ -212,9 +212,9 @@
     @apply inline-flex items-center justify-center gap-1 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider border;
     border-radius: var(--radius-sm);
   }
-  .status-success { @apply bg-emerald-50 text-[var(--color-success)] border-emerald-200; }
+  .status-success { @apply bg-emerald-50 text-[#047857] border-emerald-200; }
   .status-warning { @apply bg-amber-50 text-[var(--color-warning)] border-amber-200; }
-  .status-danger { @apply bg-rose-50 text-[var(--color-danger)] border-rose-200; }
+  .status-danger { @apply bg-rose-50 text-[#be123c] border-rose-200; }
   .status-info { @apply bg-blue-50 text-[var(--color-info)] border-blue-200; }
   .status-neutral { @apply bg-zinc-100 text-zinc-600 border-zinc-200; }
   .status-brand { @apply bg-purple-50 text-[var(--color-brand)] border-purple-200; }
@@ -452,4 +452,13 @@ textarea.form-control { height: auto; min-height: 96px; padding-block: 10px; }
 @media (max-width: 359px) { .workspace-content { padding-inline: 12px; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* WCAG 2.4.7: campos que usam `outline-none` continuam com indicador de foco visível ao navegar pelo teclado. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[contenteditable="true"]:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 1px;
 }

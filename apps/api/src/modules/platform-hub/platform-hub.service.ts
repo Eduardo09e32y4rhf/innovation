@@ -62,7 +62,7 @@ export class PlatformHubService {
       this.prisma.company.count({ where: { ...scope, createdAt: { gte: since30 } } }),
       this.prisma.user.count({ where: { ...(companyIds ? { companyId: { in: companyIds } } : {}), isActive: true } }),
       this.prisma.employee.count({ where: { ...(companyIds ? { companyId: { in: companyIds } } : {}), status: 'ACTIVE' } }),
-      financeAllowed ? this.prisma.platformInvoice.groupBy({ by: ['status'], where: { ...byCompany, deletedAt: null, dueDate: { gte: start, lt: end } }, _sum: { amount: true }, _count: true }) : Promise.resolve([]),
+      financeAllowed ? this.prisma.platformInvoice.groupBy({ by: ['status'], where: { ...byCompany, deletedAt: null, dueDate: { gte: start, lt: end } }, _sum: { amount: true, refundedAmount: true }, _count: true }) : Promise.resolve([]),
       financeAllowed ? this.prisma.platformInvoice.groupBy({ by: ['companyId'], where: { ...byCompany, deletedAt: null, status: 'OVERDUE' }, _sum: { amount: true }, _count: true, orderBy: { _sum: { amount: 'desc' } }, take: 8 }) : Promise.resolve([]),
       this.prisma.company.findMany({ where: { ...scope, status: 'ACTIVE' }, select: { id: true, name: true, maxUsers: true, maxEmployees: true, _count: { select: { users: true, employees: true } } }, take: 600 }),
       this.prisma.company.findMany({ where: { ...scope, billingStatus: 'TRIAL', trialEndsAt: { lte: in7 } }, select: { id: true, name: true, trialEndsAt: true }, orderBy: { trialEndsAt: 'asc' }, take: 8 }),
@@ -74,6 +74,9 @@ export class PlatformHubService {
 
     const names = new Map((await this.prisma.company.findMany({ where: { id: { in: overdue.map((row) => row.companyId) } }, select: { id: true, name: true } })).map((item) => [item.id, item.name]));
     const money = (status: string) => num(invoicesMonth.find((row) => row.status === status)?._sum?.amount);
+    // Recebido = pago - estornado, igual a platform-finance.service (estorno nao e receita).
+    const paidRow = invoicesMonth.find((row) => row.status === 'PAID');
+    const received = Math.max(0, num(paidRow?._sum?.amount) - num((paidRow?._sum as any)?.refundedAmount));
     const nearLimit = attentionRaw
       .filter((company) => company._count.users >= Math.max(1, company.maxUsers) * 0.9 || company._count.employees >= Math.max(1, company.maxEmployees) * 0.9)
       .slice(0, 8)
@@ -83,7 +86,7 @@ export class PlatformHubService {
       scope: 'GLOBAL',
       companies: { total: byStatus.reduce((sum, row) => sum + row._count, 0), byStatus: Object.fromEntries(byStatus.map((row) => [row.status, row._count])), newLast30Days: newCompanies, byBilling: Object.fromEntries(usage.map((row) => [row.billingStatus, row._count])) },
       usage: { users, employees },
-      finance: financeAllowed ? { month: start.toISOString().slice(0, 7), received: money('PAID'), open: money('OPEN'), overdue: money('OVERDUE'), invoices: invoicesMonth.reduce((sum, row) => sum + row._count, 0) } : null,
+      finance: financeAllowed ? { month: start.toISOString().slice(0, 7), received, open: money('OPEN'), overdue: money('OVERDUE'), invoices: invoicesMonth.reduce((sum, row) => sum + row._count, 0) } : null,
       support: { open: tickets },
       integrations: { webhookFailures: webhooks },
       attention: {

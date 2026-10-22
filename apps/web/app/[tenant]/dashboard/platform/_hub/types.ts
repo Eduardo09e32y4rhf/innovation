@@ -1,16 +1,4 @@
-export type HubTab = 'resumo' | 'empresas' | 'financeiro' | 'contabilidade' | 'comercial' | 'suporte' | 'auditoria' | 'configuracoes' | 'dossie';
-
-export const TAB_LABEL: Record<HubTab, string> = {
-  resumo: 'Resumo', empresas: 'Empresas', financeiro: 'Financeiro', contabilidade: 'Contabilidade',
-  comercial: 'Comercial', suporte: 'Suporte', auditoria: 'Auditoria', configuracoes: 'Configurações', dossie: 'Empresa',
-};
-
-export const TAB_POLICY: Record<string, HubTab[]> = {
-  DEV: ['resumo', 'empresas', 'dossie', 'comercial', 'suporte', 'auditoria', 'configuracoes'],
-  CEO: ['resumo', 'empresas', 'dossie', 'suporte', 'auditoria', 'configuracoes'],
-  COMERCIAL: ['resumo', 'empresas', 'dossie', 'comercial', 'configuracoes'],
-  CONTABIL: ['resumo'],
-};
+/** Tipos das respostas de /platform-hub e /accounting usadas pelas telas da Plataforma. Quem vê o quê está em `_lib/platform-access.ts`. */
 
 export interface CompanyOption { id: string; name: string; slug: string; document: string; status: string; plan: string; billingStatus: string }
 

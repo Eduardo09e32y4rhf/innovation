@@ -149,7 +149,7 @@ export class EmployeesService {
     }
     await this.ensureRegistrationAvailable(companyId, dto.registration, id);
     
-    const result = await this.repository.update(companyId, id, this.toData(dto));
+    const result = await this.repository.update(companyId, id, this.toData(dto, true));
     if (!result.count) throw new NotFoundException('Employee not found');
     const employee = await this.get(companyId, actor, id);
     
@@ -171,26 +171,23 @@ export class EmployeesService {
   }
 
   async terminate(companyId: string, actor: JwtUser, id: string) {
-    await this.get(companyId, actor, id);
-    const result = await this.repository.update(companyId, id, { status: 'TERMINATED' });
-    if (!result.count) throw new NotFoundException('Employee not found');
+    const current = await this.get(companyId, actor, id);
+    const result = await this.repository.terminateOnce(companyId, id, {}, current?.userId);
+    if (!result.count) {
+      if (current?.status === 'TERMINATED' || (await this.repository.findById(companyId, id))?.status === 'TERMINATED') {
+        throw new ConflictException('Funcionário já desligado.');
+      }
+      throw new NotFoundException('Employee not found');
+    }
 
-    // Automação: Gera ASO Demissional pendente
+    // Automação: Gera ASO Demissional pendente (uma única vez: só quem venceu o compare-and-set chega aqui)
     await this.asoService.create(companyId, actor.sub, {
       employeeId: id,
       asoType: 'DEMISSIONAL',
       status: 'PENDING'
     });
 
-    const employee = await this.get(companyId, actor, id);
-    if (employee?.userId) {
-      await this.repository.updateUser(companyId, employee.userId, {
-        isActive: false,
-        forcePasswordChange: true,
-      });
-    }
-
-    return employee;
+    return this.get(companyId, actor, id);
   }
 
   async createAccess(companyId: string, actor: JwtUser, employeeId: string, dto: { email: string; role?: string; name?: string }) {
@@ -378,17 +375,11 @@ export class EmployeesService {
     const deletionImpact = await this.repository.getDeletionImpact(companyId, id);
 
     if (deletionImpact.total > 0) {
-      await this.repository.update(companyId, id, {
-        status: 'TERMINATED',
+      const archived = await this.repository.terminateOnce(companyId, id, {
         terminationDate: employee?.terminationDate ? undefined : this.todayInSaoPaulo(),
         observations: this.appendArchiveNote(employee?.observations, actor),
-      });
-      if (employee?.userId) {
-        await this.repository.updateUser(companyId, employee.userId, {
-          isActive: false,
-          forcePasswordChange: true,
-        });
-      }
+      }, employee?.userId);
+      if (!archived.count) throw new ConflictException('Funcionário já desligado ou arquivado.');
       return {
         deleted: false,
         archived: true,
@@ -534,14 +525,18 @@ export class EmployeesService {
     return 'FUNCIONARIO';
   }
 
-  private toData(dto: CreateEmployeeDto | UpdateEmployeeDto) {
+  /**
+   * `partial` = edicao (PATCH): so grava o que veio no corpo. Os valores padrao (nome, cargo, departamento, status,
+   * admissao = hoje) valem apenas no cadastro; numa edicao eles sobrescreviam dados existentes.
+   */
+  private toData(dto: CreateEmployeeDto | UpdateEmployeeDto, partial = false) {
     const { accessEnabled, accessProfile, firstJob, reservista, ...employeeData } = dto as any;
-    const status = dto.status ?? 'ACTIVE';
+    const status = partial ? dto.status : (dto.status ?? 'ACTIVE');
     return {
       ...employeeData,
-      name: this.emptyToUndefined(dto.name) ?? 'Funcionario sem nome',
-      position: this.emptyToUndefined(dto.position) ?? 'A definir',
-      department: this.emptyToUndefined(dto.department) ?? 'A definir',
+      name: this.emptyToUndefined(dto.name) ?? (partial ? undefined : 'Funcionario sem nome'),
+      position: this.emptyToUndefined(dto.position) ?? (partial ? undefined : 'A definir'),
+      department: this.emptyToUndefined(dto.department) ?? (partial ? undefined : 'A definir'),
       phone: this.emptyToUndefined(dto.phone),
       rg: this.emptyToUndefined(dto.rg),
       rgIssuer: this.emptyToUndefined(dto.rgIssuer),
@@ -561,7 +556,7 @@ export class EmployeesService {
       birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
       registration: this.emptyToUndefined(dto.registration),
       managerId: this.emptyToUndefined(dto.managerId),
-      admissionDate: dto.admissionDate ? new Date(dto.admissionDate) : this.todayInSaoPaulo(),
+      admissionDate: dto.admissionDate ? new Date(dto.admissionDate) : (partial ? undefined : this.todayInSaoPaulo()),
       terminationDate: status === 'ACTIVE' ? undefined : (dto.terminationDate ? new Date(dto.terminationDate) : undefined),
       salary: dto.salary !== undefined ? String(dto.salary) : undefined,
       contractType: this.emptyToUndefined(dto.contractType),

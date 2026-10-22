@@ -1,5 +1,7 @@
+import { isFeatureEnabled } from '../../common/feature-flags';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { CronLock } from '../../common/redis/cron-lock.decorator';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../../common/types/auth.types';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -118,5 +120,9 @@ export class PromotionsService {
   }
 
   @Cron('10 6 * * *', { timeZone: 'America/Sao_Paulo' })
-  async dailyJob() { const n = await this.applyDue(); if (n) this.logger.log(`${n} promoção(ões) aplicada(s).`); }
+  @CronLock('promotions.dailyJob', 3000)
+  async dailyJob() {
+    if (!isFeatureEnabled('promotions')) return;
+    const n = await this.applyDue(); if (n) this.logger.log(`${n} promoção(ões) aplicada(s).`);
+  }
 }

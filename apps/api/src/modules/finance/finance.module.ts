@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { AsaasService } from './asaas.service';
 import { AsaasFiscalService } from './asaas-fiscal.service';
+import { FiscalAdjustmentsService } from './fiscal-adjustments.service';
 import { InvoicePdfService } from './invoice-pdf.service';
 import { AsaasWebhookController } from './asaas-webhook.controller';
 import { AsaasWebhookProcessorService, AsaasWebhookWorker } from './asaas-webhook.processor';
@@ -22,7 +23,11 @@ import { PaymentProviderService } from './payment-provider.service';
 import { FinanceNotificationService } from './finance-notification.service';
 import { PlatformFinanceService } from './platform-finance.service';
 import { PaymentRefundService } from './payment-refund.service';
+import { PaymentReconciliationService } from './payment-reconciliation.service';
+import { ReconciliationController } from './reconciliation.controller';
 import { PricingService } from './pricing.service';
+import { PlatformRevenueReportService } from './platform-revenue-report.service';
+import { TrialConversionService } from './trial-conversion.service';
 import { QueueModule } from '../queue/queue.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { TimeTrackModule } from '../time-track/time-track.module';
@@ -40,6 +45,7 @@ import { TimeTrackModule } from '../time-track/time-track.module';
   providers: [
     AsaasService,
     AsaasFiscalService,
+    FiscalAdjustmentsService,
     InvoicePdfService,
     MercadoPagoService,
     PaymentProviderService,
@@ -47,9 +53,12 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     AsaasWebhookWorker,
     BillingCronService,
     PlatformFinanceService,
+    PlatformRevenueReportService,
     PaymentRefundService,
+    PaymentReconciliationService,
     FinanceNotificationService,
     PricingService,
+    TrialConversionService,
     FaturasService,
     FaturasAcoesService,
     FaturasEmpresaService,
@@ -64,6 +73,7 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     AsaasWebhookController,
     MercadoPagoWebhookController,
     IntegrationsController,
+    ReconciliationController,
   ],
   exports: [AsaasService, MercadoPagoService, PaymentProviderService, PlatformFinanceService, FinanceNotificationService, PricingService],
 })

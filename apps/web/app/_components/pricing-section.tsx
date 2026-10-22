@@ -26,7 +26,7 @@ export function PricingSection() {
     <div>
       <div className="mx-auto max-w-xl text-center">
         <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Escolha o plano <span className="bg-gradient-to-r from-amber-200 to-pink-300 bg-clip-text text-transparent">da sua empresa</span></h2>
-        <p className="mt-3 text-sm text-white/70">Preço fixo por mês. Pague só pelo que passar do que está incluso.</p>
+        <p className="mt-3 text-sm text-white/70">Preço fixo por mês. Pague só pelo que passar do que está incluso. Todo plano pago começa com 30 dias grátis, sem cartão.</p>
       </div>
 
       <div className={`mx-auto mt-10 grid max-w-5xl items-center gap-5 ${plans.length > 1 ? 'md:grid-cols-2' : 'max-w-md'} ${plans.length > 2 ? 'lg:grid-cols-3' : ''}`}>

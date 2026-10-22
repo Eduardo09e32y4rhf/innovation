@@ -1,3 +1,4 @@
+import { ALLOW, inspectFile } from '../../../common/utils/file-validation';
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { createHash } from 'crypto';
@@ -52,14 +53,16 @@ export class LaunchService {
     if (!file?.buffer) throw new BadRequestException('Nenhum arquivo enviado.');
     const problem = checkCertificateFile(file.originalname, file.size, file.buffer);
     if (problem) throw new BadRequestException(problem);
-    const ext = (file.originalname.split('.').pop() ?? 'bin').toLowerCase();
+    const checked = inspectFile(file.buffer, { allow: ALLOW.CERTIFICATE, maxBytes: 10 * 1024 * 1024, filename: file.originalname });
+    if (!checked.ok) throw new BadRequestException(`Arquivo recusado: ${checked.message}`);
+    const ext = checked.extension;
     const sha = createHash('sha256').update(file.buffer).digest('hex');
     const key = `atestados/${actor.companyId}/${Date.now()}-${sha.slice(0, 10)}.${ext}`;
     const full = join(baseDir(), key);
     await mkdir(join(baseDir(), 'atestados', actor.companyId), { recursive: true });
     await writeFile(full, file.buffer);
     const row = await this.prisma.attachment.create({
-      data: { companyId: actor.companyId, ownerType: 'EMPLOYEE', ownerId: employeeId, fileName: file.originalname.slice(0, 200), fileType: file.mimetype ?? ext, fileSize: file.size, fileUrl: `atestado:${key}`, storageKey: key, uploadedByUserId: actor.sub },
+      data: { companyId: actor.companyId, ownerType: 'EMPLOYEE', ownerId: employeeId, fileName: checked.safeName, fileType: checked.mime, fileSize: file.size, fileUrl: `atestado:${key}`, storageKey: key, uploadedByUserId: actor.sub },
     });
     return { id: row.id, fileName: row.fileName };
   }

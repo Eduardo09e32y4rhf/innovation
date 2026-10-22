@@ -11,6 +11,8 @@ import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { normalizeDisplayName, maskCPF, maskCNPJ, maskCEP } from '@/app/lib/text';
 import { toast } from 'sonner';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
+import { useGuard } from '@/app/hooks/use-action';
 
 const STATUS_OPTIONS: { value: EmployeeStatus; label: string }[] = [
   { value: 'ACTIVE', label: 'Ativo' },
@@ -221,7 +223,7 @@ function EmployeeForm() {
   const editId = searchParams.get('id');
   const isEdit = Boolean(editId);
   const { user } = useAuth();
-  const canEdit = ['DEV', 'ADMIN', 'RH'].includes(user?.profile?.toUpperCase() ?? '');
+  const canEdit = roleIn(ROLE_ACCESS.employeeWrite, user?.profile);
   const employeesQuery = useQuery(() => api.employees.list(), [], { enabled: canEdit });
   const positionsQuery = useQuery(() => api.employees.positions(), [], { enabled: canEdit });
   const [extraPositions, setExtraPositions] = useState<string[]>([]);
@@ -243,7 +245,8 @@ function EmployeeForm() {
       return true;
     });
   }, [employeesQuery.data]);
-  const registerPosition = async (name: string) => {
+  const { guard } = useGuard();
+  const registerPosition = guard('registerPosition', async (name: string) => {
     try {
       const saved = await api.employees.createPosition(name);
       setExtraPositions((current) => [...current, saved.name]);
@@ -251,7 +254,7 @@ function EmployeeForm() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Não foi possível salvar o cargo.');
     }
-  };
+  });
 
   const [form, setForm] = useState<EmployeeFormState>(EMPTY);
   const [activeTab, setActiveTab] = useState<TabName>('Dados pessoais');

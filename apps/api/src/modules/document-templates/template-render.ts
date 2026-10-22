@@ -32,11 +32,22 @@ export function unknownVariables(text: string): string[] {
   return [...found];
 }
 
+/** Chaves duplas que sobram depois de tirar os campos escritos certo: {{data-ocorrencia}}, {{nome1}}, {{nome}, {nome}}. Iriam literais para o documento. */
+export function malformedPlaceholders(text: string): string[] {
+  const rest = text.replace(PLACEHOLDER, ' ');
+  if (!/\{\{|\}\}/.test(rest)) return [];
+  const found = new Set<string>();
+  for (const m of rest.matchAll(/\{\{[^{}]{0,40}\}{0,2}|\{?[^{}\s]{0,40}\}\}/g)) found.add(m[0].trim() || '{{ }}');
+  if (!found.size) found.add('{{ }}');
+  return [...found];
+}
+
 /** Troca os campos pelos valores. Campo sem valor vira "________" (para preencher à mão), nunca "undefined". */
 export function renderTemplate(text: string, vars: TemplateVars): string {
   return text.replace(PLACEHOLDER, (_all, key: string) => {
     const value = vars[key.toLowerCase()];
-    return value === undefined || value === null || String(value).trim() === '' ? '________' : String(value);
+    // Chaves dentro do valor digitado (ex.: motivo) sairiam como campo não resolvido: são removidas.
+    return value === undefined || value === null || String(value).trim() === '' ? '________' : String(value).replace(/\{\{|\}\}/g, '');
   });
 }
 
@@ -47,7 +58,10 @@ export function validateTemplate(input: { name?: string; kind?: string; title?: 
   const body = String(input.body ?? '').trim();
   if (body.length < 20) return 'O texto do modelo está muito curto (mínimo 20 letras).';
   if (body.length > 8000) return 'O texto passa de 8.000 letras.';
-  const unknown = unknownVariables(body);
+  const text = `${input.title ?? ''}\n${body}`;
+  const malformed = malformedPlaceholders(text);
+  if (malformed.length) return `Campo(s) mal escrito(s): ${malformed.slice(0, 3).join(', ')}. Use {{campo}} com letras e _ (ex.: {{data_ocorrencia}}).`;
+  const unknown = unknownVariables(text);
   if (unknown.length) return `Campo(s) desconhecido(s): ${unknown.map((u) => `{{${u}}}`).join(', ')}. Use os campos da lista.`;
   return null;
 }

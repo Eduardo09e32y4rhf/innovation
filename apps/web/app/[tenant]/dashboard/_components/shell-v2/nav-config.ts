@@ -7,6 +7,7 @@ import { hasPermission, type Permission } from '../../../../lib/permissions';
 import { resolveUserRole } from '../../../../lib/user-role';
 import { hasScheduleModule } from '../../../../lib/schedule-access';
 import { usesRecruiterAgenda } from '../../../../lib/recruiter-account';
+import { featureAllowed, type WebFeature } from '../../../../lib/feature-flags';
 
 export type NavGroup = 'Trabalho' | 'Administração' | 'Operação global';
 export type NavItem = {
@@ -66,19 +67,19 @@ export function isNavActive(pathname: string, tenant: string, item: NavItem) {
 }
 
 export type SearchDestination = { id: string; label: string; href: string; group: string; icon: LucideIcon };
-const MODULE_DESTINATIONS: { parent: string; label: string; suffix: string; roles?: readonly string[] }[] = [
+const MODULE_DESTINATIONS: { parent: string; label: string; suffix: string; roles?: readonly string[]; feature?: WebFeature }[] = [
   ...[['Calendário', 'calendario'], ['Ponto', 'ponto'], ['Solicitações', 'solicitacoes'], ['Aprovações', 'aprovacoes'], ['Escalas e regras', 'modelos'], ['Fechamento', 'fechamento'], ['Relatórios', 'relatorios']].map(([label, suffix]) => ({ parent: 'escalas', label, suffix })),
   ...[['Agenda', 'agenda'], ['ASO', 'aso'], ['Comunicados', 'notifications']].map(([label, suffix]) => ({ parent: 'management', label, suffix })),
   { parent: 'management', label: 'Folha de pagamento', suffix: 'payroll', roles: ['DEV', 'ADMIN', 'RH'] },
   { parent: 'management', label: 'Admissão', suffix: 'onboarding', roles: ['DEV', 'ADMIN', 'RH'] },
-  ...[['Empresas', 'companies'], ['Financeiro', 'finance'], ['Assinaturas', 'subscriptions'], ['Planos', 'plans'], ['Contratos', 'contracts'], ['Propostas', 'proposals'], ['Configuração global', 'configuration'], ['Auditoria', 'audit']].map(([label, suffix]) => ({ parent: 'platform', label, suffix })),
-  ...[['Permissões globais', 'permissions'], ['Acessos', 'access'], ['Cupons', 'coupons'], ['Suporte operacional', 'support'], ['Inteligência', 'intelligence'], ['WhatsApp', 'whatsapp']].map(([label, suffix]) => ({ parent: 'platform', label, suffix, roles: ['DEV'] })),
+  ...[['Empresas', 'companies'], ['Financeiro', 'finance'], ['Assinaturas', 'subscriptions'], ['Planos', 'plans'], ['Contratos', 'contracts', 'manual-contracts'], ['Propostas', 'proposals', 'proposals'], ['Configuração global', 'configuration'], ['Auditoria', 'audit']].map(([label, suffix, feature]) => ({ parent: 'platform', label, suffix, feature: feature as WebFeature | undefined })),
+  ...[['Permissões globais', 'permissions'], ['Acessos', 'access'], ['Cupons', 'coupons'], ['Suporte operacional', 'support'], ['Inteligência', 'intelligence', 'ai'], ['WhatsApp', 'whatsapp', 'communication']].map(([label, suffix, feature]) => ({ parent: 'platform', label, suffix, roles: ['DEV'], feature: feature as WebFeature | undefined })),
 ];
 export function getSearchDestinations(items: readonly NavItem[], role: string): SearchDestination[] {
   const result: SearchDestination[] = items.map((item) => ({ ...item }));
   for (const entry of MODULE_DESTINATIONS) {
     const parent = items.find((item) => item.id === entry.parent);
-    if (parent && (!entry.roles || entry.roles.includes(role))) result.push({ id: `${parent.id}-${entry.suffix}`, label: entry.label, href: entry.parent === 'escalas' ? `${parent.href}?view=${entry.suffix}` : `${parent.href}/${entry.suffix}`, group: parent.label, icon: parent.icon });
+    if (parent && featureAllowed(entry.feature) && (!entry.roles || entry.roles.includes(role))) result.push({ id: `${parent.id}-${entry.suffix}`, label: entry.label, href: entry.parent === 'escalas' ? `${parent.href}?view=${entry.suffix}` : `${parent.href}/${entry.suffix}`, group: parent.label, icon: parent.icon });
   }
   return result;
 }

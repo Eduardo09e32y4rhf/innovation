@@ -18,7 +18,7 @@ export function FilterBar({
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div className="relative w-full md:w-80">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-        <input
+        <input aria-label={placeholder ?? 'Buscar'}
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={placeholder}

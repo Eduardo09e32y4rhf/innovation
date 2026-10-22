@@ -106,7 +106,7 @@ describe('VacationsService', () => {
       employee: { id: 'employee-1' },
     };
     const { service, receiptService } = makeService({
-      findById: vi.fn().mockResolvedValue(vacation),
+      findForReceipt: vi.fn().mockResolvedValue(vacation),
     });
     receiptService.generate.mockResolvedValue({ documentId: 'document-1' });
 

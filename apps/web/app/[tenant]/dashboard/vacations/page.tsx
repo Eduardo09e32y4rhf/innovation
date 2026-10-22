@@ -12,6 +12,7 @@ import { VACATION_STATUS_LABEL, formatDate, formatPeriod } from '@/app/lib/forma
 import { normalizeDisplayName } from '@/app/lib/text';
 import { hasPermission } from '@/app/lib/permissions';
 import { acquisitionWindow, availableDays, diffDays, processVacationDecisions, vacationRadar, type RadarKind, type VacationEntitlement, type VacationRow } from './vacation-data';
+import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
 
 type Tab = 'active' | 'rejected' | 'history' | 'alerts' | 'radar';
 type Decision = { ids: string[]; status: 'APPROVED' | 'REJECTED' };
@@ -27,8 +28,8 @@ const RADAR_LABEL: Record<RadarKind, { label: string; tone: string }> = {
 export default function VacationsPage() {
   const { user } = useAuth();
   const profile = user?.profile?.toUpperCase() ?? '';
-  const canApprove = ['ADMIN', 'RH', 'DEV'].includes(profile) && hasPermission(user, 'vacations.approve');
-  const canRequest = canApprove || hasPermission(user, 'vacations.request_own') || hasPermission(user, 'vacations.request_team');
+  const canApprove = roleIn(ROLE_ACCESS.vacationApprove, profile) && hasPermission(user, 'vacations.approve');
+  const canRequest = roleIn(ROLE_ACCESS.vacationRequest, profile);
   const vacations = useQuery(() => api.vacations.list(), [], { pollMs: 30000 });
   const employees = useQuery(() => api.employees.list(), []);
   const [open, setOpen] = useState(false);

@@ -305,7 +305,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                   const on = benefits.some((benefit) => benefit.toLowerCase() === item.toLowerCase());
                   return <button key={item} type="button" aria-pressed={on} onClick={() => set('benefitsText', on ? benefits.filter((benefit) => benefit.toLowerCase() !== item.toLowerCase()).join('\n') : [...benefits, item].join('\n'))} className={`min-h-8 rounded-full border px-2.5 text-xs font-medium ${on ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-border text-fg-sub hover:bg-bg-sub'}`}>{on ? '✓ ' : '+ '}{item}</button>;
                 })}</div>
-                <textarea className={`${inputClass} min-h-24`} value={draft.benefitsText} onChange={(event) => set('benefitsText', event.target.value)} />
+                <textarea aria-label="Benefícios da vaga, um por linha" className={`${inputClass} min-h-24`} value={draft.benefitsText} onChange={(event) => set('benefitsText', event.target.value)} />
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Salário de (R$)"><input inputMode="decimal" className={inputClass} placeholder="2.000" value={draft.salaryMin} onChange={(event) => set('salaryMin', event.target.value)} /></Field>

@@ -1,3 +1,4 @@
+import { ApprovalDto, BatchApprovalDto } from './dto/approval.dto';
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -68,19 +69,19 @@ export class TimeTrackController {
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
 
   @Patch(':id/overtime-approval')
-  approveOvertime(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: { approved: boolean }) {
+  approveOvertime(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: ApprovalDto) {
     return this.service.approveOvertime(companyId, actor, id, body.approved);
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Patch(':id/approve')
-  approve(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: { approved: boolean }) {
+  approve(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: ApprovalDto) {
     return this.service.approveManual(companyId, actor, id, body.approved);
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Post('batch-approve')
-  batchApprove(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: { ids: string[], approved: boolean }) {
+  batchApprove(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() body: BatchApprovalDto) {
     return this.service.batchApproveManual(companyId, actor, body.ids, body.approved);
   }
 

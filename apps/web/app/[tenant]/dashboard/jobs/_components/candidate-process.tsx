@@ -9,6 +9,7 @@ import { ApiError } from '@/app/lib/api';
 import { meetingLabel, normalizeMeetingInput } from '../../management/agenda/meeting-link';
 import { freeMeetingLink, processApi, RECOMMENDATION_LABEL, type AssessmentResult, type InterviewFeedbackItem, type Offer, type Recommendation } from '../process-api';
 import { Field, Pill, inputClass } from './bits';
+import { useConfirm } from '@/app/components/ui/confirm-provider';
 
 const fail = (cause: unknown, fallback: string) => toast.error(cause instanceof ApiError ? cause.message : fallback);
 const dt = (value?: string | null) => (value ? new Date(value).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '');
@@ -117,6 +118,7 @@ export function SlotOfferDialog({ isOpen, applicationId, candidateName, onClose,
 }
 
 export function SlotOffersList({ applicationId, refreshKey, onChanged }: { applicationId: string; refreshKey: number; onChanged: () => void }) {
+  const askConfirm = useConfirm();
   const offers = useQuery(() => processApi.slotOffers(applicationId), [applicationId, refreshKey]);
   const pending = (offers.data ?? []).filter((offer) => offer.status === 'PENDING' && new Date(offer.expiresAt).getTime() > Date.now());
   if (!pending.length) return null;
@@ -125,7 +127,7 @@ export function SlotOffersList({ applicationId, refreshKey, onChanged }: { appli
       {pending.map((offer) => (
         <li key={offer.id} className="flex items-start justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
           <div><p className="flex items-center gap-1.5 font-semibold text-amber-900"><Clock size={14} aria-hidden="true" /> Aguardando o candidato escolher ({offer.slots.length} horário{offer.slots.length > 1 ? 's' : ''})</p><p className="text-xs text-amber-800">Até {dt(offer.expiresAt)} · {offer.mode === 'ONLINE' ? 'online' : 'presencial'}</p></div>
-          <Button size="sm" variant="ghost" onClick={async () => { try { await processApi.cancelSlotOffer(applicationId, offer.id); toast.success('Horários cancelados.'); offers.refetch(); onChanged(); } catch (cause) { fail(cause, 'Não foi possível cancelar.'); } }}>Cancelar</Button>
+          <Button size="sm" variant="ghost" onClick={async () => { if (!(await askConfirm({ title: 'Cancelar horários oferecidos', description: 'O candidato deixa de poder escolher entre estes horários.', confirmText: 'Cancelar horários' }))) return; try { await processApi.cancelSlotOffer(applicationId, offer.id); toast.success('Horários cancelados.'); offers.refetch(); onChanged(); } catch (cause) { fail(cause, 'Não foi possível cancelar.'); } }}>Cancelar</Button>
         </li>
       ))}
     </ul>
@@ -219,6 +221,7 @@ const OFFER_STATUS: Record<string, { label: string; tone: 'default' | 'success' 
 const CONTRACTS: [string, string][] = [['CLT', 'CLT'], ['PJ', 'PJ'], ['ESTAGIO', 'Estágio'], ['TEMPORARIO', 'Temporário'], ['APRENDIZ', 'Jovem aprendiz'], ['AUTONOMO', 'Autônomo']];
 
 export function OffersPanel({ applicationId, jobTitle, canCreate, closed, onChanged }: { applicationId: string; jobTitle: string; canCreate: boolean; closed: boolean; onChanged: () => void }) {
+  const askConfirm = useConfirm();
   const offers = useQuery(() => processApi.offers(applicationId), [applicationId]);
   const [form, setForm] = useState({ positionTitle: jobTitle, contractType: 'CLT', salary: '', startDate: '', workSchedule: '', benefits: '', message: '', validDays: 7 });
   const [creating, setCreating] = useState(false);
@@ -276,7 +279,7 @@ export function OffersPanel({ applicationId, jobTitle, canCreate, closed, onChan
                 {offer.canApprove && <Button size="sm" onClick={() => act(offer.id, () => processApi.approveOffer(offer.id), 'Proposta aprovada.')} isLoading={busy === offer.id}>Aprovar</Button>}
                 {offer.canApprove && <Button size="sm" variant="outline" onClick={() => { const note = window.prompt('O que precisa mudar?'); if (note?.trim()) act(offer.id, () => processApi.returnOffer(offer.id, note.trim()), 'Proposta devolvida para ajuste.'); }}>Devolver</Button>}
                 {canCreate && status === 'APPROVED' && <Button size="sm" onClick={() => act(offer.id, () => processApi.sendOffer(offer.id), 'Proposta enviada por e-mail.')} isLoading={busy === offer.id}><Send size={14} aria-hidden="true" /> Enviar ao candidato</Button>}
-                {canCreate && ['PENDING_APPROVAL', 'APPROVED', 'SENT'].includes(status) && <Button size="sm" variant="ghost" className="text-rose-700" onClick={() => { if (window.confirm('Cancelar esta proposta?')) act(offer.id, () => processApi.cancelOffer(offer.id), 'Proposta cancelada.'); }}>Cancelar</Button>}
+                {canCreate && ['PENDING_APPROVAL', 'APPROVED', 'SENT'].includes(status) && <Button size="sm" variant="ghost" className="text-rose-700" onClick={async () => { if (await askConfirm({ title: 'Cancelar proposta', description: 'O candidato deixa de poder aceitar esta proposta.', confirmText: 'Cancelar proposta' })) act(offer.id, () => processApi.cancelOffer(offer.id), 'Proposta cancelada.'); }}>Cancelar</Button>}
               </div>
             </li>
           );

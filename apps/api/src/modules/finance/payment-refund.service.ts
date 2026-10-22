@@ -1,17 +1,29 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { CronLock } from '../../common/redis/cron-lock.decorator';
 import { PrismaService } from '../../database/prisma.service';
-import { AsaasService } from './asaas.service';
+import { AsaasRejectedException, AsaasService } from './asaas.service';
 import { MercadoPagoService } from './mercadopago.service';
+import { AsaasFiscalService } from './asaas-fiscal.service';
 
 const cents = (value: unknown) => Math.round(Number(value) * 100);
 const active = ['PROCESSING', 'PENDING', 'UNKNOWN'];
+
+/** Gancho: avisa quem se registrar (ex.: suporte) quando um estorno vira CONFIRMED ou FAILED. */
+export interface PaymentRefundSettled { id: string; invoiceId: string; requestKey: string; status: 'CONFIRMED' | 'FAILED'; amount: number; errorMessage?: string | null }
+export type PaymentRefundSettledListener = (event: PaymentRefundSettled) => Promise<void> | void;
 
 /** Reserva o saldo antes da chamada externa; nunca repete POST de resultado desconhecido. */
 @Injectable()
 export class PaymentRefundService {
   private readonly logger = new Logger(PaymentRefundService.name);
-  constructor(private readonly prisma: PrismaService, private readonly asaas: AsaasService, private readonly mp: MercadoPagoService) {}
+  private static readonly listeners: PaymentRefundSettledListener[] = [];
+  static onSettled(listener: PaymentRefundSettledListener) { PaymentRefundService.listeners.push(listener); }
+  private async emitSettled(events: PaymentRefundSettled[]) {
+    for (const event of events) for (const listener of PaymentRefundService.listeners) { try { await listener(event); } catch (error) { this.logger.warn(`Ouvinte de estorno falhou (${event.id}): ${String(error)}`); } }
+  }
+
+  constructor(private readonly prisma: PrismaService, private readonly asaas: AsaasService, private readonly mp: MercadoPagoService, @Optional() private readonly fiscal?: AsaasFiscalService) {}
 
   async request(invoiceId: string, input: { amount?: number; reason: string; key?: string; actorId?: string }) {
     const key = `${invoiceId}:${input.key || `legacy:${input.amount ?? 'remaining'}`}`;
@@ -51,13 +63,35 @@ export class PaymentRefundService {
       }
       await this.reconcile(invoiceId);
     } catch (error) {
-      // Timeout e falha de persistência também podem ocorrer após o provedor aceitar. Não liberar reserva nem repetir.
-      // Guarda o motivo real (ex.: "Asaas recusou: saldo insuficiente") para aparecer na tela e no log.
       const detail = error instanceof Error ? error.message : String(error);
+      // Recusa definitiva (Asaas 400/404/422 com motivo; Mercado Pago 404): o provedor NÃO aceitou, então a reserva é liberada na hora.
+      if (error instanceof AsaasRejectedException || error instanceof NotFoundException) {
+        await this.failReservation(invoiceId, operation.id, detail);
+        return this.prisma.paymentRefund.findUniqueOrThrow({ where: { id: operation.id } });
+      }
+      // Timeout, 5xx e falha de persistência também podem ocorrer após o provedor aceitar. Não liberar reserva nem repetir:
+      // fica UNKNOWN (devolução pendente) e a conciliação a cada 5 min decide. Guarda o motivo real para a tela e o log.
       await this.prisma.paymentRefund.updateMany({ where: { id: operation.id, status: { in: active } }, data: { status: 'UNKNOWN', errorMessage: detail.slice(0, 500) } }).catch(() => undefined);
       this.logger.warn(`Devolução ${operation.id} precisa de conciliação: ${detail}`);
     }
     return this.prisma.paymentRefund.findUniqueOrThrow({ where: { id: operation.id } });
+  }
+
+  /** Recusa definitiva do provedor: marca FALHOU, audita e devolve o saldo reservado (a fatura volta ao estado anterior). */
+  private async failReservation(invoiceId: string, operationId: string, detail: string) {
+    const failedOp = await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT "id" FROM "PlatformInvoice" WHERE "id" = ${invoiceId}::uuid FOR UPDATE`;
+      const op = await tx.paymentRefund.update({ where: { id: operationId }, data: { status: 'FAILED', errorMessage: detail.slice(0, 500) } });
+      const invoice = await tx.platformInvoice.findUniqueOrThrow({ where: { id: invoiceId } });
+      const pending = await tx.paymentRefund.count({ where: { invoiceId, status: { in: active } } });
+      const refunded = cents(invoice.refundedAmount);
+      const status = pending ? 'PROCESSING' : refunded >= cents(invoice.amount) ? 'REFUNDED' : refunded > 0 ? 'PARTIALLY_REFUNDED' : null;
+      await tx.platformInvoice.update({ where: { id: invoiceId }, data: { refundStatus: status } });
+      await tx.auditLog.create({ data: { companyId: invoice.companyId, userId: op.actorId, action: 'REFUND_FAILED', entity: 'PaymentRefund', entityId: op.id, metadata: { invoiceId, amount: Number(op.amount), reason: 'recusado_pelo_provedor', detail: detail.slice(0, 200) } } });
+      return op;
+    });
+    await this.emitSettled([{ id: failedOp.id, invoiceId, requestKey: failedOp.requestKey, status: 'FAILED', amount: Number(failedOp.amount), errorMessage: failedOp.errorMessage }]);
+    this.logger.warn(`Devolução ${operationId} recusada pelo provedor: ${detail}`);
   }
 
   async reconcile(invoiceId: string) {
@@ -70,7 +104,9 @@ export class PaymentRefundService {
     const done = (status: string) => provider === 'MERCADOPAGO' ? status === 'approved' : status === 'DONE';
     const total = remote.filter(r => done(r.status)).reduce((sum, r) => sum + cents('value' in r ? r.value : r.amount), 0);
     if (total > cents(invoice.amount)) throw new ConflictException('O total devolvido pelo provedor excede a fatura. Revisão necessária.');
-    return this.prisma.$transaction(async tx => {
+    const settled: PaymentRefundSettled[] = [];
+    const result = await this.prisma.$transaction(async tx => {
+      settled.length = 0;
       await tx.$queryRaw`SELECT "id" FROM "PlatformInvoice" WHERE "id" = ${invoiceId}::uuid FOR UPDATE`;
       const locked = await tx.platformInvoice.findUniqueOrThrow({ where: { id: invoiceId } });
       const confirmedTotal = Math.max(total, cents(locked.refundedAmount));
@@ -91,6 +127,14 @@ export class PaymentRefundService {
           if (op.status === 'UNKNOWN' && stale && !sameValue) {
             await tx.paymentRefund.update({ where: { id: op.id }, data: { status: 'FAILED', errorMessage: op.errorMessage && !op.errorMessage.startsWith('Confirmação pendente') ? op.errorMessage : 'O provedor não registrou esta devolução. Nada foi devolvido; solicite de novo.' } });
             await tx.auditLog.create({ data: { companyId: invoice.companyId, userId: op.actorId, action: 'REFUND_FAILED', entity: 'PaymentRefund', entityId: op.id, metadata: { invoiceId, amount: Number(op.amount), reason: 'nao_encontrada_no_provedor' } } });
+            settled.push({ id: op.id, invoiceId, requestKey: op.requestKey, status: 'FAILED', amount: Number(op.amount), errorMessage: 'O provedor não registrou esta devolução. Nada foi devolvido; solicite de novo.' });
+          } else if (op.status === 'UNKNOWN' && Date.now() - new Date(op.createdAt).getTime() > 24 * 60 * 60_000) {
+            // Há estorno de mesmo valor no provedor que não casa com este pedido: não dá para decidir sozinho. Alerta uma vez.
+            const flagged = await tx.auditLog.findFirst({ where: { action: 'REFUND_NEEDS_REVIEW', entityId: op.id }, select: { id: true } });
+            if (!flagged) {
+              await tx.auditLog.create({ data: { companyId: invoice.companyId, userId: op.actorId, action: 'REFUND_NEEDS_REVIEW', entity: 'PaymentRefund', entityId: op.id, metadata: { invoiceId, amount: Number(op.amount) } } });
+              this.logger.error(`ALERTA: devolução ${op.id} há mais de 24h sem conciliar com o provedor; revisão manual.`);
+            }
           }
           continue;
         }
@@ -100,12 +144,16 @@ export class PaymentRefundService {
         if (!confirmed && !failed) continue;
         await tx.paymentRefund.update({ where: { id: op.id }, data: { status: confirmed ? 'CONFIRMED' : 'FAILED', confirmedAt: confirmed ? new Date() : null, errorMessage: failed ? 'Devolução recusada ou cancelada pelo provedor.' : null, receiptUrl: 'transactionReceiptUrl' in match ? match.transactionReceiptUrl : null } });
         await tx.auditLog.create({ data: { companyId: invoice.companyId, userId: op.actorId, action: confirmed ? 'REFUND_CONFIRMED' : 'REFUND_FAILED', entity: 'PaymentRefund', entityId: op.id, metadata: { invoiceId, amount: Number(op.amount), reason: op.reason } } });
+        settled.push({ id: op.id, invoiceId, requestKey: op.requestKey, status: confirmed ? 'CONFIRMED' : 'FAILED', amount: Number(op.amount), errorMessage: failed ? 'Devolução recusada ou cancelada pelo provedor.' : null });
       }
       const pending = await tx.paymentRefund.count({ where: { invoiceId, status: { in: active } } });
       const status = pending ? 'PROCESSING' : confirmedTotal >= cents(invoice.amount) ? 'REFUNDED' : confirmedTotal > 0 ? 'PARTIALLY_REFUNDED' : null;
       await tx.platformInvoice.update({ where: { id: invoiceId }, data: { refundedAmount: confirmedTotal / 100, refundStatus: status } });
       return { refundedAmount: confirmedTotal / 100, refundStatus: status };
     });
+    await this.emitSettled(settled);
+    if (this.fiscal) await this.fiscal.handleRefund(invoiceId, result.refundStatus);
+    return result;
   }
 
   private async asaasRefunds(paymentId: string) {
@@ -117,6 +165,7 @@ export class PaymentRefundService {
   }
 
   @Cron('0 */5 * * * *')
+  @CronLock('finance.reconcileRefunds', 240, { retries: 2, backoffMs: 2000 })
   async reconcilePending() {
     const pending = await this.prisma.paymentRefund.findMany({ where: { status: { in: active } }, select: { invoiceId: true }, distinct: ['invoiceId'], orderBy: { updatedAt: 'asc' }, take: 40 });
     for (const { invoiceId } of pending) {

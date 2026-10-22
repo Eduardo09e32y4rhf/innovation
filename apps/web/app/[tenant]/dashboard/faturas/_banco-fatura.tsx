@@ -153,7 +153,7 @@ export default function FaturaDrawer({ invoice, canRefund, onClose, onChanged }:
               ) : (
                 <form onSubmit={requestRefund} className="space-y-2">
                   <p className="text-sm text-fg-sub">O pedido abre um chamado e o financeiro responde por lá. O reembolso não é automático.</p>
-                  <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} placeholder="Conte o motivo do reembolso" className="w-full rounded-xl border border-line bg-transparent p-3 text-sm text-fg" required />
+                  <textarea aria-label="Motivo do reembolso" value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} placeholder="Conte o motivo do reembolso" className="w-full rounded-xl border border-line bg-transparent p-3 text-sm text-fg" required />
                   <div className="flex gap-2"><button type="button" className="btn btn-outline flex-1 text-sm" onClick={() => setRefunding(false)} disabled={busy}>Voltar</button><button type="submit" className="btn btn-primary flex-1 text-sm" disabled={busy}>{busy ? 'Enviando…' : 'Enviar pedido'}</button></div>
                 </form>
               )}

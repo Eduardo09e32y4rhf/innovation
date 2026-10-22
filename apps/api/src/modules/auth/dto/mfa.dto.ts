@@ -20,3 +20,11 @@ export class VerifyEmailDto {
   @IsString() @MaxLength(2000)
   token!: string;
 }
+
+export class MfaDisableDto {
+  @IsOptional() @IsString() @Length(6, 8)
+  code?: string;
+
+  @IsOptional() @IsString() @MaxLength(20)
+  recoveryCode?: string;
+}

@@ -91,9 +91,9 @@ export class DocumentService {
     return { stream, filename: `${doc.title}.pdf`, size: doc.sizeBytes };
   }
 
-  /** Bytes do PDF gerado. O chamador e responsavel por autorizar o acesso ao documento. */
-  async readBuffer(documentId: string): Promise<Buffer> {
-    const doc = await this.prisma.generatedDocument.findUnique({ where: { id: documentId } });
+  /** Bytes do PDF gerado, sempre escopado pela empresa dona do documento. */
+  async readBuffer(companyId: string, documentId: string): Promise<Buffer> {
+    const doc = await this.prisma.generatedDocument.findFirst({ where: { id: documentId, companyId } });
     if (!doc) throw new BadRequestException('Documento não encontrado');
     const stream = await this.storageService.getFileStream(doc.storageKey);
     const chunks: Buffer[] = [];

@@ -45,7 +45,7 @@ async function authed<T>(path: string, init: RequestInit = {}): Promise<T> {
   const isForm = typeof FormData !== 'undefined' && init.body instanceof FormData;
   return fetchPublic(`/candidate-portal${path}`, {
     ...init,
-    headers: { ...(isForm ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init.headers },
+    headers: { ...(isForm || init.body == null ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init.headers },
   }) as Promise<T>;
 }
 

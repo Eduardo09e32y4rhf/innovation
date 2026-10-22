@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { CronLock } from '../../common/redis/cron-lock.decorator';
 import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
@@ -9,6 +10,7 @@ export class SupportSlaScheduler {
   constructor(private readonly prisma: PrismaService) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
+  @CronLock('support.slaCheck', 240)
   async checkSla() {
     this.logger.log('Iniciando verificação de SLA dos chamados de suporte...');
     const now = new Date();

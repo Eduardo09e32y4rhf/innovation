@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
+import { CompanyChargeDto } from './dto/company-charge.dto';
+import { Body, Controller, Delete, Get, Headers, Param, ParseUUIDPipe, Patch, Post, Query, Res, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -11,6 +12,11 @@ import { PlatformFinanceService } from './platform-finance.service';
 import { Audited } from '../platform-audit/audited.decorator';
 import { PrismaService } from '../../database/prisma.service';
 import { TimeClosingService } from '../time-track/time-closing.service';
+import { markReplay, requireIdempotencyKey } from './idempotency';
+import { FiscalAdjustmentsService } from './fiscal-adjustments.service';
+import { ResolveFiscalAdjustmentDto } from './dto/fiscal-adjustment.dto';
+import { PlatformRevenueReportService } from './platform-revenue-report.service';
+import { MonthlyReportQueryDto } from './dto/monthly-report.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
@@ -20,6 +26,8 @@ export class FinanceController {
     private readonly service: PlatformFinanceService,
     private readonly prisma: PrismaService,
     private readonly timeClosingService: TimeClosingService,
+    private readonly fiscalAdjustments: FiscalAdjustmentsService,
+    private readonly revenueReport: PlatformRevenueReportService,
     @InjectQueue('asaas-webhook') private readonly webhookQueue: Queue,
   ) {}
 
@@ -31,6 +39,22 @@ export class FinanceController {
   @Get('platform/statements/pdf')
   async statementPdf(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto, @Res() res: import('express').Response) {
     return this.service.statementPdf(query, actor.role === 'COMERCIAL' ? actor.sub : undefined, actor, res);
+  }
+
+  /** Relatório contábil mensal da receita da plataforma (bruta, devoluções, taxas do gateway, impostos estimados, líquida, MRR, churn). */
+  @Get('platform/reports/monthly')
+  @Roles('DEV', 'CEO', 'CONTABIL')
+  monthlyReport(@Query() query: MonthlyReportQueryDto) {
+    return this.revenueReport.monthly(query.month);
+  }
+
+  @Get('platform/reports/monthly.csv')
+  @Roles('DEV', 'CEO', 'CONTABIL')
+  async monthlyReportCsv(@Query() query: MonthlyReportQueryDto, @Res() res: import('express').Response) {
+    const { filename, content } = await this.revenueReport.monthlyCsv(query.month);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(content);
   }
 
   @Get('platform/invoices')
@@ -63,11 +87,31 @@ export class FinanceController {
     return this.service.ensureCompanyOnboardingBilling(companyId, actor);
   }
 
+  @Get('fiscal-adjustments')
+  @Roles('DEV', 'CEO', 'CONTABIL')
+  fiscalAdjustmentsList(@Query('companyId') companyId?: string) {
+    return this.fiscalAdjustments.list({ companyId });
+  }
+
+  @Post('fiscal-adjustments/:invoiceId/resolve')
+  @Roles('DEV', 'CEO', 'CONTABIL')
+  @Audited({ action: 'FISCAL_ADJUSTMENT_RESOLVED', entity: 'PlatformInvoice' })
+  fiscalAdjustmentResolve(@Param('invoiceId', ParseUUIDPipe) invoiceId: string, @Body() dto: ResolveFiscalAdjustmentDto, @CurrentUser() actor: JwtUser) {
+    return this.fiscalAdjustments.resolve(invoiceId, dto.action, dto.note, actor);
+  }
+
   @Post('platform/invoices')
   @Roles('DEV', 'CEO')
   @Audited({ action: 'INVOICE_CREATED', entity: 'PlatformInvoice' })
-  create(@Body() dto: CreatePlatformInvoiceDto) {
-    return this.service.create(dto);
+  async create(
+    @Body() dto: CreatePlatformInvoiceDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Res({ passthrough: true }) reply: unknown,
+  ) {
+    const meta = { replayed: false };
+    const invoice = await this.service.create({ ...dto, idempotencyKey: requireIdempotencyKey(idempotencyKey, dto.idempotencyKey) }, meta);
+    markReplay(reply, meta.replayed);
+    return invoice;
   }
 
   @Patch('platform/invoices/:id')
@@ -182,17 +226,23 @@ export class FinanceController {
 
   @Post('charge/:companyId')
   @Roles('DEV')
-  createCompanyCharge(
+  async createCompanyCharge(
     @Param('companyId') companyId: string,
-    @Body() body: { amount: number; dueDate: string; description: string },
+    @Body() body: CompanyChargeDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Res({ passthrough: true }) reply: unknown,
   ) {
-    return this.service.create({
+    const meta = { replayed: false };
+    const invoice = await this.service.create({
       companyId,
       amount: body.amount,
       dueDate: body.dueDate,
       description: body.description,
       billingType: 'UNDEFINED',
       sendToAsaas: true,
-    });
+      idempotencyKey: requireIdempotencyKey(idempotencyKey, body.idempotencyKey),
+    }, meta);
+    markReplay(reply, meta.replayed);
+    return invoice;
   }
 }

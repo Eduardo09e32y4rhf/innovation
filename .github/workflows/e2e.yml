@@ -1,5 +1,8 @@
 name: Browser E2E
 
+# Uma unica suite E2E: tests-e2e/ (ver tests-e2e/README.md).
+#  - public-flow : paginas publicas e celular, com a API simulada no navegador (rapido).
+#  - logged-flows: fumaça dos fluxos logados com Postgres, Redis, API e front reais, em desktop e 360 px.
 on:
   workflow_call:
   workflow_dispatch:
@@ -42,6 +45,88 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
+          path: |
+            tests-e2e/playwright-report/
+            tests-e2e/test-results/
+          retention-days: 30
+
+  logged-flows:
+    name: Logged flows (API real, desktop e 360 px)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Job novo: ainda nao bloqueia o ci-ok. Depois da primeira execucao verde, REMOVA esta linha
+    # para que a fumaça dos fluxos logados passe a ser obrigatoria.
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: ci, POSTGRES_PASSWORD: ci, POSTGRES_DB: ci_e2e }
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_e2e?schema=public
+      REDIS_URL: redis://localhost:6379
+      E2E_API_URL: http://localhost:3333
+      E2E_WEB_URL: http://localhost:3000
+      E2E_PASSWORD: E2e-Senha-2026!
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tests-e2e/package-lock.json
+      - name: Install application dependencies
+        run: npm ci
+      - name: Install E2E dependencies
+        run: npm --prefix tests-e2e ci
+      - name: Install Chromium
+        run: npm --prefix tests-e2e exec -- playwright install --with-deps chromium
+      - name: Prisma client and migrations
+        run: |
+          npm run prisma:generate
+          npm run db:deploy
+      - name: Seed admin and E2E users
+        run: |
+          ADMIN_PASSWORD="$E2E_PASSWORD" DEV_PASSWORD="$E2E_PASSWORD" npm --prefix apps/api run seed:admin
+          PGPASSWORD=ci psql -h localhost -U ci -d ci_e2e -v ON_ERROR_STOP=1 -f tests-e2e/setup/seed-users.sql
+      - name: Build and start API
+        run: |
+          npm run build:api
+          cd apps/api
+          PORT=3333 NODE_ENV=development ALLOWED_ORIGINS=http://localhost:3000 nohup node dist/main.js > "$RUNNER_TEMP/api.log" 2>&1 &
+      - name: Start web
+        run: |
+          cd apps/web
+          NEXT_PUBLIC_API_URL=http://localhost:3333 nohup node ../../node_modules/next/dist/bin/next dev --hostname 0.0.0.0 --port 3000 > "$RUNNER_TEMP/web.log" 2>&1 &
+      - name: Wait for API and web
+        run: |
+          for i in $(seq 1 60); do curl -fs http://localhost:3333/health > /dev/null && break; sleep 2; done
+          curl -fs http://localhost:3333/health > /dev/null
+          for i in $(seq 1 60); do curl -fs http://localhost:3000/login > /dev/null && break; sleep 3; done
+          curl -fs http://localhost:3000/login > /dev/null
+      - name: Logged flows (desktop 1280x800)
+        run: npm --prefix tests-e2e run test:flows
+      - name: Logged flows (celular 360x740)
+        if: ${{ !cancelled() }}
+        env:
+          E2E_VIEWPORT: 360x740
+        run: npm --prefix tests-e2e run test:flows
+      - name: Server logs
+        if: failure()
+        run: |
+          echo '--- api.log'; tail -n 120 "$RUNNER_TEMP/api.log" || true
+          echo '--- web.log'; tail -n 60 "$RUNNER_TEMP/web.log" || true
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-flows-report
           path: |
             tests-e2e/playwright-report/
             tests-e2e/test-results/

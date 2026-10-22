@@ -1,3 +1,4 @@
+import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import {
   Controller,
   Get,
@@ -73,7 +74,7 @@ export class ScheduleController {
 
   @Roles(...rolesWith('policy.write'))
   @Patch(':id')
-  update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: Partial<CreateScheduleDto>) {
+  update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateScheduleDto) {
     return this.service.updateSchedule(actor.companyId, actor, id, dto);
   }
 
