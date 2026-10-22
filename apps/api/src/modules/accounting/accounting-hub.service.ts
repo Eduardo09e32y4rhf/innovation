@@ -7,6 +7,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { createPdfSink, safeFileName, sendPdf } from '../../common/pdf/pdf-response';
 import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
 import { TimeClosingService } from '../time-track/time-closing.service';
+import { TimeTrackService } from '../time-track/time-track.service';
 import { AccountingAccessService } from '../../common/accounting-access';
 import { AdjustClosingDto, CorrectPayrollDto } from './accounting.dto';
 import { AccountingRulesService } from './accounting-rules.service';
@@ -34,6 +35,7 @@ export class AccountingHubService {
     private readonly closing: TimeClosingService,
     private readonly rules: AccountingRulesService,
     private readonly access: AccountingAccessService,
+    private readonly timeTrack: TimeTrackService,
   ) {}
 
   private async assertCompany(companyId: string) {
@@ -219,6 +221,8 @@ export class AccountingHubService {
     await this.assertCompany(companyId);
     const period = resolveMonth(month);
     const last = `${period.key}-${String(period.last.getUTCDate()).padStart(2, '0')}`;
+    // Refaz os totais do ponto antes de fechar: folha e ponto saem sempre da mesma conta.
+    await this.timeTrack.recalculateRange(companyId, period.start, period.last);
     const generated = await this.closing.generate(companyId, { ...actor, companyId, role: 'ADMIN' }, { periodStart: `${period.key}-01`, periodEnd: last, month: period.month, year: period.year } as any);
     return { generated: Array.isArray(generated) ? generated.length : 0 };
   }

@@ -60,6 +60,14 @@ export class TimeTrackController {
     };
   }
 
+  @Roles('DEV', 'ADMIN', 'RH')
+  @Post('recalculate')
+  recalculate(@CurrentCompany() companyId: string, @Body() body: { month: string; employeeId?: string }) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(body?.month || '')) throw new BadRequestException('Informe o mes no formato YYYY-MM.');
+    const [year, month] = body.month.split('-').map(Number);
+    return this.service.recalculateRange(companyId, new Date(Date.UTC(year, month - 1, 1)), new Date(Date.UTC(year, month, 0)), body.employeeId);
+  }
+
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Get('pending')
   listPending(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {

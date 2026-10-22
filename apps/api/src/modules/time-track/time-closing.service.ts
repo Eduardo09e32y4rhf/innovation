@@ -743,8 +743,9 @@ export class TimeClosingService {
     report.paragraph(`Documento emitido a partir dos fechamentos oficiais e dos registros de ponto. Emissor: ${issuedBy}.`, { size: 8, color: PDF.color.mut });
 
     // Uma página (ou mais) por colaborador, sem valores de salário.
-    closings.forEach((closing) => {
-      report.newPage();
+    // O primeiro colaborador segue na mesma folha do resumo; so os demais abrem pagina nova.
+    closings.forEach((closing, index) => {
+      if (index > 0) report.newPage();
       appendMirror(report, toSheet(closing), { compact: true });
     });
     return report.finish();

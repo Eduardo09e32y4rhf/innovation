@@ -354,6 +354,25 @@ export class TimeTrackService {
     return saved;
   }
 
+  /**
+   * Refaz os totais dos registros do periodo a partir das marcacoes (mesmo calculo do update()).
+   * Corrige dias gravados com calculo antigo. Periodo fechado e ajuste de banco de horas ficam como estao.
+   */
+  async recalculateRange(companyId: string, from: Date, to: Date, employeeId?: string) {
+    const tracks = await this.prisma.timeTrack.findMany({
+      where: { companyId, date: { gte: from, lte: to }, ...(employeeId ? { employeeId } : {}) },
+      select: { id: true, manualReason: true },
+    });
+    const system = { sub: 'system', role: 'ADMIN', companyId } as JwtUser;
+    const bank = new Set(['ajuste_folga_dsr', 'ajuste_abono_folga', 'ajuste_abono_banco_saida_antecipada', 'ajuste_abono_atraso']);
+    let recalculated = 0, skipped = 0;
+    for (const track of tracks) {
+      if (track.manualReason && bank.has(track.manualReason)) { skipped++; continue; }
+      try { await this.update(companyId, system, track.id, {} as UpdateTimeTrackDto); recalculated++; } catch { skipped++; }
+    }
+    return { recalculated, skipped };
+  }
+
   async listPending(companyId: string, actor: JwtUser) {
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV') {
       const tracks = await this.repository.listPending(companyId);
