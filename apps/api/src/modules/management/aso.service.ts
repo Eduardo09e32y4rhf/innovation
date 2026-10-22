@@ -1,13 +1,21 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { ASO_KINDS, computeDueDate, normalizePeriodicity, RENEWING_KINDS, type AsoKind } from './sst/aso-rules';
 import * as bcrypt from 'bcryptjs';
-import { encryptTemporaryPassword, generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
+import { TEMPORARY_CREDENTIAL_PLACEHOLDER, generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
 import { PrismaService } from '../../database/prisma.service';
+import { AccessCredentialsService, type PendingAccessEmail } from '../mail/access-credentials.service';
 
 
 @Injectable()
 export class AsoService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, @Optional() private readonly access?: AccessCredentialsService) {}
+
+  /** Acessos criados na ativacao da admissao: o e-mail sai depois do commit, nunca dentro da transacao. */
+  private async sendPendingAccess(companyId: string, pending: PendingAccessEmail[]) {
+    if (!pending.length || !this.access) return;
+    const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true } }).catch(() => null);
+    await this.access.sendPending(company?.name ?? null, pending);
+  }
 
   private safeLog(scope: string, err: unknown) {
     console.error(`[AsoService] ${scope}`, err);
@@ -131,6 +139,7 @@ export class AsoService {
       // Vencimento pela regra unica (sst/aso-rules): periodicidade 6/12/24 meses, sem vencimento para demissional e complementar.
       const dueDate = this.parseDate(data.dueDate, 'dueDate') ?? (status === 'COMPLETED' && examDate ? computeDueDate(asoType, examDate, periodicityMonths) ?? undefined : undefined);
 
+      const accessOutbox: PendingAccessEmail[] = [];
       const record = await this.prisma.$transaction(async (tx) => {
         const created = await tx.employeeAsoRecord.create({
           data: {
@@ -152,9 +161,10 @@ export class AsoService {
           },
           include: { employee: { select: { id: true, name: true } } },
         });
-        await this.activateOnboardingEmployee(tx, companyId, created.employeeId, created.asoType, status, result);
+        await this.activateOnboardingEmployee(tx, companyId, created.employeeId, created.asoType, status, result, accessOutbox);
         return created;
       });
+      await this.sendPendingAccess(companyId, accessOutbox);
 
       // Dispara notificação quando ASO é criado como pendente
       if (record && (data.status === 'PENDENTE' || data.status === 'PENDING' || !data.status)) {
@@ -211,6 +221,7 @@ export class AsoService {
       const recalcular = status === 'COMPLETED' && (current.status !== 'COMPLETED' || !current.dueDate || Boolean(examDate) || data.asoType !== undefined || data.periodicityMonths !== undefined);
       if (!dueDate && recalcular) dueDate = computeDueDate(asoType, examDate ?? current.examDate ?? new Date(), periodicityMonths);
 
+      const accessOutbox: PendingAccessEmail[] = [];
       const record = await this.prisma.$transaction(async (tx) => {
         const {
           saveClinicPreset: _saveClinicPreset,
@@ -238,9 +249,10 @@ export class AsoService {
           },
           include: { employee: { select: { id: true, name: true } } },
         });
-        await this.activateOnboardingEmployee(tx, companyId, updated.employeeId, updated.asoType, status, result);
+        await this.activateOnboardingEmployee(tx, companyId, updated.employeeId, updated.asoType, status, result, accessOutbox);
         return updated;
       });
+      await this.sendPendingAccess(companyId, accessOutbox);
 
       // Salva preset de clínica se solicitado
       if (data.clinicName && data.saveClinicPreset) {
@@ -310,7 +322,7 @@ export class AsoService {
     }
   }
 
-  private async activateOnboardingEmployee(tx: any, companyId: string, employeeId: string, asoType: string, status: string, result: string | null) {
+  private async activateOnboardingEmployee(tx: any, companyId: string, employeeId: string, asoType: string, status: string, result: string | null, outbox: PendingAccessEmail[]) {
     if (asoType !== 'ADMISSIONAL' || status !== 'COMPLETED' || result !== 'APTO') return;
     const transition = await tx.employee.updateMany({
       where: { companyId, id: employeeId, status: 'ONBOARDING' },
@@ -324,6 +336,7 @@ export class AsoService {
       const existingUser = await tx.user.findUnique({ where: { email } });
       if (!existingUser) {
         const temporaryPassword = generateTemporaryPassword();
+        const expiresAt = temporaryPasswordExpiry();
         const user = await tx.user.create({
           data: {
             companyId,
@@ -336,13 +349,10 @@ export class AsoService {
           },
         });
         await tx.temporaryCredential.create({
-          data: {
-            userId: user.id,
-            encryptedValue: encryptTemporaryPassword(temporaryPassword),
-            expiresAt: temporaryPasswordExpiry(),
-          },
+          data: { userId: user.id, encryptedValue: TEMPORARY_CREDENTIAL_PLACEHOLDER, expiresAt },
         });
         await tx.employee.update({ where: { id: employeeId }, data: { userId: user.id } });
+        outbox.push({ to: email, name: employee.name, temporaryPassword, expiresAt });
       } else if (existingUser.companyId === companyId) {
         await tx.user.update({ where: { id: existingUser.id }, data: { isActive: true } });
         await tx.employee.update({ where: { id: employeeId }, data: { userId: existingUser.id } });

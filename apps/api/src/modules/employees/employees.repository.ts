@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { encryptTemporaryPassword } from '../../common/crypto/temporary-password';
+import { TEMPORARY_CREDENTIAL_PLACEHOLDER } from '../../common/crypto/temporary-password';
 
 @Injectable()
 export class EmployeesRepository {
@@ -137,17 +137,14 @@ export class EmployeesRepository {
     return this.prisma.user.findFirst({ where: { companyId, id: userId } });
   }
 
+  /** `temporaryCredential` guarda so a validade: a senha provisoria nao e armazenada (vai por e-mail). */
   createUser(data: any) {
-    const { temporaryPassword, ...userData } = data;
+    const { temporaryCredential, ...userData } = data;
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({ data: userData });
-      if (temporaryPassword) {
+      if (temporaryCredential) {
         await tx.temporaryCredential.create({
-          data: {
-            userId: user.id,
-            encryptedValue: encryptTemporaryPassword(temporaryPassword.value),
-            expiresAt: temporaryPassword.expiresAt,
-          },
+          data: { userId: user.id, encryptedValue: TEMPORARY_CREDENTIAL_PLACEHOLDER, expiresAt: temporaryCredential.expiresAt },
         });
       }
       return user;
@@ -155,18 +152,21 @@ export class EmployeesRepository {
   }
 
   /** Reset administrativo: nova senha e credencial provisoria na mesma transacao (nunca um sem o outro). */
-  reissueTemporaryPassword(companyId: string, userId: string, userData: Record<string, unknown>, temporaryPassword: string, expiresAt: Date) {
+  reissueTemporaryPassword(companyId: string, userId: string, userData: Record<string, unknown>, expiresAt: Date) {
     return this.prisma.$transaction(async (tx) => {
       const result = await tx.user.updateMany({ where: { companyId, id: userId }, data: userData });
       if (!result.count) return { count: 0 };
-      const encryptedValue = encryptTemporaryPassword(temporaryPassword);
       await tx.temporaryCredential.upsert({
         where: { userId },
-        create: { userId, encryptedValue, expiresAt },
-        update: { encryptedValue, expiresAt, issuedAt: new Date(), consumedAt: null, revokedAt: null, revealCount: 0 },
+        create: { userId, encryptedValue: TEMPORARY_CREDENTIAL_PLACEHOLDER, expiresAt },
+        update: { encryptedValue: TEMPORARY_CREDENTIAL_PLACEHOLDER, expiresAt, issuedAt: new Date(), consumedAt: null, revokedAt: null, revealCount: 0 },
       });
       return { count: result.count };
     });
+  }
+
+  companyName(companyId: string) {
+    return this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true } }).then((company) => company?.name ?? null);
   }
 
   updateUser(companyId: string, id: string, data: any) {

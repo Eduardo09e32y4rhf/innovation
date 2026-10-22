@@ -19,6 +19,42 @@ export function passwordResetEmail(input: { name: string; url: string; minutes: 
   };
 }
 
+/** Codigo de 6 digitos para redefinir a senha. Vale poucos minutos e so aparece neste e-mail (nunca no portal). */
+export function passwordResetCodeEmail(input: { name: string; code: string; minutes: number }): MailContent {
+  return {
+    subject: 'Seu código de recuperação de senha — Innovation RH Connect',
+    html: layout('Código de recuperação de senha', `<p>Olá, ${escapeHtml(input.name)}.</p><p>Use o código abaixo na tela de recuperação de senha. Ele vale por ${input.minutes} minutos e só pode ser usado uma vez.</p><p style="font-size:30px;letter-spacing:8px;font-weight:700;font-family:Consolas,monospace;background:#faf7fd;border-radius:8px;padding:14px 18px;text-align:center;margin:20px 0">${escapeHtml(input.code)}</p><p>Se não foi você que pediu, ignore este e-mail: sua senha continua a mesma. Nunca informe este código a ninguém.</p>`),
+    text: `Olá, ${input.name}.\n\nSeu código de recuperação de senha: ${input.code}\nVale por ${input.minutes} minutos e só pode ser usado uma vez.\n\nSe não foi você, ignore este e-mail. Nunca informe este código a ninguém.`,
+  };
+}
+
+/**
+ * Boas-vindas com o acesso inicial. E o UNICO lugar onde a senha provisoria aparece: a plataforma nunca a exibe em tela.
+ * Vale tambem para reenvio (nova senha provisoria).
+ */
+export function welcomeAccessEmail(input: { name: string; companyName?: string | null; email: string; temporaryPassword: string; loginUrl: string; expiresAt: Date; reissued?: boolean }): MailContent {
+  const company = input.companyName?.trim() || 'sua empresa';
+  const validUntil = input.expiresAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const subject = input.reissued ? 'Seu novo acesso provisório — Innovation RH Connect' : 'Bem-vindo(a) à Innovation RH Connect — seu acesso';
+  const intro = input.reissued ? `Foi gerada uma nova senha provisória para o seu acesso a ${escapeHtml(company)}.` : `Seu acesso a ${escapeHtml(company)} na Innovation RH Connect foi criado. Seja bem-vindo(a)!`;
+  const row = (label: string, value: string, mono = false) => `<tr><td style="padding:8px 12px;color:#666;font-size:13px;white-space:nowrap">${label}</td><td style="padding:8px 12px;font-weight:700;${mono ? 'font-family:Consolas,monospace;font-size:18px;letter-spacing:2px;' : ''}word-break:break-all">${escapeHtml(value)}</td></tr>`;
+  return {
+    subject,
+    html: layout(input.reissued ? 'Seu novo acesso' : 'Bem-vindo(a)!', `<p>Olá, ${escapeHtml(input.name)}.</p><p>${intro}</p><table cellpadding="0" cellspacing="0" style="background:#faf7fd;border-radius:8px;margin:16px 0;width:100%">${row('E-mail de acesso', input.email)}${row('Senha provisória', input.temporaryPassword, true)}${row('Válida até', validUntil)}</table><p>No primeiro acesso você será levado(a) a criar uma senha nova e definitiva. Esta senha provisória só é enviada por e-mail: ela não aparece em nenhuma tela da plataforma e ninguém da sua empresa a vê.</p><p style="font-size:13px;color:#666">Não compartilhe este e-mail. Se não esperava este acesso, avise o administrador da sua empresa.</p>`, { label: 'Entrar na plataforma', url: input.loginUrl }),
+    text: `Olá, ${input.name}.\n\n${input.reissued ? `Foi gerada uma nova senha provisória para o seu acesso a ${company}.` : `Seu acesso a ${company} na Innovation RH Connect foi criado. Seja bem-vindo(a)!`}\n\nE-mail de acesso: ${input.email}\nSenha provisória: ${input.temporaryPassword}\nVálida até: ${validUntil}\n\nEntre em: ${input.loginUrl}\nNo primeiro acesso você criará uma senha definitiva. Esta senha provisória só é enviada por e-mail e não aparece em nenhuma tela da plataforma.\n\nSe não esperava este acesso, avise o administrador da sua empresa.`,
+  };
+}
+
+/** Confirmacao de abertura de chamado com o numero de protocolo (o cliente guarda e informa ao atendente). */
+export function supportTicketOpenedEmail(input: { name?: string | null; protocol: string; title: string }): MailContent {
+  const hello = input.name?.trim() ? `Olá, ${escapeHtml(input.name.trim())}.` : 'Olá.';
+  return {
+    subject: `Chamado aberto — protocolo ${input.protocol}`,
+    html: layout('Recebemos o seu chamado', `<p>${hello}</p><p>Seu chamado foi registrado: <strong>${escapeHtml(input.title)}</strong></p><p style="font-size:24px;letter-spacing:3px;font-weight:700;font-family:Consolas,monospace;background:#faf7fd;border-radius:8px;padding:12px 16px;text-align:center;margin:18px 0">${escapeHtml(input.protocol)}</p><p>Guarde este número de protocolo. Com ele você acompanha o atendimento na aba Suporte e pode pedir informações ao nosso time.</p>`),
+    text: `${input.name?.trim() ? `Olá, ${input.name.trim()}.` : 'Olá.'}\n\nSeu chamado foi registrado: ${input.title}\nProtocolo: ${input.protocol}\n\nGuarde este número. Com ele você acompanha o atendimento na aba Suporte.`,
+  };
+}
+
 export function emailVerificationEmail(input: { name: string; url: string }): MailContent {
   return {
     subject: 'Confirme seu e-mail — Innovation RH Connect',

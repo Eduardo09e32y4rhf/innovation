@@ -2,7 +2,8 @@ import { Optional, BadRequestException, ConflictException, ForbiddenException, I
 import * as bcrypt from 'bcryptjs';
 import { MfaService } from '../auth/mfa.service';
 import { SessionService } from '../auth/session.service';
-import { decryptTemporaryPassword, encryptTemporaryPassword, generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
+import { generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
+import { AccessCredentialsService } from '../mail/access-credentials.service';
 import type { JwtUser } from '../../common/types/auth.types';
 import { normalizeDisplayName } from '../../common/utils/text-normalization';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -72,7 +73,16 @@ export class UsersService {
     private readonly repository: UsersRepository,
     @Optional() private readonly mfa?: MfaService,
     @Optional() private readonly sessions?: SessionService,
+    @Optional() private readonly access?: AccessCredentialsService,
   ) {}
+
+  /** Entrega a senha provisoria por e-mail (unico canal). Falha de envio nao desfaz o cadastro: a tela oferece "Reenviar acesso". */
+  private async deliverAccess(target: { name: string; email: string; companyId: string }, temporaryPassword: string, expiresAt: Date, reissued: boolean) {
+    if (!this.access) return false;
+    const companyName = await this.repository.companyName(target.companyId).catch(() => null);
+    const { emailSent } = await this.access.sendAccess({ to: target.email, name: target.name, companyName, temporaryPassword, expiresAt, reissued });
+    return emailSent;
+  }
 
   async list(companyId: string, actor: JwtUser) {
     if (actor.role === 'DEV') {
@@ -150,15 +160,15 @@ export class UsersService {
       passwordHash: await bcrypt.hash(temporaryPassword, 12),
       role: dto.role ?? 'FUNCIONARIO',
       employeeId: dto.employeeId,
-      temporaryPassword: {
-        value: temporaryPassword,
-        expiresAt: temporaryPasswordExpiresAt,
-      },
+      temporaryCredential: { expiresAt: temporaryPasswordExpiresAt },
       ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
     });
     if (!created) {
       throw new NotFoundException('Usuario nao encontrado');
     }
+
+    // A senha provisoria sai daqui so por e-mail para o proprio usuario; nunca na resposta da API.
+    const accessEmailSent = await this.deliverAccess({ name: created.name, email: created.email, companyId: targetCompanyId }, temporaryPassword, temporaryPasswordExpiresAt, false);
 
     await this.repository.createAuditLog({
       companyId: targetCompanyId,
@@ -172,12 +182,13 @@ export class UsersService {
         role: created.role,
         isActive: created.isActive,
         employeeLinked: Boolean((created as any).employee?.id),
+        accessEmailSent,
         requestedBy: actor.email,
       },
       ...this.metaFields(meta),
     });
 
-    return { ...created, temporaryPassword, temporaryPasswordExpiresAt };
+    return { ...created, accessEmailSent, temporaryPasswordExpiresAt };
   }
 
   private metaFields(meta?: { ip?: string; userAgent?: string }) {
@@ -325,40 +336,14 @@ export class UsersService {
     return result.user;
   }
 
-  async revealTemporaryPassword(companyId: string, actor: JwtUser, id: string) {
-    const user = await this.repository.findById(id, actor.role === 'DEV' ? undefined : companyId);
-    if (!user) throw new NotFoundException('Usuario nao encontrado');
-    this.assertCanRevealTemporaryPassword(actor, user);
-
-    const credential = await this.repository.findTemporaryCredential(id);
-    if (!credential || credential.revokedAt || credential.consumedAt || credential.expiresAt <= new Date()) {
-      throw new NotFoundException('Senha provisoria indisponivel ou expirada.');
-    }
-
-    let temporaryPassword: string;
-    try {
-      temporaryPassword = decryptTemporaryPassword(credential.encryptedValue);
-    } catch {
-      throw new NotFoundException('Senha provisoria indisponivel.');
-    }
-
-    await this.repository.markTemporaryCredentialRevealed(id);
-    await this.repository.createAuditLog({
-      companyId: user.companyId,
-      userId: actor.sub,
-      action: 'TEMPORARY_PASSWORD_REVEALED',
-      entity: 'User',
-      entityId: id,
-      metadata: { targetUserId: id, targetRole: user.role, expiresAt: credential.expiresAt.toISOString() },
-    });
-
-    return { temporaryPassword, expiresAt: credential.expiresAt };
-  }
-
+  /**
+   * Gera outra senha provisoria e a envia por e-mail ao proprio usuario ("Reenviar acesso" / reset administrativo).
+   * Quem pede nunca ve a senha: a resposta so informa se o e-mail saiu.
+   */
   async reissueTemporaryPassword(companyId: string, actor: JwtUser, id: string) {
     const user = await this.repository.findByIdWithPassword(id, actor.role === 'DEV' || actor.role === 'CEO' ? undefined : companyId);
     if (!user) throw new NotFoundException('Usuario nao encontrado');
-    this.assertCanRevealTemporaryPassword(actor, user);
+    this.assertCanIssueTemporaryPassword(actor, user);
     if (actor.sub === id) throw new ConflictException('Nao e permitido reemitir a propria senha por esta acao.');
 
     const temporaryPassword = generateTemporaryPassword();
@@ -370,17 +355,18 @@ export class UsersService {
       forcePasswordChange: true,
       passwordChangedAt: new Date(),
       failedLoginAttempts: 0,
-    }, encryptTemporaryPassword(temporaryPassword), expiresAt, actor.role === 'DEV' || actor.role === 'CEO' ? undefined : companyId);
+    }, expiresAt, actor.role === 'DEV' || actor.role === 'CEO' ? undefined : companyId);
     if (!reissued.count) throw new NotFoundException('Usuario nao encontrado');
+    const emailSent = await this.deliverAccess({ name: user.name, email: user.email, companyId: user.companyId }, temporaryPassword, expiresAt, true);
     await this.repository.createAuditLog({
       companyId: user.companyId,
       userId: actor.sub,
       action: 'TEMPORARY_PASSWORD_REISSUED',
       entity: 'User',
       entityId: id,
-      metadata: { targetUserId: id, targetRole: user.role, expiresAt: expiresAt.toISOString() },
+      metadata: { targetUserId: id, targetRole: user.role, expiresAt: expiresAt.toISOString(), accessEmailSent: emailSent },
     });
-    return { temporaryPassword, expiresAt };
+    return { emailSent, expiresAt };
   }
 
   /** Mantido por compatibilidade: DELETE /users/:id cancela o acesso (definitivo). */
@@ -439,8 +425,8 @@ export class UsersService {
     }
   }
 
-  private assertCanRevealTemporaryPassword(actor: JwtUser, user: { id: string; role?: string }) {
-    if (actor.sub === user.id) throw new ForbiddenException('Nao e permitido revelar a propria senha provisoria.');
+  private assertCanIssueTemporaryPassword(actor: JwtUser, user: { id: string; role?: string }) {
+    if (actor.sub === user.id) throw new ForbiddenException('Nao e permitido gerar a propria senha provisoria.');
     if (isOwnerTargetedByOther(actor, { id: user.id })) throw new ForbiddenException('O dono da plataforma nao pode ser alterado por outro usuario.');
     if (!this.canManageRole(actor.role, user.role)) {
       throw new ForbiddenException('Voce nao tem permissao para gerir a senha provisoria deste usuario.');

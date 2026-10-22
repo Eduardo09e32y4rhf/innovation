@@ -1,6 +1,7 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
+import { AccessCredentialsService } from '../mail/access-credentials.service';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
@@ -24,7 +25,20 @@ export function positionKey(value: string): string {
 
 @Injectable()
 export class EmployeesService {
-  constructor(private readonly repository: EmployeesRepository, private readonly asoService: AsoService) {}
+  constructor(
+    private readonly repository: EmployeesRepository,
+    private readonly asoService: AsoService,
+    @Optional() private readonly access?: AccessCredentialsService,
+  ) {}
+
+  /** Envia o acesso inicial por e-mail ao proprio usuario (unico canal da senha provisoria). Nunca lanca: devolve se o e-mail saiu. */
+  private async sendAccessEmail(companyId: string, user: { name: string; email: string }, temporaryPassword: string, expiresAt: Date, reissued = false): Promise<boolean> {
+    if (!this.access) return false;
+    let companyName: string | null = null;
+    try { companyName = await this.repository.companyName(companyId); } catch { /* sem nome: o e-mail usa "sua empresa" */ }
+    const { emailSent } = await this.access.sendAccess({ to: user.email, name: user.name, companyName, temporaryPassword, expiresAt, reissued });
+    return emailSent;
+  }
 
   async list(companyId: string, actor: JwtUser, page: number = 1, pageSize: number = 50, search?: string, status?: string) {
     const skip = Math.max(0, (page - 1) * pageSize);
@@ -206,7 +220,8 @@ export class EmployeesService {
     const existingUser = await this.repository.findUserByEmail(email);
     if (existingUser && existingUser.companyId !== companyId) throw new ConflictException('E-mail already registered in another company');
 
-    let temporaryPassword: string | null = null;
+    /** null = nao foi gerada senha nova (usuario ja existia); true/false = resultado do e-mail com o acesso. */
+    let emailSent: boolean | null = null;
 
     if (existingUser) {
       const linkedEmployee = await this.repository.findByUserId(companyId, existingUser.id);
@@ -224,7 +239,8 @@ export class EmployeesService {
     } else {
       await this.assertSeatAvailable(companyId);
 
-      temporaryPassword = generateTemporaryPassword();
+      const temporaryPassword = generateTemporaryPassword();
+      const expiresAt = temporaryPasswordExpiry();
       const user = await this.repository.createUser({
         companyId,
         name: dto.name ?? employee.name,
@@ -233,12 +249,10 @@ export class EmployeesService {
         passwordHash: await bcrypt.hash(temporaryPassword, 12),
         forcePasswordChange: true,
         isActive: true,
-        temporaryPassword: {
-          value: temporaryPassword,
-          expiresAt: temporaryPasswordExpiry(),
-        },
+        temporaryCredential: { expiresAt },
       });
       await this.repository.updateUserLink(companyId, employeeId, user.id);
+      emailSent = await this.sendAccessEmail(companyId, { name: user.name, email: user.email }, temporaryPassword, expiresAt);
 
       await this.repository.createAuditLog({
         companyId,
@@ -251,6 +265,7 @@ export class EmployeesService {
           email: user.email,
           role: user.role,
           employeeLinked: employeeId,
+          accessEmailSent: emailSent,
         },
       });
     }
@@ -258,7 +273,7 @@ export class EmployeesService {
     return {
       success: true,
       userId: employee.userId || existingUser?.id,
-      temporaryPassword,
+      emailSent,
       email,
       role,
     };
@@ -312,7 +327,7 @@ export class EmployeesService {
                 role: dto.role,
                 name: employee.name,
               });
-              results.push({ employeeId, success: true, temporaryPassword: createResult.temporaryPassword, role: createResult.role });
+              results.push({ employeeId, success: true, emailSent: createResult.emailSent, role: createResult.role });
             } catch (error: any) {
               results.push({ employeeId, success: false, error: error.message });
             }
@@ -328,6 +343,7 @@ export class EmployeesService {
             }
             if (dto.action === 'reset-password') {
               const newPassword = generateTemporaryPassword();
+              const expiresAt = temporaryPasswordExpiry();
               const user = await this.repository.findUserById(companyId, employee.userId!);
               const reset = await this.repository.reissueTemporaryPassword(companyId, employee.userId!, {
                 passwordHash: await bcrypt.hash(newPassword, 12),
@@ -335,8 +351,10 @@ export class EmployeesService {
                 forcePasswordChange: true,
                 passwordChangedAt: new Date(),
                 failedLoginAttempts: 0,
-              }, newPassword, temporaryPasswordExpiry());
-              results.push(reset.count ? { employeeId, success: true, temporaryPassword: newPassword } : { employeeId, success: false, error: 'Usuario nao encontrado' });
+              }, expiresAt);
+              if (!reset.count) { results.push({ employeeId, success: false, error: 'Usuario nao encontrado' }); break; }
+              // A senha provisoria so vai para o e-mail do proprio usuario.
+              results.push({ employeeId, success: true, emailSent: await this.sendAccessEmail(companyId, { name: user!.name, email: user!.email }, newPassword, expiresAt, true) });
               break;
             }
             const changed = await this.repository.updateUser(companyId, employee.userId!, { isActive: dto.action === 'unblock' });
@@ -482,6 +500,7 @@ export class EmployeesService {
     }
 
     const temporaryPassword = generateTemporaryPassword();
+    const expiresAt = temporaryPasswordExpiry();
 
     const user = await this.repository.createUser({
       companyId,
@@ -491,12 +510,11 @@ export class EmployeesService {
       passwordHash: await bcrypt.hash(temporaryPassword, 12),
       forcePasswordChange: true,
       isActive: true,
-      temporaryPassword: {
-        value: temporaryPassword,
-        expiresAt: temporaryPasswordExpiry(),
-      },
+      temporaryCredential: { expiresAt },
     });
     await this.repository.updateUserLink(companyId, employee.id, user.id);
+    // Acesso criado junto do cadastro: boas-vindas com e-mail e senha provisoria, so por e-mail.
+    await this.sendAccessEmail(companyId, { name: user.name, email: user.email }, temporaryPassword, expiresAt);
   }
 
   /**

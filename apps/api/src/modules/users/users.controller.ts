@@ -100,14 +100,7 @@ export class UsersController {
     return this.service.reissueTemporaryPassword(companyId, actor, id);
   }
 
-  @Header('Cache-Control', 'no-store')
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @Roles('DEV', 'CEO', 'ADMIN', 'RH')
-  @Post(':id/temporary-password/reveal')
-  revealTemporaryPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
-    return this.service.revealTemporaryPassword(companyId, actor, id);
-  }
-
+  /** Reenviar acesso: gera outra senha provisoria e a manda por e-mail ao usuario. A senha nunca volta na resposta. */
   @Header('Cache-Control', 'no-store')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')

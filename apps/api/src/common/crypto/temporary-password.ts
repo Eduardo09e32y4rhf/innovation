@@ -48,6 +48,13 @@ export function generateTemporaryPassword(): string {
   return chars.join('');
 }
 
+/**
+ * Gravado em TemporaryCredential.encryptedValue no lugar da senha. A provisoria NAO fica guardada em lugar nenhum
+ * (so o hash bcrypt em User.passwordHash) e sai da plataforma unicamente pelo e-mail do usuario; a linha existe so
+ * para controlar validade e uso. Sem copia reversivel, ninguem consegue "revelar" a senha depois.
+ */
+export const TEMPORARY_CREDENTIAL_PLACEHOLDER = 'SENT_BY_EMAIL';
+
 const DEFAULT_TTL_HOURS = 24;
 
 /** Validade da provisoria: TEMPORARY_PASSWORD_TTL_HOURS (1 a 168 h), padrao 24 h. */

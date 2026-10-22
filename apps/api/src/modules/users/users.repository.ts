@@ -2,7 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
-import { encryptTemporaryPassword } from '../../common/crypto/temporary-password';
+import { TEMPORARY_CREDENTIAL_PLACEHOLDER } from '../../common/crypto/temporary-password';
 
 const safeUserSelect = {
   id: true,
@@ -120,11 +120,12 @@ export class UsersRepository {
     passwordHash: string;
     role: UserRole;
     customPermissions?: string[];
-    temporaryPassword?: { value: string; expiresAt: Date };
+    /** So a validade: a senha provisoria nao e guardada (ela vai por e-mail). */
+    temporaryCredential?: { expiresAt: Date };
     employeeId?: string;
   }) {
     return this.prisma.$transaction(async (tx) => {
-      const { temporaryPassword, employeeId, ...userData } = data;
+      const { temporaryCredential, employeeId, ...userData } = data;
       const user = await tx.user.create({
         data: {
           ...userData,
@@ -136,13 +137,9 @@ export class UsersRepository {
         select: safeUserSelect,
       });
 
-      if (temporaryPassword) {
+      if (temporaryCredential) {
         await tx.temporaryCredential.create({
-          data: {
-            userId: user.id,
-            encryptedValue: encryptTemporaryPassword(temporaryPassword.value),
-            expiresAt: temporaryPassword.expiresAt,
-          },
+          data: { userId: user.id, encryptedValue: TEMPORARY_CREDENTIAL_PLACEHOLDER, expiresAt: temporaryCredential.expiresAt },
         });
       }
 
@@ -367,36 +364,21 @@ export class UsersRepository {
     return this.prisma.auditLog.create({ data });
   }
 
-  findTemporaryCredential(userId: string) {
-    return this.prisma.temporaryCredential.findUnique({ where: { userId } });
-  }
-
-  markTemporaryCredentialRevealed(userId: string) {
-    return this.prisma.temporaryCredential.update({
-      where: { userId },
-      data: { revealCount: { increment: 1 } },
-    });
-  }
-
-  /** Reemissao: hash novo e credencial provisoria na mesma transacao. */
-  reissueTemporaryPassword(userId: string, userData: Record<string, unknown>, encryptedValue: string, expiresAt: Date, companyId?: string) {
+  /** Reemissao: hash novo e credencial provisoria na mesma transacao (a senha em si so vai por e-mail). */
+  reissueTemporaryPassword(userId: string, userData: Record<string, unknown>, expiresAt: Date, companyId?: string) {
     return this.prisma.$transaction(async (tx) => {
       const result = await tx.user.updateMany({ where: { id: userId, ...(companyId ? { companyId } : {}) }, data: userData });
       if (!result.count) return { count: 0 };
       await tx.temporaryCredential.upsert({
         where: { userId },
-        create: { userId, encryptedValue, expiresAt },
-        update: { encryptedValue, expiresAt, issuedAt: new Date(), consumedAt: null, revokedAt: null, revealCount: 0 },
+        create: { userId, encryptedValue: TEMPORARY_CREDENTIAL_PLACEHOLDER, expiresAt },
+        update: { encryptedValue: TEMPORARY_CREDENTIAL_PLACEHOLDER, expiresAt, issuedAt: new Date(), consumedAt: null, revokedAt: null, revealCount: 0 },
       });
       return { count: result.count };
     });
   }
 
-  replaceTemporaryCredential(userId: string, encryptedValue: string, expiresAt: Date) {
-    return this.prisma.temporaryCredential.upsert({
-      where: { userId },
-      create: { userId, encryptedValue, expiresAt },
-      update: { encryptedValue, expiresAt, issuedAt: new Date(), consumedAt: null, revokedAt: null, revealCount: 0 },
-    });
+  companyName(companyId: string) {
+    return this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true } }).then((company) => company?.name ?? null);
   }
 }
