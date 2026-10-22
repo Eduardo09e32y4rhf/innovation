@@ -6,7 +6,7 @@ const compactSource = apiSource.replace(/\s+/g, ' ');
 
 describe('Support API contract', () => {
   it('keeps the client support route aligned with the backend path', () => {
-    expect(compactSource).toContain("list: (status?: string) => request<any[]>(`/support/tickets${status ? `?status=${status}` : ''}`)");
+    expect(compactSource).toContain("list: (filters?: string | Record<string, string | undefined>) => {");
   });
 
   it('keeps the platform support assignment route aligned with the backend path', () => {

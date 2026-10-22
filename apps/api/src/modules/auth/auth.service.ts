@@ -24,7 +24,7 @@ import { SessionService } from './session.service';
 import { SecurityStore } from './security-store';
 import { MfaService } from './mfa.service';
 import { MailService } from '../mail/mail.service';
-import { emailVerificationEmail, passwordResetEmail, securityAlertEmail } from '../mail/mail-templates';
+import { emailVerificationEmail, passwordResetCodeEmail, securityAlertEmail } from '../mail/mail-templates';
 import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { isPlatformOwner } from '../../common/constants/platform-owner';
@@ -440,13 +440,9 @@ export class AuthService {
       userAgent: requestMeta.userAgent,
     });
 
-    // Com e-mail configurado o próprio titular recebe o link (30 min, uso único) — sem depender do RH.
+    // Com e-mail configurado o próprio titular recebe o CÓDIGO (30 min, uso único) — sem depender do RH.
     if (this.mail.isConfigured()) {
-      const token = await this.jwtService.signAsync({
-        purpose: PASSWORD_RESET_PURPOSE, sub: user.id, email: user.email, passwordChangedAt: new Date(user.passwordChangedAt).getTime(),
-      }, { expiresIn: '30m' });
-      const base = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
-      const sent = await this.mail.send(user.email, passwordResetEmail({ name: user.name, url: `${base}/reset-password?token=${encodeURIComponent(token)}`, minutes: 30 }));
+      const sent = await this.mail.send(user.email, passwordResetCodeEmail({ name: user.name, code, minutes: 30 }));
       if (sent.sent) return { requested: true, channel: 'email' as const };
     }
 

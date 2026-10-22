@@ -6,7 +6,9 @@ import { randomUUID } from 'node:crypto';
 import * as ExcelJS from 'exceljs';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../database/prisma.service';
-import { encryptTemporaryPassword, generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
+import { TEMPORARY_CREDENTIAL_PLACEHOLDER, generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
+import { AccessCredentialsService } from '../mail/access-credentials.service';
+import { Optional } from '@nestjs/common';
 
 const SHEET_NAME = 'Funcionários';
 const HEADERS = ['Nome', 'CPF', 'E-mail', 'Departamento', 'Cargo', 'Data de admissão', 'Matrícula', 'Telefone', 'Perfil de acesso', 'Criar acesso'] as const;
@@ -36,6 +38,7 @@ export class EmployeesImportService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    @Optional() private readonly access?: AccessCredentialsService,
   ) {}
 
   async generateTemplate(): Promise<Buffer> {
@@ -204,6 +207,7 @@ export class EmployeesImportService {
     if (!payload.rows.length) throw new BadRequestException('Nenhuma linha válida para importar.');
 
     const results: ImportResult[] = [];
+    const accessOutbox: { user: { name: string; email: string }; password: string; expiresAt: Date; companyId: string }[] = [];
 
     const created = await this.prisma.$transaction(async (tx) => {
       let count = 0;
@@ -228,11 +232,11 @@ export class EmployeesImportService {
             } as any,
           });
 
-          // Criar acesso se solicitado
-          let temporaryPassword: string | null = null;
+          // Criar acesso se solicitado (senha sera enviada por e-mail depois do commit)
           if (row.createAccess === 'SIM' && row.email) {
             const role = this.resolveAccessRole(row.accessProfile);
-            temporaryPassword = generateTemporaryPassword();
+            const temporaryPassword = generateTemporaryPassword();
+            const expiresAt = temporaryPasswordExpiry();
             const passwordHash = await bcrypt.hash(temporaryPassword, 12);
 
             const existingUser = await tx.user.findUnique({ where: { email: row.email } });
@@ -252,8 +256,8 @@ export class EmployeesImportService {
               await tx.temporaryCredential.create({
                 data: {
                   userId: newUser.id,
-                  encryptedValue: encryptTemporaryPassword(temporaryPassword),
-                  expiresAt: temporaryPasswordExpiry(),
+                  encryptedValue: TEMPORARY_CREDENTIAL_PLACEHOLDER,
+                  expiresAt,
                 },
               });
 
@@ -261,13 +265,14 @@ export class EmployeesImportService {
                 where: { id: employee.id },
                 data: { userId: newUser.id },
               });
+
+              accessOutbox.push({ user: { name: newUser.name, email: newUser.email }, password: temporaryPassword, expiresAt, companyId });
             }
           }
 
           results.push({
             employeeId: employee.id,
             success: true,
-            temporaryPassword: temporaryPassword || undefined,
           });
         } catch (error: any) {
           results.push({
@@ -279,6 +284,14 @@ export class EmployeesImportService {
       }
       return count;
     });
+
+    // E-mail de acesso so depois do commit, e so para os que foram criados
+    if (this.access && accessOutbox.length) {
+      const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true } }).catch(() => null);
+      for (const item of accessOutbox) {
+        await this.access.sendAccess({ to: item.user.email, name: item.user.name, companyName: company?.name ?? null, temporaryPassword: item.password, expiresAt: item.expiresAt });
+      }
+    }
 
     await this.cache.del(key);
     return {
