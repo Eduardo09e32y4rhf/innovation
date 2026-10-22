@@ -55,6 +55,11 @@ for i in $(seq 1 40); do
   echo "  imagem $IMAGE_TAG ainda não publicada no GitHub ($i/40), aguardando 15s..."
   sleep 15
 done
+if [ "$PULLED" = 0 ]; then
+  # Usa a última imagem publicada do branch em vez de construir na VPS.
+  export IMAGE_TAG="${BRANCH//\//-}"
+  $COMPOSE pull -q api web 2>/dev/null && PULLED=1 && echo "  usando imagem do branch: $IMAGE_TAG"
+fi
 if [ "$PULLED" = 1 ]; then
   $COMPOSE up -d --no-build --remove-orphans
 else
