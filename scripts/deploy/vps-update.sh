@@ -47,9 +47,22 @@ bash scripts/deploy/apply-migrations.sh
 
 echo "== 5/6 Build e subida"
 # Um serviço por vez e com prioridade baixa: construir API e web juntos dobra o pico de memória e derruba VPS pequena.
-nice -n 10 $COMPOSE build api
-nice -n 10 $COMPOSE build web
-$COMPOSE up -d --remove-orphans
+# Imagens prontas do GitHub (workflow "Imagens Docker"): sem build na VPS.
+export IMAGE_TAG="$(git rev-parse HEAD)"
+PULLED=0
+for i in $(seq 1 40); do
+  if $COMPOSE pull -q api web 2>/dev/null; then PULLED=1; break; fi
+  echo "  imagem $IMAGE_TAG ainda não publicada no GitHub ($i/40), aguardando 15s..."
+  sleep 15
+done
+if [ "$PULLED" = 1 ]; then
+  $COMPOSE up -d --no-build --remove-orphans
+else
+  echo "AVISO: não baixou do GHCR; build local (lento, pode faltar memória)."
+  nice -n 10 $COMPOSE build api
+  nice -n 10 $COMPOSE build web
+  $COMPOSE up -d --remove-orphans
+fi
 
 echo "== 6/6 Verificação de saúde"
 for i in $(seq 1 30); do
