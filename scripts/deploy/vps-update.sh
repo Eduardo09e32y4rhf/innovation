@@ -59,6 +59,12 @@ if [ "$PULLED" = 1 ]; then
   $COMPOSE up -d --no-build --remove-orphans
 else
   echo "AVISO: não baixou do GHCR; build local (lento, pode faltar memória)."
+  # Garante 4G de swap para o build não derrubar a VPS por falta de memória.
+  if [ "$(swapon --show --noheadings | wc -l)" = 0 ] && [ ! -f /swapfile ]; then
+    fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile \
+      && echo '/swapfile none swap sw 0 0' >> /etc/fstab || echo "  sem permissão para criar swap"
+  fi
+  export NODE_OPTIONS="--max-old-space-size=1536"
   nice -n 10 $COMPOSE build api
   nice -n 10 $COMPOSE build web
   $COMPOSE up -d --remove-orphans
