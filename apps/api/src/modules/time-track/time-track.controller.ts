@@ -10,6 +10,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
 import { RevokeTimeTrackDto } from './dto/revoke-time-track.dto';
+import { RecalculateRangeDto } from './dto/recalculate-range.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackService } from './time-track.service';
 import { Prisma } from '@prisma/client';
@@ -62,7 +63,7 @@ export class TimeTrackController {
 
   @Roles('DEV', 'ADMIN', 'RH')
   @Post('recalculate')
-  recalculate(@CurrentCompany() companyId: string, @Body() body: { month: string; employeeId?: string }) {
+  recalculate(@CurrentCompany() companyId: string, @Body() body: RecalculateRangeDto) {
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(body?.month || '')) throw new BadRequestException('Informe o mes no formato YYYY-MM.');
     const [year, month] = body.month.split('-').map(Number);
     return this.service.recalculateRange(companyId, new Date(Date.UTC(year, month - 1, 1)), new Date(Date.UTC(year, month, 0)), body.employeeId);
