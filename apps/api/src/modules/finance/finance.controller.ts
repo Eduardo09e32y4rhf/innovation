@@ -17,6 +17,7 @@ import { FiscalAdjustmentsService } from './fiscal-adjustments.service';
 import { ResolveFiscalAdjustmentDto } from './dto/fiscal-adjustment.dto';
 import { PlatformRevenueReportService } from './platform-revenue-report.service';
 import { MonthlyReportQueryDto } from './dto/monthly-report.dto';
+import { contentDisposition } from '../../common/pdf/pdf-response';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
@@ -53,7 +54,7 @@ export class FinanceController {
   async monthlyReportCsv(@Query() query: MonthlyReportQueryDto, @Res() res: import('express').Response) {
     const { filename, content } = await this.revenueReport.monthlyCsv(query.month);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Disposition', contentDisposition(filename));
     res.send(content);
   }
 
