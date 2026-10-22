@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
@@ -32,7 +32,7 @@ export interface RegisterContext {
 }
 
 @Injectable()
-export class TimeTrackService {
+export class TimeTrackService implements OnApplicationBootstrap {
   constructor(
     private readonly repository: TimeTrackRepository,
     private readonly redis: RedisService,
@@ -352,6 +352,31 @@ export class TimeTrackService {
     const saved = await this.repository.findById(companyId, id);
     if (saved) await this.syncCalculatedOccurrences(companyId, saved);
     return saved;
+  }
+
+  /**
+   * Correcao unica dos dias gravados com o dia da semana deslocado (segunda tratada como domingo).
+   * Roda em segundo plano depois de subir, uma vez (marcador no Redis), nos ultimos 120 dias; e idempotente.
+   */
+  onApplicationBootstrap() {
+    if (process.env.NODE_ENV === 'test' || process.env.VITEST) return;
+    void this.backfillWeekdayFix();
+  }
+
+  private async backfillWeekdayFix() {
+    const flag = 'fix:time-track-weekday:v1';
+    try {
+      if (await this.redis.get(flag)) return;
+      const to = new Date();
+      const from = new Date(to.getTime() - 120 * 86400000);
+      const companies = await this.prisma.timeTrack.findMany({ where: { date: { gte: from, lte: to } }, distinct: ['companyId'], select: { companyId: true } });
+      let total = 0;
+      for (const { companyId } of companies) total += (await this.recalculateRange(companyId, from, to)).recalculated;
+      await this.redis.set(flag, new Date().toISOString());
+      this.logger.log(`Correcao do dia da semana no ponto: ${total} registros recalculados.`);
+    } catch (error) {
+      this.logger.warn(`Correcao do dia da semana no ponto adiada: ${(error as Error).message}`);
+    }
   }
 
   /**
