@@ -44,6 +44,12 @@ export class PlatformSupportController {
     return this.supportService.listTickets(req.user, query);
   }
 
+  @Get('tickets/protocol/:protocol')
+  async getTicketByProtocol(@Req() req: any, @Param('protocol') protocol: string) {
+    this.authService.assertCanViewPlatformSupport(req.user);
+    return this.supportService.getTicketByProtocol(req.user, protocol);
+  }
+
   @Get('tickets/:id')
   async getTicket(@Req() req: any, @Param('id') id: string) {
     this.authService.assertCanViewPlatformSupport(req.user);
@@ -64,8 +70,9 @@ export class PlatformSupportController {
   @Roles('DEV')
   async updatePriority(@Req() req: any, @Param('id') id: string, @Body('priority') priority: SupportTicketPriority) {
     this.authService.assertCanManageTicket(req.user);
+    const before = await this.repository.findTicketById(id);
     const ticket = await this.repository.updateTicket(id, { priority });
-    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'PRIORITY_CHANGED', newValue: { priority } });
+    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'PRIORITY_CHANGED', previousValue: before ? { priority: before.priority } : undefined, newValue: { priority } });
     return ticket;
   }
 
@@ -81,8 +88,9 @@ export class PlatformSupportController {
       lifecycle.resolvedAt = null;
       lifecycle.closedAt = null;
     }
+    const before = await this.repository.findTicketById(id);
     const ticket = await this.repository.updateTicket(id, lifecycle);
-    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'STATUS_CHANGED', newValue: { status } });
+    await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'STATUS_CHANGED', previousValue: before ? { status: before.status } : undefined, newValue: { status } });
     return ticket;
   }
 

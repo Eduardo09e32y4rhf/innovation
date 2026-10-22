@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { Prisma, $Enums } from '@prisma/client';
+import { generateUniqueProtocol } from './support-protocol';
 
 export const SAFE_USER_SELECT = {
   id: true,
@@ -91,6 +92,8 @@ export class SupportRepository {
             id: true,
             ticketId: true,
             eventType: true,
+            previousValue: true,
+            newValue: true,
             createdAt: true,
             actor: { select: SAFE_USER_SELECT },
           },
@@ -146,6 +149,8 @@ export class SupportRepository {
             id: true,
             ticketId: true,
             eventType: true,
+            previousValue: true,
+            newValue: true,
             createdAt: true,
             actor: { select: SAFE_USER_SELECT },
           },
@@ -244,7 +249,7 @@ export class SupportRepository {
   async findTicketById(id: string) {
     return this.prisma.supportTicket.findUnique({
       where: { id },
-      select: { companyId: true, affectedUserId: true, requesterEmail: true },
+      select: { companyId: true, affectedUserId: true, requesterEmail: true, status: true, priority: true },
     });
   }
 
@@ -293,19 +298,13 @@ export class SupportRepository {
     });
   }
 
-  async generateTicketNumber(year: number): Promise<string> {
-    const counter = await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.supportTicketCounter.findUnique({ where: { year } });
-      if (existing) {
-        return tx.supportTicketCounter.update({
-          where: { year },
-          data: { lastNumber: { increment: 1 } }
-        });
-      }
-      return tx.supportTicketCounter.create({
-        data: { year, lastNumber: 1 }
-      });
-    });
-    return `SUP-${year}-${String(counter.lastNumber).padStart(6, '0')}`;
+  /** Protocolo AAAAMMDD + 7 digitos aleatorios (ex.: 202610211020121). Chamados antigos mantem o numero SUP-AAAA-NNNNNN. */
+  async generateTicketNumber(): Promise<string> {
+    return generateUniqueProtocol(async (ticketNumber) => Boolean(await this.prisma.supportTicket.findUnique({ where: { ticketNumber }, select: { id: true } })));
+  }
+
+  /** Busca pelo protocolo, ja restrita ao que o usuario pode ver (where vem da autorizacao). */
+  async findIdByProtocol(protocol: string, scope: Prisma.SupportTicketWhereInput = {}) {
+    return this.prisma.supportTicket.findFirst({ where: { AND: [scope, { ticketNumber: protocol }] }, select: { id: true } });
   }
 }

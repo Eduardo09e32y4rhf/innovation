@@ -4,6 +4,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { couponDiscount } from '../coupons/coupon-rules';
 import { AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
+import { generateUniqueProtocol } from '../support/support-protocol';
 
 /** Tenta o provedor e devolve null em falha: a tela mostra o que existir em vez de quebrar. */
 async function attempt<T>(logger: Logger, label: string, run: () => Promise<T>): Promise<T | null> {
@@ -117,12 +118,7 @@ export class FaturasEmpresaService {
     if (existing) throw new BadRequestException(`Já existe um pedido de reembolso em andamento para esta fatura (${existing.ticketNumber}).`);
 
     const user = await this.prisma.user.findUnique({ where: { id: actor.sub }, select: { name: true, email: true } });
-    const year = new Date().getFullYear();
-    const counter = await this.prisma.$transaction(async (tx) => {
-      const current = await tx.supportTicketCounter.findUnique({ where: { year } });
-      return current ? tx.supportTicketCounter.update({ where: { year }, data: { lastNumber: { increment: 1 } } }) : tx.supportTicketCounter.create({ data: { year, lastNumber: 1 } });
-    });
-    const ticketNumber = `SUP-${year}-${String(counter.lastNumber).padStart(6, '0')}`;
+    const ticketNumber = await generateUniqueProtocol(async (candidate) => Boolean(await this.prisma.supportTicket.findUnique({ where: { ticketNumber: candidate }, select: { id: true } })));
     const brl = Number(invoice.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const ticket = await this.prisma.supportTicket.create({
       data: {

@@ -7,6 +7,8 @@ import { Button, PageHeader, Drawer } from '@/app/components/ui';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { api } from '@/app/lib/api';
+import { EMPTY_TICKET_FILTERS, TicketFilterBar, ticketFilterParams, type TicketFilters } from '../../support/_components/ticket-filters';
+import { ProtocolCopy, TicketTimeline, type TimelineEntry } from '../../support/_components/ticket-timeline';
 import {
   ArrowUpRight,
   AlertCircle,
@@ -72,6 +74,7 @@ interface PlatformTicket {
   company?: { name: string; id: string; document?: string };
   messages?: SupportMessage[];
   attachments?: SupportAttachment[];
+  timeline?: TimelineEntry[];
 }
 
 type TriageTab = 'all' | 'unassigned' | 'critical' | 'sla_at_risk' | 'reopened' | 'waiting_customer' | 'waiting_deploy';
@@ -108,6 +111,7 @@ export function SuporteView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState<TicketFilters>(EMPTY_TICKET_FILTERS);
   const [activeTab, setActiveTab] = useState<TriageTab>('all');
   const [selectedTicket, setSelectedTicket] = useState<PlatformTicket | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -122,7 +126,7 @@ export function SuporteView() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.platformSupport.list(companyId ? { companyId } : undefined);
+      const data = await api.platformSupport.list({ ...(companyId ? { companyId } : {}), ...ticketFilterParams(filters) });
       setTickets(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load platform tickets', err);
@@ -131,7 +135,7 @@ export function SuporteView() {
     } finally {
       setLoading(false);
     }
-  }, [isDev, companyId]);
+  }, [isDev, companyId, filters]);
 
   useEffect(() => {
     if (user && !isDev) {
@@ -397,6 +401,8 @@ export function SuporteView() {
         </div>
       </div>
 
+      <TicketFilterBar value={filters} onApply={setFilters} disabled={loading} />
+
       <div className="card-v2 flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:max-w-xl">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -523,8 +529,8 @@ export function SuporteView() {
             <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-slate-200/80 bg-slate-50/50">
               <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950 p-4 text-white md:p-6">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="rounded-lg bg-white/10 px-2.5 py-1 font-mono text-xs font-black text-white">
-                    {selectedTicket.ticketNumber || selectedTicket.id}
+                  <span className="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-black text-white">
+                    <ProtocolCopy protocol={selectedTicket.ticketNumber || selectedTicket.id} />
                   </span>
                   {getStatusBadge(selectedTicket.status)}
                   {formatSlaRemaining(selectedTicket)}
@@ -548,6 +554,7 @@ export function SuporteView() {
                 <p className="mt-3 whitespace-pre-line rounded-xl border border-slate-200/60 bg-slate-50 p-3.5 text-sm leading-relaxed text-slate-700">
                   {selectedTicket.description || 'Sem descricao detalhada fornecida.'}
                 </p>
+                <TicketTimeline entries={selectedTicket.timeline} />
                 <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3.5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>

@@ -36,6 +36,12 @@ export class SupportController {
     return this.supportService.listTickets(req.user, query);
   }
 
+  /** Consulta pelo numero de protocolo (ex.: 202610211020121). Declarada antes de `:id`. */
+  @Get('tickets/protocol/:protocol')
+  async getTicketByProtocol(@Req() req: any, @Param('protocol') protocol: string) {
+    return this.supportService.getTicketByProtocol(req.user, protocol);
+  }
+
   @Get('tickets/:id')
   async getTicket(@Req() req: any, @Param('id') id: string) {
     return this.supportService.getTicket(req.user, id);

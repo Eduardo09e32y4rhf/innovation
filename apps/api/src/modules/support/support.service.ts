@@ -1,5 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { SupportRepository } from './support.repository';
+import { PROTOCOL_LENGTH, protocolSearchTerm } from './support-protocol';
+import { buildTimeline } from './support-timeline';
+import { toSaoPauloDateKey } from '../../common/utils/date.utils';
 import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportSlaService } from './support-sla.service';
 import { SupportTicketPriority } from '@prisma/client';
@@ -19,9 +22,8 @@ export class SupportService {
     // Chamado de funcionario sempre fica em nome dele: e assim que ele o encontra e acompanha na lista.
     if (actor.role === 'FUNCIONARIO') data = { ...data, affectedUserId: actor.sub };
 
-    const year = new Date().getFullYear();
-    const ticketNumber = await this.repository.generateTicketNumber(year);
-    
+    const ticketNumber = await this.repository.generateTicketNumber();
+
     let initialPriority: SupportTicketPriority = SupportTicketPriority.NORMAL;
     if (data.priority) {
       initialPriority = data.priority;
@@ -58,37 +60,70 @@ export class SupportService {
 
   async listTickets(actor: JwtUser, query?: ListSupportTicketsQueryDto) {
     const baseWhere = await this.authService.buildTicketListWhere(actor);
-    const where: any = { ...baseWhere };
+    // Cada filtro entra como uma condicao propria no AND: o OR de visibilidade do perfil nunca e sobrescrito.
+    const filters: any[] = [];
 
-    if (query?.status) where.status = query.status;
-    if (query?.priority) where.priority = query.priority;
-    if (query?.category) where.category = query.category;
+    if (query?.status) filters.push({ status: query.status });
+    if (query?.priority) filters.push({ priority: query.priority });
+    if (query?.category) filters.push({ category: query.category });
     // companyId sempre vem do token para clientes. Apenas DEV pode consultar o
     // atendimento de outra empresa no painel de plataforma.
-    if (query?.companyId && actor.role === 'DEV') where.companyId = query.companyId;
+    if (query?.companyId && actor.role === 'DEV') filters.push({ companyId: query.companyId });
     if (query?.search) {
-      const searchConditions = [
-        { title: { contains: query.search, mode: 'insensitive' } },
-        { description: { contains: query.search, mode: 'insensitive' } },
-        { ticketNumber: { contains: query.search, mode: 'insensitive' } },
-      ];
-      if (where.OR) {
-        where.AND = [
-          { OR: where.OR },
-          { OR: searchConditions },
-        ];
-        delete where.OR;
-      } else {
-        where.OR = searchConditions;
-      }
+      filters.push({
+        OR: [
+          { title: { contains: query.search, mode: 'insensitive' } },
+          { description: { contains: query.search, mode: 'insensitive' } },
+          { ticketNumber: { contains: query.search, mode: 'insensitive' } },
+        ],
+      });
     }
+    const protocol = query?.protocol ? protocolSearchTerm(query.protocol) : '';
+    if (protocol) filters.push({ ticketNumber: protocol.length === PROTOCOL_LENGTH ? protocol : { contains: protocol } });
+    const range = this.createdAtRange(query?.dateFrom, query?.dateTo);
+    if (range) filters.push({ createdAt: range });
 
-    return this.repository.findTickets(where);
+    return this.repository.findTickets(filters.length ? { AND: [baseWhere, ...filters] } : baseWhere);
   }
 
+  /** Dias de calendario de Sao Paulo (sem horario de verao desde 2019: UTC-3 fixo). `dateTo` inclui o dia inteiro. */
+  private createdAtRange(dateFrom?: string, dateTo?: string) {
+    const start = (day: string) => {
+      const date = new Date(`${day}T00:00:00-03:00`);
+      // O V8 aceita 2026-02-31 e rola para 03/03: conferir que o dia volta igual.
+      if (Number.isNaN(date.getTime()) || toSaoPauloDateKey(date) !== day) throw new BadRequestException(`Data inválida: ${day}.`);
+      return date;
+    };
+    const range: { gte?: Date; lt?: Date } = {};
+    if (dateFrom) range.gte = start(dateFrom);
+    if (dateTo) range.lt = new Date(start(dateTo).getTime() + 86_400_000);
+    if (range.gte && range.lt && range.gte >= range.lt) throw new BadRequestException('A data inicial não pode ser depois da data final.');
+    return range.gte || range.lt ? range : null;
+  }
+
+  /** Busca exata pelo numero de protocolo, so dentro do que o perfil pode ver. */
+  async getTicketByProtocol(actor: JwtUser, input: string) {
+    const protocol = protocolSearchTerm(input);
+    if (!protocol) throw new BadRequestException('Informe o número do protocolo.');
+    const scope = await this.authService.buildTicketListWhere(actor);
+    const found = await this.repository.findIdByProtocol(protocol, scope);
+    if (!found) throw new NotFoundException('Nenhum chamado encontrado com este protocolo.');
+    return this.getTicket(actor, found.id);
+  }
+
+  /** Chamado completo + historico (linha do tempo). Notas internas so para DEV. */
   async getTicket(actor: JwtUser, id: string) {
+    const ticket: any = await this.loadTicket(actor, id);
+    const includeInternal = actor.role === 'DEV';
+    const messages = (ticket.messages ?? []).filter((message: any) => includeInternal || message.visibility !== 'INTERNAL');
+    const events = (ticket.events ?? []).filter((event: any) => includeInternal || event.eventType !== 'INTERNAL_NOTE');
+    const visible = { ...ticket, messages, events };
+    return { ...visible, timeline: buildTimeline(visible, { includeInternal }) };
+  }
+
+  private async loadTicket(actor: JwtUser, id: string) {
     const isPlatformUser = actor.role === 'DEV' || actor.role === 'COMERCIAL';
-    const ticket = isPlatformUser 
+    const ticket = isPlatformUser
       ? await this.repository.findPlatformTicketById(id)
       : await this.repository.findClientTicketById(id, actor.companyId);
 
@@ -98,7 +133,7 @@ export class SupportService {
   }
 
   async addMessage(actor: JwtUser, id: string, message: string, visibility: 'PUBLIC' | 'INTERNAL' = 'PUBLIC') {
-    const ticket = await this.getTicket(actor, id);
+    const ticket = await this.loadTicket(actor, id);
     if (visibility === 'INTERNAL') {
       this.authService.assertCanCreateInternalNote(actor);
     } else {
@@ -139,7 +174,7 @@ export class SupportService {
   }
 
   async closeTicket(actor: JwtUser, id: string) {
-    const ticket = await this.getTicket(actor, id);
+    const ticket = await this.loadTicket(actor, id);
     await this.authService.assertCanCloseTicket(actor, ticket);
 
     await this.repository.updateTicket(id, {
@@ -151,11 +186,13 @@ export class SupportService {
       ticketId: id,
       actorUserId: actor.sub,
       eventType: 'TICKET_CLOSED',
+      previousValue: { status: ticket.status },
+      newValue: { status: 'CLOSED' },
     });
   }
 
   async reopenTicket(actor: JwtUser, id: string) {
-    const ticket = await this.getTicket(actor, id);
+    const ticket = await this.loadTicket(actor, id);
     await this.authService.assertCanCloseTicket(actor, ticket);
 
     await this.repository.updateTicket(id, {
@@ -168,6 +205,8 @@ export class SupportService {
       ticketId: id,
       actorUserId: actor.sub,
       eventType: 'TICKET_REOPENED',
+      previousValue: { status: ticket.status },
+      newValue: { status: 'IN_PROGRESS' },
     });
   }
 

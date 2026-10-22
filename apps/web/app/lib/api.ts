@@ -1159,8 +1159,13 @@ export const api = {
 
   support: {
     stats: () => request<{ open: number; resolved: number; closed: number }>('/support/stats'),
-    list: (status?: string) => request<any[]>(`/support/tickets${status ? `?status=${status}` : ''}`),
+    /** `status` (texto, como antes) ou filtros: { status, protocol, dateFrom, dateTo, search }. */
+    list: (filters?: string | Record<string, string | undefined>) => {
+      const params = typeof filters === 'string' ? { status: filters } : filters || {};
+      return request<any[]>(`/support/tickets${makeQuery(params)}`);
+    },
     get: (id: string) => request<any>(`/support/tickets/${id}`),
+    byProtocol: (protocol: string) => request<any>(`/support/tickets/protocol/${encodeURIComponent(protocol)}`),
     create: (data: any) => request<any>('/support/tickets', { method: 'POST', body: data }),
     reply: (id: string, data: any) => request<any>(`/support/tickets/${id}/messages`, { method: 'POST', body: data }),
     close: (id: string) => request<any>(`/support/tickets/${id}/close`, { method: 'POST' }),
@@ -1178,6 +1183,7 @@ export const api = {
     stats: () => request<any>('/platform/support/stats'),
     list: (params?: any) => request<any[]>(`/platform/support/tickets${makeQuery(params || {})}`),
     get: (id: string) => request<any>(`/platform/support/tickets/${id}`),
+    byProtocol: (protocol: string) => request<any>(`/platform/support/tickets/protocol/${encodeURIComponent(protocol)}`),
     reply: (id: string, data: any) => request<any>(`/platform/support/tickets/${id}/messages`, { method: 'POST', body: data }),
     internalNote: (id: string, data: any) => request<any>(`/platform/support/tickets/${id}/internal-notes`, { method: 'POST', body: data }),
     updateStatus: (id: string, status: string) => request<any>(`/platform/support/tickets/${id}/status`, { method: 'PATCH', body: { status } }),

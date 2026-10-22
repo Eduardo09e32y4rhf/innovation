@@ -24,6 +24,8 @@ import { ErrorState, EmptyState, LoadingState } from '@/app/components/data-stat
 import { toast } from 'sonner';
 import { SuporteView as PlatformSupportPage } from '../platform/_hub/suporte-view';
 import { TicketWizardSlideover } from './_components/ticket-wizard-slideover';
+import { EMPTY_TICKET_FILTERS, TicketFilterBar, hasTicketFilters, ticketFilterParams, type TicketFilters } from './_components/ticket-filters';
+import { ProtocolCopy, TicketTimeline, type TimelineEntry } from './_components/ticket-timeline';
 
 interface SupportMessage {
   id: string;
@@ -57,6 +59,7 @@ interface Ticket {
     status: 'QUARANTINED' | 'CLEAN' | 'REJECTED';
   }>;
   messages?: SupportMessage[];
+  timeline?: TimelineEntry[];
 }
 
 const STATUS_FLOW: Array<{ key: Ticket['status']; label: string }> = [
@@ -107,6 +110,7 @@ function CustomerSupportPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [filters, setFilters] = useState<TicketFilters>(EMPTY_TICKET_FILTERS);
 
   const [showModal, setShowModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -126,7 +130,7 @@ function CustomerSupportPage() {
     setError(null);
     try {
       const [data, summary] = await Promise.all([
-        api.support.list(statusFilter),
+        api.support.list({ status: statusFilter, ...ticketFilterParams(filters) }),
         api.support.stats().catch(() => null),
       ]);
       setTickets(Array.isArray(data) ? data : []);
@@ -137,7 +141,7 @@ function CustomerSupportPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, filters]);
 
   useEffect(() => {
     loadTickets();
@@ -293,6 +297,8 @@ function CustomerSupportPage() {
         </div>
       </div>
 
+      <TicketFilterBar value={filters} onApply={setFilters} disabled={loading} />
+
       <div className="card-v2 flex flex-col justify-between gap-4 p-4 md:flex-row md:items-center">
         <div className="relative w-full md:max-w-md">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -332,7 +338,7 @@ function CustomerSupportPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={loadTickets} />
         ) : filteredTickets.length === 0 ? (
-          <EmptyState message="Nenhum chamado de suporte encontrado para sua conta." />
+          <EmptyState message={hasTicketFilters(filters) ? 'Nenhum chamado encontrado para este protocolo ou período.' : 'Nenhum chamado de suporte encontrado para sua conta.'} />
         ) : (
           <div className="divide-y divide-slate-100">
             {filteredTickets.map((ticket) => (
@@ -393,8 +399,8 @@ function CustomerSupportPage() {
             <header className="border-b border-border bg-fg px-6 py-4 text-white">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-violet-300">
-                    {selectedTicket.ticketNumber || selectedTicket.id}
+                  <p className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-violet-300">
+                    <span>Protocolo</span> <ProtocolCopy protocol={selectedTicket.ticketNumber || selectedTicket.id} />
                   </p>
                   <h2 className="text-lg font-black">{selectedTicket.title || selectedTicket.subject}</h2>
                   <p className="mt-1 text-xs text-slate-300">
@@ -457,6 +463,8 @@ function CustomerSupportPage() {
                   {selectedTicket.description || 'Sem descrição informada.'}
                 </p>
               </div>
+
+              <TicketTimeline entries={selectedTicket.timeline} />
 
               <div className="card-v2 mt-4 p-4">
                 <p className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">

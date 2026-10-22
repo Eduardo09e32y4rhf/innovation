@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsIn } from 'class-validator';
+import { IsOptional, IsString, IsIn, Matches, MaxLength } from 'class-validator';
 
 
 export class ListSupportTicketsQueryDto {
@@ -21,6 +21,22 @@ export class ListSupportTicketsQueryDto {
   @IsOptional()
   @IsString()
   companyId?: string;
+
+  /** Protocolo completo ou parte dele (so os digitos contam; ex.: 202610211020121 ou 20261021). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  protocol?: string;
+
+  /** Abertos a partir deste dia (AAAA-MM-DD, dia de Sao Paulo). */
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'dateFrom deve estar no formato AAAA-MM-DD.' })
+  dateFrom?: string;
+
+  /** Abertos ate este dia, inclusive (AAAA-MM-DD, dia de Sao Paulo). */
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'dateTo deve estar no formato AAAA-MM-DD.' })
+  dateTo?: string;
 }
 
 export { ListSupportTicketsQueryDto as ListsupportticketsqueryDto };
