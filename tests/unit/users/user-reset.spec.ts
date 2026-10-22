@@ -45,11 +45,10 @@ describe('UsersService.reissueTemporaryPassword (reset administrativo)', () => {
     expect(repository.reissueTemporaryPassword).toHaveBeenCalledWith(
       targetId,
       expect.objectContaining({ forcePasswordChange: true, failedLoginAttempts: 0 }),
-      expect.any(String),
       expect.any(Date),
       companyId,
     );
-    expect(result.temporaryPassword).toMatch(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6}$/);
+    expect(result.emailSent).toBe(false);
   });
 
   it('nao emite para usuario ausente do tenant do ator', async () => {
