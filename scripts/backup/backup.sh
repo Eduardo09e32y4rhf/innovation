@@ -7,7 +7,8 @@
 set -Eeuo pipefail
 
 cd "$(dirname "$0")/../.."
-set -a; . ./.env; set +a
+source scripts/deploy/env-options.sh
+load_deploy_options BACKUP_DIR BACKUP_KEEP_DAYS BACKUP_REMOTE
 COMPOSE="docker compose -f docker-compose.prod.yml"
 BACKUP_DIR="${BACKUP_DIR:-$PWD/storage/backups}"
 KEEP_DAYS="${BACKUP_KEEP_DAYS:-14}"
@@ -19,7 +20,7 @@ mkdir -p "$BACKUP_DIR"
 umask 077
 
 echo "$LOG iniciando -> $FILE"
-$COMPOSE exec -T db pg_dump -U "${POSTGRES_USER:-innovation}" -d "${POSTGRES_DB:-innovation_db}" --no-owner --clean --if-exists | gzip -9 > "$FILE.partial"
+$COMPOSE exec -T db sh -c 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --clean --if-exists' | gzip -1 > "$FILE.partial"
 
 # Sanidade: arquivo não pode ser vazio nem truncado.
 SIZE=$(stat -c %s "$FILE.partial")

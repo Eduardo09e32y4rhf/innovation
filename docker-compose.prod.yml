@@ -3,8 +3,15 @@
 # Subir:         docker compose -f docker-compose.prod.yml up -d --build
 # O compose RECUSA subir se faltar segredo obrigatÃ³rio (sintaxe ${VAR:?}).
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
+    logging: *default-logging
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-innovation}
@@ -21,6 +28,7 @@ services:
     restart: always
 
   redis:
+    logging: *default-logging
     image: redis:7-alpine
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?defina REDIS_PASSWORD no .env}", "--appendonly", "yes"]
     volumes:
@@ -35,6 +43,8 @@ services:
     restart: always
 
   api:
+    image: ${API_IMAGE:-innovation-api:local}
+    logging: *default-logging
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -78,6 +88,7 @@ services:
       ASAAS_API_KEY: ${ASAAS_API_KEY:-}
       ASAAS_API_URL: ${ASAAS_API_URL:-}
       ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN:-}
+      ASAAS_WEBHOOK_SECRET: ${ASAAS_WEBHOOK_SECRET:-}
       ASAAS_DEFAULT_BILLING_TYPE: ${ASAAS_DEFAULT_BILLING_TYPE:-UNDEFINED}
       # Dados do emitente que saem no PDF da fatura
       INVOICE_ISSUER_NAME: ${INVOICE_ISSUER_NAME:-Innovation RH}
@@ -133,6 +144,7 @@ services:
     restart: always
 
   clamav:
+    logging: *default-logging
     image: clamav/clamav:stable
     # Sem 'ports': so a API (rede interna) usa o scanner. Na 1a subida baixa as definicoes (alguns minutos; ~1-2 GB de RAM).
     volumes:
@@ -140,6 +152,8 @@ services:
     restart: always
 
   web:
+    image: ${WEB_IMAGE:-innovation-web:local}
+    logging: *default-logging
     build:
       context: .
       dockerfile: apps/web/Dockerfile

@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
   workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: false
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
@@ -25,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { ref: '${{ inputs.ref || github.sha }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
@@ -44,7 +49,7 @@ jobs:
       GITLEAKS_SHA256: 5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 } # historico inteiro: segredo apagado num commit antigo continua exposto
+        with: { ref: '${{ inputs.ref || github.sha }}', fetch-depth: 0 } # histórico inteiro
       - name: Instalar gitleaks (versao fixa, checksum verificado)
         run: |
           curl -sSfL -o gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
@@ -60,6 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { ref: '${{ inputs.ref || github.sha }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
@@ -81,6 +87,7 @@ jobs:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_empty?schema=public
     steps:
       - uses: actions/checkout@v4
+        with: { ref: '${{ inputs.ref || github.sha }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
@@ -109,6 +116,7 @@ jobs:
       REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4
+        with: { ref: '${{ inputs.ref || github.sha }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
@@ -122,16 +130,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { ref: '${{ inputs.ref || github.sha }}' }
       - uses: actions/setup-node@v4
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - run: npm run prisma:generate
       - run: npm run build:api
       - run: npm run build:web
+      - name: Validar imagens que serão instaladas na VPS
+        run: |
+          docker build -f apps/api/Dockerfile -t innovation-api:ci .
+          docker build -f apps/web/Dockerfile -t innovation-web:ci .
+          docker run --rm --entrypoint node innovation-api:ci -e 'require("./apps/api/dist/app.module"); require("./apps/api/node_modules/@prisma/client");'
+          trap 'docker logs web-smoke; docker rm -f web-smoke' EXIT
+          docker run -d --name web-smoke -p 3000:3000 innovation-web:ci
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 3 http://127.0.0.1:3000/login >/dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS --max-time 5 http://127.0.0.1:3000/login >/dev/null
 
   browser-e2e:
     name: Browser E2E
     uses: ./.github/workflows/e2e.yml
+    with:
+      ref: ${{ inputs.ref || github.sha }}
 
   # Job unico a exigir na protecao de branch da main.
   ci-ok:
