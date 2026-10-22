@@ -112,8 +112,8 @@ export class EmployeesController {
 
   @Roles('ADMIN', 'RH')
   @Delete(':id/permanent')
-  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
-    return this.service.delete(companyId, actor, id);
+  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Query('force') force?: string) {
+    return this.service.delete(companyId, actor, id, force === 'true');
   }
 
   @Roles('ADMIN', 'RH')

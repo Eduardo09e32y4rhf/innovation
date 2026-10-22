@@ -315,6 +315,14 @@ export class EmployeesRepository {
     return { company, employee, manager, timeTracks, occurrences, closing };
   }
 
+  /** Exclusao definitiva com historico: o banco apaga ponto, folha, ferias etc. em cascata; avaliacoes de desempenho (sem cascata) saem antes. */
+  deleteWithHistory(companyId: string, id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.performanceEvaluation.deleteMany({ where: { OR: [{ evaluatorId: id }, { evaluateeId: id }] } });
+      return tx.employee.deleteMany({ where: { id, companyId } });
+    });
+  }
+
   delete(companyId: string, id: string) {
     return this.prisma.employee.deleteMany({ where: { companyId, id } });
   }

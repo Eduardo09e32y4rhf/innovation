@@ -926,7 +926,7 @@ export const api = {
     create: (input: CreateEmployeeInput) => request<Employee>('/employees', { method: 'POST', body: input }),
     update: (id: string, input: Partial<CreateEmployeeInput>) => request<Employee>(`/employees/${id}`, { method: 'PATCH', body: input }),
     terminate: (id: string) => request<Employee>(`/employees/${id}`, { method: 'DELETE' }),
-    delete: (id: string) => request<EmployeeDeleteResult>(`/employees/${id}/permanent`, { method: 'DELETE' }),
+    delete: (id: string, force = false) => request<EmployeeDeleteResult>(`/employees/${id}/permanent${force ? '?force=true' : ''}`, { method: 'DELETE' }),
     createAccess: (id: string, input: { email: string; role?: string; name?: string }) => request<{ success: boolean; userId?: string; temporaryPassword?: string; email: string; role: string }>(`/employees/${id}/access`, { method: 'POST', body: input }),
     linkAccess: (id: string, userId: string) => request<{ success: boolean; employeeId: string; userId: string }>(`/employees/${id}/access/link`, { method: 'POST', body: { userId } }),
     unlinkAccess: (id: string) => request<{ success: boolean; employeeId: string }>(`/employees/${id}/access/link`, { method: 'DELETE' }),
