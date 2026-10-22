@@ -167,3 +167,13 @@ describe('SanitizeInputInterceptor — campos de negócio', () => {
     expect(called).toBe(true);
   });
 });
+
+describe('SanitizeInputInterceptor — byte nulo em parâmetro de rota', () => {
+  it('recusa com 400 em vez de deixar o Postgres responder 500', () => {
+    expect(() => run({ url: '/employees/abc%00', params: { id: 'abc\u0000' }, body: {}, query: {} })).toThrow('Parâmetro inválido.');
+  });
+
+  it('não interfere em parâmetros normais', () => {
+    expect(() => run({ url: '/employees/123', params: { id: '0b0e1c8e-1d2f-4a5b-9c8d-7e6f5a4b3c2d' }, body: {}, query: {} })).not.toThrow();
+  });
+});

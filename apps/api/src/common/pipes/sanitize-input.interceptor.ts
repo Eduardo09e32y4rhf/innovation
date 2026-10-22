@@ -1,4 +1,4 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import { BadRequestException, CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import type { Observable } from 'rxjs';
 import { sanitizeString } from '../utils/sanitize-string';
 
@@ -51,6 +51,10 @@ export class SanitizeInputInterceptor implements NestInterceptor {
     if (context.getType() !== 'http') return next.handle();
     const req = context.switchToHttp().getRequest<Record<string, any>>();
     const path = String(req.raw?.url ?? req.url ?? '').split('?')[0];
+    // Byte nulo (%00) em parametro de URL: o Postgres recusa e a rota respondia 500 (inclusive nas publicas).
+    if (req.params && typeof req.params === 'object' && Object.values(req.params).some((value) => typeof value === 'string' && value.includes('\u0000'))) {
+      throw new BadRequestException('Parâmetro inválido.');
+    }
     if (isSanitizeExcluded(path, req.headers?.['content-type'])) return next.handle();
 
     if (req.body && typeof req.body === 'object') req.body = sanitizeDeep(req.body);
