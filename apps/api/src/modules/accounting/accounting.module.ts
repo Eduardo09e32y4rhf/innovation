@@ -4,12 +4,14 @@ import { AccountingController } from './accounting.controller';
 import { AccountingHubService } from './accounting-hub.service';
 import { AccountingOfficeService } from './accounting-office.service';
 import { AccountingRulesService } from './accounting-rules.service';
+import { AccountingAccessService } from '../../common/accounting-access';
+import { AccountingTimeSheetService } from './accounting-time-sheet.service';
 import { PlatformLedgerService } from './platform-ledger.service';
 
 @Module({
   imports: [TimeTrackModule],
   controllers: [AccountingController],
-  providers: [AccountingHubService, AccountingRulesService, AccountingOfficeService, PlatformLedgerService],
+  providers: [AccountingHubService, AccountingRulesService, AccountingOfficeService, PlatformLedgerService, AccountingTimeSheetService, AccountingAccessService],
   exports: [AccountingRulesService],
 })
 export class AccountingModule {}

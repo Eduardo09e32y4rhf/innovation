@@ -14,11 +14,12 @@ const toInput = (row: any): LedgerInvoiceInput => ({ ...row, amount: Number(row.
 export class PlatformLedgerService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async month(month?: string, companyId?: string) {
+  /** `allowedIds`: empresas permitidas quando não há companyId (null = todas). */
+  async month(month?: string, companyId?: string, allowedIds: string[] | null = null) {
     const target = month ?? competenceOf(new Date());
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(target)) throw new BadRequestException('Mes invalido. Use AAAA-MM.');
     const { start, end } = monthWindow(target);
-    const scope = companyId ? { companyId } : {};
+    const scope = companyId ? { companyId } : allowedIds ? { companyId: { in: allowedIds } } : {};
 
     const [paid, confirmed, adjustments] = await Promise.all([
       this.prisma.platformInvoice.findMany({ where: { ...scope, deletedAt: null, status: 'PAID', paidAt: { gte: start, lt: end } }, select: invoiceSelect }),

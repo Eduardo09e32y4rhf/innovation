@@ -42,6 +42,10 @@ export class MonthQueryDto {
   @IsOptional() @IsUUID() companyId?: string;
 }
 
+export class TimeSheetQueryDto {
+  @IsOptional() @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, { message: 'Mes invalido. Use AAAA-MM.' }) month?: string;
+}
+
 export class CorrectPayrollDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(10_000_000) baseSalary?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(10_000_000) overtimeAmount?: number;

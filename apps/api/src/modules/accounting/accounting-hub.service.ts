@@ -7,6 +7,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { createPdfSink, safeFileName, sendPdf } from '../../common/pdf/pdf-response';
 import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
 import { TimeClosingService } from '../time-track/time-closing.service';
+import { AccountingAccessService } from '../../common/accounting-access';
 import { AdjustClosingDto, CorrectPayrollDto } from './accounting.dto';
 import { AccountingRulesService } from './accounting-rules.service';
 
@@ -31,6 +32,7 @@ export class AccountingHubService {
     private readonly payroll: PayrollCalculationService,
     private readonly closing: TimeClosingService,
     private readonly rules: AccountingRulesService,
+    private readonly access: AccountingAccessService,
   ) {}
 
   private async assertCompany(companyId: string) {
@@ -39,8 +41,15 @@ export class AccountingHubService {
     return company;
   }
 
+  /** Visão da competência já com o escopo do usuário (CONTABIL só enxerga as empresas que atende). */
+  async overviewFor(actor: JwtUser, month?: string, companyId?: string) {
+    if (companyId) await this.access.assertAccountantCanAccess(actor, companyId);
+    return this.overview(month, companyId, companyId ? null : await this.access.accessibleCompanyIds(actor));
+  }
+
   /** Visão da competência: todas as empresas (plataforma) ou o detalhe de uma empresa. */
-  async overview(month?: string, companyId?: string) {
+  /** `allowedIds`: empresas permitidas ao usuário (null = todas). Com companyId, o controller já validou o acesso. */
+  async overview(month?: string, companyId?: string, allowedIds: string[] | null = null) {
     const period = resolveMonth(month);
     const rules = await this.rules.list(period.last);
     const ruleVersions = Object.fromEntries(rules.rules.map((rule) => [rule.type, rule.current?.version ?? null]));
@@ -75,9 +84,9 @@ export class AccountingHubService {
     }
 
     const [companies, closings, payrolls] = await Promise.all([
-      this.prisma.company.findMany({ select: { id: true, name: true, document: true, status: true }, orderBy: { name: 'asc' }, take: 1000 }),
-      this.prisma.timeClosing.groupBy({ by: ['companyId', 'status'], where: { periodEnd: { gte: period.start, lt: period.end } }, _count: true, _sum: { grossPay: true, netPay: true, inssDiscount: true, irrfDiscount: true, fgtsAmount: true } }),
-      this.prisma.payroll.groupBy({ by: ['companyId', 'status'], where: { referenceYear: period.year, referenceMonth: period.month, deletedAt: null }, _count: true, _sum: { grossSalary: true, netSalary: true } }),
+      this.prisma.company.findMany({ where: allowedIds ? { id: { in: allowedIds } } : undefined, select: { id: true, name: true, document: true, status: true }, orderBy: { name: 'asc' }, take: 1000 }),
+      this.prisma.timeClosing.groupBy({ by: ['companyId', 'status'], where: { ...(allowedIds ? { companyId: { in: allowedIds } } : {}), periodEnd: { gte: period.start, lt: period.end } }, _count: true, _sum: { grossPay: true, netPay: true, inssDiscount: true, irrfDiscount: true, fgtsAmount: true } }),
+      this.prisma.payroll.groupBy({ by: ['companyId', 'status'], where: { ...(allowedIds ? { companyId: { in: allowedIds } } : {}), referenceYear: period.year, referenceMonth: period.month, deletedAt: null }, _count: true, _sum: { grossSalary: true, netSalary: true } }),
     ]);
     const rows = companies.map((company) => {
       const cl = closings.filter((row) => row.companyId === company.id);
@@ -158,15 +167,16 @@ export class AccountingHubService {
     }
     return { updated, result, builtin: ctx.builtin ?? [] };
   }
-  private async loadEditablePayroll(id: string) {
+  private async loadEditablePayroll(actor: JwtUser, id: string) {
     const payroll = await this.prisma.payroll.findFirst({ where: { id, deletedAt: null }, include: { employee: { select: { name: true, dependents: true } } } });
     if (!payroll) throw new NotFoundException('Folha não encontrada.');
+    await this.access.assertAccountantCanAccess(actor, payroll.companyId, 'Folha não encontrada.');
     if (!['DRAFT', 'PROCESSING'].includes(payroll.status)) throw new BadRequestException('Somente folhas em rascunho ou processamento podem ser recalculadas ou corrigidas.');
     return payroll;
   }
 
   async recalculatePayroll(actor: JwtUser, id: string) {
-    const payroll = await this.loadEditablePayroll(id);
+    const payroll = await this.loadEditablePayroll(actor, id);
     const out = await this.prisma.$transaction(async (tx) => {
       const recalculated = await this.recalcPayrollRow(tx, payroll);
       await tx.auditLog.create({ data: { companyId: payroll.companyId, userId: actor.sub, action: 'ACCOUNTING_PAYROLL_RECALCULATED', entity: 'Payroll', entityId: id, metadata: { net: recalculated.result.netPay } } });
@@ -181,7 +191,7 @@ export class AccountingHubService {
     if (!reason) throw new BadRequestException('Informe o motivo da correção.');
     const changes = Object.fromEntries(Object.entries({ baseSalary: dto.baseSalary, overtimeAmount: dto.overtimeAmount, nightShiftAmount: dto.nightShiftAmount }).filter(([, value]) => value !== undefined));
     if (!Object.keys(changes).length) throw new BadRequestException('Informe ao menos um valor para corrigir.');
-    const payroll = await this.loadEditablePayroll(id);
+    const payroll = await this.loadEditablePayroll(actor, id);
     return this.prisma.$transaction(async (tx) => {
       const next = await tx.payroll.update({
         where: { id },
@@ -197,11 +207,13 @@ export class AccountingHubService {
   async adjustClosing(actor: JwtUser, id: string, dto: AdjustClosingDto) {
     const closing = await this.prisma.timeClosing.findUnique({ where: { id }, select: { companyId: true } });
     if (!closing) throw new NotFoundException('Fechamento não encontrado.');
+    await this.access.assertAccountantCanAccess(actor, closing.companyId, 'Fechamento não encontrado.');
     return this.closing.adjust(closing.companyId, actor, id, { field: dto.field, newValue: String(dto.newValue), reason: dto.reason });
   }
 
   /** Recalcula os fechamentos em rascunho da empresa com as regras atuais. */
   async recalculateClosings(actor: JwtUser, companyId: string, month: string) {
+    await this.access.assertAccountantCanAccess(actor, companyId);
     await this.assertCompany(companyId);
     const period = resolveMonth(month);
     const last = `${period.key}-${String(period.last.getUTCDate()).padStart(2, '0')}`;
@@ -213,6 +225,7 @@ export class AccountingHubService {
   async closingWorkflow(actor: JwtUser, id: string, action: 'REVIEW' | 'APPROVE' | 'RETURN', reason?: string) {
     const closing = await this.prisma.timeClosing.findUnique({ where: { id }, select: { companyId: true, status: true } });
     if (!closing) throw new NotFoundException('Fechamento não encontrado.');
+    await this.access.assertAccountantCanAccess(actor, closing.companyId, 'Fechamento não encontrado.');
     let result: unknown;
     if (action === 'REVIEW') result = await this.closing.submitReview(closing.companyId, id);
     else if (action === 'APPROVE') {
@@ -231,6 +244,7 @@ export class AccountingHubService {
   async payrollWorkflow(actor: JwtUser, id: string, action: 'APPROVE' | 'RETURN', reason?: string) {
     const payroll = await this.prisma.payroll.findFirst({ where: { id, deletedAt: null }, select: { companyId: true, status: true, grossSalary: true, netSalary: true } });
     if (!payroll) throw new NotFoundException('Folha não encontrada.');
+    await this.access.assertAccountantCanAccess(actor, payroll.companyId, 'Folha não encontrada.');
     if (action === 'APPROVE') {
       if (payroll.status !== 'DRAFT') throw new BadRequestException('Só folha em rascunho pode ser aprovada.');
       if (!Number.isFinite(Number(payroll.grossSalary)) || !Number.isFinite(Number(payroll.netSalary))) throw new BadRequestException('A folha tem valores inválidos. Recalcule antes de aprovar.');
@@ -246,7 +260,7 @@ export class AccountingHubService {
 
   /** Relatório contábil em PDF (todas as empresas ou uma empresa) com a versão das regras usadas. */
   async reportPdf(actor: JwtUser, month: string | undefined, companyId: string | undefined, res: any) {
-    const data = await this.overview(month, companyId);
+    const data = await this.overviewFor(actor, month, companyId);
     const company = data.scope === 'COMPANY' ? (data as any).company : null;
     const logoUrl = company ? (await this.prisma.company.findUnique({ where: { id: company.id }, select: { logoUrl: true } }))?.logoUrl : null;
     // Relatório de uma empresa leva a logo dela; o consolidado de todas as empresas é da plataforma.

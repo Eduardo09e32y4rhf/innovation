@@ -662,6 +662,43 @@ export interface AccountingOverview {
   recentPayrolls: AccountingPayroll[];
   recentInvoices: PlatformInvoice[];
 }
+export type AccountingTimeSheetClosingStatus = 'NO_CLOSING' | 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'CLOSED' | (string & {});
+export interface AccountingTimeSheetPeriod { key: string; year: number; month: number; timezone: 'America/Sao_Paulo' }
+export interface AccountingTimeSheetEmployeeRow {
+  employeeId: string; name: string; position: string | null; daysRecorded: number;
+  workedMinutes: number; overtime50Minutes: number; overtime100Minutes: number; nightShiftMinutes: number;
+  absenceDays: number; absenceMinutes: number; lateMinutes: number; lateDays: number;
+  monthBalanceMinutes: number; hourBankBalanceMinutes: number; pendingIssues: number;
+  closingStatus: AccountingTimeSheetClosingStatus;
+}
+export interface AccountingCompanyTimeSheets {
+  period: AccountingTimeSheetPeriod;
+  company: { id: string; name: string; document: string | null };
+  employees: AccountingTimeSheetEmployeeRow[];
+}
+export interface AccountingTimeSheetDay {
+  date: string;
+  punches: { entry: string | null; lunchStart: string | null; lunchReturn: string | null; exit: string | null };
+  workedMinutes: number; balanceMinutes: number; overtime50Minutes: number; overtime100Minutes: number; nightShiftMinutes: number;
+  lateMinutes: number; earlyLeaveMinutes: number; absenceMinutes: number; incidentType: string | null; occurrence: string;
+  overtimeApprovalStatus: string; overtimeHandling: string;
+  manualAdjustment: { reason: string | null; status: string | null } | null;
+  observation: string | null;
+}
+export interface AccountingEmployeeTimeSheet {
+  period: AccountingTimeSheetPeriod;
+  employee: { id: string; name: string; position: string | null };
+  totals: {
+    daysRecorded: number; workedMinutes: number; overtime50Minutes: number; overtime100Minutes: number; nightShiftMinutes: number;
+    lateMinutes: number; absenceMinutes: number; absenceDays: number; balanceMinutes: number; hourBankBalanceMinutes: number;
+  };
+  days: AccountingTimeSheetDay[];
+  occurrences: Array<{ id: string; date: string; type: string; minutes: number; status: string; reason: string | null; observation: string | null }>;
+  closings: Array<{
+    id: string; status: AccountingTimeSheetClosingStatus; periodStart: string; periodEnd: string;
+    adjustments: Array<{ id: string; field: string; oldValue: string; newValue: string; reason: string; createdAt: string }>;
+  }>;
+}
 export interface CreatePlatformCompanyInput {
   name: string; document: string; slug: string;
   maxUsers?: number; maxEmployees?: number; planId?: string;
@@ -902,6 +939,13 @@ export const api = {
     close: (id: string) => request<any>(`/time-closing/${id}/close`, { method: 'POST' }),
     reopen: (id: string, reason: string) => request<any>(`/time-closing/${id}/reopen`, { method: 'POST', body: { reason } }),
     delete: (id: string) => request<any>(`/time-closing/${id}`, { method: 'DELETE' }),
+  },
+  accounting: {
+    /** Folha de ponto (somente leitura) das empresas atendidas pelo contador. month = AAAA-MM (America/Sao_Paulo). */
+    companyTimeSheets: (companyId: string, month?: string) =>
+      request<AccountingCompanyTimeSheets>(`/accounting/companies/${companyId}/time-sheets${month ? `?month=${encodeURIComponent(month)}` : ''}`),
+    employeeTimeSheet: (companyId: string, employeeId: string, month?: string) =>
+      request<AccountingEmployeeTimeSheet>(`/accounting/companies/${companyId}/employees/${employeeId}/time-sheet${month ? `?month=${encodeURIComponent(month)}` : ''}`),
   },
   timeOccurrences: {
     list: () => request<any[]>('/time-occurrences'),
@@ -1186,6 +1230,11 @@ export const api = {
     reply: (id: string, data: any) => request<any>(`/support/tickets/${id}/messages`, { method: 'POST', body: data }),
     close: (id: string) => request<any>(`/support/tickets/${id}/close`, { method: 'POST' }),
     reopen: (id: string) => request<any>(`/support/tickets/${id}/reopen`, { method: 'POST' }),
+    requestRefund: (data: { invoiceId: string; kind: 'TOTAL' | 'PARTIAL'; amount?: number; reason: string }) =>
+      request<any>('/support/refund-requests', { method: 'POST', body: data }),
+    rate: (id: string, data: { score: number; comment?: string }) =>
+      request<{ success: boolean; satisfactionScore: number; satisfactionComment: string | null; satisfactionAt: string }>(`/support/${id}/rating`, { method: 'POST', body: data }),
+    reopenResolved: (id: string) => request<{ success: boolean; status: string }>(`/support/${id}/reopen`, { method: 'POST' }),
     uploadAttachment: (id: string, file: File) => {
       const body = new FormData();
       body.append('file', file);
@@ -1205,6 +1254,10 @@ export const api = {
     updatePriority: (id: string, priority: string) => request<any>(`/platform/support/tickets/${id}/priority`, { method: 'PATCH', body: { priority } }),
     assign: (id: string, userId?: string) => request<any>(`/platform/support/tickets/${id}/assign`, { method: 'PATCH', body: { userId } }),
     resolve: (id: string) => request<any>(`/platform/support/tickets/${id}/resolve`, { method: 'POST' }),
+    approveRefund: (id: string, reason?: string) =>
+      request<{ idempotent: boolean; refundStatus: string; ticketId: string }>(`/platform/support/${id}/refund/approve`, { method: 'POST', body: { reason } }),
+    rejectRefund: (id: string, reason: string) =>
+      request<{ idempotent: boolean; refundStatus: string; ticketId: string }>(`/platform/support/${id}/refund/reject`, { method: 'POST', body: { reason } }),
   },
 
   publicSupport: {

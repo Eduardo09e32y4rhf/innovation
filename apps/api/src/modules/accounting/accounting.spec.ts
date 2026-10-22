@@ -87,7 +87,7 @@ describe('competência da contabilidade = mês do fim do ciclo (igual à folha)'
       payroll: { findMany: vi.fn().mockResolvedValue([]) },
     };
     const rules: any = { list: vi.fn().mockResolvedValue({ rules: [] }) };
-    const hub = new AccountingHubService(prisma, new PayrollCalculationService(), {} as any, rules);
+    const hub = new AccountingHubService(prisma, new PayrollCalculationService(), {} as any, rules, { assertAccountantCanAccess: vi.fn(), accessibleCompanyIds: vi.fn().mockResolvedValue(null) } as any);
     await hub.overview('2026-10', 'c');
     expect(closingWhere[0].periodEnd).toEqual({ gte: new Date(Date.UTC(2026, 9, 1)), lt: new Date(Date.UTC(2026, 10, 1)) });
     expect(closingWhere[0].periodStart).toBeUndefined();
