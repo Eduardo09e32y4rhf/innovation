@@ -160,6 +160,7 @@ export class JobOfferService {
     await this.prisma.jobOffer.update({ where: { id: offer.id }, data: { status: 'SENT', sentAt: new Date(), expiresAt } });
     await this.prisma.applicationEvent.create({ data: { applicationId: offer.applicationId, userId: actor.sub, type: 'OFFER_SENT', note: 'Proposta enviada ao candidato' } });
     await this.moveToOfferStage(companyId, actor.sub, offer.applicationId);
+    await this.recruitment.completeWorkflow?.(offer.applicationId, 'PREPARE_OFFER', 'Proposta aprovada e enviada ao candidato.');
     return { id: offer.id, status: 'SENT' };
   }
 

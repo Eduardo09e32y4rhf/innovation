@@ -86,7 +86,7 @@ async function bootstrap() {
       : process.env.NODE_ENV !== 'production',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Idempotency-Key', 'X-Request-Id'],
     exposedHeaders: ['Content-Disposition', 'Content-Length', 'Digest', 'ETag', 'X-Document-Id', 'X-Document-Sha256', 'X-Document-Type', 'X-Document-Version', 'X-Document-Generated-At', 'X-Document-Records', 'X-Calculation-Versions'],
     maxAge: 86400,
   });

@@ -18,6 +18,7 @@ import {
 } from 'class-validator';
 
 export const STAGE_KINDS = ['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'] as const;
+export const STAGE_AUTOMATIONS = ['NONE', 'SEND_BEHAVIORAL_ASSESSMENT', 'SEND_TECHNICAL_ASSESSMENT', 'SCHEDULE_INTERVIEW', 'PREPARE_OFFER', 'REQUEST_DOCUMENTS', 'COMPLETE_ADMISSION'] as const;
 export const QUESTION_TYPES = ['TEXT', 'LONG', 'SELECT', 'MULTI', 'YESNO', 'NUMBER'] as const;
 
 export class StageInputDto {
@@ -36,6 +37,23 @@ export class StageInputDto {
 
   @IsIn(STAGE_KINDS as unknown as string[])
   kind!: (typeof STAGE_KINDS)[number];
+
+  @IsOptional()
+  @IsIn(STAGE_AUTOMATIONS as unknown as string[])
+  automation?: (typeof STAGE_AUTOMATIONS)[number];
+
+  @IsOptional()
+  @IsObject()
+  automationConfig?: Record<string, unknown> | null;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyCandidate?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  candidateLabel?: string | null;
 }
 
 export class SavePipelineDto {

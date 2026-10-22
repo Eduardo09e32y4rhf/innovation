@@ -3,7 +3,7 @@ import { newPublicToken } from './recruitment-tokens';
 import { visibleEvaluations } from './blind-evaluation';
 import { REJECTION_CODES } from './recruitment-privacy';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { buildCsv } from '../../common/utils/csv';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -20,14 +20,20 @@ import {
   TagDto,
 } from './dto/recruitment.dto';
 import { weightedEvaluationScore, evaluateAnswer, screeningScore, type RuleQuestion } from './recruitment-rules';
+import { RecruitmentWorkflowService, type WorkflowOutcome } from './recruitment-workflow.service';
 
 export const DEFAULT_STAGES = [
-  { name: 'Inscritos', color: '#6366f1', kind: 'APPLIED' },
-  { name: 'Em análise', color: '#0ea5e9', kind: 'SCREENING' },
-  { name: 'Entrevista', color: '#f59e0b', kind: 'INTERVIEW' },
-  { name: 'Proposta', color: '#8b5cf6', kind: 'OFFER' },
-  { name: 'Contratado', color: '#10b981', kind: 'HIRED' },
-  { name: 'Reprovado', color: '#f43f5e', kind: 'REJECTED' },
+  { name: 'Inscritos', color: '#6366f1', kind: 'APPLIED', automation: 'NONE', notifyCandidate: false, candidateLabel: 'Candidatura recebida' },
+  { name: 'Em análise', color: '#0ea5e9', kind: 'SCREENING', automation: 'NONE', notifyCandidate: true, candidateLabel: 'Seu perfil está em análise pelo RH' },
+  { name: 'Questionário', color: '#14b8a6', kind: 'SCREENING', automation: 'SEND_BEHAVIORAL_ASSESSMENT', notifyCandidate: false, candidateLabel: 'Questionário comportamental' },
+  { name: 'Teste técnico', color: '#0891b2', kind: 'SCREENING', automation: 'SEND_TECHNICAL_ASSESSMENT', notifyCandidate: false, candidateLabel: 'Teste técnico' },
+  { name: 'Entrevista RH', color: '#f59e0b', kind: 'INTERVIEW', automation: 'SCHEDULE_INTERVIEW', notifyCandidate: false, candidateLabel: 'Entrevista com o RH' },
+  { name: 'Entrevista com gestor', color: '#f97316', kind: 'INTERVIEW', automation: 'SCHEDULE_INTERVIEW', notifyCandidate: false, candidateLabel: 'Entrevista com o gestor' },
+  { name: 'Proposta', color: '#8b5cf6', kind: 'OFFER', automation: 'PREPARE_OFFER', notifyCandidate: false, candidateLabel: 'Proposta em preparação' },
+  { name: 'Documentação', color: '#7c3aed', kind: 'OFFER', automation: 'REQUEST_DOCUMENTS', notifyCandidate: false, candidateLabel: 'Documentos admissionais' },
+  { name: 'Admissão', color: '#4f46e5', kind: 'OFFER', automation: 'COMPLETE_ADMISSION', notifyCandidate: true, candidateLabel: 'Admissão em andamento' },
+  { name: 'Contratado', color: '#10b981', kind: 'HIRED', automation: 'NONE', notifyCandidate: false, candidateLabel: 'Você foi selecionado(a)' },
+  { name: 'Reprovado', color: '#f43f5e', kind: 'REJECTED', automation: 'NONE', notifyCandidate: false, candidateLabel: 'Processo encerrado para esta vaga' },
 ] as const;
 
 const ACCENTED = 'áàâãäéèêëíìîïóòôõöúùûüçñÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ';
@@ -56,7 +62,7 @@ const candidateStatusFor = (kind: string) => (kind === 'APPLIED' ? 'NEW' : kind)
 
 @Injectable()
 export class RecruitmentService {
-  constructor(private readonly prisma: PrismaService, private readonly privacy: RecruitmentPrivacyService) {}
+  constructor(private readonly prisma: PrismaService, @Optional() private readonly privacy?: RecruitmentPrivacyService, @Optional() @Inject(forwardRef(() => RecruitmentWorkflowService)) private readonly workflow?: RecruitmentWorkflowService) {}
 
   // ─── Funil (pipeline) ───────────────────────────────────────────
   async ensureDefaultPipeline(companyId: string) {
@@ -125,7 +131,7 @@ export class RecruitmentService {
       }
 
       for (const [position, stage] of dto.stages.entries()) {
-        const data = { name: stage.name.trim(), color: stage.color || '#6b7280', kind: stage.kind as any, position };
+        const data = { name: stage.name.trim(), color: stage.color || '#6b7280', kind: stage.kind as any, position, automation: stage.automation ?? 'NONE', automationConfig: (stage.automationConfig ?? undefined) as any, notifyCandidate: Boolean(stage.notifyCandidate), candidateLabel: stage.candidateLabel?.trim() || null };
         if (stage.id) {
           const before = current.find((item) => item.id === stage.id);
           await tx.pipelineStage.update({ where: { id: stage.id }, data });
@@ -412,13 +418,15 @@ export class RecruitmentService {
       throw new BadRequestException('Informe o motivo da reprovação.');
     }
     if (app.stageId === stage.id) return app;
+    await this.assertAutomationPrerequisites(tx, companyId, app, stage);
 
+    const movedAt = new Date();
     const updated = await tx.application.update({
       where: { id },
       data: {
         stageId: stage.id,
         status: stage.kind,
-        stageMovedAt: new Date(),
+        stageMovedAt: movedAt,
         rejectionReason: stage.kind === 'REJECTED' ? dto.rejectionReason!.trim() : null,
         rejectionCode: stage.kind === 'REJECTED' ? code : null,
       },
@@ -434,14 +442,49 @@ export class RecruitmentService {
         note: dto.note?.trim() || dto.rejectionReason?.trim() || null,
       },
     });
-    return updated;
+    const action = stage.automation && stage.automation !== 'NONE' ? stage.automation : stage.notifyCandidate ? 'NOTIFY_STAGE_CHANGE' : 'NONE';
+    const workflowRun = action === 'NONE' ? null : await tx.recruitmentWorkflowRun.create({ data: { companyId, applicationId: id, stageId: stage.id, action, idempotencyKey: `${id}:${stage.id}:${movedAt.toISOString()}` }, select: { id: true } });
+    return { ...updated, workflowRunId: workflowRun?.id ?? null };
+  }
+
+  private async assertAutomationPrerequisites(tx: Tx, companyId: string, app: any, stage: any) {
+    const currentAssessment = app.stage?.automation === 'SEND_TECHNICAL_ASSESSMENT' ? 'TECHNICAL' : app.stage?.automation === 'SEND_BEHAVIORAL_ASSESSMENT' ? 'BEHAVIORAL' : null;
+    if (currentAssessment && app.stage && stage.position > app.stage.position && stage.kind !== 'REJECTED') {
+      const invite = await tx.assessmentInvite.findFirst({ where: { companyId, applicationId: app.id, kind: currentAssessment }, orderBy: { createdAt: 'desc' }, select: { status: true, passed: true } });
+      if (invite?.status !== 'COMPLETED') throw new BadRequestException(`O ${currentAssessment === 'TECHNICAL' ? 'teste técnico' : 'questionário comportamental'} precisa ser concluído antes de avançar.`);
+      if (currentAssessment === 'TECHNICAL' && invite.passed === false) throw new BadRequestException('O candidato não atingiu a nota mínima do teste técnico. Revise o resultado ou mova para reprovação.');
+    }
+    if (stage.automation === 'SEND_TECHNICAL_ASSESSMENT') {
+      const assessment = await tx.jobAssessment.findFirst({ where: { companyId, jobId: app.jobId }, select: { id: true } });
+      if (!assessment) throw new BadRequestException('Configure o teste técnico da vaga antes de mover o candidato para esta etapa.');
+    }
+    if (stage.automation === 'PREPARE_OFFER') {
+      const interviews = await tx.applicationInterview.count({ where: { applicationId: app.id } });
+      if (!interviews) throw new BadRequestException('Agende e registre ao menos uma entrevista antes de preparar a proposta.');
+    }
+    if (['REQUEST_DOCUMENTS', 'COMPLETE_ADMISSION'].includes(stage.automation)) {
+      const accepted = await tx.jobOffer.findFirst({ where: { companyId, applicationId: app.id, status: 'ACCEPTED' }, select: { id: true } });
+      if (!accepted) throw new BadRequestException('O candidato precisa aceitar a proposta antes de avançar para documentos ou admissão.');
+    }
+    if (stage.automation === 'COMPLETE_ADMISSION') {
+      const [requests, documents] = await Promise.all([tx.recruitmentDocumentRequest.findMany({ where: { companyId, applicationId: app.id }, select: { items: true } }), tx.recruitmentDocument.findMany({ where: { companyId, applicationId: app.id, supersededAt: null }, select: { label: true, status: true } })]);
+      const required = new Set<string>(requests.flatMap((request: { items: string[] }) => request.items));
+      const approved = new Set<string>(documents.filter((document: { status: string }) => document.status === 'APPROVED').map((document: { label: string }) => document.label));
+      const pending = [...required].filter((label) => !approved.has(label));
+      if (!required.size || pending.length) throw new BadRequestException(`A admissão exige todos os documentos aprovados${pending.length ? `: ${pending.join(', ')}` : '.'}`);
+    }
   }
 
   moveApplication(companyId: string, userId: string | null, id: string, dto: MoveApplicationDto) {
-    return this.prisma.$transaction((tx) => this.moveInTx(tx, companyId, userId, id, dto)).then((result) => {
-      if (result.status === 'REJECTED') void this.privacy.afterRejected(id);
-      return result;
+    return this.prisma.$transaction((tx) => this.moveInTx(tx, companyId, userId, id, dto)).then(async (result) => {
+      if (result.status === 'REJECTED' && this.privacy) void this.privacy.afterRejected(id);
+      const workflow: WorkflowOutcome | null = result.workflowRunId && this.workflow ? await this.workflow.execute(result.workflowRunId) : null;
+      return { ...result, workflow };
     });
+  }
+
+  completeWorkflow(applicationId: string, action: WorkflowOutcome['requiredAction'], message: string) {
+    return this.workflow?.completeRequiredAction(applicationId, action, message) ?? Promise.resolve(null);
   }
 
   async bulk(companyId: string, userId: string, dto: BulkApplicationsDto) {
@@ -455,9 +498,10 @@ export class RecruitmentService {
       const errors: string[] = [];
       for (const id of ids) {
         try {
-          await this.prisma.$transaction((tx) => this.moveInTx(tx, companyId, userId, id, { stageId: dto.stageId!, rejectionReason: dto.rejectionReason, rejectionCode: dto.rejectionCode }));
+          const result = await this.prisma.$transaction((tx) => this.moveInTx(tx, companyId, userId, id, { stageId: dto.stageId!, rejectionReason: dto.rejectionReason, rejectionCode: dto.rejectionCode }));
+          if (result.status === 'REJECTED' && this.privacy) void this.privacy.afterRejected(id);
+          if (result.workflowRunId && this.workflow) await this.workflow.execute(result.workflowRunId);
           moved += 1;
-          void this.privacy.afterRejected(id);
         } catch (error: any) {
           errors.push(error?.message ?? 'Falha ao mover');
         }
@@ -566,8 +610,9 @@ export class RecruitmentService {
     await this.prisma.applicationEvent.create({
       data: { applicationId: id, userId, type: 'INTERVIEW', note: `Entrevista ${input.mode === 'ONLINE' ? 'online' : input.mode === 'PRESENCIAL' ? 'presencial' : ''} agendada para ${when}`.replace(/\s+/g, ' ') },
     });
-    const emailed = input.notifyCandidate ? await this.privacy.sendInterviewEmail(id, interview, 'SCHEDULED') : false;
+    const emailed = input.notifyCandidate && this.privacy ? await this.privacy.sendInterviewEmail(id, interview, 'SCHEDULED') : false;
     if (emailed) await this.prisma.applicationInterview.update({ where: { id: interview.id }, data: { notifiedAt: new Date() } });
+    await this.completeWorkflow(id, 'SCHEDULE_INTERVIEW', 'Entrevista agendada e etapa concluída.');
     return { ...interview, notifiedAt: emailed ? new Date() : null, emailed, emailRequested: input.notifyCandidate };
   }
 
@@ -579,7 +624,7 @@ export class RecruitmentService {
     await this.prisma.applicationInterview.delete({ where: { id: interview.id } });
     if (interview.agendaEventId) await this.prisma.managementEvent.deleteMany({ where: { id: interview.agendaEventId, companyId } });
     await this.prisma.applicationEvent.create({ data: { applicationId: id, type: 'INTERVIEW_CANCELED', note: `Entrevista de ${formatInterviewDate(interview.scheduledAt).short} cancelada` } });
-    const emailed = interview.notifiedAt && interview.scheduledAt.getTime() > Date.now() ? await this.privacy.sendInterviewEmail(id, interview, 'CANCELED') : false;
+    const emailed = interview.notifiedAt && interview.scheduledAt.getTime() > Date.now() && this.privacy ? await this.privacy.sendInterviewEmail(id, interview, 'CANCELED') : false;
     return { deleted: true, emailed };
   }
 

@@ -29,15 +29,16 @@ describe('productionEnvProblems', () => {
     expect(productionEnvProblems({ ...strong, KMS_MASTER_KEY: undefined }).join()).toMatch(/KMS_MASTER_KEY/);
   });
 
-  it('exige METRICS_TOKEN, ASAAS_WEBHOOK_TOKEN e MERCADOPAGO_WEBHOOK_SECRET em produção', () => {
-    const problems = productionEnvProblems({ ...strong, METRICS_TOKEN: undefined, ASAAS_WEBHOOK_TOKEN: undefined, MERCADOPAGO_WEBHOOK_SECRET: undefined }).join('\n');
+  it('exige métricas sempre e segredo somente do provedor configurado', () => {
+    const problems = productionEnvProblems({ ...strong, METRICS_TOKEN: undefined, ASAAS_API_KEY: 'asaas-key', ASAAS_WEBHOOK_TOKEN: undefined, MERCADOPAGO_ACCESS_TOKEN: 'mp-token', MERCADOPAGO_WEBHOOK_SECRET: undefined }).join('\n');
     expect(problems).toMatch(/METRICS_TOKEN is required/);
     expect(problems).toMatch(/ASAAS_WEBHOOK_TOKEN is required/);
     expect(problems).toMatch(/MERCADOPAGO_WEBHOOK_SECRET is required/);
+    expect(productionEnvProblems({ ...strong, ASAAS_WEBHOOK_TOKEN: undefined, MERCADOPAGO_WEBHOOK_SECRET: undefined })).toEqual([]);
   });
 
   it('rejeita segredos de exemplo ou curtos e ALLOWED_ORIGINS vazio', () => {
-    expect(productionEnvProblems({ ...strong, ASAAS_WEBHOOK_TOKEN: 'token_seguro_com_no_minimo_32_caracteres' }).join()).toMatch(/ASAAS_WEBHOOK_TOKEN must be a real secret/);
+    expect(productionEnvProblems({ ...strong, ASAAS_API_KEY: 'asaas-key', ASAAS_WEBHOOK_TOKEN: 'token_seguro_com_no_minimo_32_caracteres' }).join()).toMatch(/ASAAS_WEBHOOK_TOKEN must be a real secret/);
     expect(productionEnvProblems({ ...strong, METRICS_TOKEN: 'curto' }).join()).toMatch(/METRICS_TOKEN must be a real secret/);
     expect(productionEnvProblems({ ...strong, ALLOWED_ORIGINS: '' }).join()).toMatch(/ALLOWED_ORIGINS/);
   });

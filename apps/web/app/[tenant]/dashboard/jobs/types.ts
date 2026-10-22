@@ -1,5 +1,6 @@
 export type JobStatus = 'OPEN' | 'CLOSED' | 'DRAFT' | 'PENDING_APPROVAL' | 'PAUSED' | 'FILLED';
 export type StageKind = 'APPLIED' | 'SCREENING' | 'INTERVIEW' | 'OFFER' | 'HIRED' | 'REJECTED';
+export type StageAutomation = 'NONE' | 'SEND_BEHAVIORAL_ASSESSMENT' | 'SEND_TECHNICAL_ASSESSMENT' | 'SCHEDULE_INTERVIEW' | 'PREPARE_OFFER' | 'REQUEST_DOCUMENTS' | 'COMPLETE_ADMISSION';
 export type QuestionType = 'TEXT' | 'LONG' | 'SELECT' | 'MULTI' | 'YESNO' | 'NUMBER';
 
 export interface Job {
@@ -76,7 +77,14 @@ export interface Stage {
   color: string;
   position?: number;
   kind: StageKind;
+  automation?: StageAutomation;
+  automationConfig?: Record<string, unknown> | null;
+  notifyCandidate?: boolean;
+  candidateLabel?: string | null;
 }
+
+export interface WorkflowOutcome { status: 'COMPLETED' | 'WAITING' | 'FAILED'; action: string; emailed?: boolean; requiredAction?: 'SCHEDULE_INTERVIEW' | 'PREPARE_OFFER' | 'REQUEST_DOCUMENTS' | 'COMPLETE_ADMISSION'; message?: string }
+export interface MoveApplicationResult { id: string; status: string; stageId: string; workflow?: WorkflowOutcome | null }
 
 export interface Pipeline {
   id: string;

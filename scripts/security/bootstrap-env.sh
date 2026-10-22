@@ -25,6 +25,7 @@ put REDIS_PASSWORD "$(openssl rand -hex 24)"
 put JWT_SECRET "$(openssl rand -hex 32)"
 put KMS_MASTER_KEY "$(openssl rand -hex 32)"
 put TRIAL_DOCUMENT_HASH_SECRET "$(openssl rand -hex 32)"
+put METRICS_TOKEN "$(openssl rand -hex 32)"
 
 if [ -n "$DOMAIN" ]; then
   put ALLOWED_ORIGINS "$DOMAIN"

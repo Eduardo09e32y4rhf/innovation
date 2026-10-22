@@ -14,11 +14,12 @@ import { SectionCard, TagChip, inputClass } from '../_components/bits';
 import { PrivacySettings } from '../_components/privacy-settings';
 import { WorkflowSettings } from '../_components/workflow-settings';
 import { jobsApi } from '../jobs-api';
-import { STAGE_KIND_LABEL, type Stage, type StageKind } from '../types';
+import { STAGE_KIND_LABEL, type Stage, type StageAutomation, type StageKind } from '../types';
 import { useConfirm } from '@/app/components/ui/confirm-provider';
 import { useGuard } from '@/app/hooks/use-action';
 
 const COLORS = ['#6366f1', '#0ea5e9', '#14b8a6', '#f59e0b', '#8b5cf6', '#10b981', '#f43f5e', '#6b7280'];
+const AUTOMATIONS: Record<StageAutomation, string> = { NONE: 'Sem ação automática', SEND_BEHAVIORAL_ASSESSMENT: 'Enviar questionário comportamental', SEND_TECHNICAL_ASSESSMENT: 'Enviar teste técnico', SCHEDULE_INTERVIEW: 'Solicitar agendamento da entrevista', PREPARE_OFFER: 'Exigir preparação da proposta', REQUEST_DOCUMENTS: 'Exigir solicitação de documentos', COMPLETE_ADMISSION: 'Exigir conclusão da admissão' };
 const message = (cause: unknown, fallback: string) => (cause instanceof ApiError ? cause.message : fallback);
 
 export default function RecruitmentSettingsPage() {
@@ -35,7 +36,7 @@ export default function RecruitmentSettingsPage() {
   const [tagColor, setTagColor] = useState(COLORS[0]);
   const base = `/${tenant}/dashboard/jobs`;
 
-  useEffect(() => { if (pipeline.data) setStages(pipeline.data.stages.map(({ id, name, color, kind }) => ({ id, name, color, kind }))); }, [pipeline.data]);
+  useEffect(() => { if (pipeline.data) setStages(pipeline.data.stages.map(({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel }) => ({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel }))); }, [pipeline.data]);
 
   const patch = (index: number, next: Partial<Stage>) => setStages((current) => current.map((stage, i) => (i === index ? { ...stage, ...next } : stage)));
   const move = (index: number, delta: -1 | 1) => setStages((current) => {
@@ -66,13 +67,13 @@ export default function RecruitmentSettingsPage() {
       <PageHeader title="Funil e tags" subtitle="Defina as etapas do seu processo seletivo e as etiquetas usadas para organizar candidatos." />
 
       <SectionCard title="Etapas do funil" description="Todas as vagas usam este funil. Cada etapa tem um tipo que define o comportamento: contratação gera o cadastro do funcionário; reprovação pede o motivo."
-        actions={<Button variant="outline" size="sm" disabled={stages.length >= 20} onClick={() => setStages([...stages, { name: '', color: '#6b7280', kind: 'SCREENING' }])}><Plus size={15} aria-hidden="true" /> Etapa</Button>}>
+        actions={<Button variant="outline" size="sm" disabled={stages.length >= 20} onClick={() => setStages([...stages, { name: '', color: '#6b7280', kind: 'SCREENING', automation: 'NONE', notifyCandidate: false }])}><Plus size={15} aria-hidden="true" /> Etapa</Button>}>
         {pipeline.error && <ErrorState message={pipeline.error} onRetry={pipeline.refetch} />}
         {pipeline.loading && !pipeline.data ? <LoadingState label="Carregando funil…" /> : (
           <>
             <ul className="space-y-2">
               {stages.map((stage, index) => (
-                <li key={stage.id ?? `new-${index}`} className="grid grid-cols-[auto_1fr_150px_auto] items-center gap-2">
+                <li key={stage.id ?? `new-${index}`} className="grid gap-2 rounded-xl border border-border p-3 sm:grid-cols-[auto_1fr_170px_auto] sm:items-center">
                   <input type="color" aria-label={`Cor da etapa ${index + 1}`} value={stage.color} onChange={(event) => patch(index, { color: event.target.value })} className="h-9 w-9 cursor-pointer rounded border border-border" />
                   <input className={inputClass} aria-label={`Nome da etapa ${index + 1}`} value={stage.name} maxLength={60} placeholder="Nome da etapa" onChange={(event) => patch(index, { name: event.target.value })} />
                   <select className={inputClass} aria-label={`Tipo da etapa ${index + 1}`} value={stage.kind} onChange={(event) => patch(index, { kind: event.target.value as StageKind })}>
@@ -83,6 +84,11 @@ export default function RecruitmentSettingsPage() {
                     <button type="button" className="btn-icon" aria-label="Descer" disabled={index === stages.length - 1} onClick={() => move(index, 1)}><ArrowDown size={15} /></button>
                     <button type="button" className="btn-icon text-rose-600" aria-label="Remover etapa" onClick={() => setStages(stages.filter((_, i) => i !== index))}><Trash2 size={15} /></button>
                   </div>
+                  <div className="sm:col-start-2 sm:col-span-2 grid gap-2 md:grid-cols-2">
+                    <select className={inputClass} value={stage.automation ?? 'NONE'} onChange={(event) => patch(index, { automation: event.target.value as StageAutomation })}>{Object.entries(AUTOMATIONS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+                    <input className={inputClass} value={stage.candidateLabel ?? ''} maxLength={100} placeholder="Como o candidato verá esta etapa" onChange={(event) => patch(index, { candidateLabel: event.target.value })} />
+                  </div>
+                  <label className="sm:col-start-2 sm:col-span-2 inline-flex items-center gap-2 text-sm font-semibold text-fg-sub"><input type="checkbox" checked={Boolean(stage.notifyCandidate)} disabled={(stage.automation ?? 'NONE') !== 'NONE'} onChange={(event) => patch(index, { notifyCandidate: event.target.checked })} /> Enviar e-mail ao entrar nesta etapa</label>
                 </li>
               ))}
             </ul>
