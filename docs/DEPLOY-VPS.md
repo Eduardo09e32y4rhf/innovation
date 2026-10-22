@@ -7,10 +7,11 @@ cd /var/www/innovation
 bash scripts/security/bootstrap-env.sh https://seu-dominio.com.br   # 1ª vez: gera segredos fortes no .env
 bash scripts/security/rotate-db-password.sh                         # 1ª vez: troca a senha do Postgres existente
 bash scripts/backup/install-cron.sh                                 # 1ª vez: backup diário + teste semanal de restauração
-bash scripts/deploy/vps-update.sh                                   # toda atualização
+bash scripts/deploy/vps-update-bg.sh                                # toda atualização (em segundo plano; sobrevive à queda do terminal)
+tail -f storage/deploy-*.log                                        # acompanhar (Ctrl+C sai sem parar o deploy)
 ```
 
-`vps-update.sh` faz: pull → backup → migrations pendentes → build/subida → verificação de saúde (e mostra o rollback se falhar).
+`vps-update.sh` faz (o `vps-update-bg.sh` apenas o executa desligado do terminal, que no painel/celular costuma cair durante o build): pull → backup → migrations pendentes → build/subida → verificação de saúde (e mostra o rollback se falhar).
 
 ## Regras
 - Segredos só no `.env` da VPS (permissão 600). Nunca no repositório, no compose ou em chat.

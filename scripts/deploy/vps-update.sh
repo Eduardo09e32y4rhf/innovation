@@ -8,6 +8,12 @@ BRANCH="${1:-main}"
 COMPOSE="docker compose -f docker-compose.prod.yml"
 PREV="$(git rev-parse --short HEAD)"
 
+# Evita dois deploys ao mesmo tempo (ex.: reexecutar enquanto o anterior ainda roda em segundo plano).
+if command -v flock >/dev/null 2>&1; then
+  exec 9>/tmp/innovation-deploy.lock
+  flock -n 9 || { echo "Já existe um deploy em andamento. Acompanhe: tail -f storage/deploy-*.log"; exit 1; }
+fi
+
 echo "== 1/6 Código ($PREV → origin/$BRANCH)"
 git fetch --tags origin "$BRANCH"
 if [ -n "${2:-}" ] || [[ "$BRANCH" =~ ^[0-9a-f]{7,40}$ || "$BRANCH" =~ ^v[0-9] ]]; then
@@ -40,7 +46,10 @@ echo "== 4/6 Migrations pendentes"
 bash scripts/deploy/apply-migrations.sh
 
 echo "== 5/6 Build e subida"
-$COMPOSE up -d --build --remove-orphans
+# Um serviço por vez e com prioridade baixa: construir API e web juntos dobra o pico de memória e derruba VPS pequena.
+nice -n 10 $COMPOSE build api
+nice -n 10 $COMPOSE build web
+$COMPOSE up -d --remove-orphans
 
 echo "== 6/6 Verificação de saúde"
 for i in $(seq 1 30); do

@@ -14,6 +14,7 @@ Testes: `npm run test:all` (unitarios, integracao, contrato e seguranca; `tests/
 ## Deploy (VPS) — caminho unico
 `merge na main -> CI -> staging (automatico) -> producao (aprovacao)` via `.github/workflows/deploy.yml`, que roda na VPS:
 ```bash
+bash scripts/deploy/vps-update-bg.sh [branch|tag|sha]   # igual ao vps-update.sh, mas em segundo plano (sobrevive a queda do terminal); log em storage/deploy-*.log
 bash scripts/deploy/vps-update.sh [branch|tag|sha]   # codigo -> backup -> migrations -> build/subida -> verificacao de saude
 bash scripts/deploy/rollback.sh <tag|sha> [--restore-db]
 ```
