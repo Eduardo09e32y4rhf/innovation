@@ -179,7 +179,10 @@ describe('relatório mensal da receita da plataforma', () => {
     const res: any = { setHeader: vi.fn(), send: vi.fn() };
     await controller.monthlyReportCsv({ month: '2026-09' }, res);
     expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv; charset=utf-8');
-    expect(res.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename="receita-plataforma-2026-09.csv"');
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Content-Disposition',
+      `attachment; filename="receita-plataforma-2026-09.csv"; filename*=UTF-8''receita-plataforma-2026-09.csv`,
+    );
     expect(String(res.send.mock.calls[0][0]).startsWith('﻿')).toBe(true);
   });
 });
