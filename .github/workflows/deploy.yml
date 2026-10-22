@@ -1,13 +1,15 @@
 name: Deploy
 
-# merge na main -> CI -> staging (automatico) -> producao (1 clique: aprovacao do environment "production")
+# CI verde na main -> staging (automatico) -> producao (1 clique: aprovacao do environment "production")
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
     branches: [main]
+    types: [completed]
   workflow_dispatch:
     inputs:
       ref:
-        description: 'Tag/SHA a publicar em producao (vazio = main atual)'
+        description: "Tag/SHA a publicar em producao (vazio = main atual)"
         required: false
 
 concurrency:
@@ -18,12 +20,19 @@ permissions:
   contents: read
 
 jobs:
-  ci:
+  # No fluxo automatico, o CI ja terminou antes deste workflow iniciar. No
+  # disparo manual, validamos o ref novamente antes de acessar a VPS.
+  ci-manual:
+    if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/ci.yml
 
   staging:
     name: Staging
-    needs: [ci]
+    needs: [ci-manual]
+    if: >-
+      always() &&
+      ((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+       (github.event_name == 'workflow_dispatch' && needs.ci-manual.result == 'success'))
     runs-on: ubuntu-latest
     environment: staging
     steps:
@@ -33,7 +42,7 @@ jobs:
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           script_stop: true
-          script: cd ${{ vars.STAGING_DIR || '/var/www/innovation-staging' }} && bash scripts/deploy/vps-update.sh ${{ github.sha }}
+          script: cd ${{ vars.STAGING_DIR || '/var/www/innovation-staging' }} && bash scripts/deploy/vps-update.sh ${{ github.event.workflow_run.head_sha || github.event.inputs.ref || github.sha }}
       - name: Smoke test
         run: curl -fsS --retry 10 --retry-delay 6 "${{ vars.STAGING_URL }}/api/health"
 
@@ -49,6 +58,6 @@ jobs:
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script_stop: true
-          script: cd ${{ vars.PROD_DIR || '/var/www/innovation' }} && bash scripts/deploy/vps-update.sh ${{ github.event.inputs.ref || github.sha }}
+          script: cd ${{ vars.PROD_DIR || '/var/www/innovation' }} && bash scripts/deploy/vps-update.sh ${{ github.event.workflow_run.head_sha || github.event.inputs.ref || github.sha }}
       - name: Smoke test
         run: curl -fsS --retry 10 --retry-delay 6 "${{ vars.PROD_URL }}/api/health"
