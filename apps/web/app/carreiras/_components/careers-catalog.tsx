@@ -80,7 +80,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
   function clear() { setSearch(''); setLocation(''); setCompanyFilter(''); setModes([]); setContracts([]); setLevels([]); setOnlySaved(false); setPage(1); }
   const check = (label: string, checked: boolean, total: number, onChange: () => void) => <label key={label} className="my-3 flex cursor-pointer items-center gap-2.5 text-xs text-[#6b6478]"><input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4 accent-[#7240da]" />{label}<span className="ml-auto text-[10px] text-[#8d869a]">{total}</span></label>;
 
-  return <div className="min-h-screen bg-[#fbfafc] text-[#241b38]">
+  return <main className="min-h-screen bg-[#fbfafc] text-[#241b38]">
     <a className="sr-only focus:not-sr-only focus:block focus:p-4" href="#career-content">Ir para as oportunidades</a>
     <div className="mx-auto max-w-[1200px] px-5 sm:px-9">
       <header className="flex min-h-[64px] flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[#e9e5f0] py-3 sm:min-h-[88px]">
@@ -167,6 +167,6 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
 
     </div>
     <PortalFooter />
-  </div>;
+  </main>;
 }
 

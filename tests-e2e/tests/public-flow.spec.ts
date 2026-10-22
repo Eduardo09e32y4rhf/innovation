@@ -41,7 +41,7 @@ test('rota antiga preserva parâmetros comerciais e usuários contratados', asyn
   await page.goto(`/criar-conta?planId=${planId}&seats=5&ref=vendedor-demo`);
   await expect(page).toHaveURL(new RegExp(`/cadastro\\?planId=${planId}&seats=5&ref=vendedor-demo$`));
   await fillIdentity(page);
-  await expect(page.getByLabel('Usuários', { exact: true })).toHaveValue('5');
+  await expect(page.getByLabel('Colaboradores', { exact: true })).toHaveValue('5');
   await expect(page.getByRole('radio', { name: /Plano E2E/ })).toBeChecked();
 });
 
@@ -54,8 +54,8 @@ test('cadastro expõe plano, licenças e cupom e exige consentimento sem overflo
   await expect(page.getByText('10 ou mais caracteres')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   await fillIdentity(page);
-  await expect(page.getByLabel('Usuários', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Cupom (opcional)', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Colaboradores', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Cupom (opcional, não altera o teste grátis)', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Criar minha empresa' })).toBeDisabled();
   expect(created).toBe(false);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
