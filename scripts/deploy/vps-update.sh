@@ -13,7 +13,19 @@ git fetch --tags origin "$BRANCH"
 if [ -n "${2:-}" ] || [[ "$BRANCH" =~ ^[0-9a-f]{7,40}$ || "$BRANCH" =~ ^v[0-9] ]]; then
   git checkout --detach "$BRANCH"   # SHA ou tag (usado pelo GitHub Actions)
 else
-  git pull --ff-only origin "$BRANCH"
+  # A VPS é só destino de deploy: deve espelhar o GitHub. Se ela tiver commits ou alterações que não estão
+  # no GitHub (o que quebra o fast-forward), guarda uma cópia e espelha a branch, em vez de abortar o deploy.
+  if ! git merge-base --is-ancestor HEAD "origin/$BRANCH" 2>/dev/null; then
+    STAMP="$(date +%Y%m%d-%H%M%S)"
+    echo "AVISO: a VPS tem commits que não estão no GitHub. Guardando em vps-backup-$STAMP e espelhando origin/$BRANCH."
+    git branch "vps-backup-$STAMP" HEAD
+  fi
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    STAMP="${STAMP:-$(date +%Y%m%d-%H%M%S)}"
+    echo "AVISO: alterações locais em arquivos versionados. Guardando no stash (vps-$STAMP)."
+    git stash push -m "vps-$STAMP" >/dev/null
+  fi
+  git checkout -B "$BRANCH" "origin/$BRANCH"
 fi
 NEW="$(git rev-parse --short HEAD)"
 
