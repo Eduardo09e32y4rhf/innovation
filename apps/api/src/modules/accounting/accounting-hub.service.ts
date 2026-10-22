@@ -10,6 +10,7 @@ import { TimeClosingService } from '../time-track/time-closing.service';
 import { AccountingAccessService } from '../../common/accounting-access';
 import { AdjustClosingDto, CorrectPayrollDto } from './accounting.dto';
 import { AccountingRulesService } from './accounting-rules.service';
+import { POST_TAX_DEDUCTION_TYPES } from '../payroll/clt-discounts';
 
 const num = (value: unknown) => Number(value ?? 0);
 const round = (value: number) => roundMoney(value);
@@ -124,7 +125,7 @@ export class AccountingHubService {
    * Recalcula INSS/IRRF/FGTS/líquido de uma folha com as regras vigentes na competência.
    * Parte dos lançamentos da folha (salário, extras, DSR, bônus, faltas, adiantamentos), para nunca perder o que o RH lançou.
    */
-  private async recalcPayrollRow(tx: any, payroll: any) {
+  async recalcPayrollRow(tx: any, payroll: any) {
     const reference = new Date(payroll.periodEnd ?? Date.UTC(payroll.referenceYear, payroll.referenceMonth - 1, 1));
     const ctx = await this.payroll.resolveTaxContext(reference);
     const dependentsData = payroll.employee?.dependents as unknown;
@@ -132,12 +133,13 @@ export class AccountingHubService {
 
     // Valores corrigidos nas colunas viram lançamentos (salário, horas extras, noturno).
     const ensureItem = async (type: 'BASE_SALARY' | 'OVERTIME' | 'NIGHT_SHIFT', description: string, amount: number) => {
-      const existing = await tx.payrollItem.findFirst({ where: { payrollId: payroll.id, type } });
+      // Só a linha ligada à coluna (automática ou editada na coluna); lançamentos manuais extras de mesmo tipo não são tocados.
+      const existing = await tx.payrollItem.findFirst({ where: { payrollId: payroll.id, type, OR: [{ isColumnLine: true }, { isManual: false }] }, orderBy: { isColumnLine: 'desc' } });
       if (existing) {
         if (amount > 0) await tx.payrollItem.update({ where: { id: existing.id }, data: { amount } });
         else await tx.payrollItem.delete({ where: { id: existing.id } });
       } else if (amount > 0) {
-        await tx.payrollItem.create({ data: { payrollId: payroll.id, companyId: payroll.companyId, type, description, amount, isDeduction: false } });
+        await tx.payrollItem.create({ data: { payrollId: payroll.id, companyId: payroll.companyId, type, description, amount, isDeduction: false, isColumnLine: true } });
       }
     };
     await ensureItem('BASE_SALARY', 'Salário base', num(payroll.baseSalary));
@@ -148,7 +150,7 @@ export class AccountingHubService {
     const sum = (pick: (i: (typeof items)[number]) => boolean) => round(items.filter(pick).reduce((total, i) => total + num(i.amount), 0));
     const earnings = sum((i) => !i.isDeduction && i.type !== 'FGTS');
     const preTaxDeductions = sum((i) => i.type === 'ABSENCE_DEDUCTION');
-    const postTaxDeductions = sum((i) => i.type === 'ADVANCE' || i.type === 'OTHER_DEDUCTION');
+    const postTaxDeductions = sum((i) => (POST_TAX_DEDUCTION_TYPES as readonly string[]).includes(i.type));
     const gross = round(Math.max(0, earnings - preTaxDeductions));
     const taxes = this.payroll.applyTaxes(gross, dependents, ctx);
     const net = round(Math.max(0, taxes.netPay - postTaxDeductions));
@@ -167,7 +169,7 @@ export class AccountingHubService {
     }
     return { updated, result, builtin: ctx.builtin ?? [] };
   }
-  private async loadEditablePayroll(actor: JwtUser, id: string) {
+  async loadEditablePayroll(actor: JwtUser, id: string) {
     const payroll = await this.prisma.payroll.findFirst({ where: { id, deletedAt: null }, include: { employee: { select: { name: true, dependents: true } } } });
     if (!payroll) throw new NotFoundException('Folha não encontrada.');
     await this.access.assertAccountantCanAccess(actor, payroll.companyId, 'Folha não encontrada.');

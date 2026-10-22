@@ -2799,6 +2799,12 @@ enum PayrollItemType {
   ABSENCE_DEDUCTION
   OTHER_EARNING
   OTHER_DEDUCTION
+  CLT_LOAN
+  CONSIGNADO
+  VALE_TRANSPORTE
+  VALE_ALIMENTACAO
+  PENSAO_ALIMENTICIA
+  PLANO_SAUDE
 }
 
 model Payroll {
@@ -2849,6 +2855,13 @@ model PayrollItem {
   amount      Decimal         @db.Decimal(12, 2)
   isDeduction Boolean         @default(false)
   createdAt   DateTime        @default(now())
+  /// Lançamento manual da contabilidade/RH (auditoria: quem, quando e por quê).
+  isManual     Boolean   @default(false)
+  manualReason String?
+  editedById   String?   @db.Uuid
+  editedAt     DateTime?
+  /// Linha ligada a uma coluna da folha (salário, extras, noturno): o recálculo dos impostos a mantém em dia com a coluna.
+  isColumnLine Boolean   @default(false)
 
   payroll Payroll @relation(fields: [payrollId], references: [id], onDelete: Cascade)
 

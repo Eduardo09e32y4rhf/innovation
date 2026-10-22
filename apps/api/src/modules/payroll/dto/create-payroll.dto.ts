@@ -1,8 +1,11 @@
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsIn, IsNumber, IsOptional, IsString, IsUUID, Length, MaxLength, Min, ValidateNested } from 'class-validator';
 
-export const MANUAL_ITEM_TYPES = ['BONUS', 'COMMISSION', 'OTHER_EARNING', 'ADVANCE', 'OTHER_DEDUCTION'] as const;
-export const DEDUCTION_TYPES = ['ADVANCE', 'OTHER_DEDUCTION'];
+import { MANUAL_EARNING_TYPES, POST_TAX_DEDUCTION_TYPES } from '../clt-discounts';
+
+/** Lançamentos manuais: proventos (extras, noturno, bônus, comissão...) e descontos (adiantamento, empréstimo, consignado, VT...). */
+export const MANUAL_ITEM_TYPES = [...MANUAL_EARNING_TYPES, ...POST_TAX_DEDUCTION_TYPES] as const;
+export const DEDUCTION_TYPES: string[] = [...POST_TAX_DEDUCTION_TYPES];
 
 /** Lançamento manual do RH: provento (bônus, comissão, outro) ou desconto (adiantamento, outro). */
 export class ManualPayrollItemDto {
@@ -17,7 +20,16 @@ export class ManualPayrollItemDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   amount!: number;
+
+  /** Motivo do lançamento (auditoria). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
 }
+
+/** Lançamento manual já com os dados de auditoria que o servidor preserva entre recálculos. */
+export type ManualPayrollItemInput = ManualPayrollItemDto & { editedById?: string | null; editedAt?: Date | null };
 
 export class CreatePayrollDto {
   @IsArray()

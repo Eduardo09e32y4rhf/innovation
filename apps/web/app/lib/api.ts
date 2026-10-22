@@ -642,6 +642,26 @@ export interface EmpresaResumo {
 }
 export type AccountingPeriodStatus = 'DRAFT' | 'CALCULATED' | 'PUBLISHED' | 'RETURNED' | 'RELEASED' | 'PAID';
 export interface AccountingPeriodEmployee { employeeId: string; name: string; closingId: string; closingStatus: string; gross: number; discounts: number; net: number; hasManualAdjustment: boolean }
+export interface PayrollSheetItem {
+  id: string; type: string; typeLabel: string; description: string; amount: number | null; isDeduction: boolean;
+  isManual: boolean; manualReason: string | null; editedAt: string | null; editedByName: string | null; editable: boolean; removable: boolean;
+}
+export interface LimitCheck { exceeded: boolean; limit: number; total: number; message: string | null }
+export interface PayrollSheetEmployee {
+  payrollId: string; employeeId: string; name: string; position: string | null; status: string; editable: boolean;
+  baseSalary: number | null; gross: number | null; net: number | null; inss: number | null; irrf: number | null; fgts: number | null;
+  items: PayrollSheetItem[]; limits: { loan: LimitCheck; transport: LimitCheck };
+}
+export interface FiscalSummary {
+  employees: number; gross: number; netToPay: number; totalDiscounts: number;
+  discountsByType: Array<{ type: string; label: string; amount: number }>;
+  charges: { fgts: number; employerInss: number; employerInssRate: number; total: number }; companyCost: number;
+}
+export interface PayrollSheet { month: string; summary: FiscalSummary; employees: PayrollSheetEmployee[] }
+export interface PayrollIssue { code: string; severity: 'ERROR' | 'WARNING'; employeeId: string; name: string; payrollId: string; message: string }
+export interface PayrollValidation { month: string; employees: number; valid: boolean; errors: number; warnings: number; issues: PayrollIssue[]; checkedAt: string }
+export interface PayrollItemInput { type?: string; description?: string; amount?: number; reason: string; forceLimit?: boolean }
+
 export interface AccountingPeriodView {
   id: string | null; companyId: string; month: string; status: AccountingPeriodStatus | null; statusLabel: string;
   totals: { gross: number; discounts: number; net: number; inss: number; fgts: number; irrf: number; employees: number };
@@ -982,6 +1002,14 @@ export const api = {
     /** Ajuste manual de um item do fechamento (motivo obrigatório). */
     adjustClosing: (closingId: string, field: string, newValue: number, reason: string) =>
       request<unknown>(`/accounting/closings/${encodeURIComponent(closingId)}/adjust`, { method: 'PATCH', body: { field, newValue, reason } }),
+    /** Folha manual: ficha do mês linha a linha, conferência e linhas editáveis (motivo obrigatório). */
+    payrollSheet: (companyId: string, month: string) => request<PayrollSheet>(`/accounting/companies/${companyId}/payroll/${encodeURIComponent(month)}/sheet`),
+    payrollValidation: (companyId: string, month: string) => request<PayrollValidation>(`/accounting/companies/${companyId}/payroll/${encodeURIComponent(month)}/validation`),
+    payrollExportPath: (companyId: string, month: string, format: 'csv' | 'pdf') => `/accounting/companies/${companyId}/payroll/${encodeURIComponent(month)}/export.${format}`,
+    addPayrollItem: (payrollId: string, body: PayrollItemInput) => request<unknown>(`/accounting/payroll/${payrollId}/items`, { method: 'POST', body }),
+    updatePayrollItem: (payrollId: string, itemId: string, body: PayrollItemInput) => request<unknown>(`/accounting/payroll/${payrollId}/items/${itemId}`, { method: 'PUT', body }),
+    removePayrollItem: (payrollId: string, itemId: string, reason: string) => request<unknown>(`/accounting/payroll/${payrollId}/items/${itemId}?reason=${encodeURIComponent(reason)}`, { method: 'DELETE' }),
+    recalculatePayroll: (payrollId: string) => request<unknown>(`/accounting/payroll/${payrollId}/recalculate`, { method: 'POST' }),
   },
   payrollPeriods: {
     /** Fluxo do mês (RH/ADMIN da empresa): month = AAAA-MM. */
