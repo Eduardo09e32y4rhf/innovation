@@ -36,8 +36,8 @@ Login local de teste (só desenvolvimento): `admin@innovation.local` / `LoadTest
 
 ### Testes
 - Raiz do monorepo: `npx vitest run` (suíte completa; `apps/api` tem script `npm test` que roda vitest da raiz + 4 testes `.cjs`).
-- `tests/qa/` **não** está no `include` do vitest (não roda no CI).
-- Playwright: projeto separado em `tests/e2e/` (tem `package.json` próprio; `node_modules` ignorado). Chromium já instalado no ambiente de nuvem em `/opt/pw-browsers/chromium`; localmente rode `npx playwright install chromium`.
+- `tests/qa/` **agora roda no CI** (incluído na configuração principal do vitest; 830 casos). 152 deles são defeitos abertos documentados com `it.fails`: ver `docs/auditoria/DEFEITOS-ABERTOS-QA-2026-10-21.md`.
+- Playwright: projeto separado em `tests-e2e/` (tem `package.json` próprio; `node_modules` ignorado). Chromium já instalado no ambiente de nuvem em `/opt/pw-browsers/chromium`; localmente rode `npx playwright install chromium`.
 - Throttle da API: 300 requisições por minuto por token. Para teste de carga, use tokens diferentes ou suba a API com limite maior só em ambiente local, sem commitar.
 
 ### Armadilhas conhecidas
@@ -130,7 +130,7 @@ Cada frente foi conduzida por um agente que parou no meio por limite de uso. O q
 - **Aceite:** 5 cliques = 1 chamada; matriz sem divergência; zero violação crítica no teste automatizado de acessibilidade.
 
 ### 5.5 Ponta a ponta com Playwright, celular e navegadores
-- **Existe:** `tests/e2e/` (fixtures, helpers, specs, `playwright.config.ts`, `setup/seed-users.sql` idempotente que cria 3 usuários E2E copiando o hash do admin local).
+- **Existe:** `tests-e2e/` (fixtures, helpers, specs, `playwright.config.ts`, `setup/seed-users.sql` idempotente que cria 3 usuários E2E copiando o hash do admin local).
 - **Falta:** executar as specs; ≥15 specs no total; tabela página×viewport (360×740, 768×1024, 1280×800, 1920×1080) sem rolagem horizontal; token expirado sem loop; API offline com `ErrorState` e botão de tentar de novo; LCP ≤ 2,5 s, INP ≤ 200 ms, CLS ≤ 0,1 nas 3 páginas mais pesadas; WebKit e Firefox reais (ou documentar que foram emulados); script `test:e2e`; lista priorizada de bugs do front com `arquivo:linha`. Já há indício: numa sondagem inicial as páginas de férias e ponto "pareciam travadas"; investigar se é bug real ou espera de carregamento.
 
 ### 5.6 Backup, restauração e resiliência
@@ -256,14 +256,14 @@ Revogação testada ao vivo: trocar senha, sair, redefinir senha, desativar usu�
 
 ## 10. Dados de teste no banco local (apagar antes de qualquer demonstração)
 
-Funcionários "Race Test*" (inclusive um já desligado e com TRCT gravado), funcionário com `<script>` no nome (já higienizado), segunda empresa de teste com 2 usuários, `funcionario@innovation.local` com o hash do admin, 6 usuários `qa-*@innovation.local`, usuários E2E criados por `tests/e2e/setup/seed-users.sql`, empresas marcadas como ativas para destravar o bloqueio de inadimplência. Nada disso vai para produção; o banco local é descartável.
+Funcionários "Race Test*" (inclusive um já desligado e com TRCT gravado), funcionário com `<script>` no nome (já higienizado), segunda empresa de teste com 2 usuários, `funcionario@innovation.local` com o hash do admin, 6 usuários `qa-*@innovation.local`, usuários E2E criados por `tests-e2e/setup/seed-users.sql`, empresas marcadas como ativas para destravar o bloqueio de inadimplência. Nada disso vai para produção; o banco local é descartável.
 
 ---
 
 ## 11. Descobertas fora de escopo já registradas
 
 - `platform-hub.service.ts:76` ignora estornos (seção 5.3).
-- A pasta `tests/qa/` não roda no CI (seção 1).
+- ~~A pasta `tests/qa/` não roda no CI~~: resolvido, roda no CI (seção 1).
 - `Prisma.Decimal` volta como número pelo `ResponseInterceptor`; rotas com `PlainJsonInterceptor` (faturas) também convertem para número desde a migração.
 - O 401 observado em um teste após pagamento por webhook **não** tem causa no código (regressão coberta por 3 testes: a reativação não toca usuário nem sessão).
 

@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# Aplica as migrations do Prisma no banco de PRODUCAO (rode na VPS, na pasta do projeto, depois do git pull).
-# Uso: bash scripts/migrate-prod.sh
+# Aplica as migrations do Prisma no banco com `prisma migrate deploy` (unico mecanismo aceito para producao).
+# ATENCAO: o vps-update.sh ainda usa apply-migrations.sh (aplicador manual com _manual_migrations). Para trocar,
+# o banco de producao precisa antes ser baselined no Prisma (`prisma migrate resolve --applied <migration>` para o historico
+# ja aplicado). Ensaiar numa copia do banco de producao. Ver scripts/README_SCRIPTS.md.
+# Uso (na VPS, na pasta do projeto): bash scripts/deploy/migrate-prisma.sh
 set -Eeuo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 compose=(docker compose -f "$COMPOSE_FILE")

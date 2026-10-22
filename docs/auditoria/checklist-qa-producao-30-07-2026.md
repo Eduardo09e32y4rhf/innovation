@@ -40,7 +40,7 @@
 ## Validacao operacional na VPS
 
 - [ ] `git pull --ff-only origin main`
-- [ ] `bash scripts/deploy-prod.sh`
+- [ ] `bash scripts/deploy/vps-update.sh` (o antigo `deploy-prod.sh` foi arquivado em `scripts/archive/deploy-legacy/`)
 - [ ] API sobe sem erro
 - [ ] Web sobe sem erro
 - [ ] Log sem falha de migration

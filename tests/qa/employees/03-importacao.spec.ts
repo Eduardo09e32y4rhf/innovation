@@ -238,7 +238,7 @@ describe('Importação · confirmar', () => {
     const out = await service.confirm(COMPANY_A, 'u1', token);
     expect(tx.user.create).toHaveBeenCalledWith({ data: expect.objectContaining({ role: 'GESTOR', forcePasswordChange: true }) });
     expect(tx.temporaryCredential.create).toHaveBeenCalled();
-    expect(out.results[0]).toMatchObject({ success: true, temporaryPassword: expect.stringMatching(/^Aa1!/) });
+    expect(out.results[0]).toMatchObject({ success: true, temporaryPassword: expect.stringMatching(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-HJ-NP-Za-km-z2-9]{6}$/) });
   });
 
   check('e-mail que já tem usuário: NÃO devolve uma senha temporária que não funciona', 'Q-11', async () => {

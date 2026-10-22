@@ -9,6 +9,7 @@ export default defineConfig({
       'tests/unit/**/*.spec.ts',
       'tests/contract/**/*.spec.ts',
       'tests/security/**/*.spec.ts',
+      'tests/qa/**/*.spec.ts',
       'apps/api/tests/unit/**/*.spec.ts',
       'apps/api/src/**/*.spec.ts'
     ],

@@ -9,7 +9,7 @@ const schedule = { id: 'schedule-1', companyId: 'company-a', name: '5x2', workDa
 
 function harness(overrides: Record<string, any> = {}) {
   const defaults: any = {
-    schedule: { findMany: vi.fn().mockResolvedValue([schedule]), findFirst: vi.fn().mockResolvedValue(schedule), create: vi.fn().mockResolvedValue(schedule), update: vi.fn().mockResolvedValue(schedule) },
+    schedule: { count: vi.fn().mockResolvedValue(1), findMany: vi.fn().mockResolvedValue([schedule]), findFirst: vi.fn().mockResolvedValue(schedule), create: vi.fn().mockResolvedValue(schedule), update: vi.fn().mockResolvedValue(schedule) },
     employee: { findFirst: vi.fn().mockResolvedValue({ id: 'emp-1', userId: employeeActor.sub, name: 'Ana', managerId: null }), findMany: vi.fn().mockResolvedValue([{ id: 'emp-1', name: 'Ana', department: 'Operacoes' }]) },
     userSchedule: { findFirst: vi.fn().mockResolvedValue(null), findMany: vi.fn().mockResolvedValue([]), deleteMany: vi.fn().mockResolvedValue({ count: 0 }), updateMany: vi.fn().mockResolvedValue({ count: 0 }), createMany: vi.fn().mockResolvedValue({ count: 1 }) },
     scheduleException: { findMany: vi.fn().mockResolvedValue([]), upsert: vi.fn().mockResolvedValue({ id: 'exception-1' }), deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },

@@ -999,7 +999,7 @@ Essas relações são cenários de verificação; não assumir que o backend já
 
 - Registrar estado do Git, arquivos modificados e referência de comparação, sem exibir credenciais do remote.
 - Rever os 16 arquivos já alterados antes deste planejamento; preservar mudanças legítimas e separar reparos de codificação inacabados.
-- Não executar `scripts/repair-portuguese-encoding.cjs` automaticamente nem restaurar diretórios em bloco.
+- Não executar `scripts/archive/misc/repair-portuguese-encoding.cjs` automaticamente nem restaurar diretórios em bloco.
 - Levantar erros atuais de lint/typecheck/build e distinguir baseline de regressão; screenshot dos fluxos relevantes por papel/largura com dados de teste seguros.
 - Consolidar mapa rota → política → API e cobertura dos controles do inventário.
 
