@@ -8,14 +8,14 @@
 {$DOMAIN:localhost} {
     handle /api/* {
         uri strip_prefix /api
-        reverse_proxy api:3333
+        reverse_proxy 127.0.0.1:3333
     }
     handle {
-        reverse_proxy web:3000
+        reverse_proxy 127.0.0.1:3000
     }
 }
 
 # The backend API (NestJS)
 api.{$DOMAIN:localhost} {
-    reverse_proxy api:3333
+    reverse_proxy 127.0.0.1:3333
 }
