@@ -2002,6 +2002,8 @@ model PlatformInvoice {
   invoiceUrl      String?
   paidAt          DateTime?
   refundedAmount  Decimal       @default(0) @db.Decimal(10, 2)
+  /// Valor liquido que o gateway informa no pagamento (netValue do Asaas): valor menos a taxa do gateway. Null = ainda nao consultado.
+  gatewayNetValue Decimal?      @db.Decimal(10, 2)
   refundStatus    String?
   paymentProcessingStatus String @default("LOCAL")
   chargeRequestKey String? @unique

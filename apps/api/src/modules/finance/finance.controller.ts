@@ -15,6 +15,8 @@ import { TimeClosingService } from '../time-track/time-closing.service';
 import { markReplay, requireIdempotencyKey } from './idempotency';
 import { FiscalAdjustmentsService } from './fiscal-adjustments.service';
 import { ResolveFiscalAdjustmentDto } from './dto/fiscal-adjustment.dto';
+import { PlatformRevenueReportService } from './platform-revenue-report.service';
+import { MonthlyReportQueryDto } from './dto/monthly-report.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
@@ -25,6 +27,7 @@ export class FinanceController {
     private readonly prisma: PrismaService,
     private readonly timeClosingService: TimeClosingService,
     private readonly fiscalAdjustments: FiscalAdjustmentsService,
+    private readonly revenueReport: PlatformRevenueReportService,
     @InjectQueue('asaas-webhook') private readonly webhookQueue: Queue,
   ) {}
 
@@ -36,6 +39,22 @@ export class FinanceController {
   @Get('platform/statements/pdf')
   async statementPdf(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto, @Res() res: import('express').Response) {
     return this.service.statementPdf(query, actor.role === 'COMERCIAL' ? actor.sub : undefined, actor, res);
+  }
+
+  /** Relatório contábil mensal da receita da plataforma (bruta, devoluções, taxas do gateway, impostos estimados, líquida, MRR, churn). */
+  @Get('platform/reports/monthly')
+  @Roles('DEV', 'CEO', 'CONTABIL')
+  monthlyReport(@Query() query: MonthlyReportQueryDto) {
+    return this.revenueReport.monthly(query.month);
+  }
+
+  @Get('platform/reports/monthly.csv')
+  @Roles('DEV', 'CEO', 'CONTABIL')
+  async monthlyReportCsv(@Query() query: MonthlyReportQueryDto, @Res() res: import('express').Response) {
+    const { filename, content } = await this.revenueReport.monthlyCsv(query.month);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(content);
   }
 
   @Get('platform/invoices')

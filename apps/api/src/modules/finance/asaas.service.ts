@@ -8,6 +8,8 @@ export interface AsaasPayment {
   subscription?: string;
   status?: string;
   value: number;
+  /** Valor liquido (valor menos a taxa do Asaas). */
+  netValue?: number;
   dueDate: string;
   billingType?: string;
   description?: string;

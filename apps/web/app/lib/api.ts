@@ -534,6 +534,22 @@ export interface PlatformFinanceSummary {
   mrr: number;
   activeSubscriptions: number;
 }
+export interface PlatformRevenuePlanRow {
+  planId: string; planName: string;
+  grossReceipts: number; refunds: number; gatewayFees: number; estimatedTaxes: number; netRevenue: number;
+  mrr: number; activeCustomers: number; newCustomers: number; canceledCustomers: number;
+}
+export interface PlatformRevenueReport {
+  month: string; timezone: string;
+  totals: {
+    grossReceipts: number; refunds: number; gatewayFees: number; estimatedTaxes: number; netRevenue: number;
+    mrr: number; activeCustomers: number; newCustomers: number; canceledCustomers: number; churnRatePercent: number | null; customersAtStart: number;
+  };
+  tax: { ratePercent: number; estimate: boolean; warning: string };
+  gateway: { receiptsWithoutNetValue: number; complete: boolean };
+  ledger: { grossReceipts: number; refunds: number; netRevenue: number; reconciles: boolean };
+  byPlan: PlatformRevenuePlanRow[];
+}
 export interface PlatformBillingAuditLog {
   id: string;
   companyId: string;
@@ -1133,6 +1149,8 @@ export const api = {
       fiscalAdjustments: (query: { companyId?: string } = {}) => request<FiscalAdjustment[]>(`/finance/fiscal-adjustments${makeQuery(query)}`),
       resolveFiscalAdjustment: (invoiceId: string, input: { action: FiscalAdjustmentAction; note?: string }) =>
         request<{ invoiceId: string; action: FiscalAdjustmentAction; outcome: string }>(`/finance/fiscal-adjustments/${invoiceId}/resolve`, { method: 'POST', body: input }),
+      monthlyRevenueReport: (month: string) => request<PlatformRevenueReport>(`/finance/platform/reports/monthly${makeQuery({ month })}`),
+      downloadMonthlyRevenueCsv: (month: string) => downloadRequest(`/finance/platform/reports/monthly.csv${makeQuery({ month })}`),
       downloadCostCentersPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'from' | 'to'> = {}) => downloadRequest(`/faturas/plataforma/cost-centers/pdf${makeQuery(query)}`),
     downloadStatementPdf: (query: Pick<PlatformInvoiceQuery, 'status' | 'search' | 'from' | 'to' | 'companyId'> = {}) =>
         downloadRequest(`/finance/platform/statements/pdf${makeQuery(query)}`),

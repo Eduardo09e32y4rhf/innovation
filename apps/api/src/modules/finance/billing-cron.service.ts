@@ -16,7 +16,7 @@ import { couponDiscount } from '../coupons/coupon-rules';
 import { NotificationsService } from '../notifications/notifications.service';
 import { isFeatureEnabled } from '../../common/feature-flags';
 import { TrialConversionService } from './trial-conversion.service';
-import { shouldSendTrialNotice, trialNoticeContent, trialOutcome } from './trial-lifecycle';
+import { trialOutcome } from './trial-lifecycle';
 
 @Injectable()
 export class BillingCronService {
@@ -275,39 +275,6 @@ export class BillingCronService {
     if (result.internal || result.emails) this.logger.log(`Avisos de fim do teste: ${result.internal} notificacao(oes), ${result.emails} e-mail(s).`);
   }
 
-  /** 9º dia do teste grátis: avisa o administrador (aba Notificações) e pede a decisão: continuar ou recusar. */
-  @Cron('0 * * * *')
-  @CronLock('billing.sendTrialEndNotices', 3000)
-  async sendTrialEndNotices() {
-    const now = new Date();
-    const subscriptions = await this.prisma.companySubscription.findMany({
-      where: {
-        status: 'TRIAL', trialNoticeAt: null, trialDeclinedAt: null,
-        trialEndsAt: { gt: now, lte: new Date(now.getTime() + 2 * 86_400_000) },
-        company: { isActive: true, billingStatus: 'TRIAL' },
-      },
-      include: { plan: true, company: { select: { id: true, slug: true } } },
-      take: 200,
-    });
-    for (const subscription of subscriptions) {
-      if (!shouldSendTrialNotice({ trialEndsAt: subscription.trialEndsAt, trialNoticeAt: subscription.trialNoticeAt, now })) continue;
-      try {
-        const plan = subscription.plan;
-        const amount = plan ? this.pricing.calculate((plan.commitmentMonths as 1 | 3 | 6 | 12) || 1, subscription.seatQuantity || 1, plan).total : 0;
-        const content = trialNoticeContent({ trialEndsAt: subscription.trialEndsAt as Date, planName: plan?.name ?? 'contratado', amount });
-        const sent = await this.notifications.createSystemNotice(subscription.companyId, {
-          ...content, priority: 'URGENT', targetRoles: ['ADMIN'], source: 'TRIAL_NOTICE', requiresAcceptance: true, allowsRefusal: true,
-          targetUrl: `/${subscription.company.slug || subscription.company.id}/dashboard/faturas`, expiresAt: subscription.trialEndsAt as Date,
-          extraJson: { kind: 'TRIAL_END', trialEndsAt: subscription.trialEndsAt, planName: plan?.name ?? null, amount },
-        });
-        // Marca como avisado mesmo sem administrador ativo para nao repetir a cada hora.
-        await this.prisma.companySubscription.update({ where: { id: subscription.id }, data: { trialNoticeAt: new Date() } });
-        this.logger.log(`Aviso de fim do teste enviado (${subscription.companyId}): ${sent.count} destinatario(s).`);
-      } catch (error) {
-        this.logger.error(`Falha ao avisar o fim do teste da empresa ${subscription.companyId}: ${String(error)}`);
-      }
-    }
-  }
   // ─── Expiração de Trial — 04:00 diariamente ────────────────────────
   @Cron('0 4 * * *')
   @CronLock('billing.checkExpiredTrials', 3600)

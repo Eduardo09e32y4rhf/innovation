@@ -19,6 +19,7 @@ interface AsaasWebhookPayment {
   subscription?: string;
   externalReference?: string;
   value: number;
+  netValue?: number;
   dueDate?: string;
   description?: string;
   billingType?: string;
@@ -152,6 +153,8 @@ export class AsaasWebhookProcessorService {
       invoiceUrl: payment.invoiceUrl,
       paidAt: status === 'PAID' ? existing?.paidAt ?? new Date() : existing?.paidAt,
       deletedAt: event === 'PAYMENT_DELETED' ? new Date() : null,
+      // Taxa do gateway: o Asaas informa o liquido no proprio pagamento (so grava quando vier um numero valido).
+      ...(status === 'PAID' && Number.isFinite(payment.netValue) && Number(payment.netValue) >= 0 ? { gatewayNetValue: payment.netValue } : {}),
     };
 
     const companyData: any = status === 'PAID'
