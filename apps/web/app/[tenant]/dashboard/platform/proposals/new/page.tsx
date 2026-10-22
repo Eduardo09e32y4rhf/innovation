@@ -5,6 +5,7 @@ import { api } from '@/app/lib/api';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { platformLinks } from '../../_lib/platform-links';
 
 export default function NewProposalPage() {
   const router = useRouter();
@@ -51,7 +52,7 @@ export default function NewProposalPage() {
         employeesLimit: Number(formData.employeesLimit),
       });
       toast.success('Proposta criada com sucesso!');
-      router.push(`/${tenant}/dashboard/platform?tab=comercial&sub=propostas`);
+      router.push(platformLinks(tenant).propostas);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao criar proposta');
     } finally {
@@ -62,7 +63,7 @@ export default function NewProposalPage() {
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
       <div className="flex items-center space-x-4 mb-6">
-        <button className="p-2 hover:bg-muted rounded-md" onClick={() => router.push(`/${tenant}/dashboard/platform?tab=comercial&sub=propostas`)}>
+        <button className="p-2 hover:bg-muted rounded-md" onClick={() => router.push(platformLinks(tenant).propostas)}>
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-2xl font-bold">Criar Nova Proposta</h1>

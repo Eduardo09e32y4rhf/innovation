@@ -1,5 +1,6 @@
 'use client';
 
+import { platformLinks } from '../_lib/platform-links';
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Activity, ArrowRight, RefreshCw, Search } from 'lucide-react';
@@ -64,7 +65,7 @@ export function InteligenciaView({ params }: { params: { tenant: string } }) {
         const label = risk?.riskLevel === 'HIGH' ? 'Risco alto' : risk?.riskLevel === 'MEDIUM' ? 'Em atenção' : risk?.riskLevel === 'LOW' ? 'Risco baixo' : 'Não analisada';
         return <article key={company.id} className="min-w-0 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0"><Link className="break-words text-base font-semibold text-fg hover:underline" href={`/${params.tenant}/dashboard/platform?tab=dossie&sub=general&company=${encodeURIComponent(company.id)}`}>{company.name} <ArrowRight size={16} className="inline" /></Link><p className="mt-1 text-sm text-fg-mut">{company.document || 'CNPJ não informado'} · {company.plan || 'Plano não informado'} · {company.usersCount ?? '—'} usuários · {company.employeesCount ?? '—'} funcionários</p><p className="mt-1 text-sm font-medium text-fg"><Activity size={16} className="mr-1 inline" />{pending.includes(company.id) ? 'Analisando...' : label}</p><p className="text-xs text-fg-mut">{analyzedAt[company.id] ? `Consultada em ${analyzedAt[company.id]}` : 'Sem análise nesta sessão'}</p></div>
+            <div className="min-w-0"><Link className="break-words text-base font-semibold text-fg hover:underline" href={platformLinks(params.tenant).ficha(company.id, 'geral')}>{company.name} <ArrowRight size={16} className="inline" /></Link><p className="mt-1 text-sm text-fg-mut">{company.document || 'CNPJ não informado'} · {company.plan || 'Plano não informado'} · {company.usersCount ?? '—'} usuários · {company.employeesCount ?? '—'} funcionários</p><p className="mt-1 text-sm font-medium text-fg"><Activity size={16} className="mr-1 inline" />{pending.includes(company.id) ? 'Analisando...' : label}</p><p className="text-xs text-fg-mut">{analyzedAt[company.id] ? `Consultada em ${analyzedAt[company.id]}` : 'Sem análise nesta sessão'}</p></div>
             <Button variant="outline" isLoading={pending.includes(company.id)} onClick={() => void runAiRisk(company)}>{risk ? 'Reanalisar risco' : 'Analisar risco'}</Button>
           </div>
           {errors[company.id] && <p role="alert" className="mt-3 text-sm text-danger">{errors[company.id]}</p>}

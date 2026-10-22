@@ -4,9 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ceoOnboardingPending } from '../../../apps/web/app/ceo-onboarding/steps';
 import { featureAllowed, isFeatureEnabled, type WebFeature } from '../../../apps/web/app/lib/feature-flags';
 import { NAV_ITEMS, getSearchDestinations } from '../../../apps/web/app/[tenant]/dashboard/_components/shell-v2/nav-config';
-import { getPlatformNavGroups } from '../../../apps/web/app/[tenant]/dashboard/platform/_components/platform-nav-config';
-import { subsFor } from '../../../apps/web/app/[tenant]/dashboard/platform/_hub/sections';
-import { visibleTabs } from '../../../apps/web/app/[tenant]/dashboard/platform/_hub/types';
+import { visibleAreas, visibleExtras } from '../../../apps/web/app/[tenant]/dashboard/platform/_lib/platform-access';
 
 const ALL: Array<[WebFeature, string]> = [
   ['ai', 'NEXT_PUBLIC_FEATURE_AI'],
@@ -24,7 +22,8 @@ beforeEach(clearFlags);
 afterEach(clearFlags);
 
 const on = (...features: WebFeature[]) => { for (const [feature, key] of ALL) if (features.includes(feature)) process.env[key] = 'true'; };
-const platformKeys = (role = 'DEV') => getPlatformNavGroups(role).map((group) => group.key);
+// Áreas do menu da Plataforma + atalhos de módulos congelados (Alertas, Contratos, Propostas, WhatsApp).
+const platformKeys = (role = 'DEV') => [...visibleAreas(role).map((area) => area.key), ...visibleExtras(role).map((extra) => extra.key)];
 const searchLabels = () => getSearchDestinations(NAV_ITEMS.filter((item) => item.id === 'platform'), 'DEV').map((item) => item.label);
 
 describe('flags do site', () => {
@@ -55,14 +54,14 @@ describe('flags do site', () => {
 describe('menu da Plataforma e busca (Ctrl+K) com os modulos congelados', () => {
   it('somem Inteligencia, Contratos, Propostas e WhatsApp, e o resto continua', () => {
     const keys = platformKeys();
-    for (const frozen of ['intelligence', 'contracts', 'proposals', 'whatsapp']) expect(keys).not.toContain(frozen);
-    for (const core of ['overview', 'companies', 'finance', 'accounting', 'audit', 'support', 'visitas']) expect(keys).toContain(core);
+    for (const frozen of ['inteligencia', 'contratos', 'propostas', 'whatsapp']) expect(keys).not.toContain(frozen);
+    for (const core of ['visao-geral', 'clientes', 'financeiro', 'contabilidade', 'suporte', 'sistema']) expect(keys).toContain(core);
   });
 
   it('cada item volta com a sua flag', () => {
-    on('ai'); expect(platformKeys()).toContain('intelligence');
-    clearFlags(); on('manual-contracts'); expect(platformKeys()).toContain('contracts');
-    clearFlags(); on('proposals'); expect(platformKeys()).toContain('proposals');
+    on('ai'); expect(platformKeys()).toContain('inteligencia');
+    clearFlags(); on('manual-contracts'); expect(platformKeys()).toContain('contratos');
+    clearFlags(); on('proposals'); expect(platformKeys()).toContain('propostas');
     clearFlags(); on('communication'); expect(platformKeys()).toContain('whatsapp');
   });
 
@@ -84,24 +83,19 @@ describe('menu da Plataforma e busca (Ctrl+K) com os modulos congelados', () => 
   });
 });
 
-describe('abas e subsecoes do hub da Plataforma', () => {
-  it('a aba Comercial some quando propostas e contratos estao congelados', () => {
-    expect(visibleTabs('DEV')).not.toContain('comercial');
-    expect(visibleTabs('COMERCIAL')).not.toContain('comercial');
-    expect(visibleTabs('DEV')).toEqual(expect.arrayContaining(['resumo', 'empresas', 'suporte', 'auditoria', 'configuracoes']));
+describe('atalhos de modulos congelados dentro das areas da Plataforma', () => {
+  it('Contratos e Propostas (Clientes) somem com os modulos congelados e voltam um a um', () => {
+    expect(visibleExtras('DEV', 'clientes')).toEqual([]);
+    expect(visibleExtras('COMERCIAL', 'clientes')).toEqual([]);
+    on('proposals'); expect(visibleExtras('DEV', 'clientes').map((extra) => extra.key)).toEqual(['propostas']);
+    clearFlags(); on('manual-contracts'); expect(visibleExtras('COMERCIAL', 'clientes').map((extra) => extra.key)).toEqual(['contratos']);
   });
 
-  it('a aba Comercial volta com qualquer um dos dois modulos', () => {
-    on('proposals'); expect(visibleTabs('DEV')).toContain('comercial');
-    clearFlags(); on('manual-contracts'); expect(visibleTabs('COMERCIAL')).toContain('comercial');
-  });
-
-  it('subsecoes: "Alertas e riscos" depende de IA; Contratos e Propostas dependem dos seus modulos', () => {
-    expect(subsFor('resumo', 'DEV').map((sub) => sub.key)).toEqual(['visao']);
-    expect(subsFor('comercial', 'DEV')).toEqual([]);
-    on('ai', 'proposals');
-    expect(subsFor('resumo', 'DEV').map((sub) => sub.key)).toEqual(['visao', 'alertas']);
-    expect(subsFor('comercial', 'DEV').map((sub) => sub.key)).toEqual(['propostas']);
+  it('"Alertas e riscos" (Visao geral) depende de IA e e so do DEV', () => {
+    expect(visibleExtras('DEV', 'visao-geral')).toEqual([]);
+    on('ai');
+    expect(visibleExtras('DEV', 'visao-geral').map((extra) => extra.key)).toEqual(['inteligencia']);
+    expect(visibleExtras('CEO', 'visao-geral')).toEqual([]);
   });
 });
 
