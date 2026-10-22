@@ -1,5 +1,6 @@
 FROM node:24-alpine AS builder
 WORKDIR /app
+RUN apk add --no-cache openssl
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
 COPY apps/web/package*.json ./apps/web/
@@ -10,6 +11,7 @@ RUN npm prune --omit=dev --no-audit --no-fund
 
 FROM node:24-alpine AS runner
 WORKDIR /app
+RUN apk add --no-cache openssl
 ENV NODE_ENV=production PORT=3333
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
