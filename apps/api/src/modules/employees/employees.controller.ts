@@ -112,7 +112,14 @@ export class EmployeesController {
 
   @Roles('ADMIN', 'RH')
   @Delete(':id/permanent')
-  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Query('confirm') confirm?: string) {
+    // Clientes antigos ofereciam arquivamento nesta rota. Exclusão exige confirmação explícita.
+    return confirm === 'true' ? this.service.deletePermanently(companyId, actor, id) : this.service.delete(companyId, actor, id);
+  }
+
+  @Roles('ADMIN', 'RH')
+  @Post(':id/archive')
+  archive(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
     return this.service.delete(companyId, actor, id);
   }
 

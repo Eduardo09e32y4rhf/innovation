@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { toSaoPauloDateKey } from '../../common/utils/date.utils';
 import { PrismaService } from '../../database/prisma.service';
 import { Prisma, $Enums } from '@prisma/client';
 
@@ -305,19 +306,17 @@ export class SupportRepository {
     });
   }
 
-  async generateTicketNumber(year: number): Promise<string> {
-    const counter = await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.supportTicketCounter.findUnique({ where: { year } });
-      if (existing) {
-        return tx.supportTicketCounter.update({
-          where: { year },
-          data: { lastNumber: { increment: 1 } }
-        });
-      }
-      return tx.supportTicketCounter.create({
-        data: { year, lastNumber: 1 }
-      });
+  async generateTicketNumber(now = new Date()): Promise<string> {
+    const date = toSaoPauloDateKey(now).replace(/-/g, '');
+    // A coluna legada "year" identifica agora o dia AAAAMMDD. Upsert incrementa atomicamente.
+    const year = Number(date);
+    const counter = await this.prisma.supportTicketCounter.upsert({
+      where: { year },
+      create: { year, lastNumber: 1 },
+      update: { lastNumber: { increment: 1 } },
     });
-    return `SUP-${year}-${String(counter.lastNumber).padStart(6, '0')}`;
+    const sequence = counter.lastNumber - 1;
+    if (sequence > 9999) throw new ServiceUnavailableException('Limite diário de protocolos atingido. Tente novamente amanhã.');
+    return `${date}${String(sequence).padStart(4, '0')}`;
   }
 }

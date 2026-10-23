@@ -22,8 +22,7 @@ export class PublicSupportController {
       return { success: true, message: 'Sua solicitação foi registrada. O suporte analisará o caso.', ticketNumber: 'BOT-' + Date.now() };
     }
 
-    const year = new Date().getFullYear();
-    const ticketNumber = await this.repository.generateTicketNumber(year);
+    const ticketNumber = await this.repository.generateTicketNumber();
     const { firstResponseDueAt, resolutionDueAt } = this.slaService.calculateDueDates('NORMAL');
 
     // Attempt to match user silently
@@ -75,8 +74,7 @@ export class PublicSupportController {
       return { success: true, message: 'Sua solicitação foi registrada. O suporte analisará o caso.', ticketNumber: 'BOT-' + Date.now() };
     }
 
-    const year = new Date().getFullYear();
-    const ticketNumber = await this.repository.generateTicketNumber(year);
+    const ticketNumber = await this.repository.generateTicketNumber();
     const { firstResponseDueAt, resolutionDueAt } = this.slaService.calculateDueDates('HIGH');
 
     let affectedUserId = null;

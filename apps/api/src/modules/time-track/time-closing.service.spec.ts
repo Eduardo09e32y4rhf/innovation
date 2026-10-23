@@ -69,6 +69,7 @@ describe('TimeClosingService', () => {
     );
 
     expect(artifact.buffer.subarray(0, 4).toString()).toBe('%PDF');
+    expect(artifact.buffer.toString('latin1').match(/\/Type \/Page\b/g)?.length ?? 0).toBe(1);
     expect(artifact.hash).toBe(createHash('sha256').update(artifact.buffer).digest('hex'));
     expect(artifact.documentId).toMatch(/^POINT-COLLECTIVE-2026-07-/);
     expect(artifact.recordCount).toBe(1);
@@ -79,6 +80,17 @@ describe('TimeClosingService', () => {
         employeeId: { in: ['employee-1'] },
       }),
     }));
+  });
+
+  it('gera exatamente uma página por funcionário na folha coletiva de 31 dias', async () => {
+    const closings = ['e1', 'e2'].map((id) => ({ id, employeeId: id,
+      company: { name: 'Empresa Teste' }, employee: { name: `Pessoa ${id}`, cpf: '12345678909', registration: id },
+      periodStart: new Date('2026-10-01T00:00:00Z'), periodEnd: new Date('2026-10-31T00:00:00Z'),
+    }));
+    const tracks = new Map(closings.map((closing) => [closing.employeeId, Array.from({ length: 31 }, (_, i) => ({ date: new Date(Date.UTC(2026, 9, i + 1)), totalWorked: 480, incidentType: 'atraso_saida_antecipada' }))]));
+    const service = new TimeClosingService({} as any, new PayrollCalculationService());
+    const buffer = await (service as any).buildCollectivePdf(closings, tracks, new Date(), 'document-1', 'rh-1');
+    expect(buffer.toString('latin1').match(/\/Type \/Page\b/g)?.length ?? 0).toBe(2);
   });
 
   it('publica hash e metadados do PDF coletivo nos headers', async () => {

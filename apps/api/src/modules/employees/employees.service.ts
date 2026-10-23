@@ -378,6 +378,19 @@ export class EmployeesService {
     return results;
   }
 
+  async deletePermanently(companyId: string, actor: JwtUser, id: string) {
+    if (!['ADMIN', 'RH', 'DEV'].includes(actor.role)) throw new ForbiddenException('Seu perfil não pode excluir funcionários.');
+    const employee = await this.get(companyId, actor, id);
+    if (employee?.userId === actor.sub) throw new ForbiddenException('Não é permitido excluir o próprio cadastro.');
+    if (employee?.userId && isOwnerTargetedByOther(actor, { id: employee.userId, email: employee.email ?? '' })) throw new ForbiddenException('O cadastro do proprietário da plataforma está protegido.');
+    if (employee?.user?.role && !canManageRole(actor.role, employee.user.role)) throw new ForbiddenException('Seu perfil não pode excluir um funcionário com este acesso.');
+    const deletionImpact = await this.repository.getDeletionImpact(companyId, id);
+    const result = await this.repository.deletePermanently(companyId, id, actor.sub, deletionImpact);
+    if (!result.count) throw new NotFoundException('Funcionário não encontrado.');
+    return { deleted: true, archived: false, employeeId: id, message: 'Funcionário excluído definitivamente.', deletionImpact };
+  }
+
+  /** Arquivamento preserva o histórico; exclusão definitiva tem uma ação própria. */
   async delete(companyId: string, actor: JwtUser, id: string) {
     const employee = await this.get(companyId, actor, id);
     const deletionImpact = await this.repository.getDeletionImpact(companyId, id);

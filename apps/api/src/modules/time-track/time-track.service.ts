@@ -124,7 +124,7 @@ export class TimeTrackService {
       const isFutureAllowed = dto.reason === 'ajuste_atestado_integral' || dto.reason === 'ajuste_feriado' || dto.reason === 'ajuste_suspensao' || dto.reason === 'ajuste_folga_dsr' || dto.reason === 'ajuste_abono_folga' || dto.reason === 'ajuste_abono_banco_saida_antecipada' || dto.reason === 'ajuste_abono_atraso' || dto.reason === 'ajuste_abono_atestado_horas';
       this.validateManualTimestamp(employee, dto.entry, dto.lunchStart, dto.lunchReturn, dto.exit, date, isFutureAllowed);
       
-      await this.applyManual(companyId, actor, employee, dto.date, dto);
+      return await this.applyManual(companyId, actor, employee, dto.date, dto);
     } catch (error: any) {
       if (error instanceof BadRequestException || error instanceof ForbiddenException || error instanceof NotFoundException || error instanceof ConflictException) {
         throw error;
@@ -658,8 +658,16 @@ export class TimeTrackService {
         totalsData = { totalWorked: calc.totalWorkedMinutes, dailyBalance: Math.min(0, calc.dailyBalanceMinutes ?? 0), lateMinutes: 0, earlyLeaveMinutes: 0, absenceMinutes: null, sortedTimestamps: calc.sortedTimestamps ?? sortedTimestamps };
       } else {
         // Folga de banco: desconta a jornada do dia do saldo do banco.
-        totalsData = { totalWorked: -workload, dailyBalance: -workload, sortedTimestamps };
+        totalsData = { totalWorked: 0, dailyBalance: -workload, sortedTimestamps };
       }
+      // Substituir um dia trabalhado por folga também limpa os cálculos anteriores do registro.
+      totalsData = {
+        overtime50Minutes: 0, overtime100Minutes: 0, nightShiftMinutes: 0,
+        lateMinutes: 0, earlyLeaveMinutes: 0, absenceMinutes: 0, incidentType: null,
+        overtimeExceedsLimit: false, overtimeApprovalStatus: 'APPROVED',
+        overtimeHandling: manualPolicy, overtimeBankMinutes: 0, overtimePaymentMinutes: 0,
+        ...totalsData,
+      };
     } else {
       const calculation = this.timeCalcRules.calculateTotals(
         { entryTime: entry, lunchStartTime: lunchStart, lunchReturnTime: lunchReturn, exitTime: exit, workDate: date, manualReason: dto.reason },

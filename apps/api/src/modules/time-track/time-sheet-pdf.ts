@@ -104,11 +104,9 @@ const TONE_OF_STATUS: Record<string, PdfTone> = { DRAFT: 'neutral', IN_REVIEW: '
 
 const periodOf = (data: TimeSheetData) => `${fullDate(data.periodStart)} a ${fullDate(data.periodEnd)}`;
 
-/** Escreve o holerite e o espelho de ponto de um colaborador no relatório (a partir da página atual). */
+/** Folha de ponto em uma página. O contracheque tem seu próprio documento. */
 export function appendTimeSheet(report: PdfReport, data: TimeSheetData) {
-  appendPayslip(report, data);
-  report.newPage();
-  appendMirror(report, data, { identity: false });
+  appendMirror(report, data, { compact: true });
 }
 
 /** Demonstrativo de pagamento (proventos, descontos e líquido). */
@@ -143,7 +141,10 @@ export function appendPayslip(report: PdfReport, data: TimeSheetData) {
 export function appendMirror(report: PdfReport, data: TimeSheetData, options: { identity?: boolean; compact?: boolean } = {}) {
   const period = periodOf(data);
   report.section('Espelho de ponto', `Competência ${period}`);
-  if (options.identity !== false) report.fields([
+  if (options.identity !== false && options.compact) {
+    report.paragraph(`${data.employee.name} · Matrícula: ${data.employee.registration || 'N/A'} · CPF: ${formatCpf(data.employee.cpf)}`, { size: 8.5, bold: true, gap: 4 });
+    report.paragraph([data.employee.position, data.employee.department].filter(Boolean).join(' · ') || 'Cargo não informado', { size: 8, gap: 8 });
+  } else if (options.identity !== false) report.fields([
     ['Colaborador', data.employee.name], ['Matrícula', data.employee.registration || 'N/A'],
     ['CPF', formatCpf(data.employee.cpf)], ['Cargo / departamento', [data.employee.position, data.employee.department].filter(Boolean).join(' · ') || 'N/A'],
   ]);
@@ -160,7 +161,7 @@ export function appendMirror(report: PdfReport, data: TimeSheetData, options: { 
         { text: incidentLabel(track.incidentType), color: PDF.color.mut },
       ];
     }),
-    { fontSize: 8, emptyText: 'Nenhum registro de ponto no período.' },
+    { fontSize: options.compact ? 7.5 : 8, rowPadding: options.compact ? 1.5 : undefined, emptyText: 'Nenhum registro de ponto no período.' },
   );
   const totals: Array<[string, string]> = [
     ['Horas extras 50%', `${decimal(data.overtime50)} h`], ['Horas extras 100%', `${decimal(data.overtime100)} h`], ['Adicional noturno', `${decimal(data.nightShift)} h`], ['Dias previstos', String(data.payableWorkdays ?? 0)],

@@ -310,7 +310,7 @@ export class PdfReport {
   }
 
   /** Tabela com cabeçalho repetido a cada página, linhas zebradas e quebra de texto. */
-  table(columns: PdfColumn[], rows: PdfCell[][], options: { fontSize?: number; emptyText?: string; totals?: PdfCell[] } = {}) {
+  table(columns: PdfColumn[], rows: PdfCell[][], options: { fontSize?: number; rowPadding?: number; emptyText?: string; totals?: PdfCell[] } = {}) {
     const { doc } = this;
     const size = options.fontSize ?? 8.5;
     const pad = 6;
@@ -326,7 +326,7 @@ export class PdfReport {
     const drawRow = (cells: PdfCell[], index: number, bold = false) => {
       doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size);
       const heights = cells.map((cell, i) => { const c = cellOf(cell); doc.font(bold || c.bold ? 'Helvetica-Bold' : 'Helvetica'); return doc.heightOfString(c.text || ' ', { width: columns[i].width - pad * 2 }); });
-      const rowPad = size <= 8 ? 2.5 : 5;
+      const rowPad = options.rowPadding ?? (size <= 8 ? 2.5 : 5);
       const h = Math.max(...heights) + rowPad * 2;
       if (this.ensure(h + 24)) header();
       if (index % 2 === 1 && !bold) doc.rect(PDF.L, this.y, PDF.W, h).fill(C.soft);

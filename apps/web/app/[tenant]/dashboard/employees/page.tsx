@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AlertTriangle, CalendarDays, Clock3, Download, FileText, FolderOpen, HeartPulse, Key, Lock, Unlock, RotateCcw, Search, ShieldCheck, UserMinus, UserPlus, Users } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Clock3, Download, FileText, FolderOpen, HeartPulse, Key, Lock, Unlock, RotateCcw, Search, ShieldCheck, Trash2, UserMinus, UserPlus, Users } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button, ConfirmDialog, Drawer, Modal, PageHeader } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -96,6 +96,7 @@ export default function EmployeesPage() {
 
     return <div className="flex flex-wrap items-center gap-2">
       <Button type="button" variant="outline" onClick={() => setSelectedEmployeeId(employee.id)} aria-label={`Abrir dossiê de ${normalizeDisplayName(employee.name)}`}><FolderOpen size={18} aria-hidden="true" /> Dossiê</Button>
+      {canEdit && <Button type="button" variant="outline" className="text-rose-700" aria-label={`Excluir funcionário ${normalizeDisplayName(employee.name)}`} disabled={remove.loading} onClick={() => { remove.reset(); setConfirmationName(''); setDeleting(employee); }}><Trash2 size={16} aria-hidden="true" /> Excluir</Button>}
       <RowActionsMenu label={`Ações de ${normalizeDisplayName(employee.name)}`}>
           {canEdit && <>
             <Button type="button" variant="ghost" className="justify-start" onClick={() => setAccessModalEmployee(employee.id)}><Key size={18} aria-hidden="true" /> Criar acesso</Button>
@@ -115,7 +116,6 @@ export default function EmployeesPage() {
           {canEdit && <>
             <Link className="btn btn-ghost btn-md justify-start" href={base + '/employees/new?id=' + encodeURIComponent(employee.id)}>Editar cadastro</Link>
             <Button type="button" variant="ghost" className="justify-start" disabled={employee.status === 'TERMINATED' || terminate.loading} onClick={() => { terminate.reset(); setTerminating(employee); }}>Desligar funcionário</Button>
-            <Button type="button" variant="ghost" className="justify-start text-rose-700" disabled={remove.loading} onClick={() => { remove.reset(); setConfirmationName(''); setDeleting(employee); }}>Excluir ou arquivar</Button>
           </>}
       </RowActionsMenu>
     </div>;
@@ -198,9 +198,9 @@ export default function EmployeesPage() {
         <div className="flex justify-end"><Button type="button" onClick={() => setIssuedPassword(null)}>Entendi</Button></div>
       </div>
     </Modal>
-    <Modal isOpen={!!deleting} onClose={() => !remove.loading && setDeleting(null)} title="Excluir ou arquivar funcionário" maxWidth="max-w-xl">
+    <Modal isOpen={!!deleting} onClose={() => !remove.loading && setDeleting(null)} title="Excluir funcionário definitivamente" maxWidth="max-w-xl">
       <div className="space-y-4">
-        <p className="text-sm text-fg-sub">A operação consulta o histórico novamente no servidor. Com vínculos, arquiva e bloqueia o acesso; sem vínculos, exclui definitivamente.</p>
+        <p className="text-sm text-rose-800">Esta ação remove definitivamente o cadastro e os registros vinculados, incluindo ponto, férias, ASOs e fechamentos. O acesso do usuário será bloqueado. Para preservar o histórico, use Desligar funcionário.</p>
         {deletionQuery.loading && <LoadingState label="Consultando impacto…" />}
         {deletionQuery.error && <ErrorState message={deletionQuery.error} onRetry={deletionQuery.refetch} />}
         {deletionQuery.data && <DeletionImpact dossier={deletionQuery.data} />}
@@ -209,7 +209,7 @@ export default function EmployeesPage() {
         <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" disabled={remove.loading} onClick={() => setDeleting(null)}>Cancelar</Button><Button type="button" variant="danger" isLoading={remove.loading} disabled={!deletionQuery.data || !!deletionQuery.error || deletionQuery.loading || confirmationName !== normalizeDisplayName(deleting?.name ?? '')} onClick={async () => {
           if (!deleting || remove.loading) return;
           try { const result = await remove.mutate(deleting.id); setFeedback(result.archived ? 'Funcionário arquivado. Histórico preservado e acesso bloqueado.' : 'Funcionário excluído definitivamente.'); setDeleting(null); } catch { /* mantém os dados */ }
-        }}>Confirmar {deletionQuery.data?.deletionImpact.total ? 'arquivamento' : 'exclusão'}</Button></div>
+        }}>Excluir definitivamente</Button></div>
       </div>
     </Modal>
     {accessModalEmployee && <EmployeeAccessModal employeeId={accessModalEmployee} onClose={() => setAccessModalEmployee(null)} onSuccess={() => { setAccessModalEmployee(null); employeesQuery.refetch(); }} />}

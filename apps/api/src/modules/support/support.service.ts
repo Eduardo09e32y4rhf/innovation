@@ -21,8 +21,7 @@ export class SupportService {
     // Chamado de funcionario sempre fica em nome dele: e assim que ele o encontra e acompanha na lista.
     if (actor.role === 'FUNCIONARIO') data = { ...data, affectedUserId: actor.sub };
 
-    const year = new Date().getFullYear();
-    const ticketNumber = await this.repository.generateTicketNumber(year);
+    const ticketNumber = await this.repository.generateTicketNumber();
     
     let initialPriority: SupportTicketPriority = SupportTicketPriority.NORMAL;
     if (data.priority) {

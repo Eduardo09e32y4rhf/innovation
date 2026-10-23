@@ -315,6 +315,20 @@ export class EmployeesRepository {
     return { company, employee, manager, timeTracks, occurrences, closing };
   }
 
+  deletePermanently(companyId: string, id: string, actorId: string, impact: Record<string, number>) {
+    return this.prisma.$transaction(async (tx) => {
+      const employee = await tx.employee.findFirst({ where: { companyId, id }, select: { id: true, name: true, userId: true } });
+      if (!employee) return { count: 0 };
+      const result = await tx.employee.deleteMany({ where: { companyId, id } });
+      if (!result.count) return result;
+      if (employee.userId) {
+        await tx.user.updateMany({ where: { companyId, id: employee.userId }, data: { isActive: false, forcePasswordChange: true } });
+      }
+      await tx.auditLog.create({ data: { companyId, userId: actorId, action: 'EMPLOYEE_DELETED', entity: 'Employee', entityId: id, metadata: { name: employee.name, deletionImpact: impact } } });
+      return result;
+    });
+  }
+
   delete(companyId: string, id: string) {
     return this.prisma.employee.deleteMany({ where: { companyId, id } });
   }

@@ -72,6 +72,17 @@ describe('EmployeeDocumentsService', () => {
     });
   });
 
+  it('mantém todos os 31 dias da folha em uma página, com totais e assinaturas', async () => {
+    const { service, documents } = createService({
+      company: { name: 'Empresa Teste' }, employee: { id: 'e1', name: 'Maria Aparecida da Silva Oliveira e Souza', position: 'Assistente de Recursos Humanos', department: 'Administrativo' },
+      manager: null, closing: null, occurrences: [],
+      timeTracks: Array.from({ length: 31 }, (_, i) => ({ date: new Date(Date.UTC(2026, 9, i + 1)), totalWorked: 480, dailyBalance: 0, incidentType: 'atraso_saida_antecipada', observation: 'Observação completa registrada na ficha de ocorrências.' })),
+    });
+    await service.generate('company-1', actor, 'e1', 'POINT_SHEET', '2026-10');
+    const pdf = documents.storePdf.mock.calls[0][3] as Buffer;
+    expect(pdf.toString('latin1').match(/\/Type \/Page\b/g)?.length ?? 0).toBe(1);
+  });
+
   it('gera ficha de registro sem consultar periodo de ponto', async () => {
     const { service, repository } = createService({
       company: { name: 'Empresa Teste' },

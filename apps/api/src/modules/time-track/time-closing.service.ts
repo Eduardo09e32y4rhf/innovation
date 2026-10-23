@@ -9,7 +9,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { PayrollCalculationService } from './payroll-calculation.service';
 import { monthlySalaryFraction } from './salary-period';
 import { getOvertimePolicy, overtimePaymentRatio } from './overtime-policy';
-import { PDF, PdfReport } from '../../common/pdf/pdf-report';
+import { PdfReport } from '../../common/pdf/pdf-report';
 import { computeDeductions } from '../payroll/deduction-rules';
 import { appendMirror, buildPayslipPdf, buildTimeSheetPdf, timeSheetBrand } from './time-sheet-pdf';
 import { toSaoPauloDateKey } from '../../common/utils/date.utils';
@@ -724,31 +724,15 @@ export class TimeClosingService {
     const company = closings[0].company;
     const { periodStart, periodEnd } = closings[0];
     const toSheet = (closing: any) => ({ ...closing, company, tracks: tracksByEmployee.get(closing.employeeId) ?? [] });
-    const hours = (value: unknown) => `${Number(value || 0).toFixed(2).replace('.', ',')} h`;
 
     const report = await PdfReport.create({
-      title: 'Folha de ponto coletiva', subtitle: `Competência ${this.formatDate(periodStart)} a ${this.formatDate(periodEnd)}`,
-      brand: timeSheetBrand(company), footerId: documentId, generatedAt, author: company?.name ?? undefined,
+      title: closings.length === 1 ? 'Folha de ponto' : 'Folhas de ponto', subtitle: `Competência ${this.formatDate(periodStart)} a ${this.formatDate(periodEnd)}`,
+      brand: timeSheetBrand(company), footerId: documentId, footerNote: `Emitido por ${issuedBy}`, generatedAt, author: company?.name ?? undefined,
     });
 
-    // Página de abertura: a equipe inteira em uma tabela.
-    report.section('Resumo da equipe', `${closings.length} colaborador${closings.length === 1 ? '' : 'es'}`);
-    report.table(
-      [
-        { label: 'Colaborador', width: 130 }, { label: 'Matrícula', width: 52, align: 'left' }, { label: 'Normais', width: 58, align: 'right' }, { label: 'HE 50%', width: 52, align: 'right' },
-        { label: 'HE 100%', width: 54, align: 'right' }, { label: 'Noturno', width: 56, align: 'right' }, { label: 'Faltas', width: 55, align: 'right' }, { label: 'Atrasos', width: 58, align: 'right' },
-      ],
-      closings.map((closing) => [
-        closing.employee.name, closing.employee.registration || '-', hours(closing.normalHours), hours(closing.overtime50), hours(closing.overtime100), hours(closing.nightShift),
-        `${closing.absenceMinutes || 0} min`, `${closing.lateMinutes || 0} min`,
-      ]),
-      { fontSize: 8 },
-    );
-    report.paragraph(`Documento emitido a partir dos fechamentos oficiais e dos registros de ponto. Emissor: ${issuedBy}.`, { size: 8, color: PDF.color.mut });
-
-    // Uma página (ou mais) por colaborador, sem valores de salário.
-    closings.forEach((closing) => {
-      report.newPage();
+    // Cada colaborador começa e termina na própria página, sem capa adicional.
+    closings.forEach((closing, index) => {
+      if (index > 0) report.newPage();
       appendMirror(report, toSheet(closing), { compact: true });
     });
     return report.finish();

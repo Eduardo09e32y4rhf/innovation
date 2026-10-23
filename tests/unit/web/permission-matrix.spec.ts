@@ -15,7 +15,7 @@ function routeFor(method: string, path: string): BackendRoute {
 /** Botões/páginas por grupo de perfis → rotas que eles disparam. Cada perfil do grupo precisa ser aceito por todas. */
 const BUTTONS: Record<RoleGroup, Array<[string, string]>> = {
   employeeWrite: [
-    ['POST', '/employees'], ['PATCH', '/employees/:id'], ['DELETE', '/employees/:id'], ['GET', '/employees/:id'],
+    ['POST', '/employees'], ['PATCH', '/employees/:id'], ['DELETE', '/employees/:id'], ['DELETE', '/employees/:id/permanent'], ['GET', '/employees/:id'],
     ['POST', '/employees/import/validate'], ['POST', '/employees/import/confirm'],
   ],
   employeePointSheet: [['GET', '/employees/:id/documents/point-sheet.pdf']],
