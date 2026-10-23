@@ -29,8 +29,8 @@ export default function EsqueciSenhaPage() {
       footer={<Link href="/login" className="font-semibold text-white underline">Voltar ao login</Link>}>
       {sent ? (
         <div className="space-y-4">
-          <AuthAlert kind="success">Solicitação registrada. Se o e-mail estiver cadastrado, o responsável da sua empresa (gestor, RH ou administrador) recebeu o código de 6 caracteres.</AuthAlert>
-          <p className="text-sm text-zinc-600">Peça o código a ele e continue. O código vale por 2 horas.</p>
+          <AuthAlert kind="success">Solicitação registrada. Se o e-mail estiver cadastrado, confira a caixa de entrada e a pasta de spam para receber o código de 6 dígitos.</AuthAlert>
+          <p className="text-sm text-zinc-600">O código vale por 2 horas. Se ele não chegar, fale com o RH ou administrador.</p>
           <Link href={resetHref} className={authButton}>Já tenho o código</Link>
           <button type="button" onClick={() => setSent(false)} className="min-h-11 w-full text-sm font-medium text-zinc-600 hover:text-zinc-900">Usar outro e-mail</button>
         </div>

@@ -19,6 +19,24 @@ export function passwordResetEmail(input: { name: string; url: string; minutes: 
   };
 }
 
+export function passwordResetCodeEmail(input: { name: string; code: string; minutes: number }): MailContent {
+  return {
+    subject: 'Código de recuperação de senha — Innovation RH Connect',
+    html: layout('Recuperar sua senha', `<p>Olá, ${escapeHtml(input.name)}.</p><p>Seu código de recuperação é <strong style="font-size:22px;letter-spacing:4px">${escapeHtml(input.code)}</strong>.</p><p>Ele vale por ${input.minutes} minutos. Se você não solicitou a recuperação, ignore esta mensagem.</p>`),
+    text: `Olá, ${input.name}.\n\nSeu código de recuperação é ${input.code}. Ele vale por ${input.minutes} minutos.\n\nSe você não solicitou, ignore esta mensagem.`,
+  };
+}
+
+export function temporaryAccessEmail(input: { name: string; email: string; password: string; expiresAt: Date }): MailContent {
+  const expires = input.expiresAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const loginUrl = `${(process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '')}/login`;
+  return {
+    subject: 'Seu acesso ao Innovation RH Connect',
+    html: layout('Seu acesso foi criado', `<p>Olá, ${escapeHtml(input.name)}.</p><p>Entre com o e-mail <strong>${escapeHtml(input.email)}</strong> e a senha provisória <strong>${escapeHtml(input.password)}</strong>.</p><p>Ela expira em ${escapeHtml(expires)}. Você deverá criar uma nova senha ao entrar.</p>`, { label: 'Entrar na plataforma', url: loginUrl }),
+    text: `Olá, ${input.name}.\n\nSeu acesso foi criado. E-mail: ${input.email}\nSenha provisória: ${input.password}\nExpira em: ${expires}\nTroque a senha ao entrar.\n${loginUrl}`,
+  };
+}
+
 export function emailVerificationEmail(input: { name: string; url: string }): MailContent {
   return {
     subject: 'Confirme seu e-mail — Innovation RH Connect',

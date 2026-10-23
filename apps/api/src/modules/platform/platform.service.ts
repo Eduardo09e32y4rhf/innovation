@@ -1,5 +1,5 @@
 import { describeAction } from '../users/user-activity';
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -17,6 +17,8 @@ const PROTECTED_PLATFORM_ROLES = ['DEV', 'COMERCIAL'];
 
 import { NotificationsService } from '../notifications/notifications.service';
 import { PlatformFinanceService } from '../finance/platform-finance.service';
+import { MailService } from '../mail/mail.service';
+import { temporaryAccessEmail } from '../mail/mail-templates';
 
 @Injectable()
 export class PlatformService {
@@ -25,6 +27,7 @@ export class PlatformService {
     private readonly jwtService: JwtService,
     private readonly notificationsService: NotificationsService,
     private readonly platformFinance: PlatformFinanceService,
+    @Optional() private readonly mail?: MailService,
   ) {}
 
   async listCompanies(actor?: JwtUser, query?: { page?: number; limit?: number; search?: string; status?: string; billingStatus?: string }) {
@@ -377,7 +380,8 @@ export class PlatformService {
       },
     });
 
-    return { ...created, temporaryPassword, temporaryPasswordExpiresAt };
+    const emailSent = (await this.mail?.send(email, temporaryAccessEmail({ name: created.name, email, password: temporaryPassword, expiresAt: temporaryPasswordExpiresAt })))?.sent ?? false;
+    return { ...created, temporaryPassword, temporaryPasswordExpiresAt, emailSent };
   }
 
   async updateCompanyUser(actor: JwtUser, companyId: string, userId: string, dto: UpdatePlatformCompanyUserDto) {

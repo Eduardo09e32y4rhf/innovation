@@ -1,12 +1,14 @@
 import { inspectFile } from '../../common/utils/file-validation';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Optional } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { randomUUID } from 'node:crypto';
 import * as ExcelJS from 'exceljs';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../database/prisma.service';
 import { encryptTemporaryPassword, generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
+import { MailService } from '../mail/mail.service';
+import { temporaryAccessEmail } from '../mail/mail-templates';
 
 const SHEET_NAME = 'Funcionários';
 const HEADERS = ['Nome', 'CPF', 'E-mail', 'Departamento', 'Cargo', 'Data de admissão', 'Matrícula', 'Telefone', 'Perfil de acesso', 'Criar acesso'] as const;
@@ -29,13 +31,14 @@ type ImportRow = {
 };
 
 type ImportError = { row: number; column: string; message: string };
-type ImportResult = { employeeId: string; success: true; temporaryPassword?: string } | { employeeId?: string; row: number; success: false; error: string };
+type ImportResult = { employeeId: string; success: true; temporaryPassword?: string; emailSent?: boolean } | { employeeId?: string; row: number; success: false; error: string };
 
 @Injectable()
 export class EmployeesImportService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    @Optional() private readonly mail?: MailService,
   ) {}
 
   async generateTemplate(): Promise<Buffer> {
@@ -204,6 +207,7 @@ export class EmployeesImportService {
     if (!payload.rows.length) throw new BadRequestException('Nenhuma linha válida para importar.');
 
     const results: ImportResult[] = [];
+    const pendingEmails: Array<{ resultIndex: number; email: string; name: string; password: string; expiresAt: Date }> = [];
 
     const created = await this.prisma.$transaction(async (tx) => {
       let count = 0;
@@ -232,11 +236,11 @@ export class EmployeesImportService {
           let temporaryPassword: string | null = null;
           if (row.createAccess === 'SIM' && row.email) {
             const role = this.resolveAccessRole(row.accessProfile);
-            temporaryPassword = generateTemporaryPassword();
-            const passwordHash = await bcrypt.hash(temporaryPassword, 12);
-
             const existingUser = await tx.user.findUnique({ where: { email: row.email } });
             if (!existingUser) {
+              temporaryPassword = generateTemporaryPassword();
+              const expiresAt = temporaryPasswordExpiry();
+              const passwordHash = await bcrypt.hash(temporaryPassword, 12);
               const newUser = await tx.user.create({
                 data: {
                   companyId,
@@ -253,7 +257,7 @@ export class EmployeesImportService {
                 data: {
                   userId: newUser.id,
                   encryptedValue: encryptTemporaryPassword(temporaryPassword),
-                  expiresAt: temporaryPasswordExpiry(),
+                  expiresAt,
                 },
               });
 
@@ -261,6 +265,7 @@ export class EmployeesImportService {
                 where: { id: employee.id },
                 data: { userId: newUser.id },
               });
+              pendingEmails.push({ resultIndex: results.length, email: row.email, name: row.name, password: temporaryPassword, expiresAt });
             }
           }
 
@@ -279,6 +284,11 @@ export class EmployeesImportService {
       }
       return count;
     });
+
+    for (const item of pendingEmails) {
+      const result = results[item.resultIndex];
+      if (result?.success) result.emailSent = (await this.mail?.send(item.email, temporaryAccessEmail(item)))?.sent ?? false;
+    }
 
     await this.cache.del(key);
     return {

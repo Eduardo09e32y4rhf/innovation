@@ -401,7 +401,7 @@ export interface LinkableEmployee { id: string; name: string; email?: string | n
 export interface ActivityChange { field: string; from: string | null; to: string | null }
 export interface ActivityItem { id: string; at: string; ip: string | null; type: 'PAGE' | 'LOGIN' | 'CHANGE' | 'SECURITY' | 'ACCESS'; title: string; target: string | null; changes: ActivityChange[]; by: string | null }
 export interface UserActivity { user: { id: string; name: string; email: string; registration: string | null; role: UserRole }; days: number; total: number; truncated: boolean; generatedAt: string; items: ActivityItem[] }
-export type CreatedUser = AppUser & { temporaryPassword?: string; temporaryPasswordExpiresAt?: string }
+export type CreatedUser = AppUser & { temporaryPassword?: string; temporaryPasswordExpiresAt?: string; emailSent?: boolean }
 export interface CreateUserInput { name: string; email: string; password?: string; role?: UserRole; customPermissions?: string[] | null; companyId?: string; employeeId?: string; }
 export interface UpdateUserInput extends Partial<CreateUserInput> { isActive?: boolean; forcePasswordChange?: boolean; }
 
@@ -907,10 +907,10 @@ export const api = {
     update: (id: string, input: Partial<CreateEmployeeInput>) => request<Employee>(`/employees/${id}`, { method: 'PATCH', body: input }),
     terminate: (id: string) => request<Employee>(`/employees/${id}`, { method: 'DELETE' }),
     delete: (id: string) => request<EmployeeDeleteResult>(`/employees/${id}/permanent`, { method: 'DELETE' }),
-    createAccess: (id: string, input: { email: string; role?: string; name?: string }) => request<{ success: boolean; userId?: string; temporaryPassword?: string; email: string; role: string }>(`/employees/${id}/access`, { method: 'POST', body: input }),
+    createAccess: (id: string, input: { email: string; role?: string; name?: string }) => request<{ success: boolean; userId?: string; temporaryPassword?: string; emailSent?: boolean; email: string; role: string }>(`/employees/${id}/access`, { method: 'POST', body: input }),
     linkAccess: (id: string, userId: string) => request<{ success: boolean; employeeId: string; userId: string }>(`/employees/${id}/access/link`, { method: 'POST', body: { userId } }),
     unlinkAccess: (id: string) => request<{ success: boolean; employeeId: string }>(`/employees/${id}/access/link`, { method: 'DELETE' }),
-    bulkAccess: (input: { employeeIds: string[]; action: string; role?: string }) => request<Array<{ employeeId?: string; row?: number; success: boolean; error?: string; temporaryPassword?: string; role?: string }>>('/employees/access/bulk', { method: 'POST', body: input }),
+    bulkAccess: (input: { employeeIds: string[]; action: string; role?: string }) => request<Array<{ employeeId?: string; row?: number; success: boolean; error?: string; temporaryPassword?: string; emailSent?: boolean; role?: string }>>('/employees/access/bulk', { method: 'POST', body: input }),
     validateImport: (file: File) => {
       const form = new FormData();
       form.append('file', file);

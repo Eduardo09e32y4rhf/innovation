@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
@@ -8,6 +8,8 @@ import { EmployeesRepository } from './employees.repository';
 import { AsoService } from '../management/aso.service';
 import { assertRoleChangeAllowed, canManageRole } from '../../common/constants/role-hierarchy';
 import { isOwnerTargetedByOther } from '../../common/constants/platform-owner';
+import { MailService } from '../mail/mail.service';
+import { temporaryAccessEmail } from '../mail/mail-templates';
 
 const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
 /** Perfis que ocupam licença (igual ao countByCompany do repositório). */
@@ -24,7 +26,7 @@ export function positionKey(value: string): string {
 
 @Injectable()
 export class EmployeesService {
-  constructor(private readonly repository: EmployeesRepository, private readonly asoService: AsoService) {}
+  constructor(private readonly repository: EmployeesRepository, private readonly asoService: AsoService, @Optional() private readonly mail?: MailService) {}
 
   async list(companyId: string, actor: JwtUser, page: number = 1, pageSize: number = 50, search?: string, status?: string) {
     const skip = Math.max(0, (page - 1) * pageSize);
@@ -207,6 +209,7 @@ export class EmployeesService {
     if (existingUser && existingUser.companyId !== companyId) throw new ConflictException('E-mail already registered in another company');
 
     let temporaryPassword: string | null = null;
+    let emailSent = false;
 
     if (existingUser) {
       const linkedEmployee = await this.repository.findByUserId(companyId, existingUser.id);
@@ -225,6 +228,7 @@ export class EmployeesService {
       await this.assertSeatAvailable(companyId);
 
       temporaryPassword = generateTemporaryPassword();
+      const expiresAt = temporaryPasswordExpiry();
       const user = await this.repository.createUser({
         companyId,
         name: dto.name ?? employee.name,
@@ -235,10 +239,11 @@ export class EmployeesService {
         isActive: true,
         temporaryPassword: {
           value: temporaryPassword,
-          expiresAt: temporaryPasswordExpiry(),
+          expiresAt,
         },
       });
       await this.repository.updateUserLink(companyId, employeeId, user.id);
+      emailSent = (await this.mail?.send(email, temporaryAccessEmail({ name: user.name, email, password: temporaryPassword, expiresAt })))?.sent ?? false;
 
       await this.repository.createAuditLog({
         companyId,
@@ -259,6 +264,7 @@ export class EmployeesService {
       success: true,
       userId: employee.userId || existingUser?.id,
       temporaryPassword,
+      emailSent,
       email,
       role,
     };
@@ -312,7 +318,7 @@ export class EmployeesService {
                 role: dto.role,
                 name: employee.name,
               });
-              results.push({ employeeId, success: true, temporaryPassword: createResult.temporaryPassword, role: createResult.role });
+              results.push({ employeeId, success: true, temporaryPassword: createResult.temporaryPassword, emailSent: createResult.emailSent, role: createResult.role });
             } catch (error: any) {
               results.push({ employeeId, success: false, error: error.message });
             }
@@ -328,6 +334,7 @@ export class EmployeesService {
             }
             if (dto.action === 'reset-password') {
               const newPassword = generateTemporaryPassword();
+              const expiresAt = temporaryPasswordExpiry();
               const user = await this.repository.findUserById(companyId, employee.userId!);
               const reset = await this.repository.reissueTemporaryPassword(companyId, employee.userId!, {
                 passwordHash: await bcrypt.hash(newPassword, 12),
@@ -335,8 +342,9 @@ export class EmployeesService {
                 forcePasswordChange: true,
                 passwordChangedAt: new Date(),
                 failedLoginAttempts: 0,
-              }, newPassword, temporaryPasswordExpiry());
-              results.push(reset.count ? { employeeId, success: true, temporaryPassword: newPassword } : { employeeId, success: false, error: 'Usuario nao encontrado' });
+              }, newPassword, expiresAt);
+              const emailSent = reset.count ? (await this.mail?.send(user!.email, temporaryAccessEmail({ name: user!.name, email: user!.email, password: newPassword, expiresAt })))?.sent ?? false : false;
+              results.push(reset.count ? { employeeId, success: true, temporaryPassword: newPassword, emailSent } : { employeeId, success: false, error: 'Usuario nao encontrado' });
               break;
             }
             const changed = await this.repository.updateUser(companyId, employee.userId!, { isActive: dto.action === 'unblock' });
@@ -482,6 +490,7 @@ export class EmployeesService {
     }
 
     const temporaryPassword = generateTemporaryPassword();
+    const expiresAt = temporaryPasswordExpiry();
 
     const user = await this.repository.createUser({
       companyId,
@@ -493,10 +502,11 @@ export class EmployeesService {
       isActive: true,
       temporaryPassword: {
         value: temporaryPassword,
-        expiresAt: temporaryPasswordExpiry(),
+        expiresAt,
       },
     });
     await this.repository.updateUserLink(companyId, employee.id, user.id);
+    await this.mail?.send(email, temporaryAccessEmail({ name: user.name, email, password: temporaryPassword, expiresAt }));
   }
 
   /**

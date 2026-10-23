@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { timingSafeEqual } from 'node:crypto';
+import { randomInt, timingSafeEqual } from 'node:crypto';
 import { loginFailures } from '../../common/metrics/app-metrics';
 import { isCompanyDocumentOptional, normalizeCompanyDocument } from '../../common/company-document';
 import { createHmac } from 'node:crypto';
@@ -24,7 +24,7 @@ import { SessionService } from './session.service';
 import { SecurityStore } from './security-store';
 import { MfaService } from './mfa.service';
 import { MailService } from '../mail/mail.service';
-import { emailVerificationEmail, passwordResetEmail, securityAlertEmail } from '../mail/mail-templates';
+import { emailVerificationEmail, passwordResetCodeEmail, securityAlertEmail } from '../mail/mail-templates';
 import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { isPlatformOwner } from '../../common/constants/platform-owner';
@@ -437,9 +437,13 @@ export class AuthService {
   }
 
 
-  /** Resposta e tempo idênticos para e-mail existente ou não: o trabalho real roda em segundo plano (sem enumeração de contas). */
-  requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
-    void this.processPasswordResetRequest(dto, requestMeta).catch((err) => this.logger.error(`Falha ao processar pedido de recuperacao: ${String(err)}`));
+  /** Resposta genérica para não revelar se o endereço corresponde a uma conta. Aguarda o envio antes de responder. */
+  async requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
+    try {
+      await this.processPasswordResetRequest(dto, requestMeta);
+    } catch (err) {
+      this.logger.error(`Falha ao processar pedido de recuperacao: ${String(err)}`);
+    }
     return { requested: true };
   }
 
@@ -449,8 +453,7 @@ export class AuthService {
     const role = this.resolveRole(user);
     if (!this.canAccessCompany(user.company, role)) return { requested: true };
 
-    const { randomBytes } = await import('node:crypto');
-    const code = randomBytes(4).toString('hex').slice(0, 6).toUpperCase();
+    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
     const expires = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
 
     await this.repository.setResetCode(user.id, code, expires);
@@ -466,15 +469,9 @@ export class AuthService {
       userAgent: requestMeta.userAgent,
     });
 
-    // Com e-mail configurado o próprio titular recebe o link (30 min, uso único) — sem depender do RH.
-    if (this.mail.isConfigured()) {
-      const token = await this.jwtService.signAsync({
-        purpose: PASSWORD_RESET_PURPOSE, sub: user.id, email: user.email, passwordChangedAt: new Date(user.passwordChangedAt).getTime(),
-      }, { expiresIn: '30m' });
-      const base = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
-      const sent = await this.mail.send(user.email, passwordResetEmail({ name: user.name, url: `${base}/reset-password?token=${encodeURIComponent(token)}`, minutes: 30 }));
-      if (sent.sent) return { requested: true, channel: 'email' as const };
-    }
+    // O próprio titular recebe o código que a tela de recuperação valida.
+    const sent = await this.mail.send(user.email, passwordResetCodeEmail({ name: user.name, code, minutes: 120 }));
+    if (sent.sent) return { requested: true, channel: 'email' as const };
 
     try {
       // O codigo vai so para perfis ACIMA de quem pediu (nunca gestores; ADMIN recupera por e-mail ou pelo DEV).
