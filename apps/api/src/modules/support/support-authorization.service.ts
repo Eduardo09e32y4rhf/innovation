@@ -54,7 +54,7 @@ export class SupportAuthorizationService {
       }
     }
 
-    if (actor.role === 'ADMIN' || actor.role === 'RH') {
+    if (['ADMIN', 'RH', 'CEO', 'CONTABIL'].includes(actor.role)) {
       if (affectedUserId) {
         const userInCompany = await this.prisma.user.findFirst({ where: { id: affectedUserId, companyId: actor.companyId } });
         if (!userInCompany) throw new ForbiddenException('Usuário não pertence à sua empresa.');
@@ -135,7 +135,7 @@ export class SupportAuthorizationService {
         const actorEmployee = await this.prisma.employee.findFirst({ where: { userId: actor.sub, companyId: actor.companyId } });
         if (actorEmployee) {
           const isDirectReport = await this.prisma.employee.findFirst({
-            where: { id: ticket.affectedEmployeeId, managerId: actorEmployee.id }
+            where: { id: ticket.affectedEmployeeId, managerId: actorEmployee.id, companyId: actor.companyId }
           });
           if (isDirectReport) return true;
         }

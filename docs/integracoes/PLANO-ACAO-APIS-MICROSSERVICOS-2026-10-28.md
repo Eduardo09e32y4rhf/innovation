@@ -83,6 +83,10 @@ O comando é um procedimento para o operador, não evidência de instalação. O
 
 A preparação técnica pode avançar agora. Integração externa depende de conta, credencial e autorização; operação remunerada depende das condições aceitas pelo usuário. Não foram enviados dados de clientes a novos fornecedores, realizados pagamentos, emitidas notas ou desligados motores atuais. Não há certificação para 300+ empresas sem ensaio de carga.
 
+## Inclusão de autenticação e chamados
+
+A avaliação de Supabase Auth / Keycloak e Jira Service Management / Zammad está em [AUTH-CHAMADOS-MIGRACAO-2026-10-28.md](./AUTH-CHAMADOS-MIGRACAO-2026-10-28.md). Para piloto rápido, avaliar Supabase Auth + Jira Free com limites e isolamento comprovados. Para ausência de assinatura de software, avaliar Keycloak + Zammad com operação própria. Os conectores ainda não foram ativados. Foi fechada nesta rodada uma lacuna local de referências de outras empresas na abertura de chamados por CEO/CONTABIL.
+
 ## Fontes oficiais consultadas
 
 - Pontotel: https://suporte.pontotel.com.br/pt-br/article/o-que-e-a-api-da-pontotel-e-como-ela-pode-integrar-outros-sistemas-14qmtem/
