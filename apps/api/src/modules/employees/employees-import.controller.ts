@@ -44,7 +44,7 @@ export class EmployeesImportController {
   @Post('confirm')
   confirm(@Req() req: FastifyRequest, @CurrentUser() user: JwtUser, @Body() body: ConfirmImportDto) {
     if (!body.importToken) throw new BadRequestException('importToken é obrigatório.');
-    return this.importService.confirm(user.companyId, user.sub, body.importToken);
+    return this.importService.confirm(user.companyId, user, body.importToken);
   }
 
   private getActor(req: FastifyRequest): JwtUser {

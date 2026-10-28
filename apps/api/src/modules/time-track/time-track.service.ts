@@ -287,7 +287,7 @@ export class TimeTrackService {
       await this.syncCalculatedOccurrences(companyId, saved);
       return saved;
     } finally {
-      await this.redis.releaseLock(lockKey);
+      await this.redis.releaseLock(lockKey, acquired);
     }
   }
 

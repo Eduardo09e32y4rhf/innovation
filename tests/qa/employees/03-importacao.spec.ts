@@ -4,7 +4,7 @@ import path from 'node:path';
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { EmployeesImportService } from '../../../apps/api/src/modules/employees/employees-import.service';
-import { check, cpfFromBase, COMPANY_A, prng, VALID_CPF } from './helpers';
+import { actor, check, cpfFromBase, COMPANY_A, prng, VALID_CPF } from './helpers';
 
 // ───────────── Importação de planilha (CSV/XLSX): QA + hacker na mesma superfície ─────────────
 
@@ -218,15 +218,15 @@ describe('Importação · confirmar', () => {
 
   it('token inexistente, de outra empresa ou já usado → 400', async () => {
     const { service, token } = await prepared([row()]);
-    await expect(service.confirm(COMPANY_A, 'u1', 'token-falso')).rejects.toBeInstanceOf(BadRequestException);
-    await expect(service.confirm('company-b', 'u1', token)).rejects.toBeInstanceOf(BadRequestException);
-    await service.confirm(COMPANY_A, 'u1', token);
-    await expect(service.confirm(COMPANY_A, 'u1', token)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.confirm(COMPANY_A, actor('RH', 'u1'), 'token-falso')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.confirm('company-b', actor('RH', 'u1'), token)).rejects.toBeInstanceOf(BadRequestException);
+    await service.confirm(COMPANY_A, actor('RH', 'u1'), token);
+    await expect(service.confirm(COMPANY_A, actor('RH', 'u1'), token)).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('cria funcionário ACTIVE + ASO admissional pendente e apaga o token', async () => {
     const { service, token, tx, cache } = await prepared([row()]);
-    const out = await service.confirm(COMPANY_A, 'u1', token);
+    const out = await service.confirm(COMPANY_A, actor('RH', 'u1'), token);
     expect(out.imported).toBe(1);
     expect(tx.employee.create).toHaveBeenCalledWith({ data: expect.objectContaining({ companyId: COMPANY_A, status: 'ACTIVE', cpf: VALID_CPF }) });
     expect(tx.employeeAsoRecord.create).toHaveBeenCalledWith({ data: expect.objectContaining({ asoType: 'ADMISSIONAL', status: 'PENDING' }) });
@@ -235,7 +235,7 @@ describe('Importação · confirmar', () => {
 
   it('Criar acesso = SIM cria usuário, credencial temporária e vincula', async () => {
     const { service, token, tx } = await prepared([row({ acesso: 'SIM', perfil: 'GESTOR' })]);
-    const out = await service.confirm(COMPANY_A, 'u1', token);
+    const out = await service.confirm(COMPANY_A, actor('RH', 'u1'), token);
     expect(tx.user.create).toHaveBeenCalledWith({ data: expect.objectContaining({ role: 'GESTOR', forcePasswordChange: true }) });
     expect(tx.temporaryCredential.create).toHaveBeenCalled();
     expect(out.results[0]).toMatchObject({ success: true, temporaryPassword: expect.stringMatching(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-HJ-NP-Za-km-z2-9]{6}$/) });
@@ -243,26 +243,27 @@ describe('Importação · confirmar', () => {
 
   check('e-mail que já tem usuário: NÃO devolve uma senha temporária que não funciona', 'Q-11', async () => {
     const { service, token } = await prepared([row({ acesso: 'SIM' })], ({ tx }) => tx.user.findUnique.mockResolvedValue({ id: 'u-antigo', companyId: COMPANY_A }));
-    const out = await service.confirm(COMPANY_A, 'u1', token);
+    const out = await service.confirm(COMPANY_A, actor('RH', 'u1'), token);
     expect((out.results[0] as { temporaryPassword?: string }).temporaryPassword).toBeUndefined();
   });
 
   check('planilha não consegue criar administrador (Perfil de acesso = ADMIN) sem checar quem importa', 'S-01', async () => {
     const { service, token, tx } = await prepared([row({ acesso: 'SIM', perfil: 'ADMIN' })]);
-    await service.confirm(COMPANY_A, 'u-rh', token);
+    await expect(service.confirm(COMPANY_A, actor('RH', 'u-rh'), token)).rejects.toThrow();
+    expect(tx.employee.create).not.toHaveBeenCalled();
     expect(tx.user.create).not.toHaveBeenCalledWith({ data: expect.objectContaining({ role: 'ADMIN' }) });
   });
 
   check('importar 50 pessoas com acesso respeita o limite de licenças contratadas (3)', 'S-11', async () => {
     const rows = Array.from({ length: 50 }, (_, i) => row({ nome: `P ${i}`, cpf: cpfFromBase(String(200000000 + i)), email: `p${i}@x.com`, acesso: 'SIM' }));
     const { service, token, tx } = await prepared(rows);
-    await service.confirm(COMPANY_A, 'u1', token);
+    await service.confirm(COMPANY_A, actor('RH', 'u1'), token);
     expect(tx.user.create.mock.calls.length).toBeLessThanOrEqual(3);
   }, 60000);
 
   check('confirmar duas vezes ao mesmo tempo (duplo clique) importa uma única vez', 'Q-12', async () => {
     const { service, token, tx } = await prepared([row()]);
-    await Promise.allSettled([service.confirm(COMPANY_A, 'u1', token), service.confirm(COMPANY_A, 'u1', token)]);
+    await Promise.allSettled([service.confirm(COMPANY_A, actor('RH', 'u1'), token), service.confirm(COMPANY_A, actor('RH', 'u1'), token)]);
     expect(tx.employee.create).toHaveBeenCalledTimes(1);
   });
 
@@ -285,7 +286,7 @@ describe('Importação · confirmar', () => {
     const validation = await ctx.service.validate(COMPANY_A, file(csv(
       row({ nome: 'Primeira' }), row({ nome: 'Duplicada', cpf: cpfFromBase('111444777') }), row({ nome: 'Terceira', cpf: cpfFromBase('222333444') }),
     )));
-    const out = await ctx.service.confirm(COMPANY_A, 'u1', validation.importToken as string);
+    const out = await ctx.service.confirm(COMPANY_A, actor('RH', 'u1'), validation.importToken as string);
     expect(out.imported).toBe(persisted);
   });
 

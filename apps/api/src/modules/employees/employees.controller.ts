@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { contentDisposition, EXPOSED_HEADERS } from '../../common/pdf/pdf-response';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -31,8 +31,8 @@ export class EmployeesController {
     @Query('search') search?: string,
     @Query('status') status?: string,
   ) {
-    const pageNum = Math.max(1, parseInt(page || '1', 10));
-    const pageSizeNum = Math.min(100, Math.max(1, parseInt(pageSize || '50', 10)));
+    const pageNum = this.paginationValue(page, 1, 1_000_000);
+    const pageSizeNum = this.paginationValue(pageSize, 50, 100);
     return this.service.list(companyId, actor, pageNum, pageSizeNum, search, status);
   }
 
@@ -100,8 +100,8 @@ export class EmployeesController {
 
   @Roles('ADMIN', 'RH')
   @Post()
-  create(@CurrentCompany() companyId: string, @Body() dto: CreateEmployeeDto) {
-    return this.service.create(companyId, dto);
+  create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreateEmployeeDto) {
+    return this.service.create(companyId, actor, dto);
   }
 
   @Roles('ADMIN', 'RH')
@@ -158,6 +158,14 @@ export class EmployeesController {
     @Body() dto: BulkEmployeeAccessDto,
   ) {
     return this.service.bulkAccess(companyId, actor, dto);
+  }
+
+  private paginationValue(value: string | undefined, fallback: number, max: number) {
+    if (value === undefined) return fallback;
+    if (!/^[0-9]+$/.test(value) || !Number.isSafeInteger(Number(value)) || Number(value) < 1 || Number(value) > max) {
+      throw new BadRequestException('Paginação inválida.');
+    }
+    return Number(value);
   }
 
   private async streamOfficialDocument(

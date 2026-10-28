@@ -5,6 +5,8 @@ import type { Cache } from 'cache-manager';
 import { randomUUID } from 'node:crypto';
 import * as ExcelJS from 'exceljs';
 import * as bcrypt from 'bcryptjs';
+import type { JwtUser } from '../../common/types/auth.types';
+import { assertEmployeeWriter, employeeAccessRole } from './employee-access.policy';
 import { PrismaService } from '../../database/prisma.service';
 import { encryptTemporaryPassword, generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
 
@@ -197,22 +199,28 @@ export class EmployeesImportService {
     };
   }
 
-  async confirm(companyId: string, userId: string, importToken: string) {
+  async confirm(companyId: string, actor: JwtUser, importToken: string) {
+    assertEmployeeWriter(actor);
     const key = `employees-import:${importToken}`;
     const payload = await this.cache.get<{ companyId: string; rows: ImportRow[]; invalidRows: any[] }>(key);
     if (!payload || payload.companyId !== companyId) throw new BadRequestException('Importação expirada ou inválida.');
     if (!payload.rows.length) throw new BadRequestException('Nenhuma linha válida para importar.');
 
+    // Reject unauthorized roles before any row is written, including partially valid imports.
+    for (const row of payload.rows) {
+      if (row.createAccess === 'SIM') employeeAccessRole(actor, row.accessProfile);
+    }
     const results: ImportResult[] = [];
 
     const created = await this.prisma.$transaction(async (tx) => {
       let count = 0;
       for (const row of payload.rows) {
         try {
+          const { accessProfile, createAccess, ...employeeData } = row;
           const employee = await tx.employee.create({
             data: {
               companyId,
-              ...row,
+              ...employeeData,
               status: 'ACTIVE',
             },
           });
@@ -231,12 +239,12 @@ export class EmployeesImportService {
           // Criar acesso se solicitado
           let temporaryPassword: string | null = null;
           if (row.createAccess === 'SIM' && row.email) {
-            const role = this.resolveAccessRole(row.accessProfile);
-            temporaryPassword = generateTemporaryPassword();
-            const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+            const role = employeeAccessRole(actor, row.accessProfile);
 
             const existingUser = await tx.user.findUnique({ where: { email: row.email } });
             if (!existingUser) {
+              temporaryPassword = generateTemporaryPassword();
+              const passwordHash = await bcrypt.hash(temporaryPassword, 12);
               const newUser = await tx.user.create({
                 data: {
                   companyId,
@@ -404,9 +412,5 @@ export class EmployeesImportService {
     return calculate(9) === digits[9] && calculate(10) === digits[10];
   }
 
-  private resolveAccessRole(role?: string | null) {
-    const ALLOWED = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
-    if (role && ALLOWED.includes(role)) return role;
-    return 'FUNCIONARIO';
-  }
+
 }

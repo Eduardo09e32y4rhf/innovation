@@ -58,72 +58,66 @@ describe('QA · listagem por perfil', () => {
   });
 });
 
-describe('QA · parâmetros de paginação no controller (uso errado de propósito)', () => {
+describe('QA · parâmetros de paginação no controller', () => {
   const hostile = ['abc', '', ' ', '-1', '0', '1.5', '1e3', 'NaN', 'Infinity', '9'.repeat(30), '١٢٣', '0x10', '1; DROP TABLE', '[]', 'null', 'undefined'];
-
-  // parseInt(valor) vira NaN para texto não numérico e Infinity; números gigantes estouram o INT do banco (skip enorme).
-  const BAD_PAGE = new Set([' ', 'abc', 'NaN', 'null', 'undefined', '[]', '١٢٣', 'Infinity', '9'.repeat(30)]);
-  const BAD_SIZE = new Set([' ', 'abc', 'NaN', 'null', 'undefined', '[]', '١٢٣', 'Infinity']);
-
-  for (const page of hostile) {
-    check(`page=${JSON.stringify(page)} chega ao serviço como inteiro entre 1 e 1.000.000`, BAD_PAGE.has(page) ? 'QA-01' : null, async () => {
-      const list = vi.fn().mockResolvedValue([]);
-      const controller = new EmployeesController({ list } as never, {} as never);
-      await controller.list(COMPANY_A, actor('RH'), page, '10');
-      const pageArg = list.mock.calls[0][2];
-      expect(Number.isInteger(pageArg) && pageArg >= 1 && pageArg <= 1_000_000).toBe(true);
-    });
+  for (const value of hostile) {
+    for (const parameter of ['page', 'pageSize']) {
+      it(`${parameter}=${JSON.stringify(value)} retorna 400 sem consultar o serviço`, () => {
+        const list = vi.fn();
+        const controller = new EmployeesController({ list } as never, {} as never);
+        expect(() => controller.list(COMPANY_A, actor('RH'), parameter === 'page' ? value : '1', parameter === 'pageSize' ? value : '10')).toThrow(BadRequestException);
+        expect(list).not.toHaveBeenCalled();
+      });
+    }
   }
-
-  for (const pageSize of hostile) {
-    check(`pageSize=${JSON.stringify(pageSize)} chega ao serviço como inteiro entre 1 e 100`, BAD_SIZE.has(pageSize) ? 'QA-01' : null, async () => {
-      const list = vi.fn().mockResolvedValue([]);
-      const controller = new EmployeesController({ list } as never, {} as never);
-      await controller.list(COMPANY_A, actor('RH'), '1', pageSize);
-      const sizeArg = list.mock.calls[0][3];
-      expect(Number.isInteger(sizeArg) && sizeArg >= 1 && sizeArg <= 100).toBe(true);
-    });
-  }
-  it('pageSize acima de 100 é limitado a 100 (proteção contra dump)', async () => {
-    const list = vi.fn().mockResolvedValue([]);
-    await new EmployeesController({ list } as never, {} as never).list(COMPANY_A, actor('RH'), '1', '100000');
-    expect(list.mock.calls[0][3]).toBe(100);
+  it('valores acima do limite são recusados', () => {
+    const controller = new EmployeesController({ list: vi.fn() } as never, {} as never);
+    expect(() => controller.list(COMPANY_A, actor('RH'), '1000001', '10')).toThrow(BadRequestException);
+    expect(() => controller.list(COMPANY_A, actor('RH'), '1', '101')).toThrow(BadRequestException);
+  });
+  it('ausência usa padrões e os limites válidos são preservados', () => {
+    const list = vi.fn();
+    const controller = new EmployeesController({ list } as never, {} as never);
+    controller.list(COMPANY_A, actor('RH'));
+    expect(list).toHaveBeenLastCalledWith(COMPANY_A, actor('RH'), 1, 50, undefined, undefined);
+    controller.list(COMPANY_A, actor('RH'), '1000000', '100');
+    expect(list).toHaveBeenLastCalledWith(COMPANY_A, actor('RH'), 1000000, 100, undefined, undefined);
   });
 });
 
 describe('QA · criar funcionário', () => {
   it('cria, gera ASO admissional pendente e devolve a ficha', async () => {
     const { service, repository, aso } = makeService({ findById: vi.fn().mockResolvedValue(employee({ id: 'new-emp' })) } as never);
-    const created = await service.create(COMPANY_A, { name: 'Bruno Lima', email: 'bruno@x.com' } as never);
+    const created = await service.create(COMPANY_A, actor('ADMIN'), { name: 'Bruno Lima', email: 'bruno@x.com' } as never);
     expect(created.id).toBe('new-emp');
     expect(repository.create).toHaveBeenCalledWith(COMPANY_A, expect.objectContaining({ name: 'Bruno Lima' }));
-    expect(aso.create).toHaveBeenCalledWith(COMPANY_A, undefined, expect.objectContaining({ asoType: 'ADMISSIONAL', status: 'PENDING' }));
+    expect(aso.create).toHaveBeenCalledWith(COMPANY_A, 'user-admin', expect.objectContaining({ asoType: 'ADMISSIONAL', status: 'PENDING' }));
   });
 
   it('CPF já cadastrado → 409', async () => {
     const { service } = makeService({ findByCpf: vi.fn().mockResolvedValue(employee()) } as never);
-    await expect(service.create(COMPANY_A, { name: 'X', cpf: '12345678909' } as never)).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.create(COMPANY_A, actor('ADMIN'), { name: 'X', cpf: '12345678909' } as never)).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('matrícula repetida (qualquer caixa) → 409', async () => {
     const { service } = makeService({ findByRegistration: vi.fn().mockResolvedValue(employee({ id: 'other' })) } as never);
-    await expect(service.create(COMPANY_A, { name: 'X', registration: 'a-001' } as never)).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.create(COMPANY_A, actor('ADMIN'), { name: 'X', registration: 'a-001' } as never)).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('dependentes com JSON inválido → 400', async () => {
     const { service } = makeService();
-    await expect(service.create(COMPANY_A, { name: 'X', dependents: '{not json' } as never)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.create(COMPANY_A, actor('ADMIN'), { name: 'X', dependents: '{not json' } as never)).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('dependentes com JSON válido são gravados como objeto', async () => {
     const { service, repository } = makeService({ findById: vi.fn().mockResolvedValue(employee()) } as never);
-    await service.create(COMPANY_A, { name: 'X', dependents: '[{"nome":"Filha"}]' } as never);
+    await service.create(COMPANY_A, actor('ADMIN'), { name: 'X', dependents: '[{"nome":"Filha"}]' } as never);
     expect(repository.create.mock.calls[0][1].dependents).toEqual([{ nome: 'Filha' }]);
   });
 
   it('accessEnabled=YES cria usuário com senha temporária forte e vincula', async () => {
     const { service, repository } = makeService({ findById: vi.fn().mockResolvedValue(employee({ id: 'new-emp', email: 'novo@x.com' })) } as never);
-    await service.create(COMPANY_A, { name: 'X', email: 'novo@x.com', accessEnabled: 'YES', accessProfile: 'GESTOR' } as never);
+    await service.create(COMPANY_A, actor('ADMIN'), { name: 'X', email: 'novo@x.com', accessEnabled: 'YES', accessProfile: 'GESTOR' } as never);
     const created = repository.createUser.mock.calls[0][0];
     expect(created).toMatchObject({ companyId: COMPANY_A, role: 'GESTOR', forcePasswordChange: true });
     expect(created.temporaryPassword.value).toMatch(TEMP_PASSWORD);
@@ -132,7 +126,7 @@ describe('QA · criar funcionário', () => {
 
   it('acesso pedido sem e-mail → 409 claro', async () => {
     const { service } = makeService({ create: vi.fn().mockResolvedValue(employee({ id: 'new-emp', email: null })), findById: vi.fn().mockResolvedValue(employee({ id: 'new-emp', email: null })) } as never);
-    await expect(service.create(COMPANY_A, { name: 'X', accessEnabled: 'YES' } as never)).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.create(COMPANY_A, actor('ADMIN'), { name: 'X', accessEnabled: 'YES' } as never)).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('e-mail de outra empresa → 409 (sem vazar a empresa)', async () => {
@@ -140,13 +134,13 @@ describe('QA · criar funcionário', () => {
       findById: vi.fn().mockResolvedValue(employee({ id: 'new-emp', email: 'a@x.com' })),
       findUserByEmail: vi.fn().mockResolvedValue({ id: 'u', companyId: 'outra', role: 'RH' }),
     } as never);
-    await expect(service.create(COMPANY_A, { name: 'X', email: 'a@x.com', accessEnabled: 'YES' } as never)).rejects.toThrow(/another company/);
+    await expect(service.create(COMPANY_A, actor('ADMIN'), { name: 'X', email: 'a@x.com', accessEnabled: 'YES' } as never)).rejects.toThrow(/another company/);
   });
 
   it('funcionário em ONBOARDING nunca ganha acesso ao painel', async () => {
     const onboarding = employee({ id: 'new-emp', status: 'ONBOARDING', userId: 'u1' });
     const { service, repository } = makeService({ create: vi.fn().mockResolvedValue(onboarding), findById: vi.fn().mockResolvedValue(onboarding) } as never);
-    await service.create(COMPANY_A, { name: 'X', status: 'ONBOARDING', accessEnabled: 'YES', email: 'a@x.com' } as never);
+    await service.create(COMPANY_A, actor('ADMIN'), { name: 'X', status: 'ONBOARDING', accessEnabled: 'YES', email: 'a@x.com' } as never);
     expect(repository.createUser).not.toHaveBeenCalled();
     expect(repository.updateUser).toHaveBeenCalledWith(COMPANY_A, 'u1', { isActive: false });
   });
@@ -228,7 +222,7 @@ describe('QA · acesso ao painel (criar, vincular, desvincular, em lote)', () =>
     const base = { findById: vi.fn().mockResolvedValue(employee({ id: 'e1' })) };
     await expect(makeService({ ...base, findUserById: vi.fn().mockResolvedValue(null) } as never).service.linkAccess(COMPANY_A, actor('RH'), 'e1', 'u1')).rejects.toBeInstanceOf(NotFoundException);
     await expect(
-      makeService({ ...base, findUserById: vi.fn().mockResolvedValue({ id: 'u1' }), findByUserId: vi.fn().mockResolvedValue(employee({ id: 'outro' })) } as never).service.linkAccess(COMPANY_A, actor('RH'), 'e1', 'u1'),
+      makeService({ ...base, findUserById: vi.fn().mockResolvedValue({ id: 'u1', role: 'FUNCIONARIO' }), findByUserId: vi.fn().mockResolvedValue(employee({ id: 'outro' })) } as never).service.linkAccess(COMPANY_A, actor('RH'), 'e1', 'u1'),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 

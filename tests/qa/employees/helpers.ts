@@ -29,7 +29,7 @@ export const employee = (over: Record<string, unknown> = {}) => ({
   registration: null,
   terminationDate: null,
   observations: null,
-  user: null,
+  user: over.userId ? { id: over.userId, role: 'FUNCIONARIO' } : null,
   ...over,
 });
 
@@ -74,7 +74,7 @@ export function makeService(over: Partial<FakeRepo> = {}) {
 }
 
 /** Defeitos ja corrigidos no codigo: seus casos passam a valer como regressao (rodam como `it` normal). */
-export const FIXED_BUGS = new Set<string>(['S-04']);
+export const FIXED_BUGS = new Set<string>(['S-04', 'S-01', 'S-03', 'S-05', 'S-06', 'S-08', 'S-09', 'Q-02', 'Q-07', 'Q-08', 'Q-11', 'Q-20', 'QA-01']);
 
 /**
  * Registra um caso. Quando `bug` é informado, o caso descreve o comportamento CORRETO e hoje falha:

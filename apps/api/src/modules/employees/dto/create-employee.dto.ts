@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches } from 'class-validator';
+import { IsArray, IsBoolean, IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches, Min, Max, MaxLength } from 'class-validator';
 import { sanitizeString } from '../../../common/utils/sanitize-string';
 
 const EMPLOYEE_STATUSES = ['ACTIVE', 'ONBOARDING', 'INACTIVE', 'SUSPENDED', 'TERMINATED'] as const;
@@ -13,6 +13,8 @@ const ACCESS_PROFILES = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'] as 
 export class CreateEmployeeDto {
   @Transform(({ value }) => sanitizeString(value))
   @IsString()
+  @Matches(/\S/, { message: 'Nome não pode estar vazio.' })
+  @MaxLength(200)
   name!: string;
 
   @IsOptional()
@@ -69,6 +71,7 @@ export class CreateEmployeeDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2)
   state?: string;
 
   @IsOptional()
@@ -92,6 +95,7 @@ export class CreateEmployeeDto {
   @IsOptional()
   @Transform(({ value }) => sanitizeString(value))
   @IsString()
+  @MaxLength(10000)
   observations?: string;
 
   @IsOptional()
@@ -127,6 +131,8 @@ export class CreateEmployeeDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @Min(0)
+  @Max(9999999999.99)
   salary?: number;
 
   @IsOptional()
@@ -240,7 +246,7 @@ export class CreateEmployeeDto {
   voterState?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   rgIssueDate?: string;
 
   @IsOptional()
@@ -256,7 +262,7 @@ export class CreateEmployeeDto {
   cnhCategory?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   cnhExpiry?: string;
 
   @IsOptional()
@@ -281,5 +287,6 @@ export class CreateEmployeeDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100000)
   dependents?: string;
 }

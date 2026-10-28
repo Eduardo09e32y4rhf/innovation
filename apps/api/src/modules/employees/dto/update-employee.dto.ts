@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches } from 'class-validator';
+import { IsArray, IsBoolean, IsDateString, IsEmail, IsIn, IsNumber, IsOptional, IsString, IsUUID, Matches, Min, Max, MaxLength } from 'class-validator';
 
-const EMPLOYEE_STATUSES = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'TERMINATED'] as const;
+const EMPLOYEE_STATUSES = ['ACTIVE', 'ONBOARDING', 'INACTIVE', 'SUSPENDED', 'TERMINATED'] as const;
 const CONTRACT_TYPES = ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO', 'JOVEM_APRENDIZ', 'TERCEIRIZADO'] as const;
 const WORK_SCALES = ['5X2', '6X1', '12X36', '4X2', 'OUTRO'] as const;
 const DAILY_WORKLOADS = ['08:00', '07:20', '06:00', '12:00', 'OUTRO'] as const;
@@ -12,6 +12,8 @@ const ACCESS_PROFILES = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'] as 
 export class UpdateEmployeeDto {
   @IsOptional()
   @IsString()
+  @Matches(/\S/, { message: 'Nome não pode estar vazio.' })
+  @MaxLength(200)
   name?: string;
 
   @IsOptional()
@@ -64,6 +66,7 @@ export class UpdateEmployeeDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2)
   state?: string;
 
   @IsOptional()
@@ -84,6 +87,7 @@ export class UpdateEmployeeDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(10000)
   observations?: string;
 
   @IsOptional()
@@ -117,6 +121,8 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @Min(0)
+  @Max(9999999999.99)
   salary?: number;
 
   @IsOptional()
@@ -225,7 +231,7 @@ export class UpdateEmployeeDto {
   voterState?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   rgIssueDate?: string;
 
   @IsOptional()
@@ -241,7 +247,7 @@ export class UpdateEmployeeDto {
   cnhCategory?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   cnhExpiry?: string;
 
   @IsOptional()
@@ -266,5 +272,6 @@ export class UpdateEmployeeDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100000)
   dependents?: string;
 }

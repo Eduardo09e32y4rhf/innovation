@@ -1,14 +1,20 @@
+import { randomUUID } from 'node:crypto';
 import { vi } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { CronLock, CronLockOptions, setCronLockRedis } from './cron-lock.decorator';
 
 /** Redis falso com a semântica de SET NX: um mapa compartilhado entre "instâncias". */
-function fakeRedis(shared = new Set<string>()) {
+function fakeRedis(shared = new Map<string, string>()) {
   return {
     shared,
-    acquireLock: vi.fn(async (key: string) => (shared.has(key) ? false : (shared.add(key), true))),
-    releaseLock: vi.fn(async (key: string) => { shared.delete(key); }),
+    acquireLock: vi.fn(async (key: string) => {
+      if (shared.has(key)) return null;
+      const token = randomUUID();
+      shared.set(key, token);
+      return token;
+    }),
+    releaseLock: vi.fn(async (key: string, token: string) => { if (shared.get(key) === token) shared.delete(key); }),
   } as any;
 }
 
@@ -29,7 +35,7 @@ describe('CronLock: 2 instâncias, 1 execução', () => {
   afterEach(() => setCronLockRedis(undefined));
 
   it('duas instâncias disparando juntas: o job roda uma vez', async () => {
-    const lock = new Set<string>();
+    const lock = new Map<string, string>();
     const work = vi.fn(async () => { await new Promise((r) => setTimeout(r, 10)); return 'ok'; });
     const Job = makeJob('t.job', 60, work);
     const results = await Promise.all([new Job(fakeRedis(lock)).run(), new Job(fakeRedis(lock)).run()]);
@@ -38,7 +44,7 @@ describe('CronLock: 2 instâncias, 1 execução', () => {
   });
 
   it('10 instâncias ao mesmo tempo: ainda uma execução', async () => {
-    const lock = new Set<string>();
+    const lock = new Map<string, string>();
     const work = vi.fn(async () => 'ok');
     const Job = makeJob('t.ten', 60, work);
     await Promise.all(Array.from({ length: 10 }, () => new Job(fakeRedis(lock)).run()));
@@ -46,7 +52,7 @@ describe('CronLock: 2 instâncias, 1 execução', () => {
   });
 
   it('o lock não é liberado no sucesso: um disparo atrasado da outra instância não repete o job', async () => {
-    const lock = new Set<string>();
+    const lock = new Map<string, string>();
     const work = vi.fn(async () => 'ok');
     const Job = makeJob('t.late', 60, work);
     await new Job(fakeRedis(lock)).run();
@@ -55,7 +61,7 @@ describe('CronLock: 2 instâncias, 1 execução', () => {
   });
 
   it('classe SEM a propriedade redis usa o RedisService registrado no boot (antes o lock era ignorado)', async () => {
-    const lock = new Set<string>();
+    const lock = new Map<string, string>();
     setCronLockRedis(fakeRedis(lock));
     const work = vi.fn(async () => 'ok');
     const Job = makeJob('t.noprop', 60, work);
@@ -63,15 +69,23 @@ describe('CronLock: 2 instâncias, 1 execução', () => {
     expect(work).toHaveBeenCalledTimes(1);
   });
 
-  it('sem Redis registrado nem injetado o job roda (não trava a operação)', async () => {
+  it('sem Redis registrado nem injetado o job é adiado', async () => {
     const work = vi.fn(async () => 'ok');
     const Job = makeJob('t.none', 60, work);
     await new Job().run();
-    expect(work).toHaveBeenCalledTimes(1);
+    expect(work).not.toHaveBeenCalled();
   });
 });
 
 describe('CronLock: falha, retry com backoff e liberação', () => {
+  it('Redis indisponível adia o job sem efeitos', async () => {
+    const redis = fakeRedis();
+    redis.acquireLock.mockRejectedValue(new Error('Redis down'));
+    const work = vi.fn();
+    const Job = makeJob('t.down', 60, work);
+    await new Job(redis).run();
+    expect(work).not.toHaveBeenCalled();
+  });
   it('falha duas vezes e na terceira funciona: 3 chamadas, lock liberado a cada falha', async () => {
     const redis = fakeRedis();
     const work = vi.fn().mockRejectedValueOnce(new Error('asaas fora')).mockRejectedValueOnce(new Error('asaas fora')).mockResolvedValue('ok');

@@ -1,3 +1,5 @@
+import { setCronLockRedis } from '../../common/redis/cron-lock.decorator';
+import { beforeEach } from 'vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BillingCronService } from './billing-cron.service';
 
@@ -52,3 +54,6 @@ describe('billing-cron com modulos congelados', () => {
     expect(trialConversion.sendCountdownWarnings).toHaveBeenCalledTimes(1);
   });
 });
+
+// Domain tests explicitly supply successful coordination; outage behavior is covered by cron-lock.spec.ts.
+beforeEach(() => setCronLockRedis({ acquireLock: vi.fn(async () => 'test-acquisition'), releaseLock: vi.fn(async () => undefined) } as never));

@@ -20,7 +20,7 @@ export class EmployeesRepository {
         ...(status && { status: status as any }),
       },
       include: {
-        user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } },
+        user: { select: { id: true, email: true, role: true, isActive: true, forcePasswordChange: true } },
         faceEnrollment: { select: { active: true } }
       },
       orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
@@ -37,24 +37,18 @@ export class EmployeesRepository {
     return this.prisma.employee.findFirst({
       where: { companyId, id },
       include: { 
-        user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } },
+        user: { select: { id: true, email: true, role: true, isActive: true, forcePasswordChange: true } },
         faceEnrollment: { select: { active: true } }
       },
     });
   }
 
   findByUserId(companyId: string, userId: string, email?: string) {
-    const normalizedEmail = email?.trim();
+    // Identity comes only from the authenticated user link, never a mutable e-mail.
     return this.prisma.employee.findFirst({
-      where: {
-        companyId,
-        OR: [
-          { userId },
-          ...(normalizedEmail ? [{ email: { equals: normalizedEmail, mode: 'insensitive' as const } }] : []),
-        ],
-      },
+      where: { companyId, userId },
       include: { 
-        user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } },
+        user: { select: { id: true, email: true, role: true, isActive: true, forcePasswordChange: true } },
         faceEnrollment: { select: { active: true } }
       },
     });
@@ -75,7 +69,7 @@ export class EmployeesRepository {
         ...(status && { status: status as any }),
       },
       include: {
-        user: { select: { id: true, role: true, isActive: true, forcePasswordChange: true } },
+        user: { select: { id: true, email: true, role: true, isActive: true, forcePasswordChange: true } },
         faceEnrollment: { select: { active: true } }
       },
       orderBy: { createdAt: 'desc' },

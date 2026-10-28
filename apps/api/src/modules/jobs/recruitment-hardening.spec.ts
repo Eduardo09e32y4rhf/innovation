@@ -1,3 +1,5 @@
+import { setCronLockRedis } from '../../common/redis/cron-lock.decorator';
+import { beforeEach } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { APPLY_LIMITS, ApplyLimiter, assertApplyAllowed } from './apply-abuse';
@@ -123,3 +125,6 @@ describe('busca de candidatos sem acento', () => {
     expect(await broken.accentInsensitiveCandidateIds('c1', 'j1', 'ana')).toEqual([]);
   });
 });
+
+// Domain tests explicitly supply successful coordination; outage behavior is covered by cron-lock.spec.ts.
+beforeEach(() => setCronLockRedis({ acquireLock: vi.fn(async () => 'test-acquisition'), releaseLock: vi.fn(async () => undefined) } as never));

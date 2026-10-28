@@ -141,7 +141,7 @@ jobs:
         run: |
           docker build -f apps/api/Dockerfile -t innovation-api:ci .
           docker build -f apps/web/Dockerfile -t innovation-web:ci .
-          docker run --rm --entrypoint node innovation-api:ci -e 'require("./apps/api/dist/app.module"); require("./apps/api/node_modules/@prisma/client");'
+          docker run --rm -e DATABASE_URL=postgresql://ci:ci@127.0.0.1:5432/ci_smoke --entrypoint node innovation-api:ci -e 'require("./apps/api/dist/app.module"); require("./apps/api/node_modules/@prisma/client");'
           trap 'docker logs web-smoke; docker rm -f web-smoke' EXIT
           docker run -d --name web-smoke -p 3000:3000 innovation-web:ci
           for i in $(seq 1 30); do

@@ -69,12 +69,12 @@ describe('PRODUTO · fluxo de admissão (ONBOARDING)', () => {
 describe('PRODUTO · CPF: formatos diferentes são a mesma pessoa', () => {
   check('o cadastro normaliza o CPF para dígitos antes de checar duplicidade e gravar', 'Q-03', async () => {
     const { service, repository } = makeService({ findById: vi.fn().mockResolvedValue(employee()) } as never);
-    await service.create(COMPANY_A, { name: 'X', cpf: '529.982.247-25' } as never);
+    await service.create(COMPANY_A, actor('ADMIN'), { name: 'X', cpf: '529.982.247-25' } as never);
     expect(repository.findByCpf).toHaveBeenCalledWith(expect.anything(), '52998224725');
   });
   check('CPF vazio ("") não é gravado como texto vazio (colide com o próximo cadastro sem CPF)', 'Q-03', async () => {
     const { service, repository } = makeService({ findById: vi.fn().mockResolvedValue(employee()) } as never);
-    await service.create(COMPANY_A, { name: 'X', cpf: '' } as never);
+    await service.create(COMPANY_A, actor('ADMIN'), { name: 'X', cpf: '' } as never);
     expect(repository.create.mock.calls[0][1].cpf).not.toBe('');
   });
   check('CPF com dígito verificador errado é recusado no cadastro (a importação já recusa)', 'Q-03', async () => {
@@ -154,14 +154,14 @@ describe('PRODUTO · desligamento', () => {
 });
 
 describe('PRODUTO · consistência e atomicidade', () => {
-  check('se dar acesso ao painel falha, o cadastro não fica pela metade (e o RH consegue tentar de novo)', 'Q-06', async () => {
+  check('conflito de e-mail é recusado antes de gravar o funcionário', null, async () => {
     const created = employee({ id: 'new-emp', email: 'a@x.com' });
     const { service, repository } = makeService({
       create: vi.fn().mockResolvedValue(created),
       findById: vi.fn().mockResolvedValue(created),
       findUserByEmail: vi.fn().mockResolvedValue({ id: 'x', companyId: 'outra-empresa', role: 'RH' }),
     } as never);
-    await expect(service.create(COMPANY_A, { name: 'X', cpf: '52998224725', email: 'a@x.com', accessEnabled: 'YES' } as never)).rejects.toThrow();
+    await expect(service.create(COMPANY_A, actor('ADMIN'), { name: 'X', cpf: '52998224725', email: 'a@x.com', accessEnabled: 'YES' } as never)).rejects.toThrow();
     // Ou nada foi gravado, ou o cadastro foi desfeito.
     const persistedAndKept = repository.create.mock.calls.length > 0 && repository.delete.mock.calls.length === 0;
     expect(persistedAndKept).toBe(false);
