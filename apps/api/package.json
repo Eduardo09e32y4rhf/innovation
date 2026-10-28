@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.json",
     "test": "npm --prefix ../.. run test:unit && node --test test/*.test.cjs",
     "start": "node dist/main.js",
+    "start:email-worker": "node --env-file-if-exists=../../.env dist/email-worker.js",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:migrate:dev": "prisma migrate dev --schema prisma/schema.prisma",
     "prisma:deploy": "prisma migrate deploy --schema prisma/schema.prisma",

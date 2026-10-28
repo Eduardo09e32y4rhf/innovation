@@ -34,7 +34,7 @@ describe('Funcionários: HTTP autenticado com PostgreSQL real', () => {
     }
     const users: Record<string, any> = {};
     for (const role of ['RH', 'GESTOR', 'DEV'] as const) {
-      const user = await prisma.user.create({ data: { companyId: companyIds[0], name: role, email: `${tag}-${role}@example.test`, role, passwordHash: 'fixture-not-for-login', passwordChangedAt: new Date() } });
+      const user = await prisma.user.create({ data: { companyId: companyIds[0], name: role, email: `${tag}-${role.toLowerCase()}@example.test`, role, passwordHash: 'fixture-not-for-login', passwordChangedAt: new Date() } });
       users[role] = user;
       const family = randomUUID();
       await prisma.refreshSession.create({ data: { userId: user.id, family, tokenHash: randomUUID(), expiresAt: new Date(Date.now() + 3600000) } });
@@ -67,6 +67,15 @@ describe('Funcionários: HTTP autenticado com PostgreSQL real', () => {
     // Company cascade removes fixtures, users, refresh sessions and employees together.
     if (companyIds.length) await prisma.company.deleteMany({ where: { id: { in: companyIds } } });
     await prisma.$disconnect();
+  });
+
+  it('RH pode criar funcionário comum, mas a rota exige autenticação', async () => {
+    const input = { name: 'Cadastro autorizado', department: 'Equipe', position: 'Analista', accessEnabled: 'NO' };
+    await request(app.getHttpServer()).post('/employees').send(input).expect(401);
+    const response = await request(app.getHttpServer()).post('/employees').auth(tokens.RH, { type: 'bearer' }).send(input).expect(201);
+    const stored = await prisma.employee.findUniqueOrThrow({ where: { id: response.body.id } });
+    expect(stored.companyId).toBe(companyIds[0]);
+    expect(stored.name).toBe(input.name);
   });
 
   it('RH não cria ADMIN: 403 e zero funcionário/usuário adicional', async () => {

@@ -42,6 +42,35 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     restart: always
 
+  # Optional isolated process. Set EMAIL_WORKER_EXTERNAL=true and enable this profile together.
+  email-worker:
+    profiles: ["email-worker"]
+    image: ${API_IMAGE:-innovation-api:local}
+    logging: *default-logging
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["node", "apps/api/dist/email-worker.js"]
+    environment:
+      NODE_ENV: production
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+      MAIL_FROM: ${MAIL_FROM:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      AWS_SES_REGION: ${AWS_SES_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 45s
+
   api:
     image: ${API_IMAGE:-innovation-api:local}
     logging: *default-logging
@@ -70,6 +99,7 @@ services:
       # Antivirus dos documentos de candidatos (em producao, sem ClamAV o envio e bloqueado).
       CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
       CLAMAV_PORT: ${CLAMAV_PORT:-3310}
+      EMAIL_WORKER_EXTERNAL: ${EMAIL_WORKER_EXTERNAL:-false}
       MAIL_FROM: ${MAIL_FROM:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       AWS_SES_REGION: ${AWS_SES_REGION:-}
