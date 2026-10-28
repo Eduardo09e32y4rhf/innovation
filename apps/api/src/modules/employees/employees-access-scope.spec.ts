@@ -28,7 +28,7 @@ describe('escopo de leitura da ficha do funcionário', () => {
 
   it('GESTOR lê a si e à sua equipe, não a quem é de outro gestor', async () => {
     const mine = { id: 'e-boss' };
-    await expect(setup(mine, colleague).service.get('c1', actor('GESTOR'), 'e-colleague')).resolves.toBe(colleague);
+    await expect(setup(mine, colleague).service.get('c1', actor('GESTOR'), 'e-colleague')).resolves.toMatchObject({ id: colleague.id, managerId: colleague.managerId });
     const other = { ...colleague, managerId: 'e-other-boss' };
     await expect(setup(mine, other).service.get('c1', actor('GESTOR'), 'e-colleague')).rejects.toBeInstanceOf(NotFoundException);
   });

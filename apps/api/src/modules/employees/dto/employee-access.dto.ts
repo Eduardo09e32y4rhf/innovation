@@ -1,4 +1,4 @@
-import { IsEmail, IsIn, IsOptional, IsString, IsUUID, IsArray } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, IsUUID, IsArray, ArrayMaxSize } from 'class-validator';
 
 const ACCESS_PROFILES = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'] as const;
 const BULK_ACTIONS = ['create', 'block', 'unblock', 'reset-password', 'set-role'] as const;
@@ -23,6 +23,8 @@ export class LinkEmployeeAccessDto {
 
 export class BulkEmployeeAccessDto {
   @IsArray()
+  @ArrayMaxSize(100)
+  @IsUUID('all', { each: true })
   employeeIds!: string[];
 
   @IsIn(BULK_ACTIONS)

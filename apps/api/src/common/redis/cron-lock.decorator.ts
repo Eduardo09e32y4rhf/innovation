@@ -23,7 +23,7 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
  * O lock NAO e liberado ao terminar com sucesso: expira pelo TTL, para que uma instancia que dispare
  * poucos segundos depois nao reexecute o job. Use ttlSeconds menor que o intervalo do cron.
  * Se o job falhar, o lock e liberado (outra instancia ou a proxima tentativa pode rodar) e, com `retries`, repete com backoff.
- * Sem Redis conectado o job roda normalmente (mesmo fallback do RedisService: nao trava a operacao).
+ * Sem coordenação disponível o job é adiado para o próximo disparo, sem executar efeitos concorrentes.
  */
 export function CronLock(name: string, ttlSeconds: number, options: CronLockOptions = {}): MethodDecorator {
   const { retries = 0, backoffMs = 1000 } = options;
@@ -31,20 +31,33 @@ export function CronLock(name: string, ttlSeconds: number, options: CronLockOpti
     const original = descriptor.value;
     descriptor.value = async function (this: { redis?: RedisService }, ...args: unknown[]) {
       const redis = this.redis ?? sharedRedis;
-      if (redis && !(await redis.acquireLock(`cron:${name}`, ttlSeconds))) {
-        new Logger('CronLock').log(`Cron ${name} ja em execucao em outra instancia; ignorado.`);
+      if (!redis) {
+        new Logger('CronLock').warn(`Cron ${name} adiado: Redis não registrado.`);
+        return;
+      }
+      const acquire = async () => {
+        try { return await redis.acquireLock(`cron:${name}`, ttlSeconds); }
+        catch {
+          new Logger('CronLock').warn(`Cron ${name} adiado: coordenação indisponível.`);
+          return null;
+        }
+      };
+      let token = await acquire();
+      if (!token) {
+        new Logger('CronLock').log(`Cron ${name} sem lock adquirido; disparo ignorado.`);
         return;
       }
       for (let attempt = 0; ; attempt += 1) {
         try {
           return await original.apply(this, args);
         } catch (error) {
-          if (redis) await redis.releaseLock(`cron:${name}`).catch(() => undefined);
+          await redis.releaseLock(`cron:${name}`, token).catch(() => undefined);
           if (attempt >= retries) throw error;
           const wait = backoffMs * 2 ** attempt;
           new Logger('CronLock').warn(`Cron ${name} falhou (${error instanceof Error ? error.message : String(error)}); nova tentativa ${attempt + 1}/${retries} em ${wait}ms.`);
           await sleep(wait);
-          if (redis && !(await redis.acquireLock(`cron:${name}`, ttlSeconds))) return;
+          token = await acquire();
+          if (!token) return;
         }
       }
     };

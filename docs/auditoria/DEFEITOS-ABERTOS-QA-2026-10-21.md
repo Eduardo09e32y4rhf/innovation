@@ -1,5 +1,7 @@
 # Defeitos abertos da suite de QA (21/10/2026)
 
+> Atualização em 28/10/2026: o inventário abaixo é a fotografia de 21/10. A primeira entrega de contenção e os limites estão em [CONTENCAO-SAAS-2026-10-28.md](./CONTENCAO-SAAS-2026-10-28.md). Os códigos S-01, S-03, S-05, S-06, S-08, S-09, Q-02, Q-07, Q-08, Q-11, Q-20 e QA-01 foram promovidos a regressões normais. Q-03 tem correção parcial; Q-06 teve somente contenção prévia de conflitos conhecidos, sem atomicidade completa. As contagens históricas abaixo não representam o estado atual.
+
 Origem: `tests/qa/` (agora rodando no CI pela configuracao principal do vitest). Cada caso descreve o comportamento **correto** e esta marcado com `it.fails`: a suite fica verde **enquanto o defeito existe** e passa a falhar quando alguem o corrige. Nesse momento, adicione o codigo ao `FIXED_BUGS` (`tests/qa/employees/helpers.ts`) para o caso virar regressao. O defeito `S-04` ja foi corrigido e foi promovido assim (52 casos).
 
 - **31 defeitos com codigo, 152 casos** (10 de seguranca `S-*`, 21 de qualidade `Q-*`/`QA-*`). O vitest reporta 152 "esperados falhar" no total.

@@ -141,7 +141,13 @@ jobs:
         run: |
           docker build -f apps/api/Dockerfile -t innovation-api:ci .
           docker build -f apps/web/Dockerfile -t innovation-web:ci .
-          docker run --rm --entrypoint node innovation-api:ci -e 'require("./apps/api/dist/app.module"); require("./apps/api/node_modules/@prisma/client");'
+          docker run --rm \
+            -e DATABASE_URL=postgresql://ci:ci_smoke_password_2026@127.0.0.1:5432/ci_smoke \
+            -e JWT_SECRET="$(openssl rand -hex 32)" \
+            -e KMS_MASTER_KEY="$(openssl rand -hex 32)" \
+            -e METRICS_TOKEN="$(openssl rand -hex 32)" \
+            -e ALLOWED_ORIGINS=http://127.0.0.1:3000 \
+            --entrypoint node innovation-api:ci -e 'require("./apps/api/dist/app.module"); require("./apps/api/node_modules/@prisma/client");'
           trap 'docker logs web-smoke; docker rm -f web-smoke' EXIT
           docker run -d --name web-smoke -p 3000:3000 innovation-web:ci
           for i in $(seq 1 30); do

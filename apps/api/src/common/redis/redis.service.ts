@@ -1,5 +1,6 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import Redis from 'ioredis';
+import { randomUUID } from 'node:crypto';
 import { redisConnection } from './redis-config';
 import { setCronLockRedis } from './cron-lock.decorator';
 
@@ -64,26 +65,28 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.isConnected;
   }
 
-  /**
-   * Acquire a distributed lock for a resource.
-   * Returns true if lock was acquired, false otherwise.
-   */
-  async acquireLock(lockKey: string, ttlSeconds = 10): Promise<boolean> {
-    if (!this.isConnected) return true; // fallback: allow if Redis is down
+  /** A unique token belongs to one acquisition, never to the process or resource. */
+  async acquireLock(lockKey: string, ttlSeconds = 10): Promise<string | null> {
+    if (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0 || !Number.isSafeInteger(ttlSeconds * 1000)) {
+      throw new RangeError('Lock TTL must be a positive number of milliseconds.');
+    }
+    if (!this.isConnected) throw new ServiceUnavailableException('Coordenação temporariamente indisponível.');
+    const token = randomUUID();
     try {
-      const result = await this.client.set(`lock:${lockKey}`, Date.now().toString(), 'PX', ttlSeconds * 1000, 'NX');
-      return result === 'OK';
+      const result = await this.client.set(`lock:${lockKey}`, token, 'PX', ttlSeconds * 1000, 'NX');
+      return result === 'OK' ? token : null;
     } catch {
-      return true;
+      throw new ServiceUnavailableException('Coordenação temporariamente indisponível.');
     }
   }
 
-  /**
-   * Release a distributed lock.
-   */
-  async releaseLock(lockKey: string): Promise<void> {
-    if (!this.isConnected) return;
-    await this.client.del(`lock:${lockKey}`).catch(() => undefined);
+  /** Compare and delete in Redis: an expired owner cannot remove its successor's lock. */
+  async releaseLock(lockKey: string, token: string): Promise<void> {
+    if (!this.isConnected || !token) return;
+    await this.client.eval(
+      "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+      1, `lock:${lockKey}`, token,
+    ).catch(() => undefined);
   }
 
   /**

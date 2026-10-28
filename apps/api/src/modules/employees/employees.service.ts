@@ -8,6 +8,7 @@ import { EmployeesRepository } from './employees.repository';
 import { AsoService } from '../management/aso.service';
 import { assertRoleChangeAllowed, canManageRole } from '../../common/constants/role-hierarchy';
 import { isOwnerTargetedByOther } from '../../common/constants/platform-owner';
+import { assertEmployeeWriter, employeeAccessRole, assertEmployeeUserManageable } from './employee-access.policy';
 
 const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
 /** Perfis que ocupam licença (igual ao countByCompany do repositório). */
@@ -27,7 +28,10 @@ export class EmployeesService {
   constructor(private readonly repository: EmployeesRepository, private readonly asoService: AsoService) {}
 
   async list(companyId: string, actor: JwtUser, page: number = 1, pageSize: number = 50, search?: string, status?: string) {
-    const skip = Math.max(0, (page - 1) * pageSize);
+    if (!Number.isSafeInteger(page) || page < 1 || page > 1_000_000 || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+      throw new BadRequestException('Paginação inválida.');
+    }
+    const skip = (page - 1) * pageSize;
 
     if (actor.role === 'ADMIN' || actor.role === 'RH' || actor.role === 'DEV' || actor.role === 'CONSULTA') {
       const employees = await this.repository.list(companyId, skip, pageSize, search, status);
@@ -37,7 +41,7 @@ export class EmployeesService {
       const managerEmployee = await this.repository.findByUserId(companyId, actor.sub, actor.email);
       if (!managerEmployee || !this.canAccessEmployee(actor, managerEmployee)) return [];
       const team = await this.repository.listByManager(companyId, managerEmployee.id, skip, pageSize, search, status);
-      return [managerEmployee, ...team.filter((employee: any) => employee.id !== managerEmployee.id && this.canAccessEmployee(actor, employee))];
+      return [managerEmployee, ...team.filter((employee: any) => employee.id !== managerEmployee.id && this.canAccessEmployee(actor, employee))].map((employee: any) => this.projectEmployee(actor, employee));
     }
     if (actor.role === 'FUNCIONARIO') {
       const employee = await this.repository.findByUserId(companyId, actor.sub, actor.email);
@@ -63,7 +67,7 @@ export class EmployeesService {
   async get(companyId: string, actor: JwtUser, id: string) {
     const employee = await this.repository.findById(companyId, id);
     if (!this.canAccessEmployee(actor, employee) || !(await this.canViewRecord(companyId, actor, employee))) throw new NotFoundException('Employee not found');
-    return employee;
+    return this.projectEmployee(actor, employee);
   }
 
   /**
@@ -83,6 +87,10 @@ export class EmployeesService {
   async dossier(companyId: string, actor: JwtUser, id: string) {
     const employee = await this.repository.findById(companyId, id);
     if (!this.canAccessEmployee(actor, employee) || !(await this.canViewRecord(companyId, actor, employee))) throw new NotFoundException('Employee not found');
+    if (actor.role === 'GESTOR') {
+      // Do not even query occupational health, dependents or attachments for this role.
+      throw new ForbiddenException('Dossiê completo disponível apenas para perfis autorizados de RH.');
+    }
     const dossier = await this.repository.getDossier(companyId, id);
     if (!dossier) throw new NotFoundException('Employee not found');
     return dossier;
@@ -118,7 +126,10 @@ export class EmployeesService {
     try { await this.repository.upsertPosition(companyId, name, positionKey(name), actorId); } catch { /* catalogo e conveniencia, nao regra */ }
   }
 
-  async create(companyId: string, dto: CreateEmployeeDto) {
+  async create(companyId: string, actor: JwtUser, dto: CreateEmployeeDto) {
+    assertEmployeeWriter(actor);
+    await this.preflightPanelAccess(companyId, actor, dto);
+    await this.assertManager(companyId, dto.managerId);
     if (dto.cpf) {
       const existing = await this.repository.findByCpf(dto.cpf);
       if (existing) throw new ConflictException('CPF already registered');
@@ -130,19 +141,23 @@ export class EmployeesService {
     const employee = await this.repository.create(companyId, this.toData(dto));
     
     // Automação: Gera ASO Admissional pendente
-    await this.asoService.create(companyId, undefined, {
+    await this.asoService.create(companyId, actor.sub, {
       employeeId: employee.id,
       asoType: 'ADMISSIONAL',
       status: 'PENDING'
     });
 
-    await this.rememberPosition(companyId, undefined, dto.position);
-    await this.syncPanelAccess(companyId, employee, dto);
+    await this.rememberPosition(companyId, actor.sub, dto.position);
+    await this.syncPanelAccess(companyId, actor, employee, dto);
     return this.repository.findById(companyId, employee.id);
   }
 
   async update(companyId: string, actor: JwtUser, id: string, dto: UpdateEmployeeDto) {
-    await this.get(companyId, actor, id);
+    assertEmployeeWriter(actor);
+    const current = await this.get(companyId, actor, id);
+    this.assertMutableEmployee(actor, current);
+    await this.preflightPanelAccess(companyId, actor, dto, current);
+    await this.assertManager(companyId, dto.managerId, id);
     if (dto.cpf) {
       const existing = await this.repository.findByCpf(dto.cpf);
       if (existing && existing.id !== id) throw new ConflictException('CPF already registered');
@@ -166,12 +181,13 @@ export class EmployeesService {
     }
 
     await this.rememberPosition(companyId, actor.sub, dto.position);
-    await this.syncPanelAccess(companyId, employee, dto);
+    await this.syncPanelAccess(companyId, actor, employee, dto);
     return this.get(companyId, actor, id);
   }
 
   async terminate(companyId: string, actor: JwtUser, id: string) {
     const current = await this.get(companyId, actor, id);
+    this.assertMutableEmployee(actor, current);
     const result = await this.repository.terminateOnce(companyId, id, {}, current?.userId);
     if (!result.count) {
       if (current?.status === 'TERMINATED' || (await this.repository.findById(companyId, id))?.status === 'TERMINATED') {
@@ -193,11 +209,11 @@ export class EmployeesService {
   async createAccess(companyId: string, actor: JwtUser, employeeId: string, dto: { email: string; role?: string; name?: string }) {
     assertRoleChangeAllowed(actor.role, dto.role);
 
-    const employee = await this.get(companyId, actor, employeeId);
+    const employee = await this.getAccessTarget(companyId, actor, employeeId);
     if (!employee) throw new NotFoundException('Employee not found');
 
     const email = dto.email.trim().toLowerCase();
-    const role = this.resolveAccessRole(dto.role);
+    const role = employeeAccessRole(actor, dto.role);
 
     if (!canManageRole(actor.role, role)) {
       throw new ForbiddenException(`${actor.role} não pode criar usuários com papel ${role}`);
@@ -207,8 +223,10 @@ export class EmployeesService {
     if (existingUser && existingUser.companyId !== companyId) throw new ConflictException('E-mail already registered in another company');
 
     let temporaryPassword: string | null = null;
+    let linkedUserId = existingUser?.id;
 
     if (existingUser) {
+      assertEmployeeUserManageable(actor, existingUser);
       const linkedEmployee = await this.repository.findByUserId(companyId, existingUser.id);
       if (linkedEmployee && linkedEmployee.id !== employee.id) throw new ConflictException('User already linked to another employee');
 
@@ -238,6 +256,7 @@ export class EmployeesService {
           expiresAt: temporaryPasswordExpiry(),
         },
       });
+      linkedUserId = user.id;
       await this.repository.updateUserLink(companyId, employeeId, user.id);
 
       await this.repository.createAuditLog({
@@ -257,7 +276,7 @@ export class EmployeesService {
 
     return {
       success: true,
-      userId: employee.userId || existingUser?.id,
+      userId: linkedUserId,
       temporaryPassword,
       email,
       role,
@@ -265,11 +284,12 @@ export class EmployeesService {
   }
 
   async linkAccess(companyId: string, actor: JwtUser, employeeId: string, userId: string) {
-    const employee = await this.get(companyId, actor, employeeId);
+    const employee = await this.getAccessTarget(companyId, actor, employeeId);
     if (!employee) throw new NotFoundException('Employee not found');
 
     const existingUser = await this.repository.findUserById(companyId, userId);
     if (!existingUser) throw new NotFoundException('User not found');
+    assertEmployeeUserManageable(actor, existingUser);
 
     const linkedEmployee = await this.repository.findByUserId(companyId, userId);
     if (linkedEmployee && linkedEmployee.id !== employeeId) throw new ConflictException('User already linked to another employee');
@@ -279,7 +299,7 @@ export class EmployeesService {
   }
 
   async unlinkAccess(companyId: string, actor: JwtUser, employeeId: string) {
-    const employee = await this.get(companyId, actor, employeeId);
+    const employee = await this.getAccessTarget(companyId, actor, employeeId);
     if (!employee) throw new NotFoundException('Employee not found');
     if (!employee.userId) throw new ConflictException('Employee has no linked user');
 
@@ -290,6 +310,7 @@ export class EmployeesService {
 
   async bulkAccess(companyId: string, actor: JwtUser, dto: { employeeIds: string[]; action: string; role?: string }) {
     assertRoleChangeAllowed(actor.role, dto.role);
+    if (!Array.isArray(dto.employeeIds) || dto.employeeIds.length > 100) throw new BadRequestException('O limite é de 100 funcionários por lote.');
     const results: any[] = [];
 
     for (const employeeId of dto.employeeIds) {
@@ -372,6 +393,7 @@ export class EmployeesService {
 
   async delete(companyId: string, actor: JwtUser, id: string) {
     const employee = await this.get(companyId, actor, id);
+    this.assertMutableEmployee(actor, employee);
     const deletionImpact = await this.repository.getDeletionImpact(companyId, id);
 
     if (deletionImpact.total > 0) {
@@ -444,12 +466,13 @@ export class EmployeesService {
     const email = (dto.email ?? employee?.email)?.trim().toLowerCase();
     if (!email) return;
     const existing = await this.repository.findUserByEmail(email);
-    if (existing && existing.isActive && SEAT_ROLES.includes(existing.role as UserRole)) return;
+    if (existing && existing.companyId === companyId && existing.isActive && SEAT_ROLES.includes(existing.role as UserRole)) return;
     await this.assertSeatAvailable(companyId);
   }
 
-  private async syncPanelAccess(companyId: string, employee: any, dto: CreateEmployeeDto | UpdateEmployeeDto) {
+  private async syncPanelAccess(companyId: string, actor: JwtUser, employee: any, dto: CreateEmployeeDto | UpdateEmployeeDto) {
     if (dto.accessEnabled === undefined) return;
+    await this.preflightPanelAccess(companyId, actor, dto, employee);
 
     if (employee.status === 'ONBOARDING') {
       if (employee.userId) await this.repository.updateUser(companyId, employee.userId, { isActive: false });
@@ -461,7 +484,7 @@ export class EmployeesService {
       return;
     }
 
-    const role = this.resolveAccessRole(dto.accessProfile);
+    const role = employeeAccessRole(actor, dto.accessProfile);
     const email = (dto.email ?? employee.email)?.trim().toLowerCase();
     if (!email) throw new ConflictException('E-mail obrigatorio para acesso ao painel');
     await this.assertSeatForPanelAccess(companyId, dto, employee);
@@ -469,6 +492,7 @@ export class EmployeesService {
     const existingUser = await this.repository.findUserByEmail(email);
     if (existingUser && existingUser.companyId !== companyId) throw new ConflictException('E-mail already registered in another company');
     if (existingUser) {
+      assertEmployeeUserManageable(actor, existingUser);
       const linkedEmployee = await this.repository.findByUserId(companyId, existingUser.id);
       if (linkedEmployee && linkedEmployee.id !== employee.id) throw new ConflictException('User already linked to another employee');
       await this.repository.updateUser(companyId, existingUser.id, {
@@ -514,6 +538,55 @@ export class EmployeesService {
     return null;
   }
 
+
+  private projectEmployee(actor: JwtUser, employee: any): any {
+    if (actor.role !== 'GESTOR') return employee;
+    const allowed = ['id', 'companyId', 'userId', 'name', 'registration', 'position', 'department', 'status', 'managerId',
+      'admissionDate', 'terminationDate', 'unit', 'workScale', 'customWorkScale', 'dailyWorkload',
+      'standardEntry', 'standardLunchStart', 'standardLunchReturn', 'standardExit'];
+    const projected = Object.fromEntries(allowed.filter((key) => key in employee).map((key) => [key, employee[key]]));
+    // Preserve the existing access badges without returning e-mail or future user fields.
+    if ('user' in employee) {
+      const userFields = ['id', 'role', 'isActive', 'forcePasswordChange'];
+      projected.user = employee.user ? Object.fromEntries(userFields.filter((key) => key in employee.user).map((key) => [key, employee.user[key]])) : null;
+    }
+    return projected;
+  }
+
+  private assertMutableEmployee(actor: JwtUser, employee: any) {
+    if (!['DEV', 'CEO', 'ADMIN', 'RH'].includes(actor?.role)) throw new ForbiddenException('Ação não permitida.');
+    if (employee.userId) assertEmployeeUserManageable(actor, employee.user);
+  }
+
+  private async getAccessTarget(companyId: string, actor: JwtUser, id: string) {
+    const employee = await this.repository.findById(companyId, id);
+    if (!this.canAccessEmployee(actor, employee)) throw new NotFoundException('Employee not found');
+    this.assertMutableEmployee(actor, employee);
+    return employee!;
+  }
+
+  private async assertManager(companyId: string, managerId?: string, employeeId?: string) {
+    if (!managerId) return;
+    if (managerId === employeeId || (await this.repository.findById(companyId, managerId))?.id !== managerId) {
+      throw new BadRequestException('Gestor inválido para esta empresa.');
+    }
+  }
+
+  private async preflightPanelAccess(companyId: string, actor: JwtUser, dto: CreateEmployeeDto | UpdateEmployeeDto, employee?: any) {
+    if (dto.accessProfile !== undefined) employeeAccessRole(actor, dto.accessProfile);
+    if (dto.accessEnabled === undefined) return;
+    if (employee?.userId) assertEmployeeUserManageable(actor, employee.user);
+    if (dto.accessEnabled !== 'YES' || (dto.status ?? employee?.status) === 'ONBOARDING') return;
+    employeeAccessRole(actor, dto.accessProfile);
+    const email = (dto.email ?? employee?.email)?.trim().toLowerCase();
+    if (!email) throw new ConflictException('E-mail obrigatorio para acesso ao painel');
+    const existingUser = await this.repository.findUserByEmail(email);
+    if (!existingUser) return;
+    if (existingUser.companyId !== companyId) throw new ConflictException('E-mail already registered in another company');
+    assertEmployeeUserManageable(actor, existingUser);
+    const linked = await this.repository.findByUserId(companyId, existingUser.id);
+    if (linked && linked.id !== employee?.id) throw new ConflictException('User already linked to another employee');
+  }
 
   private canAccessEmployee(actor: JwtUser, employee?: { user?: { role?: string } | null } | null) {
     if (!employee) return false;

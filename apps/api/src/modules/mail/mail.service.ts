@@ -3,7 +3,7 @@ import * as nodemailer from 'nodemailer';
 import { createHash, createHmac } from 'node:crypto';
 import type { MailContent } from './mail-templates';
 
-export interface MailResult { sent: boolean; provider: 'smtp' | 'resend' | 'ses' | 'none'; error?: string }
+export interface MailResult { sent: boolean; provider: 'smtp' | 'resend' | 'ses' | 'none'; error?: string; messageId?: string }
 
 /**
  * Envio de e-mail transacional. Provedores (o primeiro configurado vence):
@@ -36,18 +36,18 @@ export class MailService {
     return this.provider() !== 'none';
   }
 
-  async send(to: string, content: MailContent): Promise<MailResult> {
+  async send(to: string, content: MailContent, options: { idempotencyKey?: string } = {}): Promise<MailResult> {
     const provider = this.provider();
     if (provider === 'none') {
       this.logger.warn(`E-mail NÃO enviado (nenhum provedor configurado): "${content.subject}" → ${this.mask(to)}`);
       return { sent: false, provider };
     }
     try {
-      if (provider === 'resend') await this.viaResend(to, content);
-      else if (provider === 'ses') await this.viaSes(to, content);
-      else await this.viaSmtp(to, content);
+      const messageId = provider === 'resend' ? await this.viaResend(to, content, options.idempotencyKey)
+        : provider === 'ses' ? await this.viaSes(to, content)
+        : await this.viaSmtp(to, content);
       this.logger.log(`E-mail enviado (${provider}): "${content.subject}" → ${this.mask(to)}`);
-      return { sent: true, provider };
+      return { sent: true, provider, ...(messageId ? { messageId } : {}) };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Falha ao enviar e-mail (${provider}) para ${this.mask(to)}: ${message}`);
@@ -55,10 +55,10 @@ export class MailService {
     }
   }
 
-  private async viaResend(to: string, content: MailContent) {
+  private async viaResend(to: string, content: MailContent, idempotencyKey?: string) {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json', ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) },
       body: JSON.stringify({
         from: process.env.MAIL_FROM, to: [to], subject: content.subject, html: content.html, text: content.text,
         ...(content.attachments?.length ? { attachments: content.attachments.map((file) => ({ filename: file.filename, content: Buffer.from(file.content, 'utf8').toString('base64'), content_type: file.contentType })) } : {}),
@@ -66,6 +66,9 @@ export class MailService {
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`Resend ${response.status}: ${(await response.text()).slice(0, 200)}`);
+    const data = await response.json() as { id?: string };
+    if (!data.id) throw new Error('Resend não retornou o identificador de aceitação.');
+    return data.id;
   }
 
   private async viaSmtp(to: string, content: MailContent) {
@@ -77,10 +80,11 @@ export class MailService {
       connectionTimeout: 8000,
       socketTimeout: 12000,
     });
-    await this.transporter.sendMail({
+    const info = await this.transporter.sendMail({
       from: process.env.MAIL_FROM, to, subject: content.subject, html: content.html, text: content.text,
       attachments: content.attachments?.map((file) => ({ filename: file.filename, content: file.content, contentType: file.contentType })),
     });
+    return info.messageId as string | undefined;
   }
 
   private async viaSes(to: string, content: MailContent) {
@@ -112,6 +116,8 @@ export class MailService {
     const authorization = `AWS4-HMAC-SHA256 Credential=${process.env.AWS_ACCESS_KEY_ID}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
     const response = await fetch(`https://${host}${path}`, { method: 'POST', headers: { ...headers, Authorization: authorization }, body, signal: AbortSignal.timeout(10_000) });
     if (!response.ok) throw new Error(`SES ${response.status}: ${(await response.text()).slice(0, 200)}`);
+    const data = await response.json() as { MessageId?: string };
+    return data.MessageId;
   }
 
   /** a***@dominio.com: logs não guardam o endereço inteiro. */

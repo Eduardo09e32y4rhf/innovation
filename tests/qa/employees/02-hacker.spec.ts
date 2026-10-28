@@ -53,7 +53,7 @@ describe('HACKER · criar acesso sobrescrevendo um usuário existente da própri
   for (const attacker of ATTACKERS) {
     for (const existingRole of ROLES) {
       const allowed = canManageRole(attacker, existingRole) && canManageRole(attacker, 'FUNCIONARIO');
-      check(`${attacker} ${allowed ? 'pode' : 'NÃO pode'} rebaixar/reaproveitar usuário ${existingRole} pelo e-mail`, attacker === 'CEO' ? (allowed ? 'Q-03' : null) : (allowed ? null : 'S-03'), async () => {
+      check(`${attacker} ${allowed ? 'pode' : 'NÃO pode'} rebaixar/reaproveitar usuário ${existingRole} pelo e-mail`, allowed ? null : 'S-03', async () => {
         const { service, repository } = makeService({
           findById: vi.fn().mockResolvedValue(employee({ id: 'emp-1', userId: null })),
           findUserByEmail: vi.fn().mockResolvedValue({ id: 'user-existente', companyId: COMPANY_A, role: existingRole }),
@@ -78,7 +78,7 @@ describe('HACKER · desligar/excluir/desvincular o cadastro de quem tem conta pr
         const allowed = canManageRole(attacker, targetRole);
         // Ficha de DEV já é invisível para não-DEV (404), então esse recorte já é seguro.
         const alreadyHidden = targetRole === 'DEV' && attacker !== 'DEV';
-        const bug = attacker === 'CEO' ? (allowed ? 'Q-03' : null) : (allowed || alreadyHidden ? null : 'S-05');
+        const bug = attacker === 'CEO' ? (allowed && op !== 'unlink' ? 'Q-03' : null) : (allowed || alreadyHidden ? null : 'S-05');
         check(`${attacker} ${allowed ? 'pode' : 'NÃO pode'} ${op} no cadastro ligado a conta ${targetRole}`, bug, async () => {
           const { service, repository } = makeService({
             findById: vi.fn().mockResolvedValue(targetEmployee(targetRole)),
@@ -103,8 +103,10 @@ describe('HACKER · escalada pelo cadastro de funcionário (accessProfile)', () 
   check('criar funcionário com accessProfile=ADMIN não cria administrador sem checar quem pediu', 'S-01', async () => {
     const created = employee({ id: 'new-emp', email: 'novo@x.com' });
     const { service, repository } = makeService({ create: vi.fn().mockResolvedValue(created), findById: vi.fn().mockResolvedValue(created) } as never);
-    // A rota de criação nem recebe o ator: RH consegue o mesmo que ADMIN.
-    await service.create(COMPANY_A, { name: 'Cúmplice', email: 'novo@x.com', accessEnabled: 'YES', accessProfile: 'ADMIN' } as never).catch(() => undefined);
+    // The service must reject RH before any employee or credential is saved.
+    await expect(service.create(COMPANY_A, actor('RH'), { name: 'Cúmplice', email: 'novo@x.com', accessEnabled: 'YES', accessProfile: 'ADMIN' } as never)).rejects.toThrow();
+    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.createUser).not.toHaveBeenCalled();
     const roles = repository.createUser.mock.calls.map((call) => call[0].role);
     expect(roles).not.toContain('ADMIN');
   });
@@ -149,7 +151,7 @@ describe('HACKER · isolamento entre empresas (todas as consultas ao banco devem
     ['swap-candidates', (c) => c.service.listSwapCandidates(COMPANY_A, actor('FUNCIONARIO'))],
     ['get', (c) => c.service.get(COMPANY_A, actor('RH'), 'e1')],
     ['dossier', (c) => c.service.dossier(COMPANY_A, actor('RH'), 'e1')],
-    ['create', (c) => c.service.create(COMPANY_A, { name: 'N', cpf: '1', registration: 'm', accessEnabled: 'YES', email: 'n@x.com' } as never)],
+    ['create', (c) => c.service.create(COMPANY_A, actor('ADMIN'), { name: 'N', cpf: '1', registration: 'm', accessEnabled: 'YES', email: 'n@x.com' } as never)],
     ['update', (c) => c.service.update(COMPANY_A, actor('RH'), 'e1', { name: 'N', cpf: '1', registration: 'm' } as never)],
     ['terminate', (c) => c.service.terminate(COMPANY_A, actor('RH'), 'e1')],
     ['delete', (c) => c.service.delete(COMPANY_A, actor('RH'), 'e1')],
@@ -177,7 +179,7 @@ describe('HACKER · isolamento entre empresas (todas as consultas ao banco devem
 
   check('CPF é consultado só dentro da empresa (hoje a busca é global e revela CPF de OUTRA empresa)', 'S-02', async () => {
     const { service, repository } = makeService({ findByCpf: vi.fn().mockResolvedValue(employee({ companyId: 'company-b' })) } as never);
-    await service.create(COMPANY_A, { name: 'Espião', cpf: '52998224725' } as never).catch(() => undefined);
+    await service.create(COMPANY_A, actor('ADMIN'), { name: 'Espião', cpf: '52998224725' } as never).catch(() => undefined);
     expect(repository.findByCpf).toHaveBeenCalledWith(COMPANY_A, expect.anything());
   });
 
