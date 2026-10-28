@@ -50,14 +50,16 @@ describe('contenção: funcionários e contas protegidas', () => {
   });
 
   it('projeção do gestor não expõe campos atuais nem campos sensíveis adicionados futuramente', async () => {
-    const target = employee({ managerId: 'boss', cpf: 'secret', salary: '9999', bankAccount: '123', futureMedicalField: 'secret', user: { role: 'FUNCIONARIO' } });
+    const target = employee({ managerId: 'boss', cpf: 'secret', salary: '9999', bankAccount: '123', futureMedicalField: 'secret', userId: 'linked-id', user: { id: 'linked-id', role: 'FUNCIONARIO', isActive: true, forcePasswordChange: false, email: 'restricted@x.com', passwordHash: 'secret' } });
     const { service } = makeService({
       findById: vi.fn().mockResolvedValue(target),
       findByUserId: vi.fn().mockResolvedValue(employee({ id: 'boss' })),
     });
     const result = await service.get(COMPANY_A, actor('GESTOR'), target.id);
     expect(result).toMatchObject({ id: target.id, name: target.name });
-    for (const field of ['cpf', 'salary', 'bankAccount', 'futureMedicalField', 'user']) expect(result).not.toHaveProperty(field);
+    for (const field of ['cpf', 'salary', 'bankAccount', 'futureMedicalField']) expect(result).not.toHaveProperty(field);
+    expect(result.userId).toBe('linked-id');
+    expect(result.user).toEqual({ id: 'linked-id', role: 'FUNCIONARIO', isActive: true, forcePasswordChange: false });
   });
 
   it('gestor da empresa B e autogestão são recusados antes do UPDATE', async () => {

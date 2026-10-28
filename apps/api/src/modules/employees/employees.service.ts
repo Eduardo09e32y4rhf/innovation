@@ -541,10 +541,16 @@ export class EmployeesService {
 
   private projectEmployee(actor: JwtUser, employee: any): any {
     if (actor.role !== 'GESTOR') return employee;
-    const allowed = ['id', 'companyId', 'name', 'registration', 'position', 'department', 'status', 'managerId',
+    const allowed = ['id', 'companyId', 'userId', 'name', 'registration', 'position', 'department', 'status', 'managerId',
       'admissionDate', 'terminationDate', 'unit', 'workScale', 'customWorkScale', 'dailyWorkload',
       'standardEntry', 'standardLunchStart', 'standardLunchReturn', 'standardExit'];
-    return Object.fromEntries(allowed.filter((key) => key in employee).map((key) => [key, employee[key]]));
+    const projected = Object.fromEntries(allowed.filter((key) => key in employee).map((key) => [key, employee[key]]));
+    // Preserve the existing access badges without returning e-mail or future user fields.
+    if ('user' in employee) {
+      const userFields = ['id', 'role', 'isActive', 'forcePasswordChange'];
+      projected.user = employee.user ? Object.fromEntries(userFields.filter((key) => key in employee.user).map((key) => [key, employee.user[key]])) : null;
+    }
+    return projected;
   }
 
   private assertMutableEmployee(actor: JwtUser, employee: any) {
