@@ -5,6 +5,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { clientIp } from '../../common/http/client-ip';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -13,9 +14,7 @@ import { UsersActivityService } from './users-activity.service';
 import { UsersService } from './users.service';
 
 function requestMeta(request: any) {
-  const forwarded = request?.headers?.['x-forwarded-for'];
-  const ip = request?.headers?.['cf-connecting-ip'] || request?.headers?.['x-real-ip'] || (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0]?.trim()) || request?.ip;
-  return { ip: ip ? String(ip) : undefined, userAgent: request?.headers?.['user-agent'] as string | undefined };
+  return { ip: clientIp(request), userAgent: request?.headers?.['user-agent'] as string | undefined };
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)

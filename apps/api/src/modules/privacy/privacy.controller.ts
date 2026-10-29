@@ -1,4 +1,5 @@
 import { contentDisposition } from '../../common/pdf/pdf-response';
+import { clientIp } from '../../common/http/client-ip';
 import { Body, Controller, Get, Post, Req, Res, UseGuards, Param } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -55,13 +56,8 @@ export class PrivacyController {
 }
 
 function getRequestMeta(request: any) {
-  const forwardedFor = request.headers['x-forwarded-for'];
-  const ipAddress = Array.isArray(forwardedFor)
-    ? forwardedFor[0]
-    : forwardedFor?.split(',')[0]?.trim() || request.ip;
-
   return {
-    ipAddress,
+    ipAddress: clientIp(request),
     userAgent: request.headers['user-agent'],
   };
 }

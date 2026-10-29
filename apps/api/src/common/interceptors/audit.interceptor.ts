@@ -1,3 +1,4 @@
+import { clientIp } from '../http/client-ip';
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
 import { PrismaService } from '../../database/prisma.service';
@@ -79,6 +80,5 @@ function extractResultId(result: unknown) {
 }
 
 function getIpAddress(request: any) {
-  const forwardedFor = request.headers?.['x-forwarded-for'];
-  return Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(',')[0]?.trim() || request.ip;
+  return clientIp(request);
 }

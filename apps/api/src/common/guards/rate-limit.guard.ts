@@ -1,3 +1,4 @@
+import { clientIp } from '../http/client-ip';
 import { Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus, SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RedisService } from '../redis/redis.service';
@@ -72,18 +73,6 @@ export class RateLimitGuard implements CanActivate {
   }
 
   private extractRequestIp(request: any): string {
-    const forwardedFor = request.headers?.['x-forwarded-for'];
-    const realIp = request.headers?.['x-real-ip'];
-    const cfIp = request.headers?.['cf-connecting-ip'];
-    return (
-      cfIp ||
-      realIp ||
-      (Array.isArray(forwardedFor)
-        ? forwardedFor[0]
-        : forwardedFor?.split(',')[0]?.trim()) ||
-      request.ip ||
-      request.connection?.remoteAddress ||
-      'unknown'
-    );
+    return clientIp(request) ?? request.connection?.remoteAddress ?? 'unknown';
   }
 }
