@@ -1,2 +1,5 @@
 import { redirect } from 'next/navigation';
-export default function NotificationsPage({ params }: { params: { tenant: string } }) { redirect(`/${params.tenant}/dashboard/management?tab=notifications`); }
+export default async function NotificationsPage(props: { params: Promise<{ tenant: string }> }) {
+  const params = await props.params;
+  redirect(`/${params.tenant}/dashboard/management?tab=notifications`);
+}

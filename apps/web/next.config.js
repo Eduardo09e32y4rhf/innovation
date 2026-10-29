@@ -3,12 +3,9 @@ const path = require('path');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  experimental: { outputFileTracingRoot: path.join(__dirname, '../..') },
+  outputFileTracingRoot: path.join(__dirname, '../..'),
   typescript: {
     ignoreBuildErrors: false,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
   trailingSlash: false,
   images: {
