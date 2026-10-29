@@ -1,5 +1,6 @@
-import { BadRequestException, Controller, Get, Optional, Param, Post, Req } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Optional, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { TurnstileGuard } from '../../common/turnstile/turnstile.guard';
 import { RedisService } from '../../common/redis/redis.service';
 import { ApplyLimiter, assertApplyAllowed } from './apply-abuse';
 import { JobsService } from './jobs.service';
@@ -28,6 +29,7 @@ export class PublicJobsController {
   }
 
   @Post(':jobId/apply')
+  @UseGuards(TurnstileGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async apply(@Param('jobId') jobId: string, @Req() request: any) {
     const ip = String(request.ip ?? 'unknown');

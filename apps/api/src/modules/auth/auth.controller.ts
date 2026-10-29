@@ -27,6 +27,7 @@ import { AdminResetEmployeePasswordDto } from './dto/admin-reset-employee-passwo
 import { PublicPlanQuoteDto } from './dto/public-plan-quote.dto';
 import { MfaCodeDto, MfaDisableDto, MfaVerifyDto, VerifyEmailDto } from './dto/mfa.dto';
 import { MfaService } from './mfa.service';
+import { TurnstileGuard } from '../../common/turnstile/turnstile.guard';
 import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 
 
@@ -47,12 +48,14 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 3, ttl: 1800000 } })
+  @UseGuards(TurnstileGuard)
   @Post('register-company')
   async registerCompany(@Body() dto: RegisterCompanyDto, @Req() request: any, @Res({ passthrough: true }) reply: any) {
     return withRefreshCookie(reply, await this.service.registerCompany(dto, getRequestMeta(request)));
   }
 
   @Throttle({ default: { limit: 5, ttl: 900000 } })
+  @UseGuards(TurnstileGuard)
   @Post('login')
   async login(@Body() dto: LoginDto, @Req() request: any, @Res({ passthrough: true }) reply: any) {
     return withRefreshCookie(reply, await this.service.login(dto, getRequestMeta(request)));
@@ -144,6 +147,7 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 5, ttl: 1800000 } })
+  @UseGuards(TurnstileGuard)
   @Post('password-reset/request')
   requestPasswordReset(@Body() dto: RequestPasswordResetDto, @Req() request: any) {
     if (dto.website) {

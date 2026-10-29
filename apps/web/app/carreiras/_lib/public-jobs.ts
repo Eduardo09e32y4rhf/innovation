@@ -1,3 +1,4 @@
+import { turnstileHeaders } from '@/app/lib/turnstile';
 import { createSingleFlight, mutationFlightKey } from '@/app/lib/single-flight';
 
 export const CAREERS_API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -214,6 +215,7 @@ async function fetchPublicOnce(path: string, init?: RequestInit): Promise<unknow
       cache: 'no-store',
       headers: {
         Accept: 'application/json',
+        ...turnstileHeaders(init?.method, path),
         ...init?.headers,
       },
     });

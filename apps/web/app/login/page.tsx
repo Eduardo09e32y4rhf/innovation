@@ -1,5 +1,6 @@
 'use client';
 
+import { TurnstileWidget } from '@/app/_components/turnstile-widget';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -106,6 +107,7 @@ export default function LoginPage() {
               {locked && <> <Link href="/esqueci-senha" className="font-semibold underline">Recuperar acesso</Link></>}
             </AuthAlert>
           )}
+          <TurnstileWidget />
           <button type="submit" disabled={loading || !email || !password} className={authButton}>{loading ? 'Entrando…' : 'Entrar'}</button>
           <p className="text-center text-sm"><Link href="/esqueci-senha" className={authLink}>Esqueci minha senha</Link></p>
         </form>

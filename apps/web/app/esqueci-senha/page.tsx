@@ -1,5 +1,6 @@
 'use client';
 
+import { TurnstileWidget } from '@/app/_components/turnstile-widget';
 import Link from 'next/link';
 import { useRef, useState, type FormEvent } from 'react';
 import { AuthAlert, AuthShell, authButton, authInput, authLink } from '@/app/_components/auth/auth-shell';
@@ -42,6 +43,7 @@ export default function EsqueciSenhaPage() {
             <input id="fp-email" type="email" autoComplete="email" required disabled={loading} className={authInput} placeholder="voce@empresa.com.br" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           {error && <AuthAlert>{error}</AuthAlert>}
+          <TurnstileWidget />
           <button type="submit" disabled={loading || !email} className={authButton}>{loading ? 'Enviando…' : 'Solicitar código'}</button>
           <p className="text-center text-sm text-zinc-600">Já recebeu o código? <Link href="/reset-password" className={authLink}>Redefinir senha</Link></p>
           <p className="text-center text-xs text-zinc-500">Precisa de ajuda? <Link href="/suporte" className={authLink}>Fale com o suporte</Link></p>

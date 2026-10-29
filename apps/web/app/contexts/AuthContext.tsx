@@ -14,6 +14,7 @@ import { setFaturasPermissions } from '@/app/lib/permissions';
 import { toast } from 'sonner';
 import { refreshSession } from '@/app/lib/refresh-session';
 import { createSingleFlight } from '@/app/lib/single-flight';
+import { turnstileHeaders } from '@/app/lib/turnstile';
 
 export interface User {
   id: string;
@@ -258,7 +259,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await fetch(`${getApiUrl()}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...turnstileHeaders('POST', '/auth/login') },
         credentials: 'include',
         body: JSON.stringify({ email, password }),
         signal: AbortSignal.timeout(15000),

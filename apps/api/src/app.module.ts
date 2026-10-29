@@ -12,6 +12,7 @@ import { appConfig } from './config/app.config';
 import { validateEnv } from './config/env.validation';
 import { DatabaseModule } from './database/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
+import { TurnstileModule } from './common/turnstile/turnstile.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CompaniesModule } from './modules/companies/companies.module';
@@ -66,6 +67,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
+    TurnstileModule,
     PartnersModule,
     PrometheusModule.register({ controller: MetricsController }),
     CacheModule.registerAsync({

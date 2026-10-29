@@ -1,5 +1,6 @@
 'use client';
 
+import { TurnstileWidget } from '@/app/_components/turnstile-widget';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { Button } from '@/app/components/ui/button';
@@ -325,6 +326,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
                 </fieldset>
                 <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg bg-bg-sub p-3"><input type="checkbox" required className="mt-1 h-5 w-5 shrink-0" checked={form.consent} onChange={(event) => setForm((current) => ({ ...current, consent: event.target.checked }))} />
                   <span className="text-sm leading-6">Autorizo o tratamento dos dados enviados para avaliação da minha candidatura. Li a <Link className="underline" href="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</Link>. Meus dados serão guardados pelo prazo do processo seletivo e eu posso pedir acesso, correção ou exclusão a qualquer momento em <Link className="underline" href="/carreiras/privacidade" target="_blank" rel="noopener noreferrer">Meus dados</Link>.</span></label>
+                <TurnstileWidget />
                 <Button type="submit" className="w-full !bg-[#7240da] hover:!bg-[#5b29be]" isLoading={submitting} disabled={!form.consent}>Enviar candidatura</Button>
               </form>
             )}

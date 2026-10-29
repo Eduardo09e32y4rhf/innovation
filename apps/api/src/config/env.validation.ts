@@ -1,5 +1,12 @@
 import { featureFlagProblems } from '../common/feature-flags';
 
+/**
+ * Variaveis OPCIONAIS (nunca exigidas, nem em producao) do Cloudflare Turnstile (captcha gratuito; ver docs/TURNSTILE.md):
+ *  - TURNSTILE_SECRET_KEY: segredo do widget (API). Sem ela o captcha fica DESLIGADO e nada muda.
+ *  - NEXT_PUBLIC_TURNSTILE_SITE_KEY: chave publica do widget (web, definida no build). Sem ela os formularios nao exibem o widget.
+ */
+export const OPTIONAL_TURNSTILE_ENV = ['TURNSTILE_SECRET_KEY', 'NEXT_PUBLIC_TURNSTILE_SITE_KEY'] as const;
+
 const WEAK_JWT_MARKERS = ['TROQUE_', 'local-development', 'innovation-secret-key', 'changeme', 'secret'];
 
 const PLACEHOLDER_MARKERS = ['troque_', 'token_seguro', 'sua_', 'your_', 'changeme', 'example'];

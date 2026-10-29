@@ -4,6 +4,7 @@ import { clearAuthSession, persistAuthSession, readAuthSession, readParsedAuthSe
 import { refreshSession } from './refresh-session';
 import { resetAllQueryStates } from '../hooks/use-data';
 import { createSingleFlight, mutationFlightKey } from './single-flight';
+import { turnstileHeaders } from './turnstile';
 
 /**
  * Cliente HTTP central do Innovation RH System.
@@ -65,6 +66,7 @@ async function requestOnce<T>(path: string, opts: Opts = {}): Promise<T> {
       headers['Content-Type'] = 'application/json';
     }
   }
+  Object.assign(headers, turnstileHeaders(method, path));
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
