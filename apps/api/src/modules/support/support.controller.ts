@@ -3,7 +3,7 @@ import type { FastifyReply } from 'fastify';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { readMultipartUpload } from '../../common/http/multipart-upload';
 import { SupportService } from './support.service';
-import { SupportAttachmentService } from './support-attachment.service';
+import { SupportAttachmentService, SUPPORT_ATTACHMENT_MAX_BYTES } from './support-attachment.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -13,8 +13,6 @@ import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto
 import { SupportRefundService } from './support-refund.service';
 import { SupportSatisfactionService } from './support-satisfaction.service';
 import { CreateRefundRequestDto, RateTicketDto } from './dto/support-refund.dto';
-
-const SUPPORT_ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024;
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
