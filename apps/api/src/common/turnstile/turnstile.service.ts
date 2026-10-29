@@ -1,3 +1,4 @@
+import { outboundFetch } from '../http/outbound';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 export const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
@@ -28,12 +29,11 @@ export class TurnstileService {
 
     let result: { success?: boolean; 'error-codes'?: string[] };
     try {
-      const res = await fetch(TURNSTILE_VERIFY_URL, {
+      const res = await outboundFetch(TURNSTILE_VERIFY_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body,
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
+      }, { timeoutMs: TIMEOUT_MS });
       if (!res.ok) {
         this.logger.warn(`Turnstile: Cloudflare respondeu HTTP ${res.status}; seguindo sem validar (fail-open).`);
         return;

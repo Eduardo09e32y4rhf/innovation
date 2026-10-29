@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { outboundFetch, TIMEOUT_PUBLIC_LOOKUP_MS } from '../../common/http/outbound';
 
 @Injectable()
 export class GeocodingService {
@@ -10,11 +11,7 @@ export class GeocodingService {
 
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
       
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'InnovationRH/1.0',
-        },
-      });
+      const response = await outboundFetch(url, { headers: { 'User-Agent': 'InnovationRH/1.0' } }, { timeoutMs: TIMEOUT_PUBLIC_LOOKUP_MS });
 
       if (!response.ok) {
         this.logger.warn(`Geocoding failed with status: ${response.status}`);

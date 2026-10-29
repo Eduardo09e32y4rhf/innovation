@@ -1,3 +1,4 @@
+import { outboundFetch } from '../http/outbound';
 import PDFDocument from 'pdfkit';
 import { INVOICE_LOGO_PNG_BASE64 } from '../../modules/finance/invoice-logo';
 import { createPdfSink } from './pdf-response';
@@ -116,14 +117,9 @@ export async function loadLogo(logoUrl?: string | null): Promise<Buffer | null> 
     else if (/^https:\/\//i.test(url)) {
       const host = new URL(url).hostname.toLowerCase();
       if (host === 'localhost' || host.endsWith('.local') || host.endsWith('.internal') || /^[\d.]+$/.test(host) || host.includes(':')) return null;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
-      try {
-        const res = await fetch(url, { signal: controller.signal, redirect: 'error' });
-        if (!res.ok) return null;
-        const bytes = Buffer.from(await res.arrayBuffer());
-        buffer = bytes;
-      } finally { clearTimeout(timer); }
+      const res = await outboundFetch(url, { redirect: 'error' }, { timeoutMs: 5000 });
+      if (!res.ok) return null;
+      buffer = Buffer.from(await res.arrayBuffer());
     }
     if (!buffer || buffer.length > MAX_LOGO_BYTES) return null;
     return isPng(buffer) || isJpeg(buffer) ? buffer : null;

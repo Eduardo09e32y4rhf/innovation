@@ -1,3 +1,4 @@
+import { outboundFetch, TIMEOUT_PAYMENT_GATEWAY_MS } from '../../common/http/outbound';
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -81,17 +82,15 @@ export class AsaasService {
     }
 
     try {
-      const response = await fetch(url, {
+      const response = await outboundFetch(url, {
         ...options,
-        // Sem limite, uma resposta lenta do Asaas deixava a tela de pagamento girando para sempre.
-        signal: options.signal ?? AbortSignal.timeout(12_000),
         headers: {
           'Content-Type': 'application/json',
           access_token: this.apiKey,
           'User-Agent': 'Innovation-RH/1.0',
           ...options.headers,
         },
-      });
+      }, { timeoutMs: TIMEOUT_PAYMENT_GATEWAY_MS });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
         const message = Array.isArray((data as any)?.errors)

@@ -1,3 +1,4 @@
+import { outboundFetch, TIMEOUT_PUBLIC_LOOKUP_MS } from '../../common/http/outbound';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
@@ -46,11 +47,11 @@ export class TimeTrackService implements OnApplicationBootstrap {
 
   private async getStreetName(latitude: number, longitude: number): Promise<string | null> {
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+      const res = await outboundFetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
         headers: {
           'User-Agent': 'InnovationRHConnect/1.0'
         }
-      });
+      }, { timeoutMs: TIMEOUT_PUBLIC_LOOKUP_MS });
       if (res.ok) {
         const data = await res.json() as any;
         const addr = data.address;
