@@ -14,7 +14,6 @@ import { MercadoPagoService } from './mercadopago.service';
 import { couponDiscount } from '../coupons/coupon-rules';
 import { PaymentProviderService } from './payment-provider.service';
 import { PaymentRefundService } from './payment-refund.service';
-import { cancelRedundantSignupCharges } from './signup-charges';
 import { CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
 
 const STATEMENT_STATUS: Record<string, { label: string; color: string }> = {
@@ -581,49 +580,28 @@ export class PlatformFinanceService {
       where: { companyId, isActive: true, role: { in: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] } },
     });
 
-    let invoice = await this.prisma.platformInvoice.findFirst({
+    const invoice = await this.prisma.platformInvoice.findFirst({
       where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] } },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Polling fallback keeps onboarding recoverable if a webhook delivery is delayed.
-    if (invoice?.asaasPaymentId && this.asaas.isConfigured() && company.status !== 'ACTIVE') {
+    // Consulta somente leitura (GET nunca grava): confere no gateway, de servidor para servidor, se a fatura já foi paga.
+    // Quem baixa a fatura e reativa a empresa é o webhook assinado ou a conciliação (syncCompanyPayment), com as regras de reativação.
+    let gatewayPaid = false;
+    if (invoice?.asaasPaymentId && invoice.provider !== 'MERCADOPAGO' && this.asaas.isConfigured() && company.status !== 'ACTIVE') {
       try {
         const payment = await this.asaas.getCharge(invoice.asaasPaymentId);
-        const remoteStatus = this.mapAsaasStatus(payment.status);
-        if (remoteStatus === 'PAID') {
-          const [updatedInvoice, updatedCompany] = await this.prisma.$transaction([
-            this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: 'PAID', paidAt: invoice.paidAt ?? new Date(), invoiceUrl: payment.invoiceUrl ?? invoice.invoiceUrl } }),
-            this.prisma.company.update({ where: { id: companyId }, data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null } }),
-          ]);
-          invoice = updatedInvoice;
-          await cancelRedundantSignupCharges(this.prisma, this.asaas, this.logger, companyId, updatedInvoice.id).catch(() => 0);
-          // Não precisamos recarregar todos os includes da company aqui para o polling fallback
-          company.status = updatedCompany.status;
-          company.billingStatus = updatedCompany.billingStatus;
-        } else if (remoteStatus && remoteStatus !== invoice.status) {
-          invoice = await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: remoteStatus } });
-        }
+        gatewayPaid = this.mapAsaasStatus(payment.status) === 'PAID';
       } catch (error) {
-        this.logger.warn(`Falha no polling da cobranca ${invoice.asaasPaymentId}: ${String(error)}`);
+        this.logger.warn(`Falha na consulta da cobranca ${invoice.asaasPaymentId}: ${String(error)}`);
       }
     }
-
-    // Mercado Pago: mesmo fallback caso o webhook atrase (busca o pagamento pela referência da fatura).
     if (invoice && invoice.provider === 'MERCADOPAGO' && this.mercadoPago.isConfigured() && company.status !== 'ACTIVE') {
       try {
         const payment = await this.mercadoPago.findPaymentForInvoice(invoice.id, invoice.mpPaymentId);
-        if (payment && this.mercadoPago.mapStatus(payment.status) === 'PAID') {
-          const [updatedInvoice, updatedCompany] = await this.prisma.$transaction([
-            this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: 'PAID', paidAt: invoice.paidAt ?? new Date(), mpPaymentId: String(payment.id) } }),
-            this.prisma.company.update({ where: { id: companyId }, data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null } }),
-          ]);
-          invoice = updatedInvoice;
-          company.status = updatedCompany.status;
-          company.billingStatus = updatedCompany.billingStatus;
-        }
+        gatewayPaid = Boolean(payment && this.mercadoPago.mapStatus(payment.status) === 'PAID');
       } catch (error) {
-        this.logger.warn(`Falha no polling do Mercado Pago da fatura ${invoice.id}: ${String(error)}`);
+        this.logger.warn(`Falha na consulta do Mercado Pago da fatura ${invoice.id}: ${String(error)}`);
       }
     }
 
@@ -652,6 +630,8 @@ export class PlatformFinanceService {
         invoiceUrl: invoice.invoiceUrl,
         bankSlipUrl: invoice.invoiceUrl, // No sandbox/asaas bankSlipUrl geralmente está na mesma invoiceUrl do checkout
         pixAvailable: invoice.billingType === 'PIX' || invoice.billingType === 'UNDEFINED',
+        /** O gateway já mostra pago, mas a baixa ainda não foi gravada (webhook/conciliação pendente). */
+        gatewayPaid,
       };
     }
 

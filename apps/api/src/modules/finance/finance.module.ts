@@ -19,6 +19,7 @@ import { FinanceController } from './finance.controller';
 import { IntegrationsController } from './integrations.controller';
 import { MercadoPagoService } from './mercadopago.service';
 import { MercadoPagoWebhookController } from './mercadopago-webhook.controller';
+import { MercadoPagoPaymentSyncService } from './mercadopago-payment-sync.service';
 import { PaymentProviderService } from './payment-provider.service';
 import { FinanceNotificationService } from './finance-notification.service';
 import { PlatformFinanceService } from './platform-finance.service';
@@ -48,6 +49,7 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     FiscalAdjustmentsService,
     InvoicePdfService,
     MercadoPagoService,
+    MercadoPagoPaymentSyncService,
     PaymentProviderService,
     AsaasWebhookProcessorService,
     AsaasWebhookWorker,

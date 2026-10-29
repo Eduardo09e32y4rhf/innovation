@@ -10,6 +10,7 @@ import { planPricingForSubscription, PricingPlanInput } from './pricing';
 import { PaymentRefundService } from './payment-refund.service';
 import { AsaasFiscalService } from './asaas-fiscal.service';
 import { cancelRedundantSignupCharges } from './signup-charges';
+import { companyDataAfterPayment, saoPauloToday } from './payment-access';
 
 type InvoiceStatus = 'OPEN' | 'PAID' | 'OVERDUE' | 'CANCELED';
 
@@ -24,6 +25,8 @@ interface AsaasWebhookPayment {
   description?: string;
   billingType?: string;
   invoiceUrl?: string;
+  /** Estado real da cobranca no Asaas (PENDING, RECEIVED, CONFIRMED, OVERDUE, ...). */
+  status?: string;
 }
 
 interface AsaasWebhookInvoice {
@@ -119,8 +122,7 @@ export class AsaasWebhookProcessorService {
       await this.refunds.reconcile(invoice.id);
       return;
     }
-    const status = this.statusFromEvent(event);
-    if (!status) return;
+    if (!this.statusFromEvent(event)) return;
     const company = await this.resolveCompany(payment);
     if (!company) {
       this.logger.warn(`Pagamento ${payment.id} sem empresa vinculada.`);
@@ -133,6 +135,11 @@ export class AsaasWebhookProcessorService {
     // Cobrança da assinatura ainda não paga pode mudar de valor (desconto, cupom, usuários com updatePendingPayments): aceita o valor novo.
     const subscriptionRepriced = Boolean(existing && payment.subscription && existing.asaasPaymentId === payment.id && existing.status !== 'PAID');
     if (existing && (existing.companyId !== company.id || (Number(existing.amount) !== payment.value && !subscriptionRepriced) || (existing.asaasPaymentId && existing.asaasPaymentId !== payment.id))) throw new Error('Cobrança não corresponde à fatura reservada.');
+    const status = this.resolveStatus(event, payment, existing);
+    if (!status) {
+      this.logger.warn(`Evento ${event} ignorado: ${existing ? `fatura ${existing.id}` : `cobrança ${payment.id}`} não muda de estado (fora de ordem ou removida).`);
+      return;
+    }
     // Evento fora de ordem: uma fatura já paga nunca volta para aberta/vencida (só estorno/cancelamento a altera).
     if (existing?.status === 'PAID' && (status === 'OPEN' || status === 'OVERDUE')) {
       this.logger.warn(`Evento ${event} ignorado: fatura ${existing.id} já está paga (fora de ordem).`);
@@ -152,13 +159,15 @@ export class AsaasWebhookProcessorService {
       billingType: payment.billingType || 'PIX',
       invoiceUrl: payment.invoiceUrl,
       paidAt: status === 'PAID' ? existing?.paidAt ?? new Date() : existing?.paidAt,
-      deletedAt: event === 'PAYMENT_DELETED' ? new Date() : null,
+      // Só PAYMENT_DELETED remove e só PAYMENT_RESTORED restaura; qualquer outro evento preserva o que já existe.
+      deletedAt: event === 'PAYMENT_DELETED' ? new Date() : event === 'PAYMENT_RESTORED' ? null : existing?.deletedAt ?? null,
       // Taxa do gateway: o Asaas informa o liquido no proprio pagamento (so grava quando vier um numero valido).
       ...(status === 'PAID' && Number.isFinite(payment.netValue) && Number(payment.netValue) >= 0 ? { gatewayNetValue: payment.netValue } : {}),
     };
 
     const companyData: any = status === 'PAID'
-      ? { billingStatus: 'ACTIVE', status: 'ACTIVE', isActive: true, suspensionReason: null }
+      // Pagar uma fatura só reativa quando o bloqueio é por falta de pagamento e não resta outra fatura vencida.
+      ? await companyDataAfterPayment(this.prisma, company.id, existing?.id)
       : status === 'OVERDUE'
         ? { billingStatus: 'PAST_DUE' }
         // Só suspende se a cobrança cancelada já estava paga (estorno). Cancelar uma cobrança em aberto (duplicada) não bloqueia a empresa.
@@ -269,6 +278,34 @@ export class AsaasWebhookProcessorService {
     if (!this.asaas.isConfigured()) return false;
     const charge: any = await this.asaas.getCharge(paymentId);
     return ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(charge?.status);
+  }
+
+  /**
+   * Estado da fatura após o evento. CREATED/UPDATED/RESTORED não dizem o estado pelo nome: valem o `payment.status` do payload
+   * (PAYMENT_UPDATED = "alteração no vencimento ou valor"). Devolve undefined quando o evento não deve mudar nada.
+   */
+  private resolveStatus(event: string, payment: AsaasWebhookPayment, existing: { status: string; dueDate?: Date | null; deletedAt?: Date | null } | null): InvoiceStatus | undefined {
+    if (!['PAYMENT_CREATED', 'PAYMENT_UPDATED', 'PAYMENT_RESTORED'].includes(event)) return this.statusFromEvent(event);
+    const remote = payment.status;
+    let derived: InvoiceStatus | undefined;
+    if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(remote ?? '')) derived = 'PAID';
+    else if (remote === 'OVERDUE') derived = 'OVERDUE';
+    else if (remote === 'DELETED') derived = 'CANCELED';
+    else if (remote === undefined || remote === null || remote === '') derived = existing ? undefined : 'OPEN';
+    else if (/REFUND|CHARGEBACK/.test(remote)) derived = undefined; // estornos têm eventos próprios
+    else derived = 'OPEN'; // PENDING, AWAITING_RISK_ANALYSIS, ...
+    if (!existing) return derived;
+    if (derived === undefined) return undefined;
+    const removed = existing.status === 'CANCELED' || Boolean(existing.deletedAt);
+    if (derived === 'OPEN' || derived === 'OVERDUE') {
+      if (removed && event !== 'PAYMENT_RESTORED') return undefined;
+      // Vencida só reabre com prorrogação real: PENDING e novo vencimento a partir de hoje.
+      if (existing.status === 'OVERDUE' && derived === 'OPEN') {
+        const due = payment.dueDate ? new Date(payment.dueDate) : null;
+        return due && due.getTime() >= saoPauloToday().getTime() ? 'OPEN' : undefined;
+      }
+    }
+    return derived;
   }
 
   private statusFromEvent(event: string): InvoiceStatus | undefined {
