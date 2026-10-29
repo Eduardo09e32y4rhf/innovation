@@ -1196,6 +1196,8 @@ export const api = {
   },
 
   companyBilling: {
+    // Baixa por conciliacao (o servidor consulta o gateway). O GET de status nao grava mais: use antes dele apos o checkout.
+    syncPayment: () => request<{ checked: number; healed: number; linked: number; errors: number }>('/finance/company/sync-payment', { method: 'POST', silent: true, keepSessionOn401: true, timeoutMs: 20000 }),
     status: () => request<CompanyBillingResult>('/finance/company/status', { silent: true, keepSessionOn401: true, timeoutMs: 10000 }),
     pix: () => request<{ available: boolean; invoiceId?: string; payload?: string; encodedImage?: string | null; expirationDate?: string | null }>('/finance/company/pix', { silent: true, keepSessionOn401: true, timeoutMs: 15000 }),
     invoices: () => request<PlatformInvoice[]>('/finance/company/invoices', { silent: true, keepSessionOn401: true }),
