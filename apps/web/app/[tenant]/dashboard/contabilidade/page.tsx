@@ -47,7 +47,7 @@ function Contabilidade() {
         <button type="button" aria-current={tab === 'rotina' ? 'page' : undefined} className={tabClass(tab === 'rotina')} onClick={() => update({ aba: 'rotina' })}>Rotina do escritório</button>
       </nav>
       {tab === 'rotina' ? (
-        <AccountingView companyId={companyId} canEdit onOpenCompany={(id, name) => update({ company: id, cn: name ?? null, aba: null })} />
+        <AccountingView companyId={companyId} canEdit canEditRules={role === 'DEV'} onOpenCompany={(id, name) => update({ company: id, cn: name ?? null, aba: null })} />
       ) : companyId ? (
         <MonthView companyId={companyId} companyName={companyName} month={month} role={role} onBack={() => update({ company: null, cn: null })} />
       ) : (

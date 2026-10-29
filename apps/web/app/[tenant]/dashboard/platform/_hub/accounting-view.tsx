@@ -17,7 +17,7 @@ import { Competencia } from './accounting/competencia';
 export type Section = 'painel' | 'competencia' | 'tarefas' | 'documentos' | 'honorarios' | 'regras';
 export const SECTIONS: Array<[Section, string]> = [['painel', 'Painel do escritório'], ['competencia', 'Folha e ponto'], ['tarefas', 'Tarefas'], ['documentos', 'Documentos'], ['honorarios', 'Honorários'], ['regras', 'Regras e simulador']];
 
-export function AccountingView({ companyId, canEdit, onOpenCompany }: { companyId?: string; canEdit: boolean; onOpenCompany: (id: string, name?: string) => void }) {
+export function AccountingView({ companyId, canEdit, canEditRules = canEdit, onOpenCompany }: { companyId?: string; canEdit: boolean; canEditRules?: boolean; onOpenCompany: (id: string, name?: string) => void }) {
   const [section, setSection] = useState<Section>('painel');
   const [month, setMonth] = useState(monthKey());
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -43,7 +43,7 @@ export function AccountingView({ companyId, canEdit, onOpenCompany }: { companyI
         )}
       </div>
       {section === 'competencia' && <Competencia companyId={companyId} month={month} canEdit={canEdit} onOpenCompany={onOpenCompany} />}
-      {section === 'regras' && <RulesPanel canEdit={canEdit} />}
+      {section === 'regras' && <RulesPanel canEdit={canEditRules} />}
       {!['competencia', 'regras'].includes(section) && (dashboard.error ? <ErrorState message={dashboard.error} onRetry={dashboard.refetch} /> : !dashboard.data ? <LoadingState label="Carregando o escritório…" /> : (
         <>
           {section === 'painel' && <OfficePanel data={dashboard.data} month={month} team={members} refetch={dashboard.refetch} />}

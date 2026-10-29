@@ -72,11 +72,14 @@ export class AccountingController {
     return this.rules.list(parsed);
   }
 
+  /** Tabela global (todas as empresas): so DEV escreve; CEO e CONTABIL apenas leem. */
+  @Roles('DEV')
   @Post('rules')
   saveRule(@CurrentUser() actor: JwtUser, @Body() dto: SaveRuleDto) {
     return this.rules.saveVersion(actor, dto);
   }
 
+  @Roles('DEV')
   @Delete('rules/:id')
   deactivateRule(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.rules.deactivate(actor, id);
