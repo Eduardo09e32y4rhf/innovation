@@ -40,7 +40,7 @@ Antes da correcao (mesmos testes contra o codigo original):
 - `tests/security/no-express-api-under-fastify.spec.ts` contra o codigo original: 6 de 8 falharam.
 
 Depois:
-- `npx vitest run apps/api/src/modules/support apps/api/src/modules/schedule-hub apps/api/src/modules/time-track tests/security apps/api/src/modules/finance apps/api/src/modules/vacations`: **77 arquivos passaram, 609 testes passaram + 3 expected fail** (antes do commit B; ver contagem final abaixo).
+- `npx vitest run apps/api/src/modules/support apps/api/src/modules/schedule-hub apps/api/src/modules/time-track tests/security apps/api/src/modules/finance apps/api/src/modules/vacations`: **79 arquivos passaram, 630 testes passaram + 3 expected fail** (execucao final, com os commits de outros agentes ja integrados).
 - `npx vitest run apps/api/src/modules/support apps/api/src/modules/schedule-hub apps/api/src/modules/time-track tests/security`: 40 arquivos, **314 passaram, 3 expected fail**.
 - `npx tsc --noEmit -p apps/api`: sem erros.
 
