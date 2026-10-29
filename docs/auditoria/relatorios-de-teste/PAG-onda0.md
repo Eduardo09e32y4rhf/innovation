@@ -70,3 +70,26 @@ Token `asaas-access-token` e HMAC do MP (`webhook-auth.spec.ts` verde); idempote
 - Limpeza: removidos os ramos mortos `PAYMENT_REFUNDED`/`PAYMENT_REFUND_IN_PROGRESS` de `statusFromEvent` e `PAYMENT_EVENT_MAP`; `recognized` passou a listar esses eventos explicitamente (continuam `PROCESSED`, nao `IGNORED`).
 - Testes: `payment-refund-access.spec.ts` (6). Antes: estorno total nao suspendia (2 falhas); depois: suspende; parcial, fatura antiga, conta cancelada/suspensa por outro motivo e repeticao nao alteram a empresa; fatura segue `PAID` com `refundedAmount 100`.
 - Decisao de negocio pendente: suspender automaticamente a empresa em estorno total (inclusive reembolso comercial decidido pela plataforma) foi aplicado porque foi pedido seguir as regras de bloqueio; se reembolso de cortesia nao deve bloquear, restrinja a chargeback/estorno iniciado pelo cliente.
+
+## PAG-M3 - reembolso de boleto no Asaas (`/refund` x `/bankSlip/refund`) - NAO ALTERADO
+
+- Documentacao: https://docs.asaas.com/reference/estornar-boleto - a pagina nao abre na sessao (ENOTFOUND). Pela busca (VIA BUSCA, resumo da pagina oficial) o endpoint de boleto e `POST /v3/payments/{id}/bankSlip/refund`, nao serve para cartao/Pix, exige `PAYMENT_REFUND:WRITE` e NAO devolve o dinheiro direto: devolve um link em que o pagador informa conta bancaria e documentos. Corpo da requisicao, formato da resposta e como o estorno aparece depois em `refunds` (status) NAO foram lidos: NAO VERIFICADO / depende do sandbox.
+- Decisao: comportamento mantido (`asaas.service.ts#refundPayment` e `payment-refund.service.ts` intocados), por duas razoes: a regra pedida exige confirmacao na pagina oficial e ela nao foi lida; e o fluxo de boleto muda o ciclo de vida da operacao (fica pendente ate o pagador preencher o link, e o link precisa ser repassado ao cliente), o que nao pode ser feito as cegas num fluxo de dinheiro.
+- O que fazer quando houver acesso: com a chave do sandbox, estornar um boleto pago de teste por `/refund` (confirmar o 400) e por `/bankSlip/refund` (ver o corpo da resposta e o `status` em `GET /payments/{id}/refunds`); entao rotear por `invoice.billingType === 'BOLETO'`, guardar o link em `PaymentRefund` e manter a operacao `PENDING` ate `DONE`.
+- Teste: nenhum novo (sem alteracao). Os testes de reembolso existentes seguem verdes.
+
+## Validacao final
+
+| Cenario | Resultado esperado | Resultado |
+|---|---|---|
+| Fatura vencida recebe `PAYMENT_UPDATED` (status OVERDUE ou PENDING com vencimento passado) | continua `OVERDUE` | passa |
+| Prorrogacao real (PENDING, vencimento futuro) | reabre | passa |
+| Fatura removida recebe `PAYMENT_UPDATED` | segue `CANCELED` com `deletedAt` | passa |
+| Empresa cancelada recebe pagamento | fatura `PAID`, empresa intacta | passa (Asaas e MP) |
+| Duas faturas vencidas, uma paga | empresa nao reativa | passa (Asaas e MP) |
+| Webhook MP com `ts` antigo | 403; conciliacao baixa o pagamento | passa |
+| Estorno total confirmado | `refundStatus REFUNDED`, empresa suspensa (regras acima), fatura `PAID` | passa |
+| Dois webhooks MP com `Promise.all` | 1 desconto de ciclo, 1 notificacao | passa |
+| GET de status com pagamento aprovado no gateway | nenhuma escrita | passa |
+
+Execucao final: `npx vitest run apps/api/src/modules/finance apps/api/src/modules/accounting tests/security tests/contract` -> 60 arquivos passam, 522 testes passam | 3 expected fail (pre-existentes); `npx tsc --noEmit -p apps/api` -> sem erros.
