@@ -50,3 +50,14 @@ Token `asaas-access-token` e HMAC do MP (`webhook-auth.spec.ts` verde); idempote
 - `pagamento_cancelado_ou_estornado` foi mantido como motivo reativavel (lista sugerida pela auditoria). Se o negocio quiser que apos chargeback so o suporte reative, remova-o de `PAYMENT_REACTIVATION_REASONS`.
 - Empresa bloqueada sem `suspensionReason` (null) e `status != ACTIVE` NAO e reativada (conservador).
 - Cartao `CONFIRMED` continua contando como pago (M5): NAO alterado, decisao de negocio.
+
+## PAG-A1 - Mercado Pago fora da conciliacao e janela de 5 min do `ts`
+
+- Problema: `payment-reconciliation.service.ts` so filtrava `provider: 'ASAAS'`; webhook MP com `ts` > 300 s recebia 403.
+- Documentacao: janela exigida para `ts` e politica de reentrega do MP: NAO VERIFICADO (pagina bloqueada; a busca so confirmou `x-signature` e `X-Socket-Timeout: 22000`). Como nao ha exigencia confirmada, a decisao conservadora foi NAO afrouxar a janela (os testes de seguranca existentes `webhook-auth.spec.ts` e `mercadopago.service.spec.ts` continuam exigindo 5 min) e garantir a recuperacao por outro caminho.
+- Correcao:
+  - `PaymentReconciliationService.reconcile` agora roda Asaas e Mercado Pago. Para cada fatura MP `OPEN`/`OVERDUE` (ate 90 dias, `take` 300) consulta o gateway (`findPaymentForInvoice`: por `mpPaymentId` ou pela referencia `inv:<id>`) e, se aprovado/estornado, aplica pelo MESMO `MercadoPagoPaymentSyncService` do webhook (mesmas regras de reativacao A2, cupom e notificacao uma unica vez). O cron existente (`10 */6 * * *`) e `POST /finance/reconciliation/run` passam a cobrir o MP.
+  - Novo `POST /finance/company/sync-payment` (admin da propria empresa): baixa sob demanda, por conciliacao server-to-server, apenas as faturas da empresa do token. Substitui a escrita que o GET de status fazia; o front precisa chamar este POST apos o retorno do checkout (fora do meu escopo; hoje o GET devolve `invoice.gatewayPaid` para a tela saber que ha baixa pendente).
+  - Janela do `ts` mantida em 300 s por padrao; segue configuravel por `MERCADOPAGO_WEBHOOK_TOLERANCE_SECONDS`.
+- Testes: `mercadopago-reconciliation.spec.ts` (7). Antes: fatura MP vencida com pagamento aprovado no gateway nao era baixada (2 falhas de conciliacao). Depois: baixa PAID, `mpPaymentId` gravado, 1 notificacao, reativacao pelas regras de A2, rodar duas conciliacoes em paralelo notifica uma vez; pagamento `pending`/inexistente nao altera a fatura; `ts` de 20 min rejeitado por padrao e aceito com a variavel em 3600.
+- Risco/pendente: cron de 6 h significa ate 6 h de atraso se o webhook for perdido (o POST `sync-payment` e o botao imediato). `.env.example` ainda diz "padrao 300": correto.
