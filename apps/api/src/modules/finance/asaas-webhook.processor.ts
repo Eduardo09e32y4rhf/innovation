@@ -57,8 +57,6 @@ const PAYMENT_EVENT_MAP: Record<string, FinanceNotificationType | undefined> = {
   PAYMENT_DELETED: 'PAYMENT_CANCELED',
   PAYMENT_CHARGEBACK_REQUESTED: 'PAYMENT_CANCELED',
   PAYMENT_CHARGEBACK_DISPUTE: 'PAYMENT_CANCELED',
-  PAYMENT_REFUNDED: 'PAYMENT_REFUNDED',
-  PAYMENT_REFUND_IN_PROGRESS: 'PAYMENT_REFUNDED',
 };
 
 const INVOICE_EVENT_MAP: Record<string, FinanceNotificationType | undefined> = {
@@ -95,7 +93,7 @@ export class AsaasWebhookProcessorService {
       if (payload.payment?.id) await this.handlePaymentEvent(event, payload.payment);
       if (payload.invoice?.id) await this.handleInvoiceEvent(event, payload.invoice);
 
-      const recognized = Boolean(this.statusFromEvent(event) || event === 'PAYMENT_PARTIALLY_REFUNDED' || (event.startsWith('INVOICE_') && payload.invoice?.id));
+      const recognized = Boolean(this.statusFromEvent(event) || ['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS'].includes(event) || (event.startsWith('INVOICE_') && payload.invoice?.id));
       await this.prisma.asaasWebhookEvent.update({
         where: { id: eventId },
         data: {
@@ -311,7 +309,7 @@ export class AsaasWebhookProcessorService {
   private statusFromEvent(event: string): InvoiceStatus | undefined {
     if (['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED_IN_CASH'].includes(event)) return 'PAID';
     if (event === 'PAYMENT_OVERDUE') return 'OVERDUE';
-    if (['PAYMENT_DELETED', 'PAYMENT_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE'].includes(event)) return 'CANCELED';
+    if (['PAYMENT_DELETED', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE'].includes(event)) return 'CANCELED';
     if (['PAYMENT_CREATED', 'PAYMENT_UPDATED', 'PAYMENT_RESTORED'].includes(event)) return 'OPEN';
     return undefined;
   }
