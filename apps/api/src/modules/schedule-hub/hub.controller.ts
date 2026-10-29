@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { BadRequestException, Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { readMultipartUpload } from '../../common/http/multipart-upload';
 import { LaunchDto, LaunchService } from './launch/launch.service';
 import { contentDisposition, safeFileName } from '../../common/pdf/pdf-response';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -15,6 +15,8 @@ import { CreateOverrideDto, OverridesService } from './overrides/overrides.servi
 import { OverviewService } from './overview/overview.service';
 import { ScheduleService } from '../schedule/schedule.service';
 import { AssignScheduleDto } from '../schedule/dto/assign-schedule.dto';
+
+const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(...SCHEDULE_MODULE_ROLES)
@@ -149,8 +151,10 @@ export class HubController {
 
   @Roles(...rolesWith('schedule.write'))
   @Post('launch/attachment')
-  @UseInterceptors(FileInterceptor('file'))
-  launchAttachment(@CurrentUser() actor: JwtUser, @Body('employeeId', ParseUUIDPipe) employeeId: string, @UploadedFile() file: any) {
+  async launchAttachment(@CurrentUser() actor: JwtUser, @Req() req: any) {
+    const { file, fields } = await readMultipartUpload(req, { maxBytes: ATTACHMENT_MAX_BYTES });
+    const employeeId = await new ParseUUIDPipe().transform(fields.employeeId ?? '', { type: 'body', data: 'employeeId' });
+    if (!file) throw new BadRequestException('Nenhum arquivo enviado.');
     return this.launches.saveAttachment(actor, employeeId, file);
   }
 
@@ -161,6 +165,7 @@ export class HubController {
     reply.header('Content-Type', mimetype || 'application/octet-stream');
     reply.header('Content-Disposition', contentDisposition(fileName));
     reply.header('Cache-Control', 'private, no-store');
-    return stream.pipe(reply);
+    reply.header('X-Content-Type-Options', 'nosniff');
+    return reply.send(stream);
   }
 }

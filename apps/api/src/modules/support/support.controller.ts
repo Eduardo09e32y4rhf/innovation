@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, UseInterceptors, UploadedFile, Res, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, Res, BadRequestException } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import { contentDisposition } from '../../common/pdf/pdf-response';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { Response } from 'express';
+import { readMultipartUpload } from '../../common/http/multipart-upload';
 import { SupportService } from './support.service';
 import { SupportAttachmentService } from './support-attachment.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -13,6 +13,8 @@ import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto
 import { SupportRefundService } from './support-refund.service';
 import { SupportSatisfactionService } from './support-satisfaction.service';
 import { CreateRefundRequestDto, RateTicketDto } from './dto/support-refund.dto';
+
+const SUPPORT_ATTACHMENT_MAX_BYTES = 20 * 1024 * 1024;
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA')
@@ -85,12 +87,8 @@ export class SupportController {
   }
 
   @Post('tickets/:id/attachments')
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadAttachment(
-    @Req() req: any,
-    @Param('id') ticketId: string,
-    @UploadedFile() file: any
-  ) {
+  async uploadAttachment(@Req() req: any, @Param('id') ticketId: string) {
+    const { file } = await readMultipartUpload(req, { maxBytes: SUPPORT_ATTACHMENT_MAX_BYTES });
     if (!file) throw new BadRequestException('Nenhum arquivo enviado.');
     return this.attachmentService.uploadAttachment(req.user, ticketId, file);
   }
@@ -100,16 +98,16 @@ export class SupportController {
     @Req() req: any,
     @Param('id') id: string,
     @Param('attachmentId') attachmentId: string,
-    @Res() res: Response
+    @Res() reply: FastifyReply,
   ) {
     const { stream, mimetype, filename, size } = await this.attachmentService.downloadAttachment(req.user, id, attachmentId);
-    
-    res.set({
-      'Content-Type': mimetype || 'application/octet-stream',
-      'Content-Disposition': contentDisposition(filename),
-      'Content-Length': size
-    });
-
-    stream.pipe(res);
+    // Fastify: cabecalhos via reply.header e corpo via reply.send(stream) (res.set e pipe para o reply nao existem no Fastify).
+    reply
+      .header('Content-Type', mimetype || 'application/octet-stream')
+      .header('Content-Disposition', contentDisposition(filename))
+      .header('X-Content-Type-Options', 'nosniff')
+      .header('Cache-Control', 'private, no-store');
+    if (Number.isFinite(size) && size > 0) reply.header('Content-Length', String(size));
+    return reply.send(stream);
   }
 }

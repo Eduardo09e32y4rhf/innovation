@@ -1,3 +1,4 @@
+import type { FastifyReply } from 'fastify';
 import { CompanyChargeDto } from './dto/company-charge.dto';
 import { Body, Controller, Delete, Get, Headers, Param, ParseUUIDPipe, Patch, Post, Query, Res, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
@@ -38,7 +39,7 @@ export class FinanceController {
   }
 
   @Get('platform/statements/pdf')
-  async statementPdf(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto, @Res() res: import('express').Response) {
+  async statementPdf(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto, @Res() res: FastifyReply) {
     return this.service.statementPdf(query, actor.role === 'COMERCIAL' ? actor.sub : undefined, actor, res);
   }
 
@@ -51,11 +52,10 @@ export class FinanceController {
 
   @Get('platform/reports/monthly.csv')
   @Roles('DEV', 'CEO', 'CONTABIL')
-  async monthlyReportCsv(@Query() query: MonthlyReportQueryDto, @Res() res: import('express').Response) {
+  async monthlyReportCsv(@Query() query: MonthlyReportQueryDto, @Res() res: any) {
     const { filename, content } = await this.revenueReport.monthlyCsv(query.month);
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', contentDisposition(filename));
-    res.send(content);
+    // Fastify: reply.header(...).send(...) (reply.setHeader nao existe; isso so funcionava no Express)
+    return res.header('Content-Type', 'text/csv; charset=utf-8').header('Content-Disposition', contentDisposition(filename)).send(content);
   }
 
   @Get('platform/invoices')

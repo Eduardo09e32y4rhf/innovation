@@ -55,6 +55,6 @@ describe('Official PDF endpoints and authorization', () => {
     expect(employee).toContain("@Get(':id/documents/record.pdf')");
     expect(vacation).toContain("@Get(':id/receipt.pdf')");
     expect(employee).toContain("response.header('X-Document-Sha256'");
-    expect(vacation).toContain("response.setHeader('X-Document-Sha256'");
+    expect(vacation).toContain("response.header('X-Document-Sha256'");
   });
 });

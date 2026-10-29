@@ -77,12 +77,12 @@ export class VacationsController {
     @Res() response: any,
   ) {
     const receipt = await this.service.generateReceiptPdf(companyId, actor, id);
-    response.setHeader('Content-Type', 'application/pdf');
-    response.setHeader('Content-Disposition', contentDisposition(receipt.filename));
-    response.setHeader('Content-Length', receipt.buffer.length);
-    response.setHeader('X-Document-Id', receipt.documentId);
-    response.setHeader('X-Document-Sha256', receipt.sha256);
-    response.setHeader('X-Document-Version', receipt.version);
+    response.header('Content-Type', 'application/pdf');
+    response.header('Content-Disposition', contentDisposition(receipt.filename));
+    response.header('Content-Length', String(receipt.buffer.length));
+    response.header('X-Document-Id', receipt.documentId);
+    response.header('X-Document-Sha256', receipt.sha256);
+    response.header('X-Document-Version', String(receipt.version));
     return response.send(receipt.buffer);
   }
 
