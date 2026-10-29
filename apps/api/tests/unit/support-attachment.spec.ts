@@ -52,27 +52,42 @@ describe('SupportAttachmentService', () => {
         .rejects.toThrow(BadRequestException);
     });
 
-    it('deve rejeitar extensão proibida (ex: .exe)', async () => {
-      const file = { size: 1024, originalname: 'virus.exe' };
+    it('deve rejeitar executavel pelo conteudo, mesmo com outro nome (ex: virus.pdf com cabecalho MZ)', async () => {
+      const file = { size: 1024, originalname: 'virus.pdf', buffer: Buffer.concat([Buffer.from([0x4d, 0x5a, 0x90, 0x00]), Buffer.alloc(64, 1)]) };
       await expect(service.uploadAttachment({ sub: 'user-1' }, 'ticket-1', file))
-        .rejects.toThrow('proibida por motivos de segurança');
+        .rejects.toThrow('Tipo de arquivo nao permitido');
+      expect(storageService.saveFile).not.toHaveBeenCalled();
     });
 
-    it('deve rejeitar extensão não suportada (ex: .zip)', async () => {
-      // In the implementation, .zip is in blockedExtensions or just not in allowedExtensions
-      const file = { size: 1024, originalname: 'archive.tar' };
+    it('deve rejeitar arquivo compactado pelo conteudo (gzip/rar/7z)', async () => {
+      const file = { size: 1024, originalname: 'relatorio.txt', buffer: Buffer.concat([Buffer.from([0x1f, 0x8b, 0x08, 0x00]), Buffer.alloc(64, 1)]) };
       await expect(service.uploadAttachment({ sub: 'user-1' }, 'ticket-1', file))
-        .rejects.toThrow('não suportada');
+        .rejects.toThrow('Tipo de arquivo nao permitido');
+      expect(storageService.saveFile).not.toHaveBeenCalled();
     });
 
-    it('deve falhar na verificação de magic bytes se o buffer do PDF for falsificado', async () => {
-      const file = { 
-        size: 1024, 
-        originalname: 'fake.pdf',
-        buffer: Buffer.from('NOT A PDF FILE')
-      };
+    it('deve rejeitar arquivo vazio', async () => {
+      const file = { size: 0, originalname: 'vazio.pdf', buffer: Buffer.alloc(0) };
       await expect(service.uploadAttachment({ sub: 'user-1' }, 'ticket-1', file))
-        .rejects.toThrow('corrompido ou falsificado');
+        .rejects.toThrow('vazio');
+    });
+
+    it('deve rejeitar PDF com script embutido', async () => {
+      const file = { size: 1024, originalname: 'ativo.pdf', buffer: Buffer.from('%PDF-1.4\n1 0 obj << /JavaScript (app.alert(1)) >> endobj') };
+      await expect(service.uploadAttachment({ sub: 'user-1' }, 'ticket-1', file))
+        .rejects.toThrow('Arquivo recusado');
+      expect(storageService.saveFile).not.toHaveBeenCalled();
+    });
+
+    it('o tipo real manda: texto chamado fake.pdf e guardado como texto, nunca como PDF', async () => {
+      const file = { size: 1024, originalname: 'fake.pdf', buffer: Buffer.from('NOT A PDF FILE') };
+      const result = await service.uploadAttachment({ sub: 'user-1' }, 'ticket-1', file);
+      expect(result.status).toBe('QUARANTINED');
+      expect(result.storageKey.endsWith('.txt')).toBe(true);
+      expect(repository.createAttachment).toHaveBeenCalledWith(expect.objectContaining({
+        declaredMimeType: 'text/plain',
+        originalName: expect.not.stringMatching(/\.pdf$/i),
+      }));
     });
 
     it('deve gerar hash SHA-256 e salvar em QUARANTINED se for arquivo válido', async () => {
@@ -108,7 +123,7 @@ describe('SupportAttachmentService', () => {
       repository.getAttachmentById.mockResolvedValue({ id: 'att-1', ticketId: 'ticket-1', status: 'REJECTED' });
       
       await expect(service.downloadAttachment({ role: 'ADMIN' }, 'ticket-1', 'att-1'))
-        .rejects.toThrow('bloqueado por motivos de segurança (vírus detectado)');
+        .rejects.toThrow('bloqueado por motivos de seguranca');
     });
 
     it('deve rejeitar se o ator ADMIN for de uma empresa diferente do ticket', async () => {
