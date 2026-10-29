@@ -5,12 +5,12 @@
 set -Eeuo pipefail
 
 cd "$(dirname "$0")/../.."
-set -a; . ./.env; set +a
+source scripts/deploy/env-options.sh
+load_deploy_options MIGRATIONS_FROM
 COMPOSE="docker compose -f docker-compose.prod.yml"
-DB_USER="${POSTGRES_USER:-innovation}"; DB_NAME="${POSTGRES_DB:-innovation_db}"
 FROM="${MIGRATIONS_FROM:-20261006100001}"
 DRY="${1:-}"
-psql_() { $COMPOSE exec -T db psql -U "$DB_USER" -d "$DB_NAME" -v ON_ERROR_STOP=1 "$@"; }
+psql_() { $COMPOSE exec -T db sh -c 'exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 "$@"' sh "$@"; }
 
 psql_ -qc 'CREATE TABLE IF NOT EXISTS "_manual_migrations" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now());'
 
@@ -23,6 +23,11 @@ if [ "$TABLES" = "0" ] && [ "$DRY" != "--dry-run" ]; then
 fi
 
 APPLIED=$(psql_ -Atc 'SELECT name FROM "_manual_migrations";')
+if [ "$(psql_ -Atc "SELECT to_regclass('public._prisma_migrations') IS NOT NULL;")" = t ]; then
+  FAILED=$(psql_ -Atc 'SELECT count(*) FROM "_prisma_migrations" WHERE finished_at IS NULL AND rolled_back_at IS NULL;')
+  [ "$FAILED" = 0 ] || { echo 'Há migração Prisma incompleta. Nenhum serviço será trocado.'; exit 1; }
+  APPLIED="$(printf '%s\n' "$APPLIED"; psql_ -Atc 'SELECT migration_name FROM "_prisma_migrations" WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL;')"
+fi
 PENDING=0
 for dir in $(ls -1 apps/api/prisma/migrations | sort); do
   [ -f "apps/api/prisma/migrations/$dir/migration.sql" ] || continue
@@ -33,7 +38,7 @@ for dir in $(ls -1 apps/api/prisma/migrations | sort); do
   PENDING=$((PENDING+1))
   echo "â†’ $dir"
   [ "$DRY" = "--dry-run" ] && continue
-  { echo "BEGIN;"; cat "apps/api/prisma/migrations/$dir/migration.sql"; echo; echo "INSERT INTO \"_manual_migrations\"(name) VALUES ('$dir');"; echo "COMMIT;"; } | psql_ -q
+  { echo "BEGIN; SET LOCAL lock_timeout = '15s'; SET LOCAL statement_timeout = '10min';"; cat "apps/api/prisma/migrations/$dir/migration.sql"; echo; echo "INSERT INTO \"_manual_migrations\"(name) VALUES ('$dir');"; echo "COMMIT;"; } | psql_ -q
   echo "  aplicada."
 done
 echo "Pendentes: $PENDING $( [ "$DRY" = "--dry-run" ] && echo '(simulaÃ§Ã£o)')"

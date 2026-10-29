@@ -48,10 +48,10 @@ test.describe('Faturas: integração da interface com API isolada', () => {
       checkoutCalled = true;
       return route.fulfill({ json: { active: true, company, paymentUrl: null } });
     });
-    page.on('dialog', dialog => dialog.accept());
     await page.goto('/e2e/dashboard/faturas?aba=assinaturas');
     await page.getByRole('button', { name: 'Detalhes', exact: true }).click();
     await page.getByRole('button', { name: 'Gerar cobrança', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Gerar cobrança de onboarding', exact: true }).getByRole('button', { name: 'Gerar cobrança', exact: true }).click();
     await expect.poll(() => checkoutCalled).toBe(true);
     await expect(page.getByText('Cobrança de onboarding gerada.', { exact: true })).toBeVisible();
   });
@@ -70,7 +70,7 @@ test.describe('Faturas: integração da interface com API isolada', () => {
     await dialog.getByLabel('Valor em R$', { exact: true }).fill('150');
     await dialog.getByLabel('Vencimento', { exact: true }).fill('2026-10-30');
     await dialog.getByRole('checkbox', { name: 'Enviar automaticamente ao Asaas' }).uncheck();
-    await dialog.getByRole('button', { name: 'Confirmar', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Nova cobrança avulsa', exact: true }).click();
     await expect.poll(() => body?.sendToAsaas).toBe(false);
     expect(body).toMatchObject({ companyId: company.id, amount: 150, description: 'Taxa manual E2E' });
     await expect(page.getByText('Fatura local registrada.', { exact: true })).toBeVisible();
@@ -97,7 +97,7 @@ test.describe('Faturas: integração da interface com API isolada', () => {
     await page.getByRole('button', { name: 'Cancelar assinatura', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: 'Cancelar assinatura', exact: true });
     await dialog.getByLabel('Motivo (fica no registro)', { exact: true }).fill('Cancelamento de teste');
-    await dialog.getByRole('button', { name: 'Confirmar', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Cancelar assinatura', exact: true }).click();
     await expect(dialog.getByRole('alert')).toContainText('O provedor não confirmou o cancelamento.');
     await expect(dialog).toBeVisible();
     await expect(page.getByText('Assinatura cancelada.', { exact: true })).toHaveCount(0);
@@ -111,7 +111,7 @@ test('aba Devoluções acompanha a confirmação sem declarar estorno antecipado
     refunds: [{ id: 'refund-e2e', kind: 'PARTIAL', amount: 40, status: 'UNKNOWN', reason: 'Ajuste acordado', createdAt: '2026-10-07' }] };
   await page.route(`**/faturas/plataforma/companies/${company.id}/invoices`, route => route.fulfill({ json: [paid] }));
   await openCompany(page);
-  await page.getByRole('button', { name: 'Devoluções', exact: true }).click();
+  await page.getByRole('tab', { name: /^Devoluções/ }).click();
   await expect(page.getByText('Confirmação pendente: sincronize')).toBeVisible();
   await expect(page.getByText('Ajuste acordado')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reembolso parcial' })).toHaveCount(0);

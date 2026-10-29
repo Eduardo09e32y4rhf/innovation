@@ -84,7 +84,7 @@ export const jobsApi = {
   talent: (q = '') => request<{ id: string; name: string; email?: string | null; phone?: string | null; status: string; applications: { id: string; jobId: string; status: string; job: { title: string } }[] }[]>(`/jobs/talent${q ? `?q=${enc(q)}` : ''}`),
 
   pipeline: () => request<Pipeline>('/jobs/pipeline'),
-  savePipeline: (stages: Stage[], name?: string) => request<Pipeline>('/jobs/pipeline', { method: 'PUT', body: { name, stages: stages.map(({ id, name, color, kind }) => ({ id, name, color, kind })) } }),
+  savePipeline: (stages: Stage[], name?: string) => request<Pipeline>('/jobs/pipeline', { method: 'PUT', body: { name, stages: stages.map(({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel }) => ({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel })) } }),
 
   questions: (jobId: string) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`),
   saveQuestions: (jobId: string, questions: Question[]) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`, { method: 'PUT', body: { questions: questions.map(questionPayload) } }),
@@ -93,7 +93,7 @@ export const jobsApi = {
 
   applications: (jobId: string, filters?: ApplicationFilters) => request<ApplicationsPayload>(`/jobs/${enc(jobId)}/applications${query(filters)}`),
   application: (id: string) => request<ApplicationDetail>(`/jobs/applications/${enc(id)}`),
-  move: (id: string, body: { stageId: string; note?: string; rejectionReason?: string; rejectionCode?: string }) => request<unknown>(`/jobs/applications/${enc(id)}/stage`, { method: 'PATCH', body }),
+  move: (id: string, body: { stageId: string; note?: string; rejectionReason?: string; rejectionCode?: string }) => request<import('./types').MoveApplicationResult>(`/jobs/applications/${enc(id)}/stage`, { method: 'PATCH', body }),
   bulk: (body: { ids: string[]; action: 'MOVE' | 'TAG_ADD' | 'TAG_REMOVE' | 'FAVORITE'; stageId?: string; tagId?: string; value?: boolean; rejectionReason?: string; rejectionCode?: string }) =>
     request<{ moved?: number; failed?: number; errors?: string[]; updated?: number }>('/jobs/applications/bulk', { method: 'POST', body }),
   favorite: (id: string, favorite: boolean) => request<unknown>(`/jobs/applications/${enc(id)}/favorite`, { method: 'PATCH', body: { favorite } }),

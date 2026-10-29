@@ -54,7 +54,7 @@ export function EmployeeDrawer({ companyId, month, row, canAdjust, payroll, onCl
             <PayrollSheet data={payroll} canEdit={canAdjust} onChanged={onAdjusted} />
           </section>
           <section aria-labelledby="aj-titulo">
-            <h4 id="aj-titulo" className="mb-2 font-semibold">Ajustes do ponto (calculado × ajustado)</h4>
+            <h4 id="aj-titulo" className="mb-2 font-semibold">Ajustes manuais (calculado × ajustado)</h4>
             {adjustments.length === 0 ? <p className="text-sm text-fg-sub">Nenhum ajuste neste mês.</p> : (
               <ul className="space-y-2">{adjustments.map((a) => (
                 <li key={a.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">

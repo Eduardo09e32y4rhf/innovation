@@ -13,6 +13,7 @@ keys_status.json
 dynamic_keys.json
 
 # Temporary & Logs
+.deploy/
 *.log
 *.out.log
 *.err.log

@@ -1,5 +1,9 @@
 .git
 .github
+.deploy
+tests-e2e/node_modules
+tests-e2e/test-results
+tests-e2e/playwright-report
 node_modules
 apps/*/node_modules
 apps/api/dist

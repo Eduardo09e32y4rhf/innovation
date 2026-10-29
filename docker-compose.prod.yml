@@ -1,10 +1,17 @@
 # ProduÃ§Ã£o (VPS). Todos os segredos vÃªm do arquivo .env ao lado deste compose.
 # Primeiro uso:  bash scripts/security/bootstrap-env.sh   (gera segredos fortes sem sobrescrever os existentes)
-# Subir:         docker compose -f docker-compose.prod.yml up -d --build
+# Subir:         docker compose -f docker-compose.prod.yml up -d   (primeira instalacao; atualizacoes: scripts/deploy/vps-update.sh)
 # O compose RECUSA subir se faltar segredo obrigatÃ³rio (sintaxe ${VAR:?}).
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
   db:
+    logging: *default-logging
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-innovation}
@@ -24,6 +31,7 @@ services:
     restart: always
 
   redis:
+    logging: *default-logging
     image: redis:7-alpine
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?defina REDIS_PASSWORD no .env}", "--appendonly", "yes"]
     volumes:
@@ -39,7 +47,9 @@ services:
     restart: always
 
   api:
-    image: ghcr.io/eduardo09e32y4rhf/innovation-api:${IMAGE_TAG:-latest}
+    # Imagem pronta: o deploy define API_IMAGE (tag local do pacote do CI ou GHCR). O bloco build fica so como reserva manual.
+    image: ${API_IMAGE:-ghcr.io/eduardo09e32y4rhf/innovation-api:${IMAGE_TAG:-latest}}
+    logging: *default-logging
     build:
       context: .
       dockerfile: apps/api/Dockerfile
@@ -172,6 +182,7 @@ services:
     restart: always
 
   clamav:
+    logging: *default-logging
     image: clamav/clamav:stable
     # Sem 'ports': so a API (rede interna) usa o scanner. Na 1a subida baixa as definicoes (alguns minutos; ~1-2 GB de RAM).
     # Nao reduza abaixo de ~1.5g: o clamd carrega o banco de assinaturas inteiro e e morto por OOM em loop.
@@ -182,7 +193,8 @@ services:
     restart: always
 
   web:
-    image: ghcr.io/eduardo09e32y4rhf/innovation-web:${IMAGE_TAG:-latest}
+    image: ${WEB_IMAGE:-ghcr.io/eduardo09e32y4rhf/innovation-web:${IMAGE_TAG:-latest}}
+    logging: *default-logging
     build:
       context: .
       dockerfile: apps/web/Dockerfile

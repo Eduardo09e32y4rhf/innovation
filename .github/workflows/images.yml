@@ -4,7 +4,8 @@ name: Imagens Docker
 # A VPS so faz "docker compose pull" (sem build local, que derrubava a maquina por falta de memoria).
 on:
   push:
-    branches: [main, 'claude/**']
+    # Na main quem constroi e publica e o deploy.yml (imagens enviadas a VPS). Aqui so branches de trabalho e disparo manual.
+    branches: ['claude/**']
   workflow_dispatch:
 
 permissions:

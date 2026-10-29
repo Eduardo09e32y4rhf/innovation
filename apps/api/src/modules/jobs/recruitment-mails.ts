@@ -25,6 +25,11 @@ export function applicationRejectedEmail(input: { name: string; jobTitle: string
   };
 }
 
+export function candidateStageChangedEmail(input: { name: string; jobTitle: string; company: string; stage: string; statusUrl?: string | null }): MailContent {
+  const body = `<p>Olá, ${escapeHtml(input.name)}.</p><p>Sua candidatura para <strong>${escapeHtml(input.jobTitle)}</strong> na ${escapeHtml(input.company)} avançou.</p><p style="margin:18px 0;padding:14px 16px;border-radius:10px;background:#f0eafa;color:#4c1d95;font-weight:700">${escapeHtml(input.stage)}</p>`;
+  return { subject: `Sua candidatura avançou: ${input.jobTitle}`, html: portalLayout('Atualização da sua candidatura', body, input.statusUrl ? { label: 'Acompanhar candidatura', url: input.statusUrl } : undefined), text: `Olá, ${input.name}.\n\nSua candidatura para ${input.jobTitle} na ${input.company} avançou para: ${input.stage}.${input.statusUrl ? `\n\nAcompanhe: ${input.statusUrl}` : ''}` };
+}
+
 export function candidateRequestAnsweredEmail(input: { company: string; type: string; response: string }): MailContent {
   const label: Record<string, string> = { ACCESS: 'acesso aos dados', CORRECTION: 'correção de dados', DELETION: 'exclusão de dados' };
   return {

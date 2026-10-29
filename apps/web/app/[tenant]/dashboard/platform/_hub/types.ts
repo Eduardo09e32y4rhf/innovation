@@ -35,14 +35,14 @@ export interface CompanyOverview {
 
 export type Overview = GlobalOverview | CompanyOverview;
 
-export interface AccountingTotals { gross: number; net: number; inss: number; irrf: number; fgts: number; closings: number; payrolls?: number; payrollGross?: number; payrollNet?: number }
+export interface AccountingTotals { gross: number; net: number; inss: number; irrf: number; fgts: number; closings: number; estimatedClosings: number; payrolls: number }
 
 export interface AccountingGlobal {
   scope: 'GLOBAL';
   period: { year: number; month: number; key: string };
   ruleVersions: Record<string, string | null>;
   totals: AccountingTotals & { companies: number; withClosings: number; closingsPending: number; payrollsPending: number };
-  companies: { id: string; name: string; document: string | null; status: string; closings: number; closingsPending: number; gross: number; net: number; inss: number; irrf: number; fgts: number; payrolls: number; payrollsPending: number }[];
+  companies: { id: string; name: string; document: string | null; status: string; closings: number; closingsPending: number; gross: number; net: number; inss: number; irrf: number; fgts: number; estimatedClosings: number; payrolls: number; payrollsPending: number }[];
 }
 
 export interface AccountingCompany {
@@ -52,7 +52,7 @@ export interface AccountingCompany {
   ruleVersions: Record<string, string | null>;
   totals: AccountingTotals;
   closings: { id: string; status: string; grossPay: number; netPay: number; inssDiscount: number; irrfDiscount: number; fgtsAmount: number; overtime50: number; overtime100: number; nightShift: number; calculationVersion: string; updatedAt: string; employee: { name: string; position: string | null } | null }[];
-  payrolls: { id: string; status: string; baseSalary: number; overtimeAmount: number; nightShiftAmount: number; grossSalary: number; inssAmount: number; irrfAmount: number; fgtsAmount: number; netSalary: number; calculationVersion: string | null; updatedAt: string; employee: { name: string; position: string | null } | null }[];
+  payrolls: { id: string; status: string; baseSalary: number; overtimeAmount: number; nightShiftAmount: number; grossSalary: number; inssAmount: number; irrfAmount: number; fgtsAmount: number; netSalary: number; needsRecalculation: boolean; calculationVersion: string | null; updatedAt: string; items: { type: string; description: string; amount: number; isDeduction: boolean }[]; employee: { name: string; position: string | null } | null }[];
 }
 
 export type AccountingOverview = AccountingGlobal | AccountingCompany;

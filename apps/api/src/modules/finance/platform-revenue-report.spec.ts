@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { ForbiddenException } from '@nestjs/common';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ROLES_KEY } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';

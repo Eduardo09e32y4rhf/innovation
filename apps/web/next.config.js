@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 // ---- Cabecalhos de seguranca (SEG headers, Onda 1) ----
 // Origem (scheme+host) de uma URL absoluta; '/api' relativo = mesma origem ('self'), nada a acrescentar.
@@ -39,6 +41,8 @@ function buildCsp(isProd) {
 }
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
+  experimental: { outputFileTracingRoot: path.join(__dirname, '../..') },
   typescript: {
     ignoreBuildErrors: false,
   },

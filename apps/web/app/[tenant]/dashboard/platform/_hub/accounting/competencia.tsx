@@ -34,13 +34,14 @@ export function GlobalCompetencia({ g, month, onOpenCompany }: { g: AccountingGl
         {pendingTotal ? `${pendingTotal} item(ns) ainda pendente(s) de revisão em ${counts.pendentes} empresa(s).` : 'Nenhuma pendência de revisão nesta competência.'}
       </p>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <Kpi label="Empresas com folha" value={`${t.withClosings} / ${t.companies}`} />
+        <Kpi label="Empresas com apuração" value={`${t.withClosings} / ${t.companies}`} />
         <Kpi label="Fechamentos" value={String(t.closings)} hint={t.closingsPending ? `${t.closingsPending} pendente(s)` : 'Todos revisados'} tone={t.closingsPending ? 'warn' : 'good'} />
         <Kpi label="Folhas" value={String(t.payrolls ?? 0)} hint={t.payrollsPending ? `${t.payrollsPending} pendente(s)` : undefined} tone={t.payrollsPending ? 'warn' : undefined} />
         <Kpi label="Bruto" value={money(t.gross)} />
-        <Kpi label="Encargos" value={money(t.inss + t.irrf + t.fgts)} hint="INSS + IRRF + FGTS" />
+        <Kpi label="Retenções + FGTS" value={money(t.inss + t.irrf + t.fgts)} hint="INSS e IRRF retidos; FGTS da empresa" />
         <Kpi label="Líquido" value={money(t.net)} tone="good" />
       </div>
+      <p className="text-xs text-fg-sub">Totais: {t.payrolls} folha(s) e {t.estimatedClosings} fechamento(s) sem folha. A folha substitui a previsão do ponto para o mesmo funcionário e ciclo.</p>
       <Obligations month={month} inss={t.inss} irrf={t.irrf} fgts={t.fgts} />
 
       <section aria-label="Empresas" className="rounded-2xl border border-border bg-bg shadow-sm">
@@ -49,10 +50,10 @@ export function GlobalCompetencia({ g, month, onOpenCompany }: { g: AccountingGl
             <Search size={15} className="pointer-events-none absolute left-3.5 top-3 text-fg-sub" aria-hidden="true" />
             <input className="input-v2 !rounded-full !pl-10 w-full text-sm" placeholder="Buscar empresa ou CNPJ" aria-label="Buscar empresa" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          {([['todas', 'Todas'], ['pendentes', 'Com pendência'], ['sem', 'Sem fechamento']] as const).map(([id, label]) => (
+          {([['todas', 'Todas'], ['pendentes', 'Com pendência'], ['sem', 'Sem apuração']] as const).map(([id, label]) => (
             <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)} className={`min-h-9 rounded-full px-3.5 text-xs font-bold ${filter === id ? 'bg-slate-900 text-white' : 'border border-border text-fg-sub hover:bg-bg-sub'}`}>{label} · {counts[id]}</button>
           ))}
-          <Button variant="outline" size="sm" onClick={() => saveCsv(`contabilidade-${month}.csv`, [['Empresa', 'CNPJ', 'Fechamentos', 'Pendentes', 'Bruto', 'INSS', 'IRRF', 'FGTS', 'Líquido'], ...rows.map((r) => [r.name, r.document ?? '', r.closings, r.closingsPending, r.gross, r.inss, r.irrf, r.fgts, r.net])])}><FileSpreadsheet size={14} aria-hidden="true" /> CSV</Button>
+          <Button variant="outline" size="sm" onClick={() => saveCsv(`contabilidade-${month}.csv`, [['Empresa', 'CNPJ', 'Fechamentos', 'Folhas', 'Fechamentos sem folha', 'Pendentes', 'Bruto', 'INSS retido', 'IRRF retido', 'FGTS patronal', 'Líquido'], ...rows.map((r) => [r.name, r.document ?? '', r.closings, r.payrolls, r.estimatedClosings, r.closingsPending + r.payrollsPending, r.gross, r.inss, r.irrf, r.fgts, r.net])])}><FileSpreadsheet size={14} aria-hidden="true" /> CSV</Button>
         </header>
         {rows.length === 0 ? <div className="p-4"><EmptyState message="Nenhuma empresa para este filtro." /></div> : (
           <ul className="divide-y divide-border">
@@ -65,7 +66,7 @@ export function GlobalCompetencia({ g, month, onOpenCompany }: { g: AccountingGl
                   </span>
                   <span className="hidden md:block"><span className="block text-[11px] font-semibold uppercase text-fg-mut">Fechamentos</span><span className="text-sm font-semibold tabular-nums">{row.closings}{row.closingsPending > 0 && <span className="ml-1 rounded-full bg-amber-100 px-1.5 text-[11px] font-bold text-amber-800">{row.closingsPending} pend.</span>}</span></span>
                   <span className="hidden md:block"><span className="block text-[11px] font-semibold uppercase text-fg-mut">Bruto</span><span className="text-sm tabular-nums">{money(row.gross)}</span></span>
-                  <span className="hidden md:block"><span className="block text-[11px] font-semibold uppercase text-fg-mut">Encargos</span><span className="text-sm tabular-nums">{money(row.inss + row.irrf + row.fgts)}</span></span>
+                  <span className="hidden md:block"><span className="block text-[11px] font-semibold uppercase text-fg-mut">Retenções + FGTS</span><span className="text-sm tabular-nums">{money(row.inss + row.irrf + row.fgts)}</span></span>
                   <span className="text-right"><span className="block text-[11px] font-semibold uppercase text-fg-mut">Líquido</span><span className="text-sm font-black tabular-nums text-emerald-600">{money(row.net)}</span></span>
                 </button>
               </li>
@@ -93,7 +94,7 @@ export function CompanyCompetencia({ c, month, canEdit, refetch }: { c: Accounti
   const pending = c.closings.filter((r) => ['DRAFT', 'IN_REVIEW'].includes(r.status)).length;
   const rule = Object.values(c.ruleVersions).filter(Boolean).join(' · ');
 
-  const approvable = list.filter((row) => row.status === 'DRAFT' || (tab === 'fechamentos' && row.status === 'IN_REVIEW'));
+  const approvable = list.filter((row) => (row.status === 'DRAFT' || (tab === 'fechamentos' && row.status === 'IN_REVIEW')) && !('needsRecalculation' in row && row.needsRecalculation));
   const askConfirm = useConfirm();
   async function approveAll() {
     if (busy) return;
@@ -124,7 +125,7 @@ export function CompanyCompetencia({ c, month, canEdit, refetch }: { c: Accounti
         <div className="min-w-0"><h2 className="truncate text-lg font-black text-fg">{c.company.name}</h2><p className="text-xs text-fg-sub">{c.company.document ?? 'Sem CNPJ'}{rule ? ` · regras: ${rule}` : ''}</p></div>
         <div className="flex flex-wrap gap-2">
           {canEdit && approvable.length > 0 && <Button isLoading={busy} onClick={approveAll}><CheckCircle2 size={15} aria-hidden="true" /> Aprovar {approvable.length} pendente(s)</Button>}
-          {canEdit && <Button variant="outline" isLoading={busy} onClick={recalc}><RefreshCw size={15} aria-hidden="true" /> Recalcular rascunhos</Button>}
+          {canEdit && <Button variant="outline" isLoading={busy} onClick={recalc}><RefreshCw size={15} aria-hidden="true" /> Recalcular fechamentos</Button>}
           <Button variant="outline" onClick={() => saveCsv(`${c.company.name}-${tab}-${month}.csv`, [['Funcionário', 'Cargo', 'Situação', 'Bruto', 'INSS', 'IRRF', 'FGTS', 'Líquido'], ...filtered.map((row) => { const f = fields(row); return [row.employee?.name ?? '', row.employee?.position ?? '', WORKFLOW_STATUS[row.status] ?? row.status, f.gross, f.inss, f.irrf, f.fgts, f.net]; })])}><Download size={15} aria-hidden="true" /> CSV</Button>
         </div>
       </section>
@@ -137,6 +138,7 @@ export function CompanyCompetencia({ c, month, canEdit, refetch }: { c: Accounti
         <Kpi label="IRRF" value={money(c.totals.irrf)} />
         <Kpi label="Líquido" value={money(c.totals.net)} tone="good" />
       </div>
+      <p className="text-xs text-fg-sub">Totais: {c.totals.payrolls} folha(s) e {c.totals.estimatedClosings} fechamento(s) ainda sem folha. Valores do ponto não são somados novamente quando há folha para o mesmo funcionário e ciclo.</p>
       <Obligations month={month} inss={c.totals.inss} irrf={c.totals.irrf} fgts={c.totals.fgts} />
 
       <section className="rounded-2xl border border-border bg-bg shadow-sm">
@@ -166,7 +168,7 @@ export function CompanyCompetencia({ c, month, canEdit, refetch }: { c: Accounti
                   return (
                     <tr key={row.id} tabIndex={0} className="cursor-pointer border-b border-border last:border-0 hover:bg-bg-sub focus:bg-bg-sub focus:outline-none" onClick={() => ('grossPay' in row ? setClosing(row) : setPayroll(row))} onKeyDown={(e) => { if (e.key === 'Enter') ('grossPay' in row ? setClosing(row) : setPayroll(row)); }}>
                       <th scope="row" className="px-4 py-3 text-left"><span className="block font-bold text-fg">{row.employee?.name}</span><span className="block text-xs font-normal text-fg-sub">{row.employee?.position ?? ''}</span></th>
-                      <td className="px-4 py-3"><StatusPill status={row.status} /></td>
+                      <td className="px-4 py-3"><StatusPill status={row.status} />{'needsRecalculation' in row && row.needsRecalculation && <span className="ml-1 text-xs font-semibold text-amber-700">Recalcular</span>}</td>
                       <td className="px-4 py-3 tabular-nums">{money(f.gross)}</td>
                       <td className="px-4 py-3 tabular-nums text-rose-600">{money(f.inss)}</td>
                       <td className="px-4 py-3 tabular-nums text-rose-600">{money(f.irrf)}</td>

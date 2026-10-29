@@ -377,6 +377,7 @@ model Company {
   positionsCatalog CompanyPosition[]
   candidates       Candidate[]
   applications     Application[]
+  recruitmentWorkflowRuns RecruitmentWorkflowRun[]
   transactions     FinancialTransaction[]
   privacyConsents  PrivacyConsent[]
   auditLogs        AuditLog[]
@@ -1388,11 +1389,38 @@ model PipelineStage {
   color      String            @default("#6b7280")
   position   Int               @default(0)
   kind       ApplicationStatus @default(SCREENING)
+  automation       String  @default("NONE")
+  automationConfig Json?
+  notifyCandidate  Boolean @default(false)
+  candidateLabel   String?
 
   pipeline     HiringPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   applications Application[]
+  workflowRuns RecruitmentWorkflowRun[]
 
   @@index([pipelineId, position])
+}
+
+model RecruitmentWorkflowRun {
+  id             String   @id @default(uuid()) @db.Uuid
+  companyId      String   @db.Uuid
+  applicationId  String   @db.Uuid
+  stageId        String   @db.Uuid
+  action         String
+  idempotencyKey String   @unique
+  status         String   @default("PENDING")
+  attempts       Int      @default(0)
+  result         Json?
+  error          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  application Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  stage       PipelineStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status, createdAt])
+  @@index([applicationId, createdAt])
 }
 
 model JobQuestion {
@@ -1635,6 +1663,7 @@ model Application {
   events      ApplicationEvent[]
   notes       ApplicationNote[]
   interviews  ApplicationInterview[]
+  workflowRuns RecruitmentWorkflowRun[]
 
   @@unique([companyId, candidateId, jobId])
   @@index([companyId])

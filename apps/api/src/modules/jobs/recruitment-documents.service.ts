@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, PayloadTooLargeException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional, PayloadTooLargeException, UnprocessableEntityException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
@@ -6,6 +6,7 @@ import { candidateDocumentsEmail, candidateHiredEmail } from './recruitment-mail
 import { CandidateDocumentScanner } from './candidate-document-scanner.service';
 import { JobScopeService } from './job-scope.service';
 import { JobsStorageService } from './jobs-storage.service';
+import { RecruitmentWorkflowService } from './recruitment-workflow.service';
 import {
   DEFAULT_LINK_DAYS,
   MAX_DOCUMENT_BYTES,
@@ -35,6 +36,7 @@ export class RecruitmentDocumentsService {
     private readonly scanner: CandidateDocumentScanner,
     private readonly scope: JobScopeService,
     private readonly mail: MailService,
+    @Optional() private readonly workflow?: RecruitmentWorkflowService,
   ) {}
 
   private appBase() { return (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); }
@@ -81,6 +83,7 @@ export class RecruitmentDocumentsService {
         emailed = result.sent;
       }
     }
+    await this.workflow?.completeRequiredAction(applicationId, 'REQUEST_DOCUMENTS', 'Checklist documental criado e enviado ao candidato.');
     return { ...request, token, path: `/carreiras/documentos/${token}`, emailed };
   }
 

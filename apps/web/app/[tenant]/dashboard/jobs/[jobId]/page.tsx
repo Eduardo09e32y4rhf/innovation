@@ -85,7 +85,7 @@ export default function JobCandidatesPage() {
     if (stage.kind === 'REJECTED') { setRejectStageId(stageId); setReject({ ids: [applicationId] }); return; }
     // Entrevista: o RH define na hora se e presencial (local) ou online (link) e o candidato recebe o convite por e-mail.
     if (stage.kind === 'INTERVIEW' && app?.stageId !== stageId) { setInterviewMove({ id: applicationId, stageId, stageName: stage.name, name: app?.candidate?.name ?? 'Candidato' }); return; }
-    try { await jobsApi.move(applicationId, { stageId }); toast.success(`Movido para ${stage.name}.`); refresh(); }
+    try { const result = await jobsApi.move(applicationId, { stageId }); if (result.workflow?.status === 'FAILED') toast.warning(`Movido para ${stage.name}, mas a automação falhou: ${result.workflow.message ?? 'tente novamente.'}`); else toast.success(`Movido para ${stage.name}.${result.workflow?.message ? ` ${result.workflow.message}` : ''}`); refresh(); }
     catch (cause) { toast.error(message(cause, 'Não foi possível mover o candidato.')); }
   });
 

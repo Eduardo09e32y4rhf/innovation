@@ -82,7 +82,9 @@ export function productionEnvProblems(config: Record<string, unknown>): string[]
     problems.push('Redis must require a password in production (REDIS_URL=redis://:password@host:6379 or REDIS_PASSWORD).');
   }
 
-  // Segredos de webhook/métricas são obrigatórios em produção, independentemente do provedor configurado.
+  // Métricas sempre ficam protegidas. Webhook só é obrigatório quando o
+  // respectivo provedor está ativo; um segredo aleatório local não corresponde
+  // ao valor cadastrado no Asaas/Mercado Pago.
   const required = (key: string, minLength: number) => {
     const value = text(key);
     if (!value) problems.push(`${key} is required in production.`);
@@ -91,9 +93,11 @@ export function productionEnvProblems(config: Record<string, unknown>): string[]
     }
   };
   required('METRICS_TOKEN', 16);
-  if (!text('ASAAS_WEBHOOK_TOKEN') && text('ASAAS_WEBHOOK_SECRET')) required('ASAAS_WEBHOOK_SECRET', 32);
-  else required('ASAAS_WEBHOOK_TOKEN', 32);
-  required('MERCADOPAGO_WEBHOOK_SECRET', 16);
+  if (text('ASAAS_API_KEY')) {
+    if (!text('ASAAS_WEBHOOK_TOKEN') && text('ASAAS_WEBHOOK_SECRET')) required('ASAAS_WEBHOOK_SECRET', 32);
+    else required('ASAAS_WEBHOOK_TOKEN', 32);
+  }
+  if (text('MERCADOPAGO_ACCESS_TOKEN')) required('MERCADOPAGO_WEBHOOK_SECRET', 16);
   return problems;
 }
 

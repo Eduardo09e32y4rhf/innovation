@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Roda o deploy em segundo plano, desligado do terminal: sobrevive à queda do terminal do painel ou do navegador do celular.
-# Uso:  bash scripts/deploy/vps-update-bg.sh [branch]
+# Uso:  bash scripts/deploy/vps-update-bg.sh [sha|main] [--prebuilt]
 #       tail -f storage/deploy-*.log        (acompanhar; Ctrl+C sai do tail SEM parar o deploy)
 set -Eeuo pipefail
 
@@ -14,4 +14,4 @@ PID=$!
 echo "Deploy iniciado em segundo plano (PID $PID)."
 echo "Log: $LOG"
 echo "Acompanhe com:  tail -f $LOG"
-echo "Termina com 'API saudável. Deploy ... concluído.' ou com 'FALHA'."
+echo "Termina com 'Deploy saudável: <sha>' ou com 'FALHA'."

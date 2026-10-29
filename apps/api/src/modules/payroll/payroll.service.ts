@@ -5,6 +5,8 @@ import { PrismaService } from '../../database/prisma.service';
 import { computeDeductions, DEDUCTION_PREFIX } from './deduction-rules';
 import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
 import { overtimePaymentRatio } from '../time-track/overtime-policy';
+import { monthlySalaryFraction } from '../time-track/salary-period';
+import { reconcilePayroll } from './payroll-reconciliation';
 import { CancelPayrollDto, CreatePayrollDto, DEDUCTION_TYPES, MANUAL_ITEM_TYPES, ManualPayrollItemDto, ManualPayrollItemInput, UpdatePayrollDto } from './dto/create-payroll.dto';
 
 const DAY_MS = 86_400_000;
@@ -154,13 +156,14 @@ export class PayrollService {
     const rule = employee.workScheduleRule;
     const restDays = Array.isArray(rule?.restDaysOfWeek) && rule!.restDaysOfWeek!.length ? rule!.restDaysOfWeek! : scale === '6X1' ? [0] : [0, 6];
 
-    let workdays = 0; let sundays = 0;
+    let workdays = 0; let paidRestDays = 0;
+    const dsrDay = restDays.includes(0) ? 0 : restDays[0];
     for (let i = 0; i < days; i++) {
       const dow = new Date(start.getTime() + i * DAY_MS).getUTCDay();
-      if (restDays.includes(dow)) { if (dow === 0) sundays++; } else workdays++;
+      if (!restDays.includes(dow)) workdays++;
+      if (dow === dsrDay) paidRestDays++;
     }
-    const lastOfMonth = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 1, 0)).getUTCDate();
-    const fullMonth = start.getUTCDate() === 1 && end.getUTCDate() === lastOfMonth && start.getUTCMonth() === end.getUTCMonth() && start.getUTCFullYear() === end.getUTCFullYear();
+    const salaryPeriodFraction = monthlySalaryFraction(start, end);
 
     const tracks = await this.prisma.timeTrack.findMany({
       where: { companyId, employeeId: employee.id, date: { gte: start, lte: end } },
@@ -179,7 +182,7 @@ export class PayrollService {
     const calc = this.officialCalculator.calculate({
       salary,
       weeklyMinutes: dailyMinutes * Math.max(1, 7 - restDays.length),
-      isPartialMonth: !fullMonth,
+      salaryPeriodFraction,
       scheduledMinutesInPeriod: workdays * dailyMinutes,
       overtime50Minutes: paidOvertime((t) => t.overtime50Minutes),
       overtime100Minutes: paidOvertime((t) => t.overtime100Minutes),
@@ -188,7 +191,7 @@ export class PayrollService {
       lateMinutes: sum((t) => t.lateMinutes),
       earlyLeaveMinutes: sum((t) => t.earlyLeaveMinutes),
       payableWorkdays: workdays,
-      paidRestDays: sundays,
+      paidRestDays,
       dependents,
       taxContext,
     });
@@ -215,7 +218,7 @@ export class PayrollService {
       isManual: true, manualReason: i.reason?.trim() || null, editedById: i.editedById ?? null, editedAt: i.editedAt ?? null,
     });
     const items = [
-      item('BASE_SALARY', fullMonth ? 'Salário base' : `Salário proporcional (${workdays} dia(s) úteis do ciclo)`, calc.salaryBase, false),
+      item('BASE_SALARY', salaryPeriodFraction === 1 ? 'Salário do ciclo mensal' : 'Salário proporcional aos dias corridos do ciclo', calc.salaryBase, false),
       ...(calc.overtime50Value + calc.overtime100Value > 0 ? [item('OVERTIME', 'Horas extras aprovadas', calc.overtime50Value + calc.overtime100Value, false)] : []),
       ...(calc.nightShiftValue > 0 ? [item('NIGHT_SHIFT', 'Adicional noturno', calc.nightShiftValue, false)] : []),
       ...(calc.dsrValue > 0 ? [item('OTHER_EARNING', 'DSR sobre horas variáveis', calc.dsrValue, false)] : []),
@@ -294,6 +297,7 @@ export class PayrollService {
     const payroll = await this.load(companyId, id);
     if (payroll.status !== 'DRAFT') throw new BadRequestException('Só folha em rascunho pode ser aprovada.');
     if (this.serialize(payroll).invalid) throw new BadRequestException('Esta folha tem valores inválidos. Recalcule antes de aprovar.');
+    if (!reconcilePayroll(payroll)) throw new BadRequestException('Os totais da folha não conferem com os lançamentos. Recalcule antes de aprovar.');
     await this.prisma.payroll.update({ where: { id }, data: { status: 'APPROVED', approvedBy: actorId, approvedAt: new Date() } });
     return this.get(companyId, id);
   }

@@ -1,4 +1,4 @@
-import { BadRequestException, GoneException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, forwardRef, GoneException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { normalizeTechnicalQuestions, PROFILES, publicBehavioralItems, publicTechnicalQuestions, scoreBehavioral, scoreTechnical, type Profile, type TechnicalQuestion } from './assessment-rules';
@@ -18,7 +18,7 @@ export class AssessmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
-    private readonly recruitment: RecruitmentService,
+    @Inject(forwardRef(() => RecruitmentService)) private readonly recruitment: RecruitmentService,
     private readonly notifier: RecruiterNotifierService,
   ) {}
 
@@ -52,7 +52,7 @@ export class AssessmentsService {
     return this.prisma.jobAssessment.upsert({ where: { jobId }, create: { ...data, jobId, companyId }, update: data });
   }
 
-  async send(companyId: string, userId: string, applicationId: string, dto: { kind: 'TECHNICAL' | 'BEHAVIORAL'; validDays?: number }) {
+  async send(companyId: string, userId: string, applicationId: string, dto: { kind: 'TECHNICAL' | 'BEHAVIORAL'; validDays?: number; reusePending?: boolean }) {
     const app = await this.prisma.application.findFirst({ where: { id: applicationId, companyId }, include: { candidate: { select: { name: true, email: true } }, job: { select: { id: true, title: true, company: { select: { name: true } } } } } });
     if (!app) throw new NotFoundException('Candidatura não encontrada.');
     if (['REJECTED', 'HIRED'].includes(app.status)) throw new BadRequestException('Este candidato não está mais no processo.');
@@ -60,14 +60,14 @@ export class AssessmentsService {
     const assessment = dto.kind === 'TECHNICAL' ? await this.prisma.jobAssessment.findFirst({ where: { jobId: app.job.id, companyId } }) : null;
     if (dto.kind === 'TECHNICAL' && !assessment) throw new BadRequestException('Esta vaga ainda não tem teste técnico. Crie em Editar vaga > Teste.');
     const pending = await this.prisma.assessmentInvite.findFirst({ where: { companyId, applicationId, kind: dto.kind, status: { in: ['SENT', 'STARTED'] }, expiresAt: { gt: new Date() } } });
-    if (pending) throw new BadRequestException('Já existe um teste deste tipo aguardando resposta. Cancele antes de enviar outro.');
+    if (pending && !dto.reusePending) throw new BadRequestException('Já existe um teste deste tipo aguardando resposta. Cancele antes de enviar outro.');
     const days = Math.min(Math.max(Math.round(dto.validDays ?? 3), 1), 14);
-    const invite = await this.prisma.assessmentInvite.create({ data: { companyId, applicationId, kind: dto.kind, assessmentId: assessment?.id ?? null, token: newPublicToken(), expiresAt: new Date(Date.now() + days * 86_400_000), createdById: userId } });
+    const invite = pending ?? await this.prisma.assessmentInvite.create({ data: { companyId, applicationId, kind: dto.kind, assessmentId: assessment?.id ?? null, token: newPublicToken(), expiresAt: new Date(Date.now() + days * 86_400_000), createdById: userId } });
     const result = await this.mail.send(app.candidate.email, assessmentInviteEmail({
       name: app.candidate.name, company: app.job.company.name, jobTitle: app.job.title, kind: dto.kind, title: assessment?.title ?? 'Questionário comportamental',
       url: `${appBase()}/carreiras/teste/${invite.token}`, expires: formatInterviewDate(invite.expiresAt).long, minutes: assessment?.timeLimitMinutes,
     }));
-    await this.prisma.applicationEvent.create({ data: { applicationId, userId, type: 'ASSESSMENT_SENT', note: `${dto.kind === 'TECHNICAL' ? 'Teste técnico' : 'Questionário comportamental'} enviado${result.sent ? '' : ' (e-mail não saiu)'}` } });
+    await this.prisma.applicationEvent.create({ data: { applicationId, userId, type: 'ASSESSMENT_SENT', note: `${dto.kind === 'TECHNICAL' ? 'Teste técnico' : 'Questionário comportamental'} ${pending ? 'reenviado' : 'enviado'}${result.sent ? '' : ' (e-mail não saiu)'}` } });
     return { id: invite.id, emailed: result.sent };
   }
 

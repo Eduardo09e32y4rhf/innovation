@@ -184,7 +184,10 @@ export class JobsService {
     }
     const result = await this.repository.hire(companyId, applicationId, actorId, dto);
     if (!result) throw new NotFoundException('Candidatura nao encontrada.');
-    if (!result.alreadyHired) void this.documents.sendHireWelcome(companyId, actorId, applicationId, dto.admissionDate, dto.contractType);
+    if (!result.alreadyHired) {
+      await this.recruitment.completeWorkflow?.(applicationId, 'COMPLETE_ADMISSION', 'Admissão concluída e funcionário criado.');
+      void this.documents.sendHireWelcome(companyId, actorId, applicationId, dto.admissionDate, dto.contractType);
+    }
     return result;
   }
 
