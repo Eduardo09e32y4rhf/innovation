@@ -1,4 +1,4 @@
-import { featureFlagProblems } from '../common/feature-flags';
+import { FROZEN_FEATURES, featureEnvName, featureFlagProblems } from '../common/feature-flags';
 
 /**
  * Variaveis OPCIONAIS (nunca exigidas, nem em producao) do Cloudflare Turnstile (captcha gratuito; ver docs/TURNSTILE.md):
@@ -6,6 +6,44 @@ import { featureFlagProblems } from '../common/feature-flags';
  *  - NEXT_PUBLIC_TURNSTILE_SITE_KEY: chave publica do widget (web, definida no build). Sem ela os formularios nao exibem o widget.
  */
 export const OPTIONAL_TURNSTILE_ENV = ['TURNSTILE_SECRET_KEY', 'NEXT_PUBLIC_TURNSTILE_SITE_KEY'] as const;
+
+/**
+ * Variaveis que a API le (process.env/ConfigService) e que docker-compose.prod.yml DEVE repassar ao container.
+ * O valor e o padrao usado no compose (`${VAR:-padrao}`): '' quando o codigo ja trata vazio como "nao definida"
+ * (`||`, trim, parse com fallback); nos demais e o proprio padrao do codigo, para que repassar nao mude o comportamento.
+ * Nada aqui e obrigatorio (ver productionEnvProblems). Guardado por tests/contract/compose-env.spec.ts.
+ */
+export const COMPOSE_API_PASSTHROUGH_ENV: Readonly<Record<string, string>> = {
+  TRUST_PROXY: 'loopback,uniquelocal', // main.ts usa `??`: vazio desligaria o proxy confiavel
+  ANALYTICS_SALT: '',
+  PRIVACY_RSA_PRIVATE_KEY: '',
+  TRIAL_DOCUMENT_HASH_SECRET: '',
+  WHATSAPP_SESSION_PATH: '',
+  TURNSTILE_SECRET_KEY: '',
+  OPENAI_API_KEY: '',
+  OPENAI_AI_ENABLED: '',
+  OPENAI_MODEL_FAST: '',
+  OPENAI_MODEL_REASONING: '',
+  OPENAI_MONTHLY_BUDGET: '',
+  REFRESH_TTL_DAYS: '',
+  SESSION_ABSOLUTE_DAYS: '',
+  BILLING_GRACE_DAYS: '15', // subscription.guard usa `?? 15` e Number('') = 0: vazio tiraria a carencia
+  DUNNING_WARN_DAY: '',
+  DUNNING_BLOCK_DAY: '',
+  DUNNING_CANCEL_DAY: '',
+  GEOIP_DB_PATH: '',
+  PLATFORM_WHATSAPP_SESSION_KEY: '',
+  ASAAS_WEBHOOK_SECRET: '',
+  MAIL_REQUIRED: '',
+  MERCADOPAGO_WEBHOOK_TOLERANCE_SECONDS: '',
+  ...Object.fromEntries(FROZEN_FEATURES.map((name) => [featureEnvName(name), 'false'])),
+};
+
+/** Build args do web (NEXT_PUBLIC_*: entram no bundle no `next build`) que o compose deve repassar. */
+export const COMPOSE_WEB_BUILD_ARGS: Readonly<Record<string, string>> = {
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: '',
+  ...Object.fromEntries(FROZEN_FEATURES.map((name) => [`NEXT_PUBLIC_${featureEnvName(name)}`, 'false'])),
+};
 
 const WEAK_JWT_MARKERS = ['TROQUE_', 'local-development', 'innovation-secret-key', 'changeme', 'secret'];
 
