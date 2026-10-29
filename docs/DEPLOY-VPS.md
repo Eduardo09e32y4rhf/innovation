@@ -91,3 +91,6 @@ docker compose -f docker-compose.prod.yml exec db psql -U innovation -d innovati
 curl -s -o /dev/null -w 'ttfb=%{time_starttransfer}s total=%{time_total}s\n' https://SEU-DOMINIO/api/health
 curl -sI https://SEU-DOMINIO/_next/static/ | head   # confira Cache-Control imutavel apos aplicar o nginx
 ```
+
+### Cabecalhos de seguranca: NAO duplicar no nginx
+O Next ja envia (em `apps/web/next.config.js`, `headers()`): `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security` (so em producao), `Content-Security-Policy` e `Content-Security-Policy-Report-Only`. No bloco `location /` que faz proxy para o web **nao** use `add_header` para nenhum deles (cabecalho repetido chega duplicado ao navegador) nem `proxy_hide_header` para esconde-los. Se preferir HSTS no nginx, deixe-o somente la e remova do Next. `add_header Cache-Control` so em `/_next/static/`, como ja documentado. Conferir: `curl -sI https://SEU-DOMINIO/login | grep -ci '^strict-transport-security'` deve imprimir 1.
