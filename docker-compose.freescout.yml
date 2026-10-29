@@ -1,0 +1,45 @@
+# FreeScout (helpdesk LEVE) + MariaDB. Cabe na mesma VPS (~600 MB somados). Desligado por padrão (profile helpdesk-lite).
+# Subir:  docker compose -f docker-compose.freescout.yml --env-file .env.freescout --profile helpdesk-lite up -d
+# Primeiro acesso cria o admin pelo assistente; interface em http://127.0.0.1:${FREESCOUT_PORT:-8082}. Guia: docs/HELPDESK.md
+# Imagem da comunidade (tiredofit). A tag não pôde ser confirmada na criação: fixe uma versão em FREESCOUT_VERSION após conferir no Docker Hub.
+services:
+  freescout-db:
+    profiles: ["helpdesk-lite"]
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: freescout
+      MARIADB_USER: freescout
+      MARIADB_PASSWORD: ${FREESCOUT_DB_PASSWORD:?defina FREESCOUT_DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${FREESCOUT_DB_ROOT_PASSWORD:?defina FREESCOUT_DB_ROOT_PASSWORD}
+    command: ["--innodb-buffer-pool-size=64M", "--max-connections=40"]
+    mem_limit: 256m
+    volumes:
+      - freescout_db_data:/var/lib/mysql
+    restart: unless-stopped
+
+  freescout:
+    profiles: ["helpdesk-lite"]
+    image: tiredofit/freescout:${FREESCOUT_VERSION:-latest}
+    depends_on: [freescout-db]
+    environment:
+      DB_HOST: freescout-db
+      DB_NAME: freescout
+      DB_USER: freescout
+      DB_PASS: ${FREESCOUT_DB_PASSWORD}
+      SITE_URL: ${FREESCOUT_URL:-https://suporte.innovationia.com.br}
+      ADMIN_EMAIL: ${FREESCOUT_ADMIN_EMAIL:?defina FREESCOUT_ADMIN_EMAIL}
+      ADMIN_PASS: ${FREESCOUT_ADMIN_PASSWORD:?defina FREESCOUT_ADMIN_PASSWORD}
+      DISPLAY_ERRORS: "false"
+      APPLICATION_NAME: Innovation Suporte
+    ports:
+      - "127.0.0.1:${FREESCOUT_PORT:-8082}:80"
+    mem_limit: 384m
+    volumes:
+      - freescout_data:/data
+      - freescout_logs:/www/logs
+    restart: unless-stopped
+
+volumes:
+  freescout_db_data:
+  freescout_data:
+  freescout_logs:
