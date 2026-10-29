@@ -1,2 +1,5 @@
 import { redirect } from 'next/navigation';
-export default function MediaPage({ params }: { params: { tenant: string } }) { redirect(`/${params.tenant}/dashboard`); }
+export default async function MediaPage(props: { params: Promise<{ tenant: string }> }) {
+  const params = await props.params;
+  redirect(`/${params.tenant}/dashboard`);
+}

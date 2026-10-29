@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
-export default function EscalasEquipePage({ params }: { params: { tenant: string } }) {
+export default async function EscalasEquipePage(props: { params: Promise<{ tenant: string }> }) {
+  const params = await props.params;
   redirect(`/${params.tenant}/dashboard/escalas?view=modelos`);
 }
