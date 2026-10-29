@@ -26,3 +26,6 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY=<site key>      # Web: exibe o widget (lida no BU
 - Com as chaves definidas, abra `/login`: o widget aparece acima do botao Entrar. Via curl sem token: `curl -i -X POST $API/auth/login -H 'content-type: application/json' -d '{"email":"a@b.com","password":"x"}'` deve retornar 400 "Confirme que voce nao e um robo...".
 - Sem as chaves, o formulario nao mostra widget e o login funciona como antes.
 - Testes automatizados: `npx vitest run apps/api/src/common/turnstile`.
+
+## Importante: a chave pública do site é gravada no build (GitHub)
+As imagens são construídas pelo GitHub (workflow "Imagens Docker") e a VPS só as baixa. Por isso `NEXT_PUBLIC_TURNSTILE_SITE_KEY` **não adianta ficar só no `.env` da VPS**: crie-a como **Variável** do repositório (Settings > Secrets and variables > Actions > Variables) e rode o workflow de novo. A chave secreta (`TURNSTILE_SECRET_KEY`) fica no `.env` da VPS.

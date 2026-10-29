@@ -41,5 +41,19 @@ jobs:
           file: apps/${{ matrix.app }}/Dockerfile
           push: true
           tags: ${{ steps.tags.outputs.list }}
+          # NEXT_PUBLIC_* sao gravadas no bundle do site em tempo de build: vem de Variaveis do repositorio
+          # (Settings > Secrets and variables > Actions > Variables). Ausentes = mesmos padroes do Dockerfile.
+          build-args: |
+            NEXT_PUBLIC_ROBO_QA=${{ vars.NEXT_PUBLIC_ROBO_QA || 'on' }}
+            NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL=${{ vars.NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL || 'false' }}
+            NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+            NEXT_PUBLIC_FEATURE_AI=${{ vars.NEXT_PUBLIC_FEATURE_AI || 'false' }}
+            NEXT_PUBLIC_FEATURE_PARTNERS=${{ vars.NEXT_PUBLIC_FEATURE_PARTNERS || 'false' }}
+            NEXT_PUBLIC_FEATURE_COMMERCIAL_SALES=${{ vars.NEXT_PUBLIC_FEATURE_COMMERCIAL_SALES || 'false' }}
+            NEXT_PUBLIC_FEATURE_PROPOSALS=${{ vars.NEXT_PUBLIC_FEATURE_PROPOSALS || 'false' }}
+            NEXT_PUBLIC_FEATURE_MANUAL_CONTRACTS=${{ vars.NEXT_PUBLIC_FEATURE_MANUAL_CONTRACTS || 'false' }}
+            NEXT_PUBLIC_FEATURE_CEO_ONBOARDING=${{ vars.NEXT_PUBLIC_FEATURE_CEO_ONBOARDING || 'false' }}
+            NEXT_PUBLIC_FEATURE_COMMUNICATION=${{ vars.NEXT_PUBLIC_FEATURE_COMMUNICATION || 'false' }}
+            NEXT_PUBLIC_FEATURE_PROMOTIONS=${{ vars.NEXT_PUBLIC_FEATURE_PROMOTIONS || 'false' }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
