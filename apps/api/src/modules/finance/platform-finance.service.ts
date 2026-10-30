@@ -9,6 +9,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasRejectedException, AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
+import { saoPauloTomorrow } from './billing-dates';
 import { planPricingForSubscription } from './pricing';
 import { MercadoPagoService } from './mercadopago.service';
 import { couponDiscount } from '../coupons/coupon-rules';
@@ -122,8 +123,7 @@ export class PlatformFinanceService {
       orderBy: { createdAt: 'desc' },
     });
     if (!invoice) {
-      const dueDate = new Date();
-      dueDate.setUTCDate(dueDate.getUTCDate() + 1);
+      const dueDate = saoPauloTomorrow();
       const plan = company.platformPlan;
       invoice = await this.createMercadoPagoSubscriptionInvoice({
         companyId: company.id, planId: plan?.id, description: 'Mensalidade Innovation RH', amount, dueDate, payerEmail: admin.email,
@@ -177,10 +177,9 @@ export class PlatformFinanceService {
   }
 
   async createInitialCharge(company: any, customerId: string, amount: number) {
-    const dueDate = new Date();
-    // Vencimento hoje ou amanhã
-    dueDate.setUTCDate(dueDate.getUTCDate() + 1);
-    
+    // Vencimento = amanhã no calendário de Brasília (PAG-08)
+    const dueDate = saoPauloTomorrow();
+
     const payment = await this.asaas.createCharge(customerId, {
       value: amount,
       dueDate: dueDate.toISOString().slice(0, 10),

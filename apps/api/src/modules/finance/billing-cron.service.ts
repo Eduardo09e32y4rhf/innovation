@@ -1,4 +1,5 @@
 import { dunningConfigFromEnv, dunningStage } from './dunning';
+import { saoPauloDaysOverdue } from './billing-dates';
 import { CronLock } from '../../common/redis/cron-lock.decorator';
 import { RedisService } from '../../common/redis/redis.service';
 import { cronHeartbeat } from '../../common/metrics/app-metrics';
@@ -359,7 +360,7 @@ export class BillingCronService {
 
   // ─── Suspensão por inadimplência — 08:00 diariamente ────────────────────────
 
-  @Cron('0 8 * * *')
+  @Cron('0 8 * * *', { timeZone: 'America/Sao_Paulo' })
   @CronLock('billing.checkOverdueInvoices', 3600)
   async checkOverdueInvoices() {
     this.logger.log('Iniciando rotina de verificação de inadimplência...');
@@ -386,9 +387,7 @@ export class BillingCronService {
 
         checkedCompanies.add(company.id);
 
-        const dueDate = new Date(invoice.dueDate);
-        const timeDiff = today.getTime() - dueDate.getTime();
-        const diffDays = Math.floor(timeDiff / (1000 * 3600 * 24));
+        const diffDays = saoPauloDaysOverdue(invoice.dueDate, today);
         const stage = dunningStage(diffDays, dunning);
 
         if (stage === 'CANCEL') {
@@ -421,7 +420,7 @@ export class BillingCronService {
 
   // ─── Lembretes de vencimento — 09:00 diariamente ────────────────────────────
 
-  @Cron('0 9 * * *')
+  @Cron('0 9 * * *', { timeZone: 'America/Sao_Paulo' })
   @CronLock('billing.sendPaymentReminders', 3600)
   async sendPaymentReminders() {
     this.logger.log('Iniciando rotina de lembretes de vencimento...');
@@ -433,8 +432,7 @@ export class BillingCronService {
         .map(d => parseInt(d.trim(), 10))
         .filter(d => !isNaN(d));
 
-      const today = new Date();
-      today.setUTCHours(0, 0, 0, 0); // dias de calendario em UTC: independe do fuso do servidor
+      const today = new Date(); // dias de calendario em Brasilia (PAG-08)
 
       // Buscar cobranças abertas e vencidas (localmente)
       const openInvoices = await this.prisma.platformInvoice.findMany({
@@ -456,11 +454,7 @@ export class BillingCronService {
       let processed = 0;
 
       for (const invoice of openInvoices) {
-        const dueDate = new Date(invoice.dueDate);
-        dueDate.setUTCHours(0, 0, 0, 0);
-
-        const diffMs = dueDate.getTime() - today.getTime();
-        const diffDays = Math.round(diffMs / (1000 * 3600 * 24)); // positivo = dias até vencer, negativo = dias após vencer
+        const diffDays = -saoPauloDaysOverdue(invoice.dueDate, today); // positivo = dias até vencer, negativo = dias após vencer
 
         let shouldNotify = false;
         let notifType: 'CHARGE_CREATED' | 'PAYMENT_OVERDUE' = 'PAYMENT_OVERDUE';
