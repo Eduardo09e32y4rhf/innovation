@@ -20,6 +20,7 @@ import { InternalCandidateForm } from '../_components/internal-candidate';
 import { JobRecruiters } from '../_components/job-recruiters';
 import { JobHistory } from '../_components/job-history';
 import { JobCosts } from '../_components/job-costs';
+import { CandidateCompare } from '../_components/candidate-compare';
 import { selectableStages } from '../stage-access';
 import { FiltersBar } from '../_components/filters-bar';
 import { jobsApi } from '../jobs-api';
@@ -52,6 +53,7 @@ export default function JobCandidatesPage() {
   const [sharing, setSharing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showCosts, setShowCosts] = useState(false);
+  const [comparing, setComparing] = useState(false);
   const [interviewMove, setInterviewMove] = useState<{ id: string; stageId: string; stageName: string; name: string } | null>(null);
   const [bulkStage, setBulkStage] = useState('');
   const [bulkTag, setBulkTag] = useState('');
@@ -221,9 +223,18 @@ export default function JobCandidatesPage() {
           <Button size="sm" variant="outline" disabled={!bulkTag} onClick={() => bulkSimple('TAG_ADD')}>Adicionar</Button>
           <Button size="sm" variant="outline" disabled={!bulkTag} onClick={() => bulkSimple('TAG_REMOVE')}>Remover</Button>
           <Button size="sm" variant="outline" onClick={() => bulkSimple('FAVORITE')}><Star size={14} aria-hidden="true" /> Favoritar</Button>
+          <Button size="sm" variant="outline" disabled={selectedIds.size < 2 || selectedIds.size > 4} onClick={() => setComparing(true)} title="Selecione de 2 a 4 candidatos">Comparar</Button>
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Limpar seleção</Button>
         </div>
       )}
+      {!canUseBulkActions && selectedIds.size > 0 && (
+        <div role="region" aria-label="Seleção de candidatos" className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border border-purple-300 bg-purple-50 p-3 text-sm shadow">
+          <strong>{selectedIds.size} selecionado(s)</strong>
+          <Button size="sm" variant="outline" disabled={selectedIds.size < 2 || selectedIds.size > 4} onClick={() => setComparing(true)} title="Selecione de 2 a 4 candidatos">Comparar</Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Limpar seleção</Button>
+        </div>
+      )}
+      {comparing && selectedIds.size >= 2 && selectedIds.size <= 4 && <CandidateCompare jobId={jobId} ids={[...selectedIds]} onClose={() => setComparing(false)} />}
 
       {list.error && <ErrorState message={list.error} onRetry={list.refetch} />}
       {!payload ? (list.loading ? <LoadingState label="Carregando candidatos…" /> : null) : applications.length === 0 ? (

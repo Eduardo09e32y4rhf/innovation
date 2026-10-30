@@ -55,6 +55,19 @@ async function download(path: string, fallbackName: string) {
   URL.revokeObjectURL(url);
 }
 
+export type CandidateComparison = {
+  job: { id: string; title: string };
+  criteria: { id: string; name: string; weight: number }[];
+  questions: { id: string; label: string; type: string }[];
+  best: Record<string, string[]>;
+  candidates: Array<{
+    applicationId: string; name: string; email: string | null; stage: string | null; status: string; source: string | null; appliedAt: string; knockedOut: boolean;
+    screeningScore: number | null; evaluationScore: number | null; evaluationsHidden: boolean; criteria: Record<string, { average: number | null; count: number }>;
+    feedback: { authorName: string | null; recommendation: string; average: number | null; notes: string | null; interviewAt: string; mine: boolean }[]; feedbackHidden: number;
+    answers: Record<string, string>; documents: { label: string; status: string }[];
+  }>;
+};
+
 export type JobCosts = { costAmount: number | null; sources: { source: string; amount: number }[] };
 
 export type TalentCard = {
@@ -76,6 +89,7 @@ export const jobsApi = {
   create: (payload: JobPayload) => request<Job>('/jobs', { method: 'POST', body: payload }),
   update: (id: string, payload: Partial<JobPayload>) => request<Job>(`/jobs/${enc(id)}`, { method: 'PATCH', body: payload }),
   remove: (id: string, mode: 'archive' | 'permanent' = 'archive') => request<{ deleted: boolean; archived?: boolean }>(`/jobs/${enc(id)}?mode=${mode}`, { method: 'DELETE' }),
+  compare: (jobId: string, ids: string[]) => request<CandidateComparison>(`/jobs/${enc(jobId)}/compare?ids=${ids.map(enc).join(',')}`),
   history: (id: string) => request<{ id: string; action: string; label: string; createdAt: string; userName: string | null; metadata: Record<string, unknown> }[]>(`/jobs/${enc(id)}/history`),
   costs: (jobId: string) => request<JobCosts>(`/recruitment-metrics/jobs/${enc(jobId)}/costs`),
   saveCosts: (jobId: string, body: { costAmount?: number | null; sources: { source: string; amount: number }[] }) => request<JobCosts>(`/recruitment-metrics/jobs/${enc(jobId)}/costs`, { method: 'PUT', body }),
