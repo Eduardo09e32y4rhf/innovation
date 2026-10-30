@@ -1,11 +1,13 @@
-import { Controller, Post, Body, Req } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { SupportRepository } from './support.repository';
+import { TurnstileOptionalGuard } from '../../common/turnstile/turnstile.guard';
 import { SupportSlaService } from './support-sla.service';
 import { PrismaService } from '../../database/prisma.service';
 import { CreatePublicSupportTicketDto } from './dto/create-public-support-ticket.dto';
 import { RequestPasswordResetDto } from '../auth/dto/request-password-reset.dto';
 
+@UseGuards(TurnstileOptionalGuard)
 @Controller('support/public')
 export class PublicSupportController {
   constructor(

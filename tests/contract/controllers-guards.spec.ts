@@ -39,8 +39,8 @@ const ALLOWED: Record<string, Allowed> = {
   'POST /finance/webhook/asaas': PUBLICA('webhook Asaas; token do provedor; limite por IP'),
   'POST /finance/webhook/mercadopago': PUBLICA('webhook Mercado Pago; assinatura x-signature; limite por IP'),
   // suporte publico
-  'POST /support/public/tickets': PUBLICA('suporte na tela de login; honeypot + 5/min por IP'),
-  'POST /support/public/password-reset': PUBLICA('pedido de ajuda de senha; honeypot + 5/min por IP'),
+  'POST /support/public/tickets': GUARD_PROPRIO('TurnstileOptionalGuard', 'suporte na tela de login; honeypot + 5/min por IP; Turnstile se o token for enviado'),
+  'POST /support/public/password-reset': GUARD_PROPRIO('TurnstileOptionalGuard', 'pedido de ajuda de senha; honeypot + 5/min por IP; Turnstile se o token for enviado'),
   // analytics / vagas / candidatos
   'POST /public/visits': PUBLICA('contagem de visitas anonima; limite proprio'),
   'POST /candidate-portal/auth/reset-password': PUBLICA('codigo de 6 digitos com hash e tentativas'),

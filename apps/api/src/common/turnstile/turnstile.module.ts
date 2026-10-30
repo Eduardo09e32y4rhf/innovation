@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
-import { TurnstileGuard } from './turnstile.guard';
+import { TurnstileGuard, TurnstileOptionalGuard } from './turnstile.guard';
 import { TurnstileService } from './turnstile.service';
 
 @Global()
-@Module({ providers: [TurnstileService, TurnstileGuard], exports: [TurnstileService, TurnstileGuard] })
+@Module({ providers: [TurnstileService, TurnstileGuard, TurnstileOptionalGuard], exports: [TurnstileService, TurnstileGuard, TurnstileOptionalGuard] })
 export class TurnstileModule {}
