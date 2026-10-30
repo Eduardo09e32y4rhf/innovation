@@ -29,6 +29,8 @@ export interface Job {
   /** Processo interno: só funcionários da empresa se candidatam, pela matrícula. */
   isInternal?: boolean;
   confidential?: boolean;
+  pcd?: boolean;
+  costAmount?: string | number | null;
   interviewGuide?: string[];
   screeningMinScore?: number | null;
   screeningAction?: 'FLAG' | 'REJECT' | null;
@@ -59,6 +61,8 @@ export interface JobPayload {
   deadline?: string | null;
   isInternal?: boolean;
   confidential?: boolean;
+  pcd?: boolean;
+  costAmount?: number | null;
   screeningMinScore?: number | null;
   screeningAction?: 'FLAG' | 'REJECT' | null;
 }
@@ -83,6 +87,7 @@ export interface Stage {
   automationConfig?: Record<string, unknown> | null;
   notifyCandidate?: boolean;
   candidateLabel?: string | null;
+  slaDays?: number | null;
 }
 
 export interface WorkflowOutcome { status: 'COMPLETED' | 'WAITING' | 'FAILED'; action: string; emailed?: boolean; requiredAction?: 'SCHEDULE_INTERVIEW' | 'PREPARE_OFFER' | 'REQUEST_DOCUMENTS' | 'COMPLETE_ADMISSION'; message?: string }

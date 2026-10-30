@@ -46,6 +46,14 @@ export class StageInputDto {
   @IsObject()
   automationConfig?: Record<string, unknown> | null;
 
+  /** Prazo (dias) para o candidato ficar nesta etapa antes de contar como parado. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  slaDays?: number | null;
+
   @IsOptional()
   @IsBoolean()
   notifyCandidate?: boolean;

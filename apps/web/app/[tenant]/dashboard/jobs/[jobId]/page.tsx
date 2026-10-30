@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Columns3, ExternalLink, Pencil, QrCode, Star, Table2, UserPlus } from 'lucide-react';
+import { ArrowLeft, Columns3, History, Wallet, ExternalLink, Pencil, QrCode, Star, Table2, UserPlus } from 'lucide-react';
 import { JobShareDialog, jobPublicUrl } from '../_components/share-dialog';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -18,6 +18,9 @@ import { HireDialog, RejectDialog } from '../_components/dialogs';
 import { InterviewDialog } from '../_components/interview-dialog';
 import { InternalCandidateForm } from '../_components/internal-candidate';
 import { JobRecruiters } from '../_components/job-recruiters';
+import { JobHistory } from '../_components/job-history';
+import { JobCosts } from '../_components/job-costs';
+import { CandidateCompare } from '../_components/candidate-compare';
 import { selectableStages } from '../stage-access';
 import { FiltersBar } from '../_components/filters-bar';
 import { jobsApi } from '../jobs-api';
@@ -48,6 +51,9 @@ export default function JobCandidatesPage() {
   const [rejectStageId, setRejectStageId] = useState('');
   const [hire, setHire] = useState<{ id: string; name: string } | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showCosts, setShowCosts] = useState(false);
+  const [comparing, setComparing] = useState(false);
   const [interviewMove, setInterviewMove] = useState<{ id: string; stageId: string; stageName: string; name: string } | null>(null);
   const [bulkStage, setBulkStage] = useState('');
   const [bulkTag, setBulkTag] = useState('');
@@ -185,6 +191,8 @@ export default function JobCandidatesPage() {
           {canEdit && <Link href={`${base}/${jobId}/teste`} className="btn btn-outline btn-md">Teste técnico</Link>}
           {canEdit && <Link href={`${base}/${jobId}/edit`} className="btn btn-outline btn-md"><Pencil size={16} aria-hidden="true" /> Editar vaga</Link>}
           {jobData?.isInternal && jobData.lifecycle?.acceptsApplications && <Button variant="outline" onClick={() => setInternalOpen(true)}><UserPlus size={16} aria-hidden="true" /> Adicionar candidato interno</Button>}
+          {jobData && ['DEV', 'ADMIN', 'RH'].includes(role) && <Button variant="outline" aria-pressed={showCosts} onClick={() => setShowCosts((open) => !open)}><Wallet size={16} aria-hidden="true" /> Custos</Button>}
+          {jobData && role !== 'GESTOR' && <Button variant="outline" aria-pressed={showHistory} onClick={() => setShowHistory((open) => !open)}><History size={16} aria-hidden="true" /> Histórico</Button>}
           {jobData && <Button variant="outline" onClick={() => setSharing(true)}><QrCode size={16} aria-hidden="true" /> Link e QR code</Button>}
           {jobData && <Link href={jobPublicUrl(jobData, '')} target="_blank" className="btn btn-outline btn-md"><ExternalLink size={16} aria-hidden="true" /> Ver publicação</Link>}
           <div className="inline-flex overflow-hidden rounded-lg border border-border" role="group" aria-label="Modo de visualização">
@@ -195,6 +203,8 @@ export default function JobCandidatesPage() {
       </header>
 
       {['DEV', 'ADMIN', 'RH'].includes(role) && <JobRecruiters jobId={jobId} />}
+      {showCosts && ['DEV', 'ADMIN', 'RH'].includes(role) && <JobCosts jobId={jobId} />}
+      {showHistory && role !== 'GESTOR' && <JobHistory jobId={jobId} />}
 
       <FiltersBar filters={filters} onChange={setFilters} pipeline={pipeline} tags={tags.data ?? []} questions={payload?.questions ?? []} views={views.data ?? []}
         onViewsChanged={views.refetch} total={applications.length}
@@ -213,9 +223,18 @@ export default function JobCandidatesPage() {
           <Button size="sm" variant="outline" disabled={!bulkTag} onClick={() => bulkSimple('TAG_ADD')}>Adicionar</Button>
           <Button size="sm" variant="outline" disabled={!bulkTag} onClick={() => bulkSimple('TAG_REMOVE')}>Remover</Button>
           <Button size="sm" variant="outline" onClick={() => bulkSimple('FAVORITE')}><Star size={14} aria-hidden="true" /> Favoritar</Button>
+          <Button size="sm" variant="outline" disabled={selectedIds.size < 2 || selectedIds.size > 4} onClick={() => setComparing(true)} title="Selecione de 2 a 4 candidatos">Comparar</Button>
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Limpar seleção</Button>
         </div>
       )}
+      {!canUseBulkActions && selectedIds.size > 0 && (
+        <div role="region" aria-label="Seleção de candidatos" className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border border-purple-300 bg-purple-50 p-3 text-sm shadow">
+          <strong>{selectedIds.size} selecionado(s)</strong>
+          <Button size="sm" variant="outline" disabled={selectedIds.size < 2 || selectedIds.size > 4} onClick={() => setComparing(true)} title="Selecione de 2 a 4 candidatos">Comparar</Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Limpar seleção</Button>
+        </div>
+      )}
+      {comparing && selectedIds.size >= 2 && selectedIds.size <= 4 && <CandidateCompare jobId={jobId} ids={[...selectedIds]} onClose={() => setComparing(false)} />}
 
       {list.error && <ErrorState message={list.error} onRetry={list.refetch} />}
       {!payload ? (list.loading ? <LoadingState label="Carregando candidatos…" /> : null) : applications.length === 0 ? (

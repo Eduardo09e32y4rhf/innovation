@@ -6,6 +6,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { createHash, randomUUID } from 'crypto';
 import { plainToInstance } from 'class-transformer';
@@ -25,6 +26,8 @@ import { RecruitmentPrivacyService } from './recruitment-privacy.service';
 import { JobWorkflowService } from './job-workflow.service';
 import { assertResumeClean, CandidateDocumentScanner } from './candidate-document-scanner.service';
 import { CandidateConsentService } from './candidate-consent.service';
+import { JobAuditService } from './job-audit.service';
+import { changedFields, statusAction } from './job-audit';
 
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 
@@ -50,6 +53,7 @@ export class JobsService {
     private readonly documents: RecruitmentDocumentsService,
     private readonly scanner?: CandidateDocumentScanner,
     private readonly consents?: CandidateConsentService,
+    @Optional() private readonly audit?: JobAuditService,
   ) {}
 
   async list(companyId: string, jobScope: Prisma.JobWhereInput = {}) {
@@ -84,15 +88,18 @@ export class JobsService {
     }
   }
 
-  async create(companyId: string, dto: CreateJobDto) {
+  async create(companyId: string, dto: CreateJobDto, actorId?: string) {
     await this.assertJobQuota(companyId);
     const gate = await this.workflow.prepare(companyId, { currentStatus: null, nextStatus: dto.status ?? 'OPEN', department: dto.department, openings: dto.openings });
     const job = await this.repository.create(companyId, { ...this.normalizeJob(dto), status: gate.status });
-    if (gate.startApproval) await this.workflow.startApproval(companyId, job.id, gate.steps);
+    if (gate.startApproval) await this.workflow.startApproval(companyId, job.id, gate.steps, actorId);
+    await this.audit?.record(companyId, actorId, 'JOB_CREATED', job.id, { title: job.title, status: job.status });
+    const created = statusAction(null, job.status);
+    if (created) await this.audit?.record(companyId, actorId, created, job.id, { from: null, to: job.status });
     return job;
   }
 
-  async update(companyId: string, id: string, dto: UpdateJobDto) {
+  async update(companyId: string, id: string, dto: UpdateJobDto, actorId?: string) {
     const current = await this.get(companyId, id);
     // Encerrar grava a data; reativar vale por 30 dias e NAO conta como vaga nova no limite do plano (nao passa por assertJobQuota).
     const change = dto.status ? statusChange(current, dto.status) : { ok: true as const, data: {} };
@@ -100,17 +107,23 @@ export class JobsService {
     const gate = await this.workflow.prepare(companyId, { currentStatus: current.status, nextStatus: dto.status, department: dto.department ?? current.department, openings: dto.openings ?? current.openings, jobId: id });
     const result = await this.repository.update(companyId, id, { ...this.normalizeJob(dto), ...change.data, ...(dto.status ? { status: gate.status } : {}) });
     if (!result.count) throw new NotFoundException('Vaga nao encontrada.');
-    if (gate.startApproval) await this.workflow.startApproval(companyId, id, gate.steps);
+    if (gate.startApproval) await this.workflow.startApproval(companyId, id, gate.steps, actorId);
+    const finalStatus = dto.status ? gate.status : current.status;
+    const moved = statusAction(current.status, finalStatus);
+    if (moved) await this.audit?.record(companyId, actorId, moved, id, { from: current.status, to: finalStatus });
+    const fields = changedFields(current as unknown as Record<string, unknown>, dto as unknown as Record<string, unknown>);
+    if (fields.length) await this.audit?.record(companyId, actorId, 'JOB_UPDATED', id, { fields });
     return this.get(companyId, id);
   }
 
-  async duplicate(companyId: string, id: string) {
+  async duplicate(companyId: string, id: string, actorId?: string) {
     await this.assertJobQuota(companyId);
     const job = await this.get(companyId, id);
     const [questions, criteria] = await Promise.all([
       this.recruitment.getQuestions(companyId, id),
       this.recruitment.getCriteria(companyId, id),
     ]);
+    const deadlineStillValid = Boolean(job.deadline && new Date(job.deadline).getTime() > Date.now());
     const copy = await this.repository.create(companyId, {
       title: `${job.title} (cópia)`,
       description: job.description,
@@ -133,8 +146,14 @@ export class JobsService {
       screeningAction: job.screeningAction,
       isInternal: job.isInternal,
       confidential: job.confidential,
+      pcd: job.pcd,
+      costAmount: job.costAmount,
+      // Prazo so e copiado se ainda esta no futuro: uma copia nasceria ja expirada (o RH define o novo prazo).
+      deadline: deadlineStillValid ? job.deadline : null,
       status: 'DRAFT',
     });
+    // Responsaveis (RS-R-15): quem duplica e atribuido pelo controller (RH_RS), por isso nao entra na copia.
+    await this.repository.copyRecruiters(companyId, id, copy.id, actorId);
     if (questions.length) {
       await this.recruitment.saveQuestions(companyId, copy.id, {
         questions: questions.map((question) => ({
@@ -152,7 +171,8 @@ export class JobsService {
         criteria: criteria.map((item) => ({ name: item.name, weight: item.weight })),
       });
     }
-    return copy;
+    await this.audit?.record(companyId, actorId, 'JOB_DUPLICATED', copy.id, { sourceJobId: id, title: copy.title });
+    return Object.assign(copy, { deadlineReset: Boolean(job.deadline) && !deadlineStillValid });
   }
 
   /** Cargos para o titulo da vaga: cargos cadastrados, cargos dos funcionarios e titulos de vagas anteriores. */
@@ -190,9 +210,11 @@ export class JobsService {
     }
     if (job._count.applications === 0 && job.status === 'DRAFT') {
       await this.repository.delete(companyId, id);
+      await this.audit?.record(companyId, actorId, 'JOB_DELETED_PERMANENTLY', id, { title: job.title, applications: 0, draft: true });
       return { deleted: true, archived: false };
     }
     if (job.status !== 'CLOSED' && job.status !== 'FILLED') await this.repository.update(companyId, id, { status: 'CLOSED', closedAt: new Date() });
+    await this.audit?.record(companyId, actorId, 'JOB_ARCHIVED', id, { title: job.title, from: job.status });
     return { deleted: false, archived: true };
   }
 

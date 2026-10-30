@@ -19,6 +19,7 @@ const PUBLIC_JOB_SELECT = {
   salaryMin: true,
   salaryMax: true,
   salaryHidden: true,
+  pcd: true,
   deadline: true,
   createdAt: true,
   updatedAt: true,
@@ -116,6 +117,14 @@ export class JobsRepository {
       this.prisma.recruitmentDocument.findMany({ where: { companyId, application: { jobId } }, select: { fileKey: true } }),
     ]);
     return { hired, resumeKeys: apps.map((row) => row.resumeUrl as string), documentKeys: docs.map((row) => row.fileKey) };
+  }
+
+  /** Copia os responsaveis (JobRecruiter) de uma vaga para outra, sem repetir `exceptUserId`. */
+  async copyRecruiters(companyId: string, fromJobId: string, toJobId: string, exceptUserId?: string) {
+    const rows = await this.prisma.jobRecruiter.findMany({ where: { companyId, jobId: fromJobId, ...(exceptUserId ? { userId: { not: exceptUserId } } : {}) }, select: { userId: true } });
+    if (!rows.length) return 0;
+    const result = await this.prisma.jobRecruiter.createMany({ data: rows.map((row) => ({ companyId, jobId: toJobId, userId: row.userId, assignedById: exceptUserId ?? null })), skipDuplicates: true });
+    return result.count;
   }
 
   audit(companyId: string, userId: string, action: string, entityId: string, metadata: Record<string, unknown>) {

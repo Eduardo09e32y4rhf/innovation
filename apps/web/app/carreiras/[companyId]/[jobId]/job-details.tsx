@@ -220,6 +220,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
         <ShareBar title={job.title} companyName={company.name} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd(job, typeof window === 'undefined' ? '' : window.location.origin + window.location.pathname)).replace(/</g, '\\u003c') }} />
         <div className="flex flex-wrap gap-2">
+          {job.pcd && <span className="inline-flex items-center rounded-full bg-[#e8f1fb] px-3 py-1 text-xs font-semibold text-[#1f5a96]" title="Vaga afirmativa para pessoas com deficiência">Vaga PCD</span>}
           {job.department && <Chip>{job.department}</Chip>}
           {workModeLabel(job.workMode) && <Chip>{workModeLabel(job.workMode)}</Chip>}
           {job.seniority && <Chip>{job.seniority}</Chip>}

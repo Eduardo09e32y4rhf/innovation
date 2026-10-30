@@ -7,6 +7,7 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -129,6 +130,19 @@ class JobFieldsDto {
   @IsOptional()
   @IsBoolean()
   confidential?: boolean;
+
+  /** Vaga afirmativa para pessoas com deficiencia (PCD). */
+  @IsOptional()
+  @IsBoolean()
+  pcd?: boolean;
+
+  /** Custo fixo do recrutamento desta vaga em reais (anuncios, agencia, testes). Base do custo por contratacao. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(10_000_000)
+  costAmount?: number | null;
 }
 
 export class CreateJobDto extends JobFieldsDto {

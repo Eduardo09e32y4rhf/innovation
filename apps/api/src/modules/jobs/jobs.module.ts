@@ -12,6 +12,9 @@ import { InternalJobsService } from './internal-jobs.service';
 import { JobsController } from './jobs.controller';
 import { JobsRepository } from './jobs.repository';
 import { JobsService } from './jobs.service';
+import { JobAuditService } from './job-audit.service';
+import { CandidateComparisonController } from './candidate-comparison.controller';
+import { CandidateComparisonService } from './candidate-comparison.service';
 import { JobsStorageService } from './jobs-storage.service';
 import { CandidateAccountController } from './candidate-account.controller';
 import { CandidateAccountService } from './candidate-account.service';
@@ -40,8 +43,8 @@ import { RecruitmentWorkflowService } from './recruitment-workflow.service';
 @Module({
   // RecruitmentController precisa vir antes: suas rotas estáticas (/jobs/pipeline, /jobs/stats...) não podem cair em /jobs/:id.
   imports: [NotificationsModule],
-  controllers: [PublicInternalJobsController, CandidateActionsController, PublicCandidateActionsController, RecruitmentController, RecruitmentPrivacyController, PublicCandidateController, RecruitmentMetricsController, JobWorkflowController, InternalJobsController, JobsController, RecruitmentDocumentsController, PublicJobsController, PublicCandidateDocumentsController, CandidateAccountController, TalentPoolController, CandidateAdminController],
-  providers: [RecruitmentWorkflowService, RecruiterNotifierService, InterviewFollowupService, JobOfferService, AssessmentsService, TalentPoolService, CandidateAdminService, CandidateAccountService, CandidateAuthGuard, JobWorkflowService, JobTemplatesService, RecruitmentPrivacyService, RecruitmentMetricsService, InternalJobsService, JobsRepository, JobsService, JobsStorageService, RecruitmentService, JobScopeService, CandidateDocumentScanner, RecruitmentDocumentsService, CandidateConsentService, RecruitmentDocumentsCron],
+  controllers: [CandidateComparisonController, PublicInternalJobsController, CandidateActionsController, PublicCandidateActionsController, RecruitmentController, RecruitmentPrivacyController, PublicCandidateController, RecruitmentMetricsController, JobWorkflowController, InternalJobsController, JobsController, RecruitmentDocumentsController, PublicJobsController, PublicCandidateDocumentsController, CandidateAccountController, TalentPoolController, CandidateAdminController],
+  providers: [CandidateComparisonService, JobAuditService, RecruitmentWorkflowService, RecruiterNotifierService, InterviewFollowupService, JobOfferService, AssessmentsService, TalentPoolService, CandidateAdminService, CandidateAccountService, CandidateAuthGuard, JobWorkflowService, JobTemplatesService, RecruitmentPrivacyService, RecruitmentMetricsService, InternalJobsService, JobsRepository, JobsService, JobsStorageService, RecruitmentService, JobScopeService, CandidateDocumentScanner, RecruitmentDocumentsService, CandidateConsentService, RecruitmentDocumentsCron],
 })
 export class JobsModule {}
 
