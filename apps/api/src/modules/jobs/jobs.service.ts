@@ -187,8 +187,30 @@ export class JobsService {
     if (!result.alreadyHired) {
       await this.recruitment.completeWorkflow?.(applicationId, 'COMPLETE_ADMISSION', 'Admissão concluída e funcionário criado.');
       void this.documents.sendHireWelcome(companyId, actorId, applicationId, dto.admissionDate, dto.contractType);
+      await this.closeJobIfFilled(companyId, applicationId, actorId);
     }
     return result;
+  }
+
+  // RS-R-02: ao atingir o número de vagas, a vaga vira FILLED e os demais candidatos ativos recebem a devolutiva.
+  // Falha em um candidato não desfaz a contratação (já commitada) nem impede os outros.
+  private async closeJobIfFilled(companyId: string, applicationId: string, actorId: string) {
+    try {
+      const fill = await this.repository.fillJobAfterHire(companyId, applicationId);
+      if (!fill?.filled) return;
+      let rejected = 0;
+      for (const item of fill.pending) {
+        try {
+          await this.recruitment.moveApplication(companyId, actorId, item.id, { stageId: item.rejectedStageId, rejectionCode: 'VAGA_PREENCHIDA', rejectionReason: 'A vaga foi preenchida por outro candidato.' });
+          rejected += 1;
+        } catch {
+          // a candidatura segue ativa para o RH tratar manualmente
+        }
+      }
+      await this.repository.audit(companyId, actorId, 'JOB_FILLED', fill.jobId, { title: fill.title, rejected, pending: fill.pending.length });
+    } catch {
+      // o fechamento pode ser refeito pelo RH; a contratação já está salva
+    }
   }
 
   // ─── Portal público ─────────────────────────────────────────────

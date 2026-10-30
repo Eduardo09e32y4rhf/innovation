@@ -297,6 +297,22 @@ export class JobsRepository {
     });
   }
 
+  /** Marca a vaga como FILLED quando as contratações atingem `openings`; devolve as candidaturas ativas a rejeitar. */
+  async fillJobAfterHire(companyId: string, applicationId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const app = await tx.application.findFirst({ where: { companyId, id: applicationId }, select: { jobId: true, job: { select: { id: true, title: true, openings: true, status: true, pipelineId: true } } } });
+      if (!app) return null;
+      const { job } = app;
+      const hired = await tx.application.count({ where: { companyId, jobId: job.id, status: 'HIRED' } });
+      if (hired < (job.openings ?? 1) || job.status === 'FILLED') return { filled: false, jobId: job.id, title: job.title, pending: [] as { id: string; rejectedStageId: string }[] };
+      await tx.job.update({ where: { id: job.id }, data: { status: 'FILLED', closedAt: new Date() } });
+      const pipelineId = job.pipelineId ?? (await tx.hiringPipeline.findFirst({ where: { companyId, isDefault: true }, select: { id: true } }))?.id;
+      const rejected = pipelineId ? await tx.pipelineStage.findFirst({ where: { pipelineId, kind: 'REJECTED' }, orderBy: { position: 'asc' }, select: { id: true } }) : null;
+      const open = rejected ? await tx.application.findMany({ where: { companyId, jobId: job.id, status: { notIn: ['HIRED', 'REJECTED'] } }, select: { id: true } }) : [];
+      return { filled: true, jobId: job.id, title: job.title, pending: open.map((row) => ({ id: row.id, rejectedStageId: rejected!.id })) };
+    });
+  }
+
   async hire(companyId: string, applicationId: string, actorId: string, data: any) {
     try {
       return await this.prisma.$transaction(async (tx) => {
