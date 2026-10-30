@@ -10,7 +10,7 @@ function setup(fill: any) {
     audit: vi.fn().mockResolvedValue({}),
   } as any;
   const recruitment = { completeWorkflow: vi.fn(), moveApplication: vi.fn().mockResolvedValue({}) } as any;
-  const documents = { sendHireWelcome: vi.fn() } as any;
+  const documents = { sendHireWelcome: vi.fn(), hiringKitStatus: vi.fn().mockResolvedValue({ required: [], approved: [], missing: [] }) } as any;
   const service = new JobsService(repository, {} as any, recruitment, {} as any, {} as any, documents);
   return { service, repository, recruitment };
 }

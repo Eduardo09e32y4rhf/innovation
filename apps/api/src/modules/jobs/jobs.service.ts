@@ -224,6 +224,7 @@ export class JobsService {
     if (!dto.department?.trim() || !dto.contractType?.trim() || !dto.admissionDate) {
       throw new BadRequestException('Informe departamento, tipo de contrato e data de admissao antes de contratar o candidato.');
     }
+    await this.assertHiringDocuments(companyId, applicationId, actorId, dto);
     const result = await this.repository.hire(companyId, applicationId, actorId, dto);
     if (!result) throw new NotFoundException('Candidatura nao encontrada.');
     if (!result.alreadyHired) {
@@ -232,6 +233,18 @@ export class JobsService {
       await this.closeJobIfFilled(companyId, applicationId, actorId);
     }
     return result;
+  }
+
+  // RS-D-03: documentos obrigatórios da vaga precisam estar aprovados; exceção só com justificativa, e fica na auditoria.
+  private async assertHiringDocuments(companyId: string, applicationId: string, actorId: string, dto: HireCandidateDto) {
+    const kit = await this.documents.hiringKitStatus(applicationId, companyId);
+    if (!kit.missing.length) return;
+    if (!dto.skipDocumentCheck) {
+      throw new BadRequestException(`Faltam documentos obrigatórios aprovados: ${kit.missing.join(', ')}. Aprove-os ou registre uma exceção com justificativa.`);
+    }
+    const reason = dto.skipDocumentReason?.trim() ?? '';
+    if (reason.length < 10) throw new BadRequestException('Informe a justificativa (mínimo de 10 caracteres) para contratar com documentos pendentes.');
+    await this.repository.audit(companyId, actorId, 'HIRE_DOCUMENTS_OVERRIDE', applicationId, { missing: kit.missing, reason });
   }
 
   // RS-R-02: ao atingir o número de vagas, a vaga vira FILLED e os demais candidatos ativos recebem a devolutiva.

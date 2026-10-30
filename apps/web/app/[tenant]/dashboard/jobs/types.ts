@@ -229,6 +229,8 @@ export interface HirePayload {
   contractType: string;
   admissionDate: string;
   salary?: number;
+  skipDocumentCheck?: boolean;
+  skipDocumentReason?: string;
 }
 
 export const JOB_STATUS_LABEL: Record<JobStatus, string> = {

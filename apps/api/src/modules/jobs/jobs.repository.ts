@@ -421,6 +421,14 @@ export class JobsRepository {
           });
         }
 
+        // RS-D-02: documentos aprovados entram no dossiê do colaborador como referência ao arquivo único (cifrado, só RH, com auditoria de leitura).
+        const approvedDocs = await tx.recruitmentDocument.findMany({ where: { companyId, applicationId: application.id, status: 'APPROVED', supersededAt: null }, select: { id: true, label: true, fileName: true, mimeType: true, size: true } });
+        if (approvedDocs.length) {
+          await tx.attachment.createMany({
+            data: approvedDocs.map((doc) => ({ companyId, ownerType: 'EMPLOYEE' as const, ownerId: employee.id, fileName: `${doc.label} - ${doc.fileName}`.slice(0, 200), fileType: doc.mimeType, fileSize: doc.size, fileUrl: `/jobs/documents/${doc.id}/download`, storageKey: null, uploadedByUserId: actorId })),
+          });
+        }
+
         const pipelineId =
           application.stage?.pipelineId ??
           application.job.pipelineId ??
