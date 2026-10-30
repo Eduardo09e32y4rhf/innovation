@@ -21,6 +21,7 @@ import {
   TagDto,
   UpdateApplicationMetaDto,
 } from './dto/recruitment.dto';
+import { JobAuditService } from './job-audit.service';
 import { JobScopeService } from './job-scope.service';
 import { RecruitmentService, type ApplicationFilters } from './recruitment.service';
 
@@ -29,7 +30,7 @@ import { RecruitmentService, type ApplicationFilters } from './recruitment.servi
 @Roles('DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR')
 @Controller('jobs')
 export class RecruitmentController {
-  constructor(private readonly service: RecruitmentService, private readonly scope: JobScopeService) {}
+  constructor(private readonly service: RecruitmentService, private readonly scope: JobScopeService, private readonly audit: JobAuditService) {}
 
   @Get('pipeline')
   pipeline(@CurrentCompany() companyId: string) {
@@ -87,8 +88,10 @@ export class RecruitmentController {
 
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Post('applications/bulk')
-  bulk(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: BulkApplicationsDto) {
-    return this.service.bulk(companyId, actor.sub, dto);
+  async bulk(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: BulkApplicationsDto) {
+    const result = await this.service.bulk(companyId, actor.sub, dto);
+    if (dto.action === 'MOVE') await this.audit.recordBulkMove(companyId, actor.sub, dto.ids, dto.stageId, (result as { moved?: number }).moved ?? 0);
+    return result;
   }
 
   @Get('applications/:id')
@@ -105,7 +108,9 @@ export class RecruitmentController {
     @Body() dto: MoveApplicationDto,
   ) {
     await this.scope.assertApplication(companyId, actor, id);
-    return this.service.moveApplication(companyId, actor.sub, id, dto);
+    const result = await this.service.moveApplication(companyId, actor.sub, id, dto);
+    if (result.jobId) await this.audit.record(companyId, actor.sub, 'JOB_STAGE_CHANGED', result.jobId, { applicationId: id, stageId: dto.stageId, status: result.status });
+    return result;
   }
 
   @Patch('applications/:id/favorite')
@@ -196,6 +201,7 @@ export class RecruitmentController {
   ) {
     await this.scope.assertJob(companyId, actor, jobId);
     const csv = await this.service.exportCsv(companyId, jobId, query);
+    await this.audit.record(companyId, actor.sub, 'JOB_DATA_EXPORTED', jobId, { format: 'csv', filters: Object.keys(query ?? {}).filter((key) => (query as Record<string, unknown>)[key] !== undefined && (query as Record<string, unknown>)[key] !== '') });
     reply.header('Content-Type', 'text/csv; charset=utf-8');
     reply.header('Content-Disposition', 'attachment; filename="candidatos.csv"');
     return reply.send(csv);

@@ -33,11 +33,11 @@ export class JobTemplatesService {
   }
 
   /** Cria uma vaga em rascunho a partir do modelo. Publicar passa pelo mesmo caminho de qualquer vaga (limite do plano, orçamento, aprovação). */
-  async use(companyId: string, id: string) {
+  async use(companyId: string, id: string, actorId?: string) {
     const template = await this.prisma.jobTemplate.findFirst({ where: { id, companyId } });
     if (!template) throw new NotFoundException('Modelo não encontrado.');
     const { questions = [], criteria = [], ...fields } = template.data as Record<string, any>;
-    const job = await this.jobs.create(companyId, { ...fields, status: 'DRAFT' } as any);
+    const job = await this.jobs.create(companyId, { ...fields, status: 'DRAFT' } as any, actorId);
     if (questions.length) await this.recruitment.saveQuestions(companyId, job.id, { questions });
     if (criteria.length) await this.recruitment.saveCriteria(companyId, job.id, { criteria });
     return job;

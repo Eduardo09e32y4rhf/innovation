@@ -4,6 +4,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { createHash, randomUUID } from 'crypto';
 import { plainToInstance } from 'class-transformer';
@@ -21,6 +22,8 @@ import { normalizeAnswerValue, validateAnswerShape, type RuleQuestion } from './
 import { normalizeSource } from './application-source';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
 import { JobWorkflowService } from './job-workflow.service';
+import { JobAuditService } from './job-audit.service';
+import { changedFields, statusAction } from './job-audit';
 
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 
@@ -33,6 +36,7 @@ export class JobsService {
     private readonly privacy: RecruitmentPrivacyService,
     private readonly workflow: JobWorkflowService,
     private readonly documents: RecruitmentDocumentsService,
+    @Optional() private readonly audit?: JobAuditService,
   ) {}
 
   async list(companyId: string, jobScope: Prisma.JobWhereInput = {}) {
@@ -72,6 +76,9 @@ export class JobsService {
     const gate = await this.workflow.prepare(companyId, { currentStatus: null, nextStatus: dto.status ?? 'OPEN', department: dto.department, openings: dto.openings });
     const job = await this.repository.create(companyId, { ...this.normalizeJob(dto), status: gate.status });
     if (gate.startApproval) await this.workflow.startApproval(companyId, job.id, gate.steps, actorId);
+    await this.audit?.record(companyId, actorId, 'JOB_CREATED', job.id, { title: job.title, status: job.status });
+    const created = statusAction(null, job.status);
+    if (created) await this.audit?.record(companyId, actorId, created, job.id, { from: null, to: job.status });
     return job;
   }
 
@@ -84,10 +91,15 @@ export class JobsService {
     const result = await this.repository.update(companyId, id, { ...this.normalizeJob(dto), ...change.data, ...(dto.status ? { status: gate.status } : {}) });
     if (!result.count) throw new NotFoundException('Vaga nao encontrada.');
     if (gate.startApproval) await this.workflow.startApproval(companyId, id, gate.steps, actorId);
+    const finalStatus = dto.status ? gate.status : current.status;
+    const moved = statusAction(current.status, finalStatus);
+    if (moved) await this.audit?.record(companyId, actorId, moved, id, { from: current.status, to: finalStatus });
+    const fields = changedFields(current as unknown as Record<string, unknown>, dto as unknown as Record<string, unknown>);
+    if (fields.length) await this.audit?.record(companyId, actorId, 'JOB_UPDATED', id, { fields });
     return this.get(companyId, id);
   }
 
-  async duplicate(companyId: string, id: string) {
+  async duplicate(companyId: string, id: string, actorId?: string) {
     await this.assertJobQuota(companyId);
     const job = await this.get(companyId, id);
     const [questions, criteria] = await Promise.all([
@@ -134,6 +146,7 @@ export class JobsService {
         criteria: criteria.map((item) => ({ name: item.name, weight: item.weight })),
       });
     }
+    await this.audit?.record(companyId, actorId, 'JOB_DUPLICATED', copy.id, { sourceJobId: id, title: copy.title });
     return copy;
   }
 
@@ -172,9 +185,11 @@ export class JobsService {
     }
     if (job._count.applications === 0 && job.status === 'DRAFT') {
       await this.repository.delete(companyId, id);
+      await this.audit?.record(companyId, actorId, 'JOB_DELETED_PERMANENTLY', id, { title: job.title, applications: 0, draft: true });
       return { deleted: true, archived: false };
     }
     if (job.status !== 'CLOSED' && job.status !== 'FILLED') await this.repository.update(companyId, id, { status: 'CLOSED', closedAt: new Date() });
+    await this.audit?.record(companyId, actorId, 'JOB_ARCHIVED', id, { title: job.title, from: job.status });
     return { deleted: false, archived: true };
   }
 

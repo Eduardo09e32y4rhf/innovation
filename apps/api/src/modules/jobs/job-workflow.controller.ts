@@ -49,7 +49,7 @@ export class JobWorkflowController {
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Post('templates/:id/use')
   async useTemplate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
-    const job = await this.templates.use(companyId, id);
+    const job = await this.templates.use(companyId, id, actor.sub);
     await this.scope.assignCreator(companyId, actor, job.id);
     return job;
   }

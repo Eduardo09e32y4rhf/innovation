@@ -25,6 +25,7 @@ import { AssignRecruitersDto } from './dto/assign-recruiters.dto';
 import { CreateJobDto, UpdateJobDto } from './dto/create-job.dto';
 import { HireCandidateDto } from './dto/hire-candidate.dto';
 import { JobScopeService } from './job-scope.service';
+import { JobAuditService } from './job-audit.service';
 import { JobsService } from './jobs.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard, ModuleGuard)
@@ -32,7 +33,7 @@ import { JobsService } from './jobs.service';
 @Roles('DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR')
 @Controller('jobs')
 export class JobsController {
-  constructor(private readonly service: JobsService, private readonly scope: JobScopeService) {}
+  constructor(private readonly service: JobsService, private readonly scope: JobScopeService, private readonly audit: JobAuditService) {}
 
   @Get()
   list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
@@ -86,9 +87,17 @@ export class JobsController {
   @Post(':id/duplicate')
   async duplicate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     await this.scope.assertJob(companyId, actor, id);
-    const copy = await this.service.duplicate(companyId, id);
+    const copy = await this.service.duplicate(companyId, id, actor.sub);
     await this.scope.assignCreator(companyId, actor, (copy as any).id);
     return copy;
+  }
+
+  /** Historico de auditoria da vaga (criar, editar, publicar, encerrar, duplicar, mover etapa, exportar). */
+  @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
+  @Get(':id/history')
+  async history(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
+    await this.scope.assertJob(companyId, actor, id);
+    return this.audit.history(companyId, id);
   }
 
   /** Lista de quem pode ser responsavel (rota estatica: tem prioridade sobre :id). */

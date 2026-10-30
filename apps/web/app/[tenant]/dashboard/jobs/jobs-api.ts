@@ -74,6 +74,7 @@ export const jobsApi = {
   create: (payload: JobPayload) => request<Job>('/jobs', { method: 'POST', body: payload }),
   update: (id: string, payload: Partial<JobPayload>) => request<Job>(`/jobs/${enc(id)}`, { method: 'PATCH', body: payload }),
   remove: (id: string, mode: 'archive' | 'permanent' = 'archive') => request<{ deleted: boolean; archived?: boolean }>(`/jobs/${enc(id)}?mode=${mode}`, { method: 'DELETE' }),
+  history: (id: string) => request<{ id: string; action: string; label: string; createdAt: string; userName: string | null; metadata: Record<string, unknown> }[]>(`/jobs/${enc(id)}/history`),
   duplicate: (id: string) => request<Job>(`/jobs/${enc(id)}/duplicate`, { method: 'POST', body: {} }),
 
   internalJobs: () => request<InternalJob[]>('/internal-jobs'),
