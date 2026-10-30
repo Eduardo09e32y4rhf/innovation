@@ -15,6 +15,7 @@ import { toWholeReais } from '../payloads';
 import { EMPLOYMENT_TYPE_LABEL, STAGE_KIND_LABEL, WORK_MODE_LABEL, salaryLabel, type Criterion, type Job, type JobStatus, type Question, type StageKind } from '../types';
 import { workflowApi } from '../workflow-api';
 import { Field, Pill, SectionCard, inputClass } from './bits';
+import { DocumentPicker } from './document-picker';
 import { ScreeningEditor } from './screening-editor';
 import { JobSharePanel } from './share-dialog';
 
@@ -28,13 +29,14 @@ interface Draft {
   description: string; requirementsText: string; benefitsText: string; interviewGuideText: string;
   salaryMin: string; salaryMax: string; salaryHidden: boolean; deadline: string; status: JobStatus;
   questions: Question[]; criteria: Criterion[]; screeningMinScore: number | null; screeningAction: 'FLAG' | 'REJECT';
+  requiredDocuments: string[];
 }
 
 const EMPTY: Draft = {
   kind: 'EXTERNAL', title: '', department: '', location: '', workMode: '', employmentType: 'CLT', seniority: '', openings: 1,
   description: '', requirementsText: '', benefitsText: '', interviewGuideText: '',
   salaryMin: '', salaryMax: '', salaryHidden: false, deadline: '', status: 'DRAFT',
-  questions: [], criteria: [], screeningMinScore: null, screeningAction: 'REJECT',
+  questions: [], criteria: [], screeningMinScore: null, screeningAction: 'REJECT', requiredDocuments: [],
 };
 
 const lines = (text: string) => text.split('\n').map((line) => line.trim()).filter(Boolean);
@@ -104,6 +106,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
           questions: questions.map(({ id, label, type, required, options, knockout, scoreRule }) => ({ id, label, type, required, options: options ?? [], knockout: knockout ?? null, scoreRule: scoreRule ?? null })),
           criteria: criteria.map(({ id, name, weight }) => ({ id, name, weight })),
           screeningMinScore: job.screeningMinScore ?? null, screeningAction: job.screeningAction ?? 'REJECT',
+          requiredDocuments: (job.requiredDocuments ?? []).map((item) => item.label),
         };
         setDraft(loaded); baseline.current = JSON.stringify(loaded);
       })
@@ -164,6 +167,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
         salaryHidden: draft.salaryHidden, deadline: draft.deadline || null, status,
         isInternal: draft.kind === 'INTERNAL', confidential: draft.kind === 'CONFIDENTIAL',
         screeningMinScore: draft.screeningMinScore, screeningAction: draft.screeningAction,
+        requiredDocuments: draft.requiredDocuments.map((label) => ({ label, required: true })),
       };
       const result = jobId ? await jobsApi.update(jobId, payload) : await jobsApi.create(payload);
       await jobsApi.saveQuestions(result.id, draft.questions);
@@ -361,6 +365,11 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                 {!draft.interviewGuideText.trim() && <Button variant="outline" size="sm" onClick={() => set('interviewGuideText', (template ?? ROLE_TEMPLATES[2]).guide.join('\n'))}><Sparkles size={14} aria-hidden="true" /> Usar roteiro pronto</Button>}
                 <textarea className={`${inputClass} min-h-32`} aria-label="Roteiro de entrevista" value={draft.interviewGuideText} onChange={(event) => set('interviewGuideText', event.target.value)} />
                 <p className="text-sm text-fg-sub">Teste técnico com nota de corte: {jobId ? <Link className="font-semibold text-brand-700 underline" href={`${base}/${jobId}/teste`}>montar o teste desta vaga</Link> : 'monte depois de salvar a vaga (botão Teste técnico).'} O questionário comportamental já está pronto na ficha do candidato.</p>
+              </SectionCard>
+
+              <SectionCard title="Documentos da admissão" description="Documentos que o candidato escolhido precisa enviar. Sem seleção, usamos o kit do tipo de contrato (CLT, PJ, estágio, aprendiz ou temporário).">
+                <DocumentPicker value={draft.requiredDocuments} onChange={(items) => set('requiredDocuments', items)} />
+                {draft.requiredDocuments.length === 0 && <p className="text-xs text-fg-sub">Nenhum documento escolhido: será usado o kit do contrato {draft.employmentType || 'CLT'}.</p>}
               </SectionCard>
             </>
           )}

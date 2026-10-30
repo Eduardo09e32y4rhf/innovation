@@ -46,6 +46,8 @@ const ALLOWED: Record<string, Allowed> = {
   'POST /candidate-portal/auth/reset-password': PUBLICA('codigo de 6 digitos com hash e tentativas'),
   'GET /public/candidate-documents/:token': PUBLICA('link com token de uso do candidato'),
   'POST /public/candidate-documents/:token/upload': PUBLICA('link com token de uso do candidato'),
+  'POST /public/candidate-documents/:token/code': PUBLICA('link com token de uso do candidato; envia o codigo ao e-mail do candidato'),
+  'POST /public/candidate-documents/:token/verify': PUBLICA('link com token de uso do candidato; confirma o codigo recebido por e-mail'),
   'POST /public/candidate-requests': PUBLICA('pedido LGPD do candidato; Turnstile + limite por IP; so envia link de confirmacao ao e-mail (RS-C-01)'),
   'POST /public/consents/confirm': PUBLICA('confirma o banco de talentos pelo link do recibo; token de 64 hex (hash no banco); limite por IP (RS-C-18)'),
   'POST /public/consents/revoke': PUBLICA('revoga consentimento pelo link do recibo; token de 64 hex (hash no banco); limite por IP (RS-D-06)'),

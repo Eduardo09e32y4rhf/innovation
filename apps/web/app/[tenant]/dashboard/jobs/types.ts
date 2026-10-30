@@ -32,12 +32,14 @@ export interface Job {
   interviewGuide?: string[];
   screeningMinScore?: number | null;
   screeningAction?: 'FLAG' | 'REJECT' | null;
+  requiredDocuments?: Array<{ label: string; required: boolean }>;
   lifecycle?: { phase: 'DRAFT' | 'PENDING_APPROVAL' | 'OPEN' | 'PAUSED' | 'CLOSED_RECENT' | 'ARCHIVED'; acceptsApplications: boolean; canReactivate: boolean; reactivatableUntil: string | null; daysLeft: number | null };
   _count?: { applications?: number; questions?: number };
   pipeline?: { new: number; inProgress: number; hired: number; rejected: number };
 }
 
 export interface JobPayload {
+  requiredDocuments?: Array<{ label: string; required: boolean }>;
   title: string;
   description: string;
   location?: string | null;
