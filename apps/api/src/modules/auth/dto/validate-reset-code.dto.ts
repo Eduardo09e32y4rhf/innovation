@@ -5,7 +5,7 @@ export class ValidateResetCodeDto {
   email!: string;
 
   @IsString()
-  @Length(6, 6)
+  @Length(8, 8)
   code!: string;
 
   /** Obrigatório apenas para usuários vinculados a um funcionário (validado no serviço). */

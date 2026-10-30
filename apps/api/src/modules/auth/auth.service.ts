@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { timingSafeEqual } from 'node:crypto';
+import { randomInt, timingSafeEqual } from 'node:crypto';
 import { loginFailures } from '../../common/metrics/app-metrics';
 import { isCompanyDocumentOptional, normalizeCompanyDocument } from '../../common/company-document';
 import { createHmac } from 'node:crypto';
@@ -44,6 +44,10 @@ const PASSWORD_MAX_AGE_DAYS = 30;
 const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
 const RESET_DENIED_MESSAGE = 'Dados de validação incorretos';
 const RESET_MAX_ATTEMPTS = 5;
+const RESET_CODE_LENGTH = 8;
+const RESET_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const RESET_CODE_TTL_MS = 30 * 60 * 1000;
+const RESET_REQUEST_WINDOW_MS = 2 * 60 * 60 * 1000;
 // Hash falso com o mesmo custo (12) dos reais: quem não existe gasta o mesmo tempo de bcrypt de quem existe.
 let dummyHash: Promise<string> | null = null;
 const burnPasswordCheck = async (password: string) => {
@@ -449,11 +453,10 @@ export class AuthService {
     const role = this.resolveRole(user);
     if (!this.canAccessCompany(user.company, role)) return { requested: true };
 
-    const { randomBytes } = await import('node:crypto');
-    const code = randomBytes(4).toString('hex').slice(0, 6).toUpperCase();
-    const expires = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
-
-    await this.repository.setResetCode(user.id, code, expires);
+    // SEG-08: o pedido so abre uma janela (sem codigo). O codigo nasce quando o RH/ADMIN o emite (issueResetCode),
+    // aparece uma unica vez na resposta dele e so o HMAC fica no banco.
+    const expires = new Date(Date.now() + RESET_REQUEST_WINDOW_MS);
+    await this.repository.setResetCode(user.id, null, expires);
 
     await this.repository.createAuditLog({
       companyId: user.companyId,
@@ -482,11 +485,11 @@ export class AuthService {
       if (targetRoles.length) {
         await this.notificationsService.createSystemNotice(user.companyId, {
           title: 'Código de Recuperação de Senha',
-          message: `O colaborador ${user.employee?.name || user.name} (Email: ${user.email}) solicitou recuperação de senha. Informe o código apenas ao colaborador presencialmente.`,
+          message: `O colaborador ${user.employee?.name || user.name} (Email: ${user.email}) solicitou recuperação de senha. Gere o código de recuperação (ele aparece uma única vez) e informe-o apenas ao colaborador presencialmente.`,
           priority: 'HIGH',
           targetRoles,
           excludeUserId: user.id,
-          extraJson: { resetCode: code },
+          extraJson: { resetRequestUserId: user.id },
           expiresAt: expires,
         });
       }
@@ -495,6 +498,42 @@ export class AuthService {
     }
 
     return { requested: true };
+  }
+
+  /** Alfabeto sem 0/O/1/I/L: 32 simbolos x 8 posicoes = 40 bits, sorteados com crypto.randomInt. */
+  static generateResetCode(): string {
+    let code = '';
+    for (let i = 0; i < RESET_CODE_LENGTH; i += 1) code += RESET_CODE_ALPHABET[randomInt(RESET_CODE_ALPHABET.length)];
+    return code;
+  }
+
+  /** HMAC-SHA256 com segredo do servidor, amarrado ao usuario: o banco nunca guarda o codigo. */
+  private hashResetCode(userId: string, code: string): string {
+    const secret = process.env.PASSWORD_RESET_CODE_SECRET || process.env.JWT_SECRET;
+    if (!secret) throw new Error('JWT_SECRET (ou PASSWORD_RESET_CODE_SECRET) deve estar definido');
+    return createHmac('sha256', secret).update(`${userId}:${String(code).trim().toUpperCase()}`).digest('hex');
+  }
+
+  /**
+   * RH/ADMIN emite o codigo de um pedido de recuperacao pendente. O codigo e devolvido UMA vez (nao e guardado nem
+   * enviado em Notification.extraJson); vale 30 min e 5 tentativas.
+   */
+  async issueResetCode(actor: JwtUser, targetUserId: string, requestMeta: { ipAddress?: string; userAgent?: string }) {
+    const target = await this.repository.findUserById(targetUserId);
+    const denied = new ForbiddenException('Não foi possível emitir o código.');
+    if (!target || !target.isActive || target.companyId !== actor.companyId) throw denied;
+    if (!target.resetPasswordExpires || target.resetPasswordExpires.getTime() <= Date.now()) throw denied; // sem pedido pendente
+    if (!(resetNoticeRoles(this.resolveRole(target)) as string[]).includes(actor.role)) throw denied;
+
+    const code = AuthService.generateResetCode();
+    const expires = new Date(Date.now() + RESET_CODE_TTL_MS);
+    await this.repository.setResetCode(target.id, this.hashResetCode(target.id, code), expires);
+    await this.store.reset(`reset-attempts:${target.email.trim().toLowerCase()}`);
+    await this.repository.createAuditLog({
+      companyId: target.companyId, userId: actor.sub, action: 'PASSWORD_RESET_CODE_ISSUED', entity: 'User', entityId: target.id,
+      metadata: { targetUserId: target.id }, ipAddress: requestMeta.ipAddress, userAgent: requestMeta.userAgent,
+    });
+    return { code, expiresAt: expires };
   }
 
   /** Cada falha conta; ao atingir o limite o código é invalidado (um código de 6 caracteres não pode ser forçado dentro das 2 h de validade). */
@@ -514,7 +553,7 @@ export class AuthService {
     if (!user || !user.isActive) throw new UnauthorizedException(RESET_DENIED_MESSAGE);
 
     const storedCode = Buffer.from(user.resetPasswordCode ?? '');
-    const providedCode = Buffer.from(dto.code.trim().toUpperCase());
+    const providedCode = Buffer.from(this.hashResetCode(user.id, dto.code));
     const codesMatch = storedCode.length === providedCode.length && timingSafeEqual(storedCode, providedCode);
 
     if (!user.resetPasswordCode || !codesMatch) return this.failResetValidation(user.id, email);
