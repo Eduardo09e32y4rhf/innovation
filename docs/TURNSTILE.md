@@ -18,7 +18,12 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY=<site key>      # Web: exibe o widget (lida no BU
 
 ## 3. Comportamento
 - Token em `x-turnstile-token` (header) ou `turnstileToken` (corpo). Token invalido/ausente = **400** em portugues.
-- Falha de rede, timeout (5s), HTTP 5xx da Cloudflare ou secret invalida = **fail-open** com aviso no log (nao trava clientes).
+- Falha de rede, timeout (5s), HTTP 5xx da Cloudflare ou secret invalida: depende de `TURNSTILE_FAIL_MODE` (SEG-10):
+  - `open` (padrao em desenvolvimento e em producao que ainda nao optou): deixa passar e registra **erro** no log em cada ocorrencia (alerta).
+  - `closed`: responde **503** "Verificacao anti-robo indisponivel..." e registra erro no log. Token ausente/invalido continua **400**.
+  - Sem `TURNSTILE_FAIL_MODE`, o modo vira `closed` automaticamente apenas quando `NODE_ENV=production`, `TURNSTILE_SECRET_KEY` esta definida **e** `TURNSTILE_ENFORCE=true`. `TURNSTILE_FAIL_MODE` explicito sempre vence.
+  - Recomendacao: validar a chave em staging (secret/site key corretas) antes de ligar `TURNSTILE_ENFORCE=true`; chave trocada em `closed` derruba login e cadastro com 503.
+  - Pendente: o repasse de `TURNSTILE_FAIL_MODE` e `TURNSTILE_ENFORCE` no `docker-compose.prod.yml`/`.env.example` (grupo de infra) para chegarem ao container.
 - Nao ha CSP configurado hoje no projeto; se for adicionar, libere `https://challenges.cloudflare.com` em `script-src`, `frame-src` e `connect-src`.
 
 ## 4. Como testar
