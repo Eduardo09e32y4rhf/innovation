@@ -7,7 +7,9 @@ import { CandidateDocumentScanner } from './candidate-document-scanner.service';
 import { JobScopeService } from './job-scope.service';
 import { JobsStorageService } from './jobs-storage.service';
 import { RecruitmentWorkflowService } from './recruitment-workflow.service';
-import { formatsLabel, resolveRequiredDocuments, ruleForLabel } from './recruitment-doc-types';
+import { formatsLabel, resolveRequiredDocuments, ruleForLabel, validateApproval, type DocType } from './recruitment-doc-types';
+import { documentApprovedEmail, documentReminderEmail, documentReturnedEmail } from './recruitment-documents.mails';
+import { RecruiterNotifierService } from './recruiter-notifier.service';
 import {
   DEFAULT_LINK_DAYS,
   MAX_DOCUMENT_BYTES,
@@ -38,6 +40,7 @@ export class RecruitmentDocumentsService {
     private readonly scope: JobScopeService,
     private readonly mail: MailService,
     @Optional() private readonly workflow?: RecruitmentWorkflowService,
+    @Optional() private readonly notifier?: RecruiterNotifierService,
   ) {}
 
   private appBase() { return (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); }
@@ -119,8 +122,8 @@ export class RecruitmentDocumentsService {
   async listForApplication(companyId: string, actor: Actor, applicationId: string) {
     await this.scope.assertApplication(companyId, actor, applicationId);
     const [requests, documents, application] = await Promise.all([
-      this.prisma.recruitmentDocumentRequest.findMany({ where: { companyId, applicationId }, orderBy: { createdAt: 'desc' }, select: { id: true, items: true, expiresAt: true, revokedAt: true, createdAt: true } }),
-      this.prisma.recruitmentDocument.findMany({ where: { companyId, applicationId }, orderBy: { createdAt: 'desc' }, select: { id: true, requestId: true, label: true, status: true, fileName: true, mimeType: true, size: true, returnReason: true, reviewedAt: true, supersededAt: true, createdAt: true } }),
+      this.prisma.recruitmentDocumentRequest.findMany({ where: { companyId, applicationId }, orderBy: { createdAt: 'desc' }, select: { id: true, items: true, expiresAt: true, revokedAt: true, createdAt: true, reissuedFromId: true } }),
+      this.prisma.recruitmentDocument.findMany({ where: { companyId, applicationId }, orderBy: { createdAt: 'desc' }, select: { id: true, requestId: true, label: true, status: true, fileName: true, mimeType: true, size: true, returnReason: true, reviewedAt: true, supersededAt: true, createdAt: true, docType: true, expiresAt: true, sensitive: true } }),
       this.prisma.application.findFirst({ where: { id: applicationId, companyId }, select: { selectedAt: true, forwardedAt: true } }),
     ]);
     const now = new Date();
@@ -149,21 +152,164 @@ export class RecruitmentDocumentsService {
     return { stream: this.storage.stream(doc.fileKey), name: doc.fileName, type: doc.mimeType };
   }
 
-  async review(companyId: string, actor: Actor, documentId: string, dto: { decision: 'APPROVED' | 'RETURNED'; reason?: string }) {
-    const doc = await this.prisma.recruitmentDocument.findFirst({ where: { id: documentId, companyId }, select: { id: true, applicationId: true, status: true, supersededAt: true } });
+  async review(companyId: string, actor: Actor, documentId: string, dto: { decision: 'APPROVED' | 'RETURNED'; reason?: string; expiresAt?: string | Date | null }) {
+    const doc = await this.prisma.recruitmentDocument.findFirst({ where: { id: documentId, companyId }, select: { id: true, applicationId: true, status: true, supersededAt: true, label: true, docType: true } });
     if (!doc) throw new NotFoundException('Documento nao encontrado.');
     await this.scope.assertApplication(companyId, actor, doc.applicationId);
     if (doc.supersededAt) throw new ConflictException('Este documento foi substituido por um envio mais recente.');
     const reason = dto.reason?.trim();
     if (dto.decision === 'RETURNED' && (!reason || reason.length < 5)) throw new BadRequestException('Informe o motivo da devolucao (minimo 5 caracteres).');
+    const docType = (doc.docType as DocType | null) ?? ruleForLabel(doc.label).type;
+    let expiresAt: Date | null = null;
+    if (dto.decision === 'APPROVED') {
+      if (dto.expiresAt) {
+        expiresAt = new Date(dto.expiresAt);
+        if (Number.isNaN(expiresAt.getTime())) throw new BadRequestException('Vencimento invalido.');
+      }
+      const problem = validateApproval({ docType, expiresAt });
+      if (problem) throw new BadRequestException(problem);
+    }
     // Decisao condicional ao estado lido: duas conferencias simultaneas nao se sobrepoem.
     const result = await this.prisma.recruitmentDocument.updateMany({
       where: { id: documentId, companyId, status: doc.status, supersededAt: null },
-      data: { status: dto.decision, returnReason: dto.decision === 'RETURNED' ? reason : null, reviewedById: actor.sub, reviewedAt: new Date() },
+      data: { status: dto.decision, returnReason: dto.decision === 'RETURNED' ? reason : null, reviewedById: actor.sub, reviewedAt: new Date(), expiresAt, expiryAlertedAt: null, docType },
     });
     if (!result.count) throw new ConflictException('O documento foi alterado por outra pessoa. Atualize e tente novamente.');
-    await this.audit(companyId, actor.sub, `RECRUITMENT_DOCUMENT_${dto.decision}`, doc.applicationId, { documentId, reason: reason ?? null });
-    return { id: documentId, status: dto.decision };
+    await this.audit(companyId, actor.sub, `RECRUITMENT_DOCUMENT_${dto.decision}`, doc.applicationId, { documentId, reason: reason ?? null, docType, expiresAt });
+    const emailed = await this.notifyCandidateOfReview(companyId, actor.sub, doc.applicationId, doc.label, dto.decision, reason);
+    return { id: documentId, status: dto.decision, emailed };
+  }
+
+  /** RS-D-07: avisa o candidato por e-mail (aprovado, ou devolvido com motivo e link novo). Falha de e-mail nunca desfaz a conferencia. */
+  private async notifyCandidateOfReview(companyId: string, actorId: string, applicationId: string, label: string, decision: 'APPROVED' | 'RETURNED', reason?: string): Promise<boolean> {
+    try {
+      const app = await this.prisma.application.findFirst({ where: { id: applicationId, companyId }, select: { forwardedAt: true, anonymizedAt: true, candidate: { select: { name: true, email: true } }, job: { select: { title: true, company: { select: { name: true } } } } } });
+      if (!app || app.anonymizedAt || !app.candidate.email) return false;
+      const base = { name: app.candidate.name, company: app.job.company.name, jobTitle: app.job.title, label };
+      if (decision === 'APPROVED') {
+        const status = await this.hiringKitStatus(applicationId, companyId);
+        const result = await this.mail.send(app.candidate.email, documentApprovedEmail({ ...base, missing: status.missing.filter((item) => item !== label).length }));
+        return result.sent;
+      }
+      let url: string | null = null;
+      let expires: string | null = null;
+      if (!app.forwardedAt && this.appBase()) {
+        const fresh = await this.issueRequest(companyId, applicationId, actorId, { items: [label], days: DEFAULT_LINK_DAYS });
+        url = `${this.appBase()}/carreiras/documentos/${fresh.token}`;
+        expires = this.fmtDay(fresh.expiresAt);
+      }
+      const result = await this.mail.send(app.candidate.email, documentReturnedEmail({ ...base, reason: reason ?? '', url, expires }));
+      return result.sent;
+    } catch (error) {
+      this.logger.warn(`E-mail de conferencia nao enviado (${applicationId}): ${error instanceof Error ? error.message : error}`);
+      return false;
+    }
+  }
+
+  private fmtDay(date: Date) { return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }); }
+
+  /** Cria um link novo (so o hash fica no banco). `reissuedFromId` encadeia o historico. */
+  private async issueRequest(companyId: string, applicationId: string, createdById: string, input: { items: string[]; days?: number; expiresAt?: Date; reissuedFromId?: string; reminders?: boolean }) {
+    const { token, hash } = generateAccessToken();
+    const expiresAt = input.expiresAt ?? new Date(Date.now() + (input.days ?? DEFAULT_LINK_DAYS) * 86_400_000);
+    const now = new Date();
+    const created = await this.prisma.recruitmentDocumentRequest.create({
+      data: { companyId, applicationId, tokenHash: hash, items: input.items, expiresAt, createdById, reissuedFromId: input.reissuedFromId ?? null, ...(input.reminders ? { reminderD3At: now, reminderD1At: now } : {}) },
+      select: { id: true, items: true, expiresAt: true },
+    });
+    return { ...created, token };
+  }
+
+  /** RS-C-05: reemite o link (revoga o antigo, mantendo a linha e o historico dos documentos ja enviados). */
+  async reissueRequest(companyId: string, actor: Actor, requestId: string, dto: { expiresInDays?: number; sendEmail?: boolean } = {}) {
+    const old = await this.prisma.recruitmentDocumentRequest.findFirst({ where: { id: requestId, companyId }, select: { id: true, applicationId: true, items: true } });
+    if (!old) throw new NotFoundException('Link nao encontrado.');
+    await this.scope.assertApplication(companyId, actor, old.applicationId);
+    const application = await this.prisma.application.findFirst({ where: { id: old.applicationId, companyId }, select: { forwardedAt: true, anonymizedAt: true, candidate: { select: { name: true, email: true } }, job: { select: { title: true, company: { select: { name: true } } } } } });
+    if (!application || application.anonymizedAt) throw new NotFoundException('Candidatura nao encontrada.');
+    if (application.forwardedAt) throw new ConflictException('A candidatura ja foi encaminhada ao RH da empresa.');
+    const days = Math.min(Math.max(Math.trunc(dto.expiresInDays ?? DEFAULT_LINK_DAYS), 1), MAX_LINK_DAYS);
+    const fresh = await this.issueRequest(companyId, old.applicationId, actor.sub, { items: old.items, days, reissuedFromId: old.id });
+    await this.prisma.recruitmentDocumentRequest.updateMany({ where: { id: old.id, companyId, revokedAt: null }, data: { revokedAt: new Date() } });
+    await this.audit(companyId, actor.sub, 'RECRUITMENT_DOCUMENT_LINK_REISSUED', old.applicationId, { requestId: old.id, newRequestId: fresh.id, expiresAt: fresh.expiresAt });
+    let emailed = false;
+    if (dto.sendEmail && this.appBase() && application.candidate.email) {
+      const result = await this.mail.send(application.candidate.email, candidateDocumentsEmail({ name: application.candidate.name, company: application.job.company.name, jobTitle: application.job.title, items: old.items, url: `${this.appBase()}/carreiras/documentos/${fresh.token}`, expires: this.fmtDay(fresh.expiresAt) }));
+      emailed = result.sent;
+    }
+    return { id: fresh.id, items: fresh.items, expiresAt: fresh.expiresAt, token: fresh.token, path: `/carreiras/documentos/${fresh.token}`, emailed };
+  }
+
+  /**
+   * RS-D-07: cron diario. Para cada candidatura com link ativo, pendencias do candidato (sem envio ou devolvidas) e vencimento em 3 ou 1 dia,
+   * manda UM lembrete com link novo (o token antigo e so hash) e avisa o RH. Cada marco (D-3, D-1) dispara uma vez por link.
+   */
+  async sendLinkReminders(now: Date = new Date()): Promise<{ reminded: number }> {
+    const horizon = new Date(now.getTime() + 3 * 86_400_000);
+    const candidates = await this.prisma.recruitmentDocumentRequest.findMany({
+      where: { revokedAt: null, expiresAt: { gt: now, lte: horizon }, application: { is: { forwardedAt: null, anonymizedAt: null } } },
+      orderBy: { expiresAt: 'desc' },
+      take: 500,
+      select: { id: true, companyId: true, applicationId: true, items: true, expiresAt: true, createdById: true, reminderD3At: true, reminderD1At: true, application: { select: { jobId: true, candidate: { select: { name: true, email: true } }, job: { select: { title: true, company: { select: { name: true } } } } } } },
+    });
+    const latest = new Map<string, (typeof candidates)[number]>();
+    for (const request of candidates) if (!latest.has(request.applicationId)) latest.set(request.applicationId, request);
+    let reminded = 0;
+    for (const request of latest.values()) {
+      try {
+        const daysLeft = Math.max(1, Math.ceil((request.expiresAt.getTime() - now.getTime()) / 86_400_000));
+        const stage = daysLeft <= 1 ? 'D1' : 'D3';
+        if (stage === 'D1' ? request.reminderD1At : request.reminderD3At || request.reminderD1At) continue;
+        const docs = await this.prisma.recruitmentDocument.findMany({ where: { applicationId: request.applicationId, supersededAt: null }, select: { label: true, status: true } });
+        const byLabel = new Map(docs.map((doc) => [doc.label, doc.status]));
+        const pending = request.items.filter((label) => { const status = byLabel.get(label); return !status || status === 'RETURNED'; });
+        if (!pending.length) continue;
+        const marker = stage === 'D1' ? { reminderD3At: now, reminderD1At: now } : { reminderD3At: now };
+        const claimed = await this.prisma.recruitmentDocumentRequest.updateMany({ where: { id: request.id, ...(stage === 'D1' ? { reminderD1At: null } : { reminderD3At: null }) }, data: marker });
+        if (!claimed.count) continue; // outra instancia ja cuidou deste marco
+        const fresh = await this.issueRequest(request.companyId, request.applicationId, request.createdById, { items: request.items, expiresAt: request.expiresAt, reissuedFromId: request.id, reminders: true });
+        let sent = false;
+        const email = request.application.candidate.email;
+        if (email && this.appBase()) {
+          const result = await this.mail.send(email, documentReminderEmail({ name: request.application.candidate.name, company: request.application.job.company.name, jobTitle: request.application.job.title, pending, url: `${this.appBase()}/carreiras/documentos/${fresh.token}`, expires: this.fmtDay(request.expiresAt), daysLeft }));
+          sent = result.sent;
+        }
+        await this.notifier?.notify({ companyId: request.companyId, jobId: request.application.jobId, userIds: [request.createdById], kind: 'DOCUMENT_REMINDER', title: 'Candidato com documentos pendentes', lines: [`${request.application.candidate.name} ainda não enviou: ${pending.join(', ')}.`, `O link vence em ${daysLeft === 1 ? '1 dia' : `${daysLeft} dias`}. ${sent ? 'Um lembrete foi enviado ao candidato.' : 'O lembrete por e-mail NÃO foi enviado (sem e-mail ou provedor).'}`] });
+        await this.audit(request.companyId, request.createdById, 'RECRUITMENT_DOCUMENT_REMINDER_SENT', request.applicationId, { requestId: request.id, stage, pending: pending.length, emailed: sent });
+        reminded += 1;
+      } catch (error) {
+        this.logger.warn(`Lembrete de documentos falhou (${request.applicationId}): ${error instanceof Error ? error.message : error}`);
+      }
+    }
+    return { reminded };
+  }
+
+  /**
+   * RS-D-11: documentos aprovados que acompanham validade (CNH, certidoes, vacina, ASO) e vencem em ate `windowDays`:
+   * avisa o RH uma vez (e de novo se o vencimento for alterado na reconferencia).
+   */
+  async alertExpiringDocuments(now: Date = new Date(), windowDays = 30): Promise<{ alerted: number }> {
+    const until = new Date(now.getTime() + windowDays * 86_400_000);
+    const due = await this.prisma.recruitmentDocument.findMany({
+      where: { status: 'APPROVED', supersededAt: null, expiryAlertedAt: null, expiresAt: { not: null, lte: until } },
+      orderBy: { expiresAt: 'asc' },
+      take: 500,
+      select: { id: true, companyId: true, applicationId: true, label: true, expiresAt: true, reviewedById: true, application: { select: { jobId: true, candidate: { select: { name: true } } } } },
+    });
+    let alerted = 0;
+    for (const doc of due) {
+      try {
+        const expired = doc.expiresAt!.getTime() < now.getTime();
+        const claimed = await this.prisma.recruitmentDocument.updateMany({ where: { id: doc.id, expiryAlertedAt: null }, data: { expiryAlertedAt: now } });
+        if (!claimed.count) continue;
+        await this.notifier?.notify({ companyId: doc.companyId, jobId: doc.application.jobId, userIds: [doc.reviewedById], kind: 'DOCUMENT_EXPIRY', priority: expired ? 'HIGH' : 'NORMAL', title: expired ? 'Documento vencido' : 'Documento perto de vencer', lines: [`${doc.application.candidate.name}: ${doc.label} ${expired ? 'venceu' : 'vence'} em ${this.fmtDay(doc.expiresAt!)}.`, 'Peça um documento atualizado ao candidato.'] });
+        await this.audit(doc.companyId, doc.reviewedById, 'RECRUITMENT_DOCUMENT_EXPIRY_ALERT', doc.applicationId, { documentId: doc.id, expiresAt: doc.expiresAt });
+        alerted += 1;
+      } catch (error) {
+        this.logger.warn(`Alerta de vencimento falhou (${doc.id}): ${error instanceof Error ? error.message : error}`);
+      }
+    }
+    return { alerted };
   }
 
   /** Selecionar nao contrata: apenas marca a candidatura para a conferencia documental. */
@@ -263,7 +409,7 @@ export class RecruitmentDocumentsService {
     return { received: true };
   }
 
-  private audit(companyId: string, userId: string, action: string, applicationId: string, metadata: Record<string, unknown>) {
+  private audit(companyId: string, userId: string | null, action: string, applicationId: string, metadata: Record<string, unknown>) {
     return this.prisma.auditLog.create({ data: { companyId, userId, action, entity: 'Application', entityId: applicationId, metadata: metadata as any } });
   }
 }

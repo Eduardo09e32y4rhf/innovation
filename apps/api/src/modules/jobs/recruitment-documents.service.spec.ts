@@ -128,12 +128,12 @@ describe('envio do documento pelo candidato', () => {
 describe('conferencia e encaminhamento', () => {
   it('devolver exige motivo; decisao concorrente nao sobrescreve', async () => {
     const { svc, prisma } = build();
-    prisma.recruitmentDocument.findFirst.mockResolvedValue({ id: 'd1', applicationId: 'app-1', status: 'RECEIVED', supersededAt: null });
+    prisma.recruitmentDocument.findFirst.mockResolvedValue({ id: 'd1', applicationId: 'app-1', status: 'RECEIVED', supersededAt: null, label: 'RG', docType: null });
     await expect(svc.review('c1', actor, 'd1', { decision: 'RETURNED', reason: ' ' })).rejects.toBeInstanceOf(BadRequestException);
     prisma.recruitmentDocument.updateMany.mockResolvedValueOnce({ count: 0 });
     await expect(svc.review('c1', actor, 'd1', { decision: 'APPROVED' })).rejects.toBeInstanceOf(ConflictException);
     prisma.recruitmentDocument.updateMany.mockResolvedValueOnce({ count: 1 });
-    await expect(svc.review('c1', actor, 'd1', { decision: 'RETURNED', reason: 'Imagem ilegivel' })).resolves.toEqual({ id: 'd1', status: 'RETURNED' });
+    await expect(svc.review('c1', actor, 'd1', { decision: 'RETURNED', reason: 'Imagem ilegivel' })).resolves.toEqual({ id: 'd1', status: 'RETURNED', emailed: false });
   });
 
   it('documento de outra empresa/escopo responde 404 e nao e baixado nem revisado', async () => {

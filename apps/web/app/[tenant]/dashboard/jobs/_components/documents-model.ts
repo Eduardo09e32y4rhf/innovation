@@ -3,8 +3,15 @@ export type DocStatus = 'RECEIVED' | 'APPROVED' | 'RETURNED';
 export type DocumentRow = {
   id: string; requestId: string; label: string; status: DocStatus; fileName: string; mimeType: string; size: number;
   returnReason: string | null; reviewedAt: string | null; supersededAt: string | null; createdAt: string;
+  docType?: string | null; expiresAt?: string | null; sensitive?: boolean;
 };
-export type RequestRow = { id: string; items: string[]; expiresAt: string; revokedAt: string | null; createdAt: string; state: 'ACTIVE' | 'EXPIRED' | 'REVOKED' };
+export type RequestRow = { id: string; items: string[]; expiresAt: string; revokedAt: string | null; createdAt: string; state: 'ACTIVE' | 'EXPIRED' | 'REVOKED'; reissuedFromId?: string | null };
+
+/** Tipos que exigem o vencimento para aprovar (espelha recruitment-doc-types.ts no servidor). */
+export const EXPIRY_REQUIRED_TYPES = ['CNH', 'ASO', 'ANTECEDENTES', 'CERTIDAO'];
+export const EXPIRY_OPTIONAL_TYPES = ['VACINA'];
+export const needsExpiry = (docType?: string | null) => EXPIRY_REQUIRED_TYPES.includes(docType ?? '');
+export const asksExpiry = (docType?: string | null) => needsExpiry(docType) || EXPIRY_OPTIONAL_TYPES.includes(docType ?? '');
 export type DocumentsPayload = { selectedAt: string | null; forwardedAt: string | null; requests: RequestRow[]; documents: DocumentRow[] };
 export type CreatedRequest = { id: string; items: string[]; expiresAt: string; token: string; path: string; emailed?: boolean };
 

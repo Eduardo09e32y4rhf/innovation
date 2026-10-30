@@ -8,7 +8,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ModuleGuard } from '../../common/guards/module.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
-import { CreateDocumentRequestDto, ReviewDocumentDto } from './recruitment-documents.dto';
+import { CreateDocumentRequestDto, ReissueDocumentRequestDto, ReviewDocumentDto } from './recruitment-documents.dto';
 import { RecruitmentDocumentsService } from './recruitment-documents.service';
 
 /** Documentos de candidatura: RH e RH - R&S, com modulo e escopo de vaga. Nada aqui cria funcionario. */
@@ -54,6 +54,14 @@ export class RecruitmentDocumentsController {
     return this.service.revokeRequest(companyId, actor, requestId);
   }
 
+  @Header('Cache-Control', 'no-store')
+  @HttpCode(200)
+  @Post('document-requests/:requestId/reissue')
+  reissue(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('requestId', ParseUUIDPipe) requestId: string, @Body() dto: ReissueDocumentRequestDto) {
+    return this.service.reissueRequest(companyId, actor, requestId, dto);
+  }
+
+  @HttpCode(200)
   @Post('documents/:documentId/review')
   review(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('documentId', ParseUUIDPipe) documentId: string, @Body() dto: ReviewDocumentDto) {
     return this.service.review(companyId, actor, documentId, dto);

@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, Download, FileCheck2, Link2, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react';
+import { Copy, Download, FileCheck2, Link2, RefreshCw, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
@@ -10,7 +10,7 @@ import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
 import { jobsApi } from '../jobs-api';
 import { Pill, inputClass } from './bits';
-import { DOC_STATUS_LABEL, currentByLabel, forwardReadiness, parseItemsInput, publicDocumentsUrl, requestedLabels, type CreatedRequest } from './documents-model';
+import { DOC_STATUS_LABEL, asksExpiry, currentByLabel, needsExpiry, forwardReadiness, parseItemsInput, publicDocumentsUrl, requestedLabels, type CreatedRequest } from './documents-model';
 
 const fail = (cause: unknown, fallback: string) => toast.error(cause instanceof ApiError ? cause.message : fallback);
 const tone = { PENDING: 'default', RECEIVED: 'info', APPROVED: 'success', RETURNED: 'warning' } as const;
@@ -28,6 +28,7 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
   const [sendEmail, setSendEmail] = useState(true);
   const [created, setCreated] = useState<CreatedRequest | null>(null);
   const [returning, setReturning] = useState<{ id: string; reason: string } | null>(null);
+  const [approving, setApproving] = useState<{ id: string; expiresAt: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const data = query.data;
   const [prefilled, setPrefilled] = useState(false);
@@ -105,6 +106,9 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
                 <span className="min-w-0 break-words">{request.items.join(', ')}</span>
                 <span className="flex items-center gap-2">
                   <Pill tone={request.state === 'ACTIVE' ? 'success' : 'default'}>{request.state === 'ACTIVE' ? `Ativo até ${dateTime(request.expiresAt)}` : request.state === 'EXPIRED' ? 'Expirado' : 'Revogado'}</Pill>
+                  {request.state !== 'REVOKED' && !forwarded && (
+                    <button type="button" className="btn-icon" aria-label="Reemitir link (o anterior deixa de valer)" title="Reemitir link" disabled={busy} onClick={() => run(async () => { setCreated(await jobsApi.reissueDocumentRequest(request.id, days, sendEmail)); }, 'Link reemitido. Os documentos já enviados foram mantidos.')}><RefreshCw size={15} aria-hidden="true" /></button>
+                  )}
                   {request.state === 'ACTIVE' && !forwarded && (
                     <button type="button" className="btn-icon text-rose-600" aria-label="Revogar link" disabled={busy} onClick={() => run(() => jobsApi.revokeDocumentRequest(request.id), 'Link revogado.')}><Trash2 size={15} aria-hidden="true" /></button>
                   )}
@@ -134,10 +138,21 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
                       <Button variant="outline" size="sm" onClick={() => jobsApi.downloadDocument(doc.id, doc.fileName).catch((cause) => fail(cause, 'Não foi possível baixar o documento.'))}><Download size={14} aria-hidden="true" /> Baixar</Button>
                       {doc.status === 'RECEIVED' && !forwarded && (
                         <>
-                          <Button size="sm" isLoading={busy} onClick={() => run(() => jobsApi.reviewDocument(doc.id, 'APPROVED'), 'Documento aprovado.')}><FileCheck2 size={14} aria-hidden="true" /> Aprovar</Button>
+                          <Button size="sm" isLoading={busy} onClick={() => (asksExpiry(doc.docType) ? setApproving({ id: doc.id, expiresAt: '' }) : run(() => jobsApi.reviewDocument(doc.id, 'APPROVED'), 'Documento aprovado. O candidato foi avisado por e-mail.'))}><FileCheck2 size={14} aria-hidden="true" /> Aprovar</Button>
                           <Button variant="outline" size="sm" onClick={() => setReturning({ id: doc.id, reason: '' })}><RotateCcw size={14} aria-hidden="true" /> Devolver</Button>
                         </>
                       )}
+                    </div>
+                  )}
+                  {doc?.status === 'APPROVED' && doc.expiresAt && <p className="text-xs text-fg-sub">Vence em {new Date(doc.expiresAt).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</p>}
+                  {approving?.id === doc?.id && doc && (
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium" htmlFor={`expires-${doc.id}`}>Vencimento do documento{needsExpiry(doc.docType) ? ' (obrigatório)' : ' (opcional)'}</label>
+                      <input id={`expires-${doc.id}`} type="date" className={inputClass} value={approving.expiresAt} onChange={(event) => setApproving({ id: doc.id, expiresAt: event.target.value })} />
+                      <div className="flex gap-2">
+                        <Button size="sm" isLoading={busy} disabled={needsExpiry(doc.docType) && !approving.expiresAt} onClick={() => run(async () => { await jobsApi.reviewDocument(doc.id, 'APPROVED', undefined, approving.expiresAt || undefined); setApproving(null); }, 'Documento aprovado. O candidato foi avisado por e-mail.')}>Confirmar aprovação</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setApproving(null)}>Cancelar</Button>
+                      </div>
                     </div>
                   )}
                   {returning?.id === doc?.id && doc && (
@@ -145,7 +160,7 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
                       <label className="block text-xs font-medium" htmlFor={`return-${doc.id}`}>Motivo da devolução (o candidato verá)</label>
                       <textarea id={`return-${doc.id}`} rows={2} className={inputClass} value={returning.reason} onChange={(event) => setReturning({ id: doc.id, reason: event.target.value })} />
                       <div className="flex gap-2">
-                        <Button size="sm" isLoading={busy} disabled={returning.reason.trim().length < 5} onClick={() => run(async () => { await jobsApi.reviewDocument(doc.id, 'RETURNED', returning.reason.trim()); setReturning(null); }, 'Documento devolvido.')}>Confirmar devolução</Button>
+                        <Button size="sm" isLoading={busy} disabled={returning.reason.trim().length < 5} onClick={() => run(async () => { await jobsApi.reviewDocument(doc.id, 'RETURNED', returning.reason.trim()); setReturning(null); }, 'Documento devolvido. O candidato recebeu o motivo e um link novo por e-mail.')}>Confirmar devolução</Button>
                         <Button variant="ghost" size="sm" onClick={() => setReturning(null)}>Cancelar</Button>
                       </div>
                     </div>
