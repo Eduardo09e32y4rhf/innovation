@@ -1,5 +1,5 @@
 import { PdfReport } from '../../common/pdf/pdf-report';
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, NotFoundException, Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { createHash, createSign } from 'crypto';
@@ -182,7 +182,7 @@ export class PrivacyService {
 
   async getJobStatus(jobId: string, companyId: string) {
     const job = await this.pdfQueue.getJob(jobId);
-    if (!job || job.data?.companyId !== companyId) return { status: 'NOT_FOUND' };
+    if (!job || job.data?.companyId !== companyId) throw new NotFoundException('Processamento não encontrado.');
     return { id: job.id, status: await job.getState(), progress: job.progress() };
   }
 

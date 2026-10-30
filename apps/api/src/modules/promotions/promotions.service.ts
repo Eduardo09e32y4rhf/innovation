@@ -45,7 +45,7 @@ export class PromotionsService {
   }
 
   async list(companyId: string, status?: string) {
-    await this.applyDue(companyId);
+    // API-05: GET so le. A aplicacao das promocoes vencidas e do cron diario (dailyJob) ou do POST /promotions/apply-due.
     const rows = await this.prisma.employeePromotion.findMany({
       where: { companyId, ...(status ? { status } : {}) },
       orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],

@@ -1,6 +1,6 @@
 import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { PromotionPolicyDto } from './dto/promotion-policy.dto';
-import { Body, Controller, ForbiddenException, Get, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -33,6 +33,11 @@ export class PromotionsController {
 
   @Post()
   create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: PromotionDto) { this.assertWriter(actor); return this.service.create(companyId, actor, dto); }
+
+  /** Aplica agora as promocoes agendadas ja vencidas desta empresa (antes isso acontecia dentro do GET). */
+  @Post('apply-due')
+  @HttpCode(200)
+  async applyDueNow(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) { this.assertWriter(actor); return { applied: await this.service.applyDue(companyId) }; }
 
   @Post(':id/cancel')
   cancel(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) { this.assertWriter(actor); return this.service.cancel(companyId, actor, id); }
