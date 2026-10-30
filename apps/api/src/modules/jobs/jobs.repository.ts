@@ -325,6 +325,11 @@ export class JobsRepository {
     });
   }
 
+  async jobRecruiterIds(companyId: string, jobId: string): Promise<string[]> {
+    const rows = await this.prisma.jobRecruiter.findMany({ where: { companyId, jobId }, select: { userId: true } });
+    return rows.map((row) => row.userId);
+  }
+
   async offerStatuses(companyId: string, applicationId: string): Promise<string[]> {
     const rows = await this.prisma.jobOffer.findMany({ where: { companyId, applicationId }, select: { status: true } });
     return rows.map((row) => row.status);

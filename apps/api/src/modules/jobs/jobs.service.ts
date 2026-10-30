@@ -27,6 +27,7 @@ import { JobWorkflowService } from './job-workflow.service';
 import { assertResumeClean, CandidateDocumentScanner } from './candidate-document-scanner.service';
 import { CandidateConsentService } from './candidate-consent.service';
 import { JobAuditService } from './job-audit.service';
+import { RecruiterNotifierService } from './recruiter-notifier.service';
 import { buildJobFeedJson, buildJobFeedXml, type FeedJob } from './job-feed';
 import { appBase } from './recruitment-tokens';
 import { changedFields, statusAction } from './job-audit';
@@ -56,6 +57,7 @@ export class JobsService {
     private readonly scanner?: CandidateDocumentScanner,
     private readonly consents?: CandidateConsentService,
     @Optional() private readonly audit?: JobAuditService,
+    @Optional() private readonly notifier?: RecruiterNotifierService,
   ) {}
 
   async list(companyId: string, jobScope: Prisma.JobWhereInput = {}) {
@@ -451,11 +453,23 @@ export class JobsService {
       }
       await this.privacy.afterApply(result.application.id, dto.sensitiveConsent ? { gender: dto.gender, race: dto.race, pcd: dto.pcd } : {});
       await this.afterApplyProof(result.application.id, job, dto, normalizedEmail, safeName, hash, { size: file.buffer.length, mime: format.mime }, context);
+      void this.notifyNewApplication(job, safeName, evaluation.reject && evaluation.knockedOut);
       // Reprovado por pergunta eliminatoria: o retorno ao candidato sai 24h depois (InterviewFollowupService.sendDelayedKnockoutFeedback).
       return context.ownerVerified ? { received: true, applicationId: result.application.id } : { received: true };
     } catch (error) {
       if (!(error instanceof ConflictException)) await this.storage.remove(storageKey);
       throw error;
+    }
+  }
+
+  // RS-R-03: quem conduz a vaga sabe na hora que chegou candidatura (e-mail aos responsáveis + sino do RH). Falha não derruba a candidatura.
+  private async notifyNewApplication(job: { id: string; companyId: string; title?: string }, name: string, autoRejected: boolean) {
+    if (autoRejected || !this.notifier) return;
+    try {
+      const userIds = await this.repository.jobRecruiterIds(job.companyId, job.id);
+      await this.notifier.notify({ companyId: job.companyId, jobId: job.id, userIds, title: `Nova candidatura: ${name}`, lines: [`${name} se candidatou à vaga ${job.title ?? ''}. Abra a vaga para analisar o currículo.`.replace('  ', ' ')], priority: 'LOW', kind: 'APPLICATION_RECEIVED', cta: 'Ver candidatura' });
+    } catch {
+      // o aviso é complementar; a candidatura já foi registrada
     }
   }
 
