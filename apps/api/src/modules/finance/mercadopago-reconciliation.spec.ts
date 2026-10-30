@@ -82,6 +82,10 @@ describe('PAG-A1: janela do ts do x-signature do Mercado Pago (mantida em 5 min;
   });
   it('HMAC adulterado e rejeitado mesmo com ts atual', () => {
     const s = signed(Date.now());
-    expect(make().verifySignature({ signature: s.signature.replace(/.$/, '0'), requestId: s.requestId, dataId: s.dataId })).toBe(false);
+    // A assinatura muda a cada execucao (depende do ts): trocar o ultimo caractere por '0' falhava 1 vez em 16
+    // (quando ele ja era '0' a assinatura ficava intacta). Aqui o caractere SEMPRE muda.
+    const tampered = s.signature.replace(/.$/, (last) => (last === '0' ? '1' : '0'));
+    expect(tampered).not.toBe(s.signature);
+    expect(make().verifySignature({ signature: tampered, requestId: s.requestId, dataId: s.dataId })).toBe(false);
   });
 });
