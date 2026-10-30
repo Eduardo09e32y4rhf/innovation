@@ -65,6 +65,7 @@ export const candidateApi = {
   invites: () => authed<CandidateInvite[]>('/invites'),
   declineInvite: (id: string) => authed<{ ok: boolean }>(`/invites/${encodeURIComponent(id)}/decline`, { method: 'POST' }),
   applications: () => authed<{ applications: CandidateApplication[]; appliedJobIds: string[] }>('/applications'),
+  withdraw: (applicationId: string) => authed<{ withdrawn: boolean }>(`/applications/${encodeURIComponent(applicationId)}/withdraw`, { method: 'POST' }),
   applyWithProfile: (jobId: string, input: { answers: Record<string, string | string[]>; coverLetter?: string; consent: boolean }) =>
     authed<{ received: boolean; applicationId?: string }>(`/jobs/${encodeURIComponent(jobId)}/apply`, { method: 'POST', body: JSON.stringify(input) }),
 };

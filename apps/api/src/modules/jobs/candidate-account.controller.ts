@@ -122,6 +122,13 @@ export class CandidateAccountController {
   }
 
   @UseGuards(CandidateAuthGuard)
+  @Post('applications/:id/withdraw')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  withdraw(@Req() request: any, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.withdraw(request.candidateAccount, id);
+  }
+
+  @UseGuards(CandidateAuthGuard)
   @Get('consents')
   consents(@Req() request: any) {
     return this.service.consentList(request.candidateAccount);

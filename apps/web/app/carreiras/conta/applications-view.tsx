@@ -147,6 +147,10 @@ export function ApplicationsView() {
   async function decline(id: string) {
     try { await candidateApi.declineInvite(id); setInvites((list) => list.map((item) => (item.id === id ? { ...item, status: 'DECLINED' } : item))); } catch { /* tenta de novo no próximo ciclo */ }
   }
+  async function withdraw(id: string, job: string) {
+    if (!window.confirm(`Desistir da vaga "${job}"? A empresa será avisada e você não continuará no processo.`)) return;
+    try { await candidateApi.withdraw(id); await load(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível registrar a desistência.'); }
+  }
   const pendingInvites = invites.filter((item) => item.status === 'SENT');
   const inProgress = (items ?? []).filter((item) => !['REJECTED', 'HIRED'].includes(item.status) && !item.closed).length;
   const firstName = (profile.name ?? '').trim().split(/\s+/)[0] || 'candidato(a)';
@@ -246,6 +250,9 @@ export function ApplicationsView() {
                 <Stepper status={item.status} />
                 {item.interview && <InterviewCard interview={item.interview} />}
                 {item.closed && <p className="text-xs text-[#5b5473]">Esta vaga foi encerrada.</p>}
+                {!['REJECTED', 'HIRED'].includes(item.status) && !item.closed && (
+                  <button type="button" onClick={() => void withdraw(item.id, item.job)} className="min-h-11 text-sm font-semibold text-rose-700 hover:underline">Desistir desta candidatura</button>
+                )}
                 {item.funnel && <Funnel rows={item.funnel} status={item.status} />}
                 {item.timeline.length > 0 && (
                   <details className="text-sm"><summary className="min-h-11 cursor-pointer content-center font-semibold text-[#7240da]">Histórico</summary>

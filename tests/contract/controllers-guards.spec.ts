@@ -85,6 +85,7 @@ const ALLOWED: Record<string, Allowed> = {
   'DELETE /candidate-portal/me': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'GET /candidate-portal/cep/:cep': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'GET /candidate-portal/applications': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
+  'POST /candidate-portal/applications/:id/withdraw': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato; so a candidatura do proprio e-mail'),
   'GET /candidate-portal/invites': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'POST /candidate-portal/invites/:inviteId/decline': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'POST /candidate-portal/jobs/:jobId/apply': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),

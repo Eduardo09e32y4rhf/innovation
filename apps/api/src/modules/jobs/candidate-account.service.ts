@@ -5,6 +5,8 @@ import type { CandidateAccount } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { JobsService } from './jobs.service';
+import { RecruitmentService } from './recruitment.service';
+import { RecruiterNotifierService } from './recruiter-notifier.service';
 import { JobsStorageService } from './jobs-storage.service';
 import { CandidateConsentService } from './candidate-consent.service';
 import { assertResumeClean, CandidateDocumentScanner } from './candidate-document-scanner.service';
@@ -36,6 +38,8 @@ export class CandidateAccountService {
     private readonly jobs: JobsService,
     private readonly scanner?: CandidateDocumentScanner,
     private readonly consents?: CandidateConsentService,
+    private readonly recruitment?: RecruitmentService,
+    private readonly notifier?: RecruiterNotifierService,
   ) {}
 
   // ---------- cadastro, login e recuperação de senha ----------
@@ -266,6 +270,22 @@ export class CandidateAccountService {
   }
 
   // ---------- minhas candidaturas ----------
+  /** RS-C-11: o candidato desiste pela própria conta. Vai para Reprovados com DESISTENCIA (sem e-mail de reprovação) e o RH é avisado. */
+  async withdraw(account: Account, applicationId: string) {
+    const app = await this.prisma.application.findFirst({
+      where: { id: applicationId, anonymizedAt: null, candidate: { email: { equals: account.email, mode: 'insensitive' } } },
+      select: { id: true, companyId: true, status: true, stage: { select: { pipelineId: true } }, candidate: { select: { name: true } }, job: { select: { id: true, title: true, pipelineId: true, recruiters: { select: { userId: true } } } } },
+    });
+    if (!app) throw new NotFoundException('Candidatura não encontrada.');
+    if (['HIRED', 'REJECTED'].includes(app.status)) throw new ConflictException('Esta candidatura já foi encerrada.');
+    const pipelineId = app.stage?.pipelineId ?? app.job.pipelineId ?? (await this.prisma.hiringPipeline.findFirst({ where: { companyId: app.companyId, isDefault: true }, select: { id: true } }))?.id;
+    const rejected = pipelineId ? await this.prisma.pipelineStage.findFirst({ where: { pipelineId, kind: 'REJECTED' }, orderBy: { position: 'asc' }, select: { id: true } }) : null;
+    if (!rejected || !this.recruitment) throw new ConflictException('Não foi possível registrar a desistência agora. Fale com a empresa.');
+    await this.recruitment.moveApplication(app.companyId, null, app.id, { stageId: rejected.id, rejectionCode: 'DESISTENCIA', rejectionReason: 'Desistência pelo próprio candidato' });
+    await this.notifier?.notify({ companyId: app.companyId, jobId: app.job.id, userIds: app.job.recruiters.map((row) => row.userId), title: `${app.candidate.name} desistiu da vaga ${app.job.title}`, lines: [`${app.candidate.name} desistiu da candidatura pela Área do candidato. Ela foi movida para Reprovados com o motivo "Candidato desistiu".`], kind: 'APPLICATION_WITHDRAWN' }).catch(() => undefined);
+    return { withdrawn: true };
+  }
+
   async applications(account: Account) {
     const apps = await this.prisma.application.findMany({
       where: { anonymizedAt: null, candidate: { email: { equals: account.email, mode: 'insensitive' } } },

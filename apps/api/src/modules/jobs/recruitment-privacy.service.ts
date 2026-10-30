@@ -89,6 +89,7 @@ export class RecruitmentPrivacyService {
     try {
       const app = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { candidate: true, job: { include: { company: { select: { name: true } } } } } });
       if (!app || app.status !== 'REJECTED' || app.anonymizedAt || !app.candidate.email) return;
+      if (app.rejectionCode === 'DESISTENCIA') return; // o próprio candidato desistiu: não há devolutiva de reprovação
       const already = await this.prisma.applicationEvent.count({ where: { applicationId, type: 'REJECTION_EMAIL_SENT' } });
       if (already) return;
       const settings = await this.getSettings(app.companyId);
