@@ -510,7 +510,10 @@ export class AuthService {
   /** HMAC-SHA256 com segredo do servidor, amarrado ao usuario: o banco nunca guarda o codigo. */
   private hashResetCode(userId: string, code: string): string {
     const secret = process.env.PASSWORD_RESET_CODE_SECRET || process.env.JWT_SECRET;
-    if (!secret) throw new Error('JWT_SECRET (ou PASSWORD_RESET_CODE_SECRET) deve estar definido');
+    if (!secret) {
+      this.logger.error('JWT_SECRET (ou PASSWORD_RESET_CODE_SECRET) nao definido: nao da para proteger o codigo de recuperacao.');
+      throw new InternalServerErrorException('Configuracao de seguranca indisponivel. Contate o suporte.');
+    }
     return createHmac('sha256', secret).update(`${userId}:${String(code).trim().toUpperCase()}`).digest('hex');
   }
 
