@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { PdfReport, fmt } from '../../common/pdf/pdf-report';
 import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
-import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { Prisma, $Enums } from '@prisma/client';
 type InvoiceStatus = $Enums.InvoiceStatus;
 const InvoiceStatus = $Enums.InvoiceStatus;
@@ -88,7 +88,7 @@ export class PlatformFinanceService {
     try {
       const preference = await this.mercadoPago.createCheckoutPreference({ title: input.description, amount: input.amount, externalReference: `inv:${invoice.id}`, payerEmail: input.payerEmail });
       const url = this.mercadoPago.mode() === 'sandbox' ? preference.sandbox_init_point ?? preference.init_point : preference.init_point;
-      if (!preference.id || !url) throw new Error('Resposta incompleta do provedor.');
+      if (!preference.id || !url) throw new BadGatewayException('Resposta incompleta do provedor.');
       return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { invoiceUrl: url, mpPreferenceId: preference.id, paymentProcessingStatus: 'LINK_READY' } });
     } catch {
       await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { paymentProcessingStatus: 'UNKNOWN' } }).catch(() => undefined);
@@ -254,7 +254,7 @@ export class PlatformFinanceService {
         if (!this.mercadoPago.isConfigured()) return await release();
         const preference = await this.mercadoPago.createCheckoutPreference({ title: invoice.description ?? 'Mensalidade', amount, externalReference: `inv:${invoice.id}`, payerEmail: admin?.email });
         const url = this.mercadoPago.mode() === 'sandbox' ? preference.sandbox_init_point ?? preference.init_point : preference.init_point;
-        if (!preference.id || !url) throw new Error('Resposta incompleta do provedor.');
+        if (!preference.id || !url) throw new BadGatewayException('Resposta incompleta do provedor.');
         return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { provider: 'MERCADOPAGO', invoiceUrl: url, mpPreferenceId: preference.id, paymentProcessingStatus: 'LINK_READY' } });
       }
       if (!this.asaas.isConfigured() || !company.document || !admin) return await release();
@@ -263,7 +263,7 @@ export class PlatformFinanceService {
         value: amount, dueDate: invoice.dueDate.toISOString().slice(0, 10), description: invoice.description ?? 'Mensalidade',
         billingType: 'UNDEFINED', externalReference: `first:${invoice.chargeRequestKey ?? invoice.id}`, successPath: '/pagamento/retorno',
       });
-      if (!payment.id || !payment.invoiceUrl) throw new Error('O Asaas não retornou o link da cobrança.');
+      if (!payment.id || !payment.invoiceUrl) throw new BadGatewayException('O Asaas não retornou o link da cobrança.');
       return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { provider: 'ASAAS', asaasPaymentId: payment.id, invoiceUrl: payment.invoiceUrl, paymentProcessingStatus: 'LINK_READY' } });
     } catch (error) {
       await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { paymentProcessingStatus: 'UNKNOWN' } }).catch(() => undefined);

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasRejectedException, AsaasService, type AsaasFiscalInvoice } from './asaas.service';
@@ -274,7 +274,7 @@ export class AsaasFiscalService {
           pis: this.percent('ASAAS_NFSE_PIS'),
         },
       });
-      if (!nf?.id) throw new Error('O Asaas não devolveu a nota agendada.');
+      if (!nf?.id) throw new BadGatewayException('O Asaas não devolveu a nota agendada.');
       await this.persist(invoice.id, { ...nf, status: nf.status ?? 'SCHEDULED' });
       claimed = false;
       return { result: 'SCHEDULED', message: 'Nota agendada no Asaas. O número e o PDF chegam quando a prefeitura autorizar.' };
