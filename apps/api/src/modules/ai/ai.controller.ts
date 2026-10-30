@@ -1,6 +1,7 @@
 import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { ClassifyTicketDto, PlatformAssistantDto } from './dto/ai.dto';
-import { Body, Controller, Post, Param, UseGuards, Req, ForbiddenException, Get } from '@nestjs/common';
+import { Body, Controller, Post, Param, UseGuards, Req, ForbiddenException, Get, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -33,10 +34,10 @@ export class AiController {
   @Post('platform/company/:id/summary')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV', 'COMERCIAL')
-  async getCompanySummary(@Param('id') companyId: string, @CurrentUser() actor: JwtUser) {
+  async getCompanySummary(@Param('id', ParseUUIDPipe) companyId: string, @CurrentUser() actor: JwtUser) {
     const company = await this.prisma.company.findUnique({ where: { id: companyId } });
     if (!company) {
-      return { summaryText: 'Empresa não encontrada no banco operacional.', keyHighlights: [], statusClassification: 'NORMAL' };
+      throw new NotFoundException('Empresa não encontrada no banco operacional.');
     }
 
     // Verificação de escopo de acesso (COMERCIAL apenas se for dono)
@@ -60,7 +61,7 @@ export class AiController {
   @Post('platform/company/:id/risk')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV', 'COMERCIAL')
-  async getCompanyRisk(@Param('id') companyId: string, @CurrentUser() actor: JwtUser) {
+  async getCompanyRisk(@Param('id', ParseUUIDPipe) companyId: string, @CurrentUser() actor: JwtUser) {
     const company = await this.prisma.company.findUnique({ where: { id: companyId } });
     if (!company) {
       return { riskLevel: 'LOW', reasons: ['Empresa não localizada'], recommendations: [] };
@@ -94,7 +95,9 @@ export class AiController {
   }
 
   @Post('support/classify')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('DEV', 'COMERCIAL') // perfis de suporte/plataforma (mesmos de /platform/support); gasta credito de IA
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   async classifyTicket(@Body() body: ClassifyTicketDto) {
     return this.supportAi.classifyTicket(body.title || '', body.description || '');
   }
@@ -102,9 +105,9 @@ export class AiController {
   @Post('support/ticket/:id/summarize')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV')
-  async summarizeTicket(@Param('id') ticketId: string) {
+  async summarizeTicket(@Param('id', ParseUUIDPipe) ticketId: string) {
     const ticket = await this.prisma.supportTicket.findUnique({ where: { id: ticketId } });
-    if (!ticket) return { summary: 'Ticket não encontrado', keyPoints: [], pendingActionFrom: 'NONE' };
+    if (!ticket) throw new NotFoundException('Ticket não encontrado.');
 
     const messages = await this.prisma.supportTicketMessage.findMany({
       where: { ticketId: ticket.id },
@@ -117,9 +120,9 @@ export class AiController {
   @Post('support/ticket/:id/suggest-reply')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV')
-  async suggestReply(@Param('id') ticketId: string) {
+  async suggestReply(@Param('id', ParseUUIDPipe) ticketId: string) {
     const ticket = await this.prisma.supportTicket.findUnique({ where: { id: ticketId } });
-    if (!ticket) return { suggestedReply: '', isReadyToSend: false };
+    if (!ticket) throw new NotFoundException('Ticket não encontrado.');
 
     const messages = await this.prisma.supportTicketMessage.findMany({
       where: { ticketId: ticket.id },

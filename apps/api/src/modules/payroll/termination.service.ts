@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -116,6 +116,7 @@ export class TerminationService {
         },
       };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new BadRequestException((error as Error).message);
     }
   }

@@ -1,3 +1,4 @@
+import { outboundFetch } from '../../../common/http/outbound';
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../../database/prisma.service';
@@ -50,9 +51,10 @@ export class PunchService {
 
   private async reverseGeocode(latitude: number, longitude: number): Promise<string | null> {
     try {
-      const response = await fetch(
+      const response = await outboundFetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-        { headers: { 'User-Agent': 'InnovationRHConnect/1.0' }, signal: AbortSignal.timeout(2500) },
+        { headers: { 'User-Agent': 'InnovationRHConnect/1.0' }, },
+        { timeoutMs: 2500 },
       );
       if (!response.ok) return null;
       const data = (await response.json()) as any;

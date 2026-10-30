@@ -5,6 +5,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { clientIp } from '../../common/http/client-ip';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -13,9 +14,7 @@ import { UsersActivityService } from './users-activity.service';
 import { UsersService } from './users.service';
 
 function requestMeta(request: any) {
-  const forwarded = request?.headers?.['x-forwarded-for'];
-  const ip = request?.headers?.['cf-connecting-ip'] || request?.headers?.['x-real-ip'] || (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0]?.trim()) || request?.ip;
-  return { ip: ip ? String(ip) : undefined, userAgent: request?.headers?.['user-agent'] as string | undefined };
+  return { ip: clientIp(request), userAgent: request?.headers?.['user-agent'] as string | undefined };
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -64,7 +63,7 @@ export class UsersController {
   }
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Get(':id')
-  get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.get(companyId, actor, id);
   }
 
@@ -73,7 +72,7 @@ export class UsersController {
   update(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserDto,
     @Req() request: any,
   ) {
@@ -88,7 +87,7 @@ export class UsersController {
 
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Delete(':id')
-  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Req() request: any) {
+  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Req() request: any) {
     return this.service.delete(companyId, actor, id, requestMeta(request));
   }
 
@@ -96,7 +95,7 @@ export class UsersController {
   @Header('Cache-Control', 'no-store')
   @Roles('DEV', 'ADMIN', 'RH')
   @Post(':id/reset-password')
-  resetPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  resetPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.reissueTemporaryPassword(companyId, actor, id);
   }
 
@@ -104,7 +103,7 @@ export class UsersController {
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Post(':id/temporary-password/reveal')
-  revealTemporaryPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  revealTemporaryPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.revealTemporaryPassword(companyId, actor, id);
   }
 
@@ -112,7 +111,7 @@ export class UsersController {
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Post(':id/temporary-password/reissue')
-  reissueTemporaryPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  reissueTemporaryPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.reissueTemporaryPassword(companyId, actor, id);
   }
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')

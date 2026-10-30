@@ -1,4 +1,4 @@
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 
 # libc6-compat needed for Prisma and SWC binaries on Alpine
@@ -12,7 +12,7 @@ RUN npm config set fetch-retries 5 \
  && npm config set fetch-retry-maxtimeout 120000 \
  && npm ci --no-audit --no-optional
 
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 
 RUN apk add --no-cache libc6-compat
@@ -22,7 +22,7 @@ COPY . .
 RUN npm run db:generate
 RUN npm run build:api
 
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -33,8 +33,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist apps/api/dist
 COPY --from=builder /app/apps/api/prisma apps/api/prisma
 
-EXPOSE 3001
+EXPOSE 3333
 
-HEALTHCHECK --interval=10s --timeout=5s --retries=3 --start-period=30s CMD ["wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health/live"]
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 --start-period=30s CMD ["wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3333/health/live"]
 
 CMD ["sh", "-c", "npm run db:deploy && npm run start:api"]

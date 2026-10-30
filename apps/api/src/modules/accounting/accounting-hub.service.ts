@@ -7,6 +7,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { createPdfSink, safeFileName, sendPdf } from '../../common/pdf/pdf-response';
 import { PayrollCalculationService } from '../time-track/payroll-calculation.service';
 import { TimeClosingService } from '../time-track/time-closing.service';
+import { TimeTrackService } from '../time-track/time-track.service';
 import { AccountingAccessService } from '../../common/accounting-access';
 import { AdjustClosingDto, CorrectPayrollDto } from './accounting.dto';
 import { AccountingRulesService } from './accounting-rules.service';
@@ -35,6 +36,7 @@ export class AccountingHubService {
     private readonly closing: TimeClosingService,
     private readonly rules: AccountingRulesService,
     private readonly access: AccountingAccessService,
+    private readonly timeTrack: TimeTrackService,
   ) {}
 
   private async assertCompany(companyId: string) {
@@ -135,19 +137,20 @@ export class AccountingHubService {
    * Recalcula INSS/IRRF/FGTS/líquido de uma folha com as regras vigentes na competência.
    * Parte dos lançamentos da folha (salário, extras, DSR, bônus, faltas, adiantamentos), para nunca perder o que o RH lançou.
    */
-  private async recalcPayrollRow(tx: any, payroll: any) {
+  async recalcPayrollRow(tx: any, payroll: any) {
     const reference = new Date(payroll.periodEnd ?? Date.UTC(payroll.referenceYear, payroll.referenceMonth - 1, 1));
     const ctx = await this.payroll.resolveTaxContext(reference);
     const dependents = countDependents(payroll.employee?.dependents);
 
     // Valores corrigidos nas colunas viram lançamentos (salário, horas extras, noturno).
     const ensureItem = async (type: 'BASE_SALARY' | 'OVERTIME' | 'NIGHT_SHIFT', description: string, amount: number) => {
-      const existing = await tx.payrollItem.findFirst({ where: { payrollId: payroll.id, type } });
+      // Só a linha ligada à coluna (automática ou editada na coluna); lançamentos manuais extras de mesmo tipo não são tocados.
+      const existing = await tx.payrollItem.findFirst({ where: { payrollId: payroll.id, type, OR: [{ isColumnLine: true }, { isManual: false }] }, orderBy: { isColumnLine: 'desc' } });
       if (existing) {
         if (amount > 0) await tx.payrollItem.update({ where: { id: existing.id }, data: { amount } });
         else await tx.payrollItem.delete({ where: { id: existing.id } });
       } else if (amount > 0) {
-        await tx.payrollItem.create({ data: { payrollId: payroll.id, companyId: payroll.companyId, type, description, amount, isDeduction: false } });
+        await tx.payrollItem.create({ data: { payrollId: payroll.id, companyId: payroll.companyId, type, description, amount, isDeduction: false, isColumnLine: true } });
       }
     };
     await ensureItem('BASE_SALARY', 'Salário base', num(payroll.baseSalary));
@@ -206,7 +209,7 @@ export class AccountingHubService {
     }
     return { updated, result, builtin: ctx.builtin ?? [] };
   }
-  private async loadEditablePayroll(actor: JwtUser, id: string) {
+  async loadEditablePayroll(actor: JwtUser, id: string) {
     const payroll = await this.prisma.payroll.findFirst({ where: { id, deletedAt: null }, include: { employee: { select: { name: true, dependents: true, workScale: true, workScheduleRule: true } } } });
     if (!payroll) throw new NotFoundException('Folha não encontrada.');
     await this.access.assertAccountantCanAccess(actor, payroll.companyId, 'Folha não encontrada.');
@@ -256,6 +259,8 @@ export class AccountingHubService {
     await this.assertCompany(companyId);
     const period = resolveMonth(month);
     const last = `${period.key}-${String(period.last.getUTCDate()).padStart(2, '0')}`;
+    // Refaz os totais do ponto antes de fechar: folha e ponto saem sempre da mesma conta.
+    await this.timeTrack.recalculateRange(companyId, period.start, period.last);
     const generated = await this.closing.generate(companyId, { ...actor, companyId, role: 'ADMIN' }, { periodStart: `${period.key}-01`, periodEnd: last, month: period.month, year: period.year } as any);
     return { generated: Array.isArray(generated) ? generated.length : 0 };
   }

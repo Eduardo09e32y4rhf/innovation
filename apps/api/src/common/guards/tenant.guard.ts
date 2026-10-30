@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../database/prisma.service';
 import type { JwtUser } from '../types/auth.types';
 import { assertAccessToken } from './access-token';
+import { loadCompanyAccess } from './company-access';
 
 @Injectable()
 export class TenantGuard implements CanActivate {
@@ -20,10 +21,7 @@ export class TenantGuard implements CanActivate {
     request.companyId = user.companyId;
     if (user.role === 'DEV') return true;
 
-    const company = await this.prisma.company.findUnique({
-      where: { id: user.companyId },
-      select: { status: true, billingStatus: true },
-    });
+    const company = await loadCompanyAccess(this.prisma, request, user.companyId);
     if (!company) throw new UnauthorizedException('Company not found');
 
     // Bloqueia se a empresa estiver suspensa ou se a assinatura estiver cancelada/aguardando ativação inicial

@@ -7,7 +7,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
-import { PromotionsService, type PromotionDto } from './promotions.service';
+import { PromotionDto } from './dto/promotion.dto';
+import { PromotionsService } from './promotions.service';
 
 /** Promoções: RH, Administrador e Dev lançam; CEO consulta. */
 @UseGuards(JwtAuthGuard, RolesGuard)

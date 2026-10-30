@@ -14,7 +14,8 @@ Testes: `npm run test:all` (unitarios, integracao, contrato e seguranca; `tests/
 ## Deploy (VPS) — caminho unico
 `merge na main -> CI -> staging (automatico) -> producao (aprovacao)` via `.github/workflows/deploy.yml`, que roda na VPS:
 ```bash
-bash scripts/deploy/vps-update.sh [branch|tag|sha]   # codigo -> backup -> migrations -> build/subida -> verificacao de saude
+bash scripts/deploy/vps-update-bg.sh [sha|main] [--prebuilt]   # igual ao vps-update.sh, mas em segundo plano (sobrevive a queda do terminal); log em storage/deploy-*.log
+bash scripts/deploy/vps-update.sh [sha|main] [--prebuilt]   # imagens prontas (sem build na VPS) -> validacao -> backup -> migrations -> troca API/web -> saude, com rollback das imagens
 bash scripts/deploy/rollback.sh <tag|sha> [--restore-db]
 ```
 Primeira vez na VPS: `scripts/security/bootstrap-env.sh`, `scripts/security/rotate-db-password.sh`, `scripts/backup/install-cron.sh`. Detalhes em `docs/DEPLOY-VPS.md`.

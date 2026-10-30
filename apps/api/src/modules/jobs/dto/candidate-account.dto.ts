@@ -5,6 +5,11 @@ export class CandidateEmailDto {
   @IsEmail()
   @MaxLength(240)
   email!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  turnstileToken?: string;
 }
 
 export class CandidateRegisterDto {
@@ -20,6 +25,11 @@ export class CandidateRegisterDto {
   @IsString()
   @MaxLength(180)
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  turnstileToken?: string;
 }
 
 export class CandidateLoginDto {
@@ -30,6 +40,11 @@ export class CandidateLoginDto {
   @IsString()
   @MaxLength(128)
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  turnstileToken?: string;
 }
 
 export class CandidateResetPasswordDto {

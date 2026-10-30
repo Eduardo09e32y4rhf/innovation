@@ -68,13 +68,13 @@ export class AccountingPeriodService {
   private async payrollsOf(companyId: string, year: number, month: number) {
     return this.prisma.payroll.findMany({
       where: { companyId, referenceYear: year, referenceMonth: month, deletedAt: null, status: { not: 'CANCELLED' } },
-      select: { id: true, status: true, employeeId: true, items: { select: { type: true, description: true } } },
+      select: { id: true, status: true, employeeId: true, items: { select: { type: true, description: true, isManual: true } } },
       take: 2000,
     });
   }
 
   private serialize(period: any, closings: any[], payrolls: any[]) {
-    const manualPayroll = new Set(payrolls.filter((row) => (row.items ?? []).some((item: any) => MANUAL_ITEM_TYPES.includes(item.type) && !String(item.description).startsWith('DSR'))).map((row) => row.employeeId));
+    const manualPayroll = new Set(payrolls.filter((row) => (row.items ?? []).some((item: any) => item.isManual || (MANUAL_ITEM_TYPES.includes(item.type) && !String(item.description).startsWith('DSR')))).map((row) => row.employeeId));
     return {
       id: period?.id ?? null, companyId: period?.companyId, month: period?.month,
       status: period?.status ?? null,

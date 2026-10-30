@@ -1,5 +1,6 @@
 'use client';
 
+import { TurnstileWidget } from '@/app/_components/turnstile-widget';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
@@ -114,6 +115,7 @@ export function LoginForm() {
               {mode !== 'login' && <span className="block text-xs text-[#5b5473]">Mínimo de 8 caracteres, com letras e números.</span>}
             </label>
           )}
+          {mode !== 'reset' && <TurnstileWidget />}
           <Button type="submit" className="w-full !bg-[#7240da] hover:!bg-[#5b29be]" isLoading={busy}>{mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar conta' : mode === 'forgot' ? 'Enviar código' : 'Salvar nova senha'}</Button>
         </form>
         <div className="flex flex-wrap justify-between gap-x-4 text-sm">

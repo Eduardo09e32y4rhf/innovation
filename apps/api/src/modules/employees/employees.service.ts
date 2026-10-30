@@ -370,9 +370,22 @@ export class EmployeesService {
     return results;
   }
 
-  async delete(companyId: string, actor: JwtUser, id: string) {
+  async delete(companyId: string, actor: JwtUser, id: string, force = false) {
     const employee = await this.get(companyId, actor, id);
     const deletionImpact = await this.repository.getDeletionImpact(companyId, id);
+
+    if (deletionImpact.total > 0 && force) {
+      if (employee?.userId) await this.repository.updateUser(companyId, employee.userId, { isActive: false, forcePasswordChange: true });
+      const result = await this.repository.deleteWithHistory(companyId, id);
+      if (!result.count) throw new NotFoundException('Employee not found');
+      return {
+        deleted: true,
+        archived: false,
+        employeeId: id,
+        message: 'Funcionario e todo o historico vinculado foram excluidos definitivamente.',
+        deletionImpact,
+      };
+    }
 
     if (deletionImpact.total > 0) {
       const archived = await this.repository.terminateOnce(companyId, id, {

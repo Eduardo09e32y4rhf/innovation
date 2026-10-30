@@ -7,7 +7,7 @@ import { PayrollCalculationService } from '../time-track/payroll-calculation.ser
 import { overtimePaymentRatio } from '../time-track/overtime-policy';
 import { monthlySalaryFraction } from '../time-track/salary-period';
 import { reconcilePayroll } from './payroll-reconciliation';
-import { CancelPayrollDto, CreatePayrollDto, DEDUCTION_TYPES, ManualPayrollItemDto, UpdatePayrollDto } from './dto/create-payroll.dto';
+import { CancelPayrollDto, CreatePayrollDto, DEDUCTION_TYPES, MANUAL_ITEM_TYPES, ManualPayrollItemDto, ManualPayrollItemInput, UpdatePayrollDto } from './dto/create-payroll.dto';
 
 const DAY_MS = 86_400_000;
 const round2 = (value: number) => Math.round(value * 100) / 100;
@@ -146,7 +146,7 @@ export class PayrollService {
   }
 
   /** Monta valores e itens da folha: salário proporcional ao ciclo, ponto (extras, faltas, suspensão), lançamentos e impostos. */
-  private async build(companyId: string, employee: EmployeeForPayroll, start: Date, end: Date, days: number, manual: ManualPayrollItemDto[]) {
+  private async build(companyId: string, employee: EmployeeForPayroll, start: Date, end: Date, days: number, manual: ManualPayrollItemInput[]) {
     const salary = safe(employee.salary);
     if (salary === null || salary <= 0) throw new BadRequestException(`${employee.name} está sem salário cadastrado. Informe o salário no cadastro do funcionário.`);
 
@@ -212,15 +212,20 @@ export class PayrollService {
     }
 
     const item = (type: PayrollItemType, description: string, amount: number, isDeduction: boolean) => ({ type, description, amount: round2(amount), isDeduction });
+    // Lançamento manual: guarda motivo, quem e quando (auditoria) e marca o item como manual.
+    const manualItem = (i: ManualPayrollItemInput, isDeduction: boolean) => ({
+      ...item(i.type as PayrollItemType, i.description.trim(), i.amount, isDeduction),
+      isManual: true, manualReason: i.reason?.trim() || null, editedById: i.editedById ?? null, editedAt: i.editedAt ?? null,
+    });
     const items = [
       item('BASE_SALARY', salaryPeriodFraction === 1 ? 'Salário do ciclo mensal' : 'Salário proporcional aos dias corridos do ciclo', calc.salaryBase, false),
       ...(calc.overtime50Value + calc.overtime100Value > 0 ? [item('OVERTIME', 'Horas extras aprovadas', calc.overtime50Value + calc.overtime100Value, false)] : []),
       ...(calc.nightShiftValue > 0 ? [item('NIGHT_SHIFT', 'Adicional noturno', calc.nightShiftValue, false)] : []),
       ...(calc.dsrValue > 0 ? [item('OTHER_EARNING', 'DSR sobre horas variáveis', calc.dsrValue, false)] : []),
-      ...manual.filter((i) => !DEDUCTION_TYPES.includes(i.type)).map((i) => item(i.type as PayrollItemType, i.description.trim(), i.amount, false)),
+      ...manual.filter((i) => !DEDUCTION_TYPES.includes(i.type)).map((i) => manualItem(i, false)),
       ...(calc.absenceDiscount > 0 ? [item('ABSENCE_DEDUCTION', suspensionDays ? `Faltas e suspensão (${suspensionDays} dia(s) de suspensão)` : 'Faltas', calc.absenceDiscount, true)] : []),
       ...(calc.lateDiscount + calc.earlyLeaveDiscount > 0 ? [item('ABSENCE_DEDUCTION', 'Atrasos e saídas antecipadas', calc.lateDiscount + calc.earlyLeaveDiscount, true)] : []),
-      ...manual.filter((i) => DEDUCTION_TYPES.includes(i.type)).map((i) => item(i.type as PayrollItemType, i.description.trim(), i.amount, true)),
+      ...manual.filter((i) => DEDUCTION_TYPES.includes(i.type)).map((i) => manualItem(i, true)),
       item('INSS', 'Contribuição INSS', taxes.inssDiscount, true),
       item('IRRF', 'Imposto de Renda Retido na Fonte', taxes.irrfDiscount, true),
       ...companyDeductions.items.map((d) => item('OTHER_DEDUCTION', `${DEDUCTION_PREFIX}${d.name} (${d.detail})`, d.amount, true)),
@@ -265,9 +270,10 @@ export class PayrollService {
     if (!employee) throw new NotFoundException('Funcionário não encontrado.');
     await this.assertNoOverlap(companyId, current.employeeId, periodStart, periodEnd, employee.name, id);
 
-    const manual: ManualPayrollItemDto[] = dto.items ?? current.items
-      .filter((i) => ['BONUS', 'COMMISSION', 'OTHER_EARNING', 'ADVANCE', 'OTHER_DEDUCTION'].includes(i.type) && !i.description.startsWith('DSR') && !i.description.startsWith(DEDUCTION_PREFIX))
-      .map((i) => ({ type: i.type as ManualPayrollItemDto['type'], description: i.description, amount: Number(i.amount) }));
+    // Preserva os lançamentos manuais (com motivo e autoria). Linhas ligadas às colunas (salário, extras, noturno) voltam ao cálculo automático.
+    const manual: ManualPayrollItemInput[] = dto.items ?? current.items
+      .filter((i) => !i.isColumnLine && (i.isManual || ['BONUS', 'COMMISSION', 'OTHER_EARNING', 'ADVANCE', 'OTHER_DEDUCTION'].includes(i.type)) && (MANUAL_ITEM_TYPES as readonly string[]).includes(i.type) && !i.description.startsWith('DSR') && !i.description.startsWith(DEDUCTION_PREFIX))
+      .map((i) => ({ type: i.type as ManualPayrollItemDto['type'], description: i.description, amount: Number(i.amount), reason: i.manualReason ?? undefined, editedById: i.editedById, editedAt: i.editedAt }));
 
     const built = await this.build(companyId, employee as EmployeeForPayroll, periodStart, periodEnd, days, manual);
     await this.prisma.$transaction([

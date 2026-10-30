@@ -24,9 +24,11 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AdminResetEmployeePasswordDto } from './dto/admin-reset-employee-password.dto';
+import { IssueResetCodeDto } from './dto/issue-reset-code.dto';
 import { PublicPlanQuoteDto } from './dto/public-plan-quote.dto';
 import { MfaCodeDto, MfaDisableDto, MfaVerifyDto, VerifyEmailDto } from './dto/mfa.dto';
 import { MfaService } from './mfa.service';
+import { TurnstileGuard } from '../../common/turnstile/turnstile.guard';
 import { ValidateResetCodeDto } from './dto/validate-reset-code.dto';
 
 
@@ -47,12 +49,14 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 3, ttl: 1800000 } })
+  @UseGuards(TurnstileGuard)
   @Post('register-company')
   async registerCompany(@Body() dto: RegisterCompanyDto, @Req() request: any, @Res({ passthrough: true }) reply: any) {
     return withRefreshCookie(reply, await this.service.registerCompany(dto, getRequestMeta(request)));
   }
 
   @Throttle({ default: { limit: 5, ttl: 900000 } })
+  @UseGuards(TurnstileGuard)
   @Post('login')
   async login(@Body() dto: LoginDto, @Req() request: any, @Res({ passthrough: true }) reply: any) {
     return withRefreshCookie(reply, await this.service.login(dto, getRequestMeta(request)));
@@ -144,6 +148,7 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 5, ttl: 1800000 } })
+  @UseGuards(TurnstileGuard)
   @Post('password-reset/request')
   requestPasswordReset(@Body() dto: RequestPasswordResetDto, @Req() request: any) {
     if (dto.website) {
@@ -196,6 +201,15 @@ export class AuthController {
       dto.newPassword,
       getRequestMeta(request),
     );
+  }
+
+  /** SEG-08: RH/ADMIN emite o codigo de um pedido pendente; ele aparece so nesta resposta. */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'RH')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @Post('password-reset/issue-code')
+  issueResetCode(@CurrentUser() user: JwtUser, @Body() dto: IssueResetCodeDto, @Req() request: any) {
+    return this.service.issueResetCode(user, dto.userId, getRequestMeta(request));
   }
 
   @UseGuards(JwtAuthGuard)

@@ -1,5 +1,6 @@
 'use client';
 
+import { TurnstileWidget } from '@/app/_components/turnstile-widget';
 import Link from 'next/link';
 import { useRef, useState, type FormEvent } from 'react';
 import { AuthAlert, AuthShell, authButton, authInput, authLink } from '@/app/_components/auth/auth-shell';
@@ -29,8 +30,8 @@ export default function EsqueciSenhaPage() {
       footer={<Link href="/login" className="font-semibold text-white underline">Voltar ao login</Link>}>
       {sent ? (
         <div className="space-y-4">
-          <AuthAlert kind="success">Solicitação registrada. Se o e-mail estiver cadastrado, o responsável da sua empresa (gestor, RH ou administrador) recebeu o código de 6 caracteres.</AuthAlert>
-          <p className="text-sm text-zinc-600">Peça o código a ele e continue. O código vale por 2 horas.</p>
+          <AuthAlert kind="success">Solicitação registrada. Se o e-mail estiver cadastrado, o responsável da sua empresa (gestor, RH ou administrador) foi avisado para gerar o seu código de recuperação (8 caracteres).</AuthAlert>
+          <p className="text-sm text-zinc-600">Peça o código a ele e continue. O código vale por 30 minutos depois de gerado.</p>
           <Link href={resetHref} className={authButton}>Já tenho o código</Link>
           <button type="button" onClick={() => setSent(false)} className="min-h-11 w-full text-sm font-medium text-zinc-600 hover:text-zinc-900">Usar outro e-mail</button>
         </div>
@@ -42,6 +43,7 @@ export default function EsqueciSenhaPage() {
             <input id="fp-email" type="email" autoComplete="email" required disabled={loading} className={authInput} placeholder="voce@empresa.com.br" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           {error && <AuthAlert>{error}</AuthAlert>}
+          <TurnstileWidget />
           <button type="submit" disabled={loading || !email} className={authButton}>{loading ? 'Enviando…' : 'Solicitar código'}</button>
           <p className="text-center text-sm text-zinc-600">Já recebeu o código? <Link href="/reset-password" className={authLink}>Redefinir senha</Link></p>
           <p className="text-center text-xs text-zinc-500">Precisa de ajuda? <Link href="/suporte" className={authLink}>Fale com o suporte</Link></p>

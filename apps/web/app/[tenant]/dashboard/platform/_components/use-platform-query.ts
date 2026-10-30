@@ -29,7 +29,7 @@ export function useQuery<T>(fetcher: () => Promise<T>, deps: ReadonlyArray<unkno
   useEffect(() => {
     setState({ key, loading: enabled, error: null });
     void run();
-    const interval = enabled && options.pollMs ? window.setInterval(() => void run(true), options.pollMs) : undefined;
+    const interval = enabled && options.pollMs ? window.setInterval(() => { if (document.visibilityState === 'visible') void run(true); }, options.pollMs) : undefined;
     return () => { generation.current++; if (interval) window.clearInterval(interval); };
   }, [key, enabled, options.pollMs, run]);
   return { data: state.key === key ? state.data : undefined, loading: state.key === key ? state.loading : enabled, error: state.key === key ? state.error : null, refetch: () => void run() };

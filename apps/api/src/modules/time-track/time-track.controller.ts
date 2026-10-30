@@ -1,5 +1,5 @@
 import { ApprovalDto, BatchApprovalDto } from './dto/approval.dto';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, BadRequestException, ForbiddenException, UnauthorizedException, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -10,6 +10,7 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
 import { RevokeTimeTrackDto } from './dto/revoke-time-track.dto';
+import { RecalculateRangeDto } from './dto/recalculate-range.dto';
 import { UpdateTimeTrackDto } from './dto/update-time-track.dto';
 import { TimeTrackService } from './time-track.service';
 import { Prisma } from '@prisma/client';
@@ -29,7 +30,7 @@ export class TimeTrackController {
   }
 
   @Get(':employeeId/month')
-  listEmployeeMonth(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('employeeId') employeeId: string, @Query('month') month?: string) {
+  listEmployeeMonth(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('employeeId', ParseUUIDPipe) employeeId: string, @Query('month') month?: string) {
     return this.service.listEmployeeMonth(companyId, actor, employeeId, month);
   }
 
@@ -60,6 +61,14 @@ export class TimeTrackController {
     };
   }
 
+  @Roles('DEV', 'ADMIN', 'RH')
+  @Post('recalculate')
+  recalculate(@CurrentCompany() companyId: string, @Body() body: RecalculateRangeDto) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(body?.month || '')) throw new BadRequestException('Informe o mes no formato YYYY-MM.');
+    const [year, month] = body.month.split('-').map(Number);
+    return this.service.recalculateRange(companyId, new Date(Date.UTC(year, month - 1, 1)), new Date(Date.UTC(year, month, 0)), body.employeeId);
+  }
+
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Get('pending')
   listPending(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
@@ -69,13 +78,13 @@ export class TimeTrackController {
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
 
   @Patch(':id/overtime-approval')
-  approveOvertime(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: ApprovalDto) {
+  approveOvertime(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: ApprovalDto) {
     return this.service.approveOvertime(companyId, actor, id, body.approved);
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Patch(':id/approve')
-  approve(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: ApprovalDto) {
+  approve(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: ApprovalDto) {
     return this.service.approveManual(companyId, actor, id, body.approved);
   }
 
@@ -87,19 +96,19 @@ export class TimeTrackController {
 
   @Roles('DEV', 'ADMIN', 'RH')
   @Patch(':id')
-  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateTimeTrackDto) {
+  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateTimeTrackDto) {
     return this.service.update(companyId, actor, id, dto);
   }
 
   @Roles('DEV', 'ADMIN', 'RH')
   @Patch(':id/revoke')
-  revoke(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: RevokeTimeTrackDto) {
+  revoke(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: RevokeTimeTrackDto) {
     return this.service.revokeManual(companyId, actor, id, dto.reason);
   }
 
   @Roles('DEV', 'ADMIN', 'RH')
   @Delete(':id')
-  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.delete(companyId, actor, id);
   }
 }

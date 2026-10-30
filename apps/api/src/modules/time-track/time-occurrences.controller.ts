@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -21,13 +21,13 @@ export class TimeOccurrencesController {
 
   @Roles(...rolesWith('calendar.read'))
   @Get('employee/:employeeId')
-  listByEmployee(@CurrentUser() actor: JwtUser, @Param('employeeId') employeeId: string) {
+  listByEmployee(@CurrentUser() actor: JwtUser, @Param('employeeId', ParseUUIDPipe) employeeId: string) {
     return this.svc.list(actor, employeeId);
   }
 
   @Roles(...rolesWith('calendar.read'))
   @Get(':id')
-  getById(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  getById(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.getById(actor, id);
   }
 
@@ -39,13 +39,13 @@ export class TimeOccurrencesController {
 
   @Roles(...rolesWith('approvals'))
   @Put(':id/approve')
-  approve(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  approve(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.approve(actor, id);
   }
 
   @Roles(...rolesWith('approvals'))
   @Put(':id/reject')
-  reject(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  reject(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.reject(actor, id);
   }
 }

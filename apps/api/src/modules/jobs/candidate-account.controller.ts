@@ -1,6 +1,7 @@
 import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { lookupCep } from '../lookup/lookup.controller';
+import { TurnstileGuard } from '../../common/turnstile/turnstile.guard';
 import { CandidateAuthGuard } from './candidate-account.guard';
 import { CandidateAccountService } from './candidate-account.service';
 import { CandidateApplyDto, CandidateEmailDto, CandidateLoginDto, CandidateRegisterDto, CandidateResetPasswordDto, CandidateUpdateProfileDto } from './dto/candidate-account.dto';
@@ -10,12 +11,14 @@ import { CandidateApplyDto, CandidateEmailDto, CandidateLoginDto, CandidateRegis
 export class CandidateAccountController {
   constructor(private readonly service: CandidateAccountService) {}
 
+  @UseGuards(TurnstileGuard)
   @Post('auth/register')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   register(@Body() dto: CandidateRegisterDto) {
     return this.service.register(dto.email, dto.password, dto.name);
   }
 
+  @UseGuards(TurnstileGuard)
   @Post('auth/login')
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
@@ -23,6 +26,7 @@ export class CandidateAccountController {
     return this.service.login(dto.email, dto.password);
   }
 
+  @UseGuards(TurnstileGuard)
   @Post('auth/forgot-password')
   @HttpCode(200)
   @Throttle({ default: { limit: 5, ttl: 60000 } })

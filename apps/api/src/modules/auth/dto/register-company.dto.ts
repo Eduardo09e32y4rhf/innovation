@@ -47,4 +47,9 @@ export class RegisterCompanyDto {
   @IsString()
   @MaxLength(80)
   couponCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  turnstileToken?: string;
 }

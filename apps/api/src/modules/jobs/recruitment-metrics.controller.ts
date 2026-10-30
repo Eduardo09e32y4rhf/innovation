@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireModule } from '../../common/decorators/require-module.decorator';
@@ -19,7 +19,7 @@ export class RecruitmentMetricsController {
   constructor(private readonly service: RecruitmentMetricsService, private readonly scope: JobScopeService) {}
 
   @Get()
-  metrics(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Query('from') from?: string, @Query('to') to?: string, @Query('jobId') jobId?: string) {
+  metrics(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Query('from') from?: string, @Query('to') to?: string, @Query('jobId', new ParseUUIDPipe({ optional: true })) jobId?: string) {
     const valid = (value?: string) => (value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined);
     return this.service.metrics(companyId, this.scope.scope(actor), { from: valid(from), to: valid(to), jobId: jobId && /^[0-9a-f-]{36}$/i.test(jobId) ? jobId : undefined });
   }

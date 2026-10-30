@@ -5,13 +5,15 @@ import { useCallback, useEffect, useRef } from 'react';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
+import type { PayrollSheetEmployee } from '@/app/lib/api';
 import { AdjustForm } from './_adjust-form';
+import { PayrollSheet } from './_payroll-sheet';
 import { brl, fieldLabel, fmtDate, fmtDayMonth, fmtMinutes, type MonthRow } from './_model';
 
 const hhmm = (v: string | null) => (v ? (v.length > 5 && v.includes('T') ? v.slice(11, 16) : v.slice(0, 5)) : '—');
 
-export function EmployeeDrawer({ companyId, month, row, canAdjust, onClose, onAdjusted }: {
-  companyId: string; month: string; row: MonthRow; canAdjust: boolean; onClose: () => void; onAdjusted: () => void;
+export function EmployeeDrawer({ companyId, month, row, canAdjust, payroll, onClose, onAdjusted }: {
+  companyId: string; month: string; row: MonthRow; canAdjust: boolean; payroll?: PayrollSheetEmployee; onClose: () => void; onAdjusted: () => void;
 }) {
   const q = useQuery(useCallback(() => api.accounting.employeeTimeSheet(companyId, row.employeeId, month), [companyId, row.employeeId, month]), [companyId, row.employeeId, month]);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -46,6 +48,10 @@ export function EmployeeDrawer({ companyId, month, row, canAdjust, onClose, onAd
                 <div key={k} className="flex justify-between gap-3 px-3 py-2"><dt className="text-fg-sub">{k}</dt><dd className="font-medium">{v}</dd></div>
               ))}
             </dl>
+          </section>
+          <section aria-labelledby="folha-titulo">
+            <h4 id="folha-titulo" className="mb-2 font-semibold">Folha do mês (proventos e descontos)</h4>
+            <PayrollSheet data={payroll} canEdit={canAdjust} onChanged={onAdjusted} />
           </section>
           <section aria-labelledby="aj-titulo">
             <h4 id="aj-titulo" className="mb-2 font-semibold">Ajustes manuais (calculado × ajustado)</h4>

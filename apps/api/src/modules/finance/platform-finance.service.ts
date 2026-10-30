@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { PdfReport, fmt } from '../../common/pdf/pdf-report';
 import { createPdfSink, sendPdf } from '../../common/pdf/pdf-response';
-import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { Prisma, $Enums } from '@prisma/client';
 type InvoiceStatus = $Enums.InvoiceStatus;
 const InvoiceStatus = $Enums.InvoiceStatus;
@@ -9,12 +9,12 @@ import type { JwtUser } from '../../common/types/auth.types';
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasPayment, AsaasRejectedException, AsaasService } from './asaas.service';
 import { PricingService } from './pricing.service';
+import { saoPauloTomorrow } from './billing-dates';
 import { planPricingForSubscription } from './pricing';
 import { MercadoPagoService } from './mercadopago.service';
 import { couponDiscount } from '../coupons/coupon-rules';
 import { PaymentProviderService } from './payment-provider.service';
 import { PaymentRefundService } from './payment-refund.service';
-import { cancelRedundantSignupCharges } from './signup-charges';
 import { CreatePlatformInvoiceDto, ListPlatformInvoicesDto, UpdatePlatformInvoiceDto } from './dto/platform-finance.dto';
 
 const STATEMENT_STATUS: Record<string, { label: string; color: string }> = {
@@ -88,7 +88,7 @@ export class PlatformFinanceService {
     try {
       const preference = await this.mercadoPago.createCheckoutPreference({ title: input.description, amount: input.amount, externalReference: `inv:${invoice.id}`, payerEmail: input.payerEmail });
       const url = this.mercadoPago.mode() === 'sandbox' ? preference.sandbox_init_point ?? preference.init_point : preference.init_point;
-      if (!preference.id || !url) throw new Error('Resposta incompleta do provedor.');
+      if (!preference.id || !url) throw new BadGatewayException('Resposta incompleta do provedor.');
       return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { invoiceUrl: url, mpPreferenceId: preference.id, paymentProcessingStatus: 'LINK_READY' } });
     } catch {
       await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { paymentProcessingStatus: 'UNKNOWN' } }).catch(() => undefined);
@@ -123,8 +123,7 @@ export class PlatformFinanceService {
       orderBy: { createdAt: 'desc' },
     });
     if (!invoice) {
-      const dueDate = new Date();
-      dueDate.setUTCDate(dueDate.getUTCDate() + 1);
+      const dueDate = saoPauloTomorrow();
       const plan = company.platformPlan;
       invoice = await this.createMercadoPagoSubscriptionInvoice({
         companyId: company.id, planId: plan?.id, description: 'Mensalidade Innovation RH', amount, dueDate, payerEmail: admin.email,
@@ -178,10 +177,9 @@ export class PlatformFinanceService {
   }
 
   async createInitialCharge(company: any, customerId: string, amount: number) {
-    const dueDate = new Date();
-    // Vencimento hoje ou amanhã
-    dueDate.setUTCDate(dueDate.getUTCDate() + 1);
-    
+    // Vencimento = amanhã no calendário de Brasília (PAG-08)
+    const dueDate = saoPauloTomorrow();
+
     const payment = await this.asaas.createCharge(customerId, {
       value: amount,
       dueDate: dueDate.toISOString().slice(0, 10),
@@ -256,7 +254,7 @@ export class PlatformFinanceService {
         if (!this.mercadoPago.isConfigured()) return await release();
         const preference = await this.mercadoPago.createCheckoutPreference({ title: invoice.description ?? 'Mensalidade', amount, externalReference: `inv:${invoice.id}`, payerEmail: admin?.email });
         const url = this.mercadoPago.mode() === 'sandbox' ? preference.sandbox_init_point ?? preference.init_point : preference.init_point;
-        if (!preference.id || !url) throw new Error('Resposta incompleta do provedor.');
+        if (!preference.id || !url) throw new BadGatewayException('Resposta incompleta do provedor.');
         return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { provider: 'MERCADOPAGO', invoiceUrl: url, mpPreferenceId: preference.id, paymentProcessingStatus: 'LINK_READY' } });
       }
       if (!this.asaas.isConfigured() || !company.document || !admin) return await release();
@@ -265,7 +263,7 @@ export class PlatformFinanceService {
         value: amount, dueDate: invoice.dueDate.toISOString().slice(0, 10), description: invoice.description ?? 'Mensalidade',
         billingType: 'UNDEFINED', externalReference: `first:${invoice.chargeRequestKey ?? invoice.id}`, successPath: '/pagamento/retorno',
       });
-      if (!payment.id || !payment.invoiceUrl) throw new Error('O Asaas não retornou o link da cobrança.');
+      if (!payment.id || !payment.invoiceUrl) throw new BadGatewayException('O Asaas não retornou o link da cobrança.');
       return await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { provider: 'ASAAS', asaasPaymentId: payment.id, invoiceUrl: payment.invoiceUrl, paymentProcessingStatus: 'LINK_READY' } });
     } catch (error) {
       await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { paymentProcessingStatus: 'UNKNOWN' } }).catch(() => undefined);
@@ -581,49 +579,28 @@ export class PlatformFinanceService {
       where: { companyId, isActive: true, role: { in: ['RH', 'GESTOR', 'FUNCIONARIO', 'CONSULTA'] } },
     });
 
-    let invoice = await this.prisma.platformInvoice.findFirst({
+    const invoice = await this.prisma.platformInvoice.findFirst({
       where: { companyId, deletedAt: null, status: { in: ['OPEN', 'OVERDUE'] } },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Polling fallback keeps onboarding recoverable if a webhook delivery is delayed.
-    if (invoice?.asaasPaymentId && this.asaas.isConfigured() && company.status !== 'ACTIVE') {
+    // Consulta somente leitura (GET nunca grava): confere no gateway, de servidor para servidor, se a fatura já foi paga.
+    // Quem baixa a fatura e reativa a empresa é o webhook assinado ou a conciliação (syncCompanyPayment), com as regras de reativação.
+    let gatewayPaid = false;
+    if (invoice?.asaasPaymentId && invoice.provider !== 'MERCADOPAGO' && this.asaas.isConfigured() && company.status !== 'ACTIVE') {
       try {
         const payment = await this.asaas.getCharge(invoice.asaasPaymentId);
-        const remoteStatus = this.mapAsaasStatus(payment.status);
-        if (remoteStatus === 'PAID') {
-          const [updatedInvoice, updatedCompany] = await this.prisma.$transaction([
-            this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: 'PAID', paidAt: invoice.paidAt ?? new Date(), invoiceUrl: payment.invoiceUrl ?? invoice.invoiceUrl } }),
-            this.prisma.company.update({ where: { id: companyId }, data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null } }),
-          ]);
-          invoice = updatedInvoice;
-          await cancelRedundantSignupCharges(this.prisma, this.asaas, this.logger, companyId, updatedInvoice.id).catch(() => 0);
-          // Não precisamos recarregar todos os includes da company aqui para o polling fallback
-          company.status = updatedCompany.status;
-          company.billingStatus = updatedCompany.billingStatus;
-        } else if (remoteStatus && remoteStatus !== invoice.status) {
-          invoice = await this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: remoteStatus } });
-        }
+        gatewayPaid = this.mapAsaasStatus(payment.status) === 'PAID';
       } catch (error) {
-        this.logger.warn(`Falha no polling da cobranca ${invoice.asaasPaymentId}: ${String(error)}`);
+        this.logger.warn(`Falha na consulta da cobranca ${invoice.asaasPaymentId}: ${String(error)}`);
       }
     }
-
-    // Mercado Pago: mesmo fallback caso o webhook atrase (busca o pagamento pela referência da fatura).
     if (invoice && invoice.provider === 'MERCADOPAGO' && this.mercadoPago.isConfigured() && company.status !== 'ACTIVE') {
       try {
         const payment = await this.mercadoPago.findPaymentForInvoice(invoice.id, invoice.mpPaymentId);
-        if (payment && this.mercadoPago.mapStatus(payment.status) === 'PAID') {
-          const [updatedInvoice, updatedCompany] = await this.prisma.$transaction([
-            this.prisma.platformInvoice.update({ where: { id: invoice.id }, data: { status: 'PAID', paidAt: invoice.paidAt ?? new Date(), mpPaymentId: String(payment.id) } }),
-            this.prisma.company.update({ where: { id: companyId }, data: { status: 'ACTIVE', isActive: true, billingStatus: 'ACTIVE', suspensionReason: null } }),
-          ]);
-          invoice = updatedInvoice;
-          company.status = updatedCompany.status;
-          company.billingStatus = updatedCompany.billingStatus;
-        }
+        gatewayPaid = Boolean(payment && this.mercadoPago.mapStatus(payment.status) === 'PAID');
       } catch (error) {
-        this.logger.warn(`Falha no polling do Mercado Pago da fatura ${invoice.id}: ${String(error)}`);
+        this.logger.warn(`Falha na consulta do Mercado Pago da fatura ${invoice.id}: ${String(error)}`);
       }
     }
 
@@ -652,6 +629,8 @@ export class PlatformFinanceService {
         invoiceUrl: invoice.invoiceUrl,
         bankSlipUrl: invoice.invoiceUrl, // No sandbox/asaas bankSlipUrl geralmente está na mesma invoiceUrl do checkout
         pixAvailable: invoice.billingType === 'PIX' || invoice.billingType === 'UNDEFINED',
+        /** O gateway já mostra pago, mas a baixa ainda não foi gravada (webhook/conciliação pendente). */
+        gatewayPaid,
       };
     }
 

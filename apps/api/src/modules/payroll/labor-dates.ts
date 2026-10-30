@@ -1,8 +1,9 @@
+import { BadRequestException } from '@nestjs/common';
 const DAY = 86_400_000;
 
 export function parseDay(value: string | Date): Date {
   const d = typeof value === 'string' ? new Date(`${value.slice(0, 10)}T00:00:00Z`) : new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
-  if (Number.isNaN(d.getTime())) throw new Error(`Data inválida: ${String(value)}`);
+  if (Number.isNaN(d.getTime())) throw new BadRequestException(`Data inválida: ${String(value)}`);
   return d;
 }
 

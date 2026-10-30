@@ -19,7 +19,7 @@ export class CeoOnboardingController {
   constructor(private readonly service: CeoOnboardingService) {}
   @Get('state') @Roles('CEO') state(@CurrentUser() actor: JwtUser) { return this.service.state(actor); }
   @Patch('profile') @Roles('CEO') profile(@CurrentUser() actor: JwtUser, @Body() dto: UpdateCeoProfileDto) { return this.service.updateProfile(actor, dto); }
-  @Post(':ceoUserId/contract') @Roles('DEV') issue(@CurrentUser() actor: JwtUser, @Param('ceoUserId') ceoUserId: string, @Body() dto: IssueCeoContractDto) { return this.service.issueContract(actor, ceoUserId, dto); }
+  @Post(':ceoUserId/contract') @Roles('DEV') issue(@CurrentUser() actor: JwtUser, @Param('ceoUserId', ParseUUIDPipe) ceoUserId: string, @Body() dto: IssueCeoContractDto) { return this.service.issueContract(actor, ceoUserId, dto); }
 
   // Assinatura pelo gov.br: baixar a minuta, assinar em assinador.iti.br e enviar o PDF assinado.
   @Get('contracts/pending-verification') @Roles('DEV') pending(@CurrentUser() actor: JwtUser) { return this.service.pendingVerification(actor); }

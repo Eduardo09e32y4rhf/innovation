@@ -1,6 +1,6 @@
 # ProduÃ§Ã£o (VPS). Todos os segredos vÃªm do arquivo .env ao lado deste compose.
 # Primeiro uso:  bash scripts/security/bootstrap-env.sh   (gera segredos fortes sem sobrescrever os existentes)
-# Subir:         docker compose -f docker-compose.prod.yml up -d --build
+# Subir:         docker compose -f docker-compose.prod.yml up -d   (primeira instalacao; atualizacoes: scripts/deploy/vps-update.sh)
 # O compose RECUSA subir se faltar segredo obrigatÃ³rio (sintaxe ${VAR:?}).
 
 x-logging: &default-logging
@@ -18,6 +18,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: ${POSTGRES_DB:-innovation_db}
     # Sem "ports": o banco sÃ³ Ã© acessÃ­vel pela rede interna do compose.
+    # Ajuste fino para VPS pequena (padrao do postgres e 128MB de shared_buffers e work_mem 4MB). Sobrescreva no .env conforme a RAM.
+    command: ["postgres", "-c", "shared_buffers=${PG_SHARED_BUFFERS:-256MB}", "-c", "effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-768MB}", "-c", "work_mem=${PG_WORK_MEM:-8MB}", "-c", "max_connections=${PG_MAX_CONNECTIONS:-60}", "-c", "random_page_cost=1.1"]
+    mem_limit: ${DB_MEM_LIMIT:-1g}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -40,16 +43,20 @@ services:
       retries: 10
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+    mem_limit: ${REDIS_MEM_LIMIT:-384m}
     restart: always
 
   api:
-    image: ${API_IMAGE:-innovation-api:local}
+    # Imagem pronta: o deploy define API_IMAGE (tag local do pacote do CI ou GHCR). O bloco build fica so como reserva manual.
+    image: ${API_IMAGE:-ghcr.io/eduardo09e32y4rhf/innovation-api:${IMAGE_TAG:-latest}}
     logging: *default-logging
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     environment:
       NODE_ENV: production
+      # Heap do V8 abaixo do mem_limit do container (sobra para buffers/PDF); sem isso o Node estima pelo RAM do host e pode estourar o limite.
+      NODE_OPTIONS: ${API_NODE_OPTIONS:---max-old-space-size=640}
       DATABASE_URL: "postgresql://${POSTGRES_USER:-innovation}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-innovation_db}?schema=public"
       REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
@@ -88,7 +95,6 @@ services:
       ASAAS_API_KEY: ${ASAAS_API_KEY:-}
       ASAAS_API_URL: ${ASAAS_API_URL:-}
       ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN:-}
-      ASAAS_WEBHOOK_SECRET: ${ASAAS_WEBHOOK_SECRET:-}
       ASAAS_DEFAULT_BILLING_TYPE: ${ASAAS_DEFAULT_BILLING_TYPE:-UNDEFINED}
       # Dados do emitente que saem no PDF da fatura
       INVOICE_ISSUER_NAME: ${INVOICE_ISSUER_NAME:-Innovation RH}
@@ -126,8 +132,43 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
       LOKI_HOST: ${LOKI_HOST:-}
+      # Repassadas ao container (docs/auditoria/02, secao 5.4). Vazio = 'nao definida' no codigo; TRUST_PROXY, BILLING_GRACE_DAYS e FEATURE_* usam o padrao real.
+      TRUST_PROXY: ${TRUST_PROXY:-loopback,uniquelocal}
+      ANALYTICS_SALT: ${ANALYTICS_SALT:-}
+      PRIVACY_RSA_PRIVATE_KEY: ${PRIVACY_RSA_PRIVATE_KEY:-}
+      TRIAL_DOCUMENT_HASH_SECRET: ${TRIAL_DOCUMENT_HASH_SECRET:-}
+      WHATSAPP_SESSION_PATH: ${WHATSAPP_SESSION_PATH:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      TURNSTILE_FAIL_MODE: ${TURNSTILE_FAIL_MODE:-}
+      TURNSTILE_ENFORCE: ${TURNSTILE_ENFORCE:-}
+      PASSWORD_RESET_CODE_SECRET: ${PASSWORD_RESET_CODE_SECRET:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_AI_ENABLED: ${OPENAI_AI_ENABLED:-}
+      OPENAI_MODEL_FAST: ${OPENAI_MODEL_FAST:-}
+      OPENAI_MODEL_REASONING: ${OPENAI_MODEL_REASONING:-}
+      OPENAI_MONTHLY_BUDGET: ${OPENAI_MONTHLY_BUDGET:-}
+      REFRESH_TTL_DAYS: ${REFRESH_TTL_DAYS:-}
+      SESSION_ABSOLUTE_DAYS: ${SESSION_ABSOLUTE_DAYS:-}
+      BILLING_GRACE_DAYS: ${BILLING_GRACE_DAYS:-15}
+      DUNNING_WARN_DAY: ${DUNNING_WARN_DAY:-}
+      DUNNING_BLOCK_DAY: ${DUNNING_BLOCK_DAY:-}
+      DUNNING_CANCEL_DAY: ${DUNNING_CANCEL_DAY:-}
+      GEOIP_DB_PATH: ${GEOIP_DB_PATH:-}
+      PLATFORM_WHATSAPP_SESSION_KEY: ${PLATFORM_WHATSAPP_SESSION_KEY:-}
+      ASAAS_WEBHOOK_SECRET: ${ASAAS_WEBHOOK_SECRET:-}
+      MAIL_REQUIRED: ${MAIL_REQUIRED:-}
+      MERCADOPAGO_WEBHOOK_TOLERANCE_SECONDS: ${MERCADOPAGO_WEBHOOK_TOLERANCE_SECONDS:-}
+      FEATURE_AI: ${FEATURE_AI:-false}
+      FEATURE_PARTNERS: ${FEATURE_PARTNERS:-false}
+      FEATURE_COMMERCIAL_SALES: ${FEATURE_COMMERCIAL_SALES:-false}
+      FEATURE_PROPOSALS: ${FEATURE_PROPOSALS:-false}
+      FEATURE_MANUAL_CONTRACTS: ${FEATURE_MANUAL_CONTRACTS:-false}
+      FEATURE_CEO_ONBOARDING: ${FEATURE_CEO_ONBOARDING:-false}
+      FEATURE_COMMUNICATION: ${FEATURE_COMMUNICATION:-false}
+      FEATURE_PROMOTIONS: ${FEATURE_PROMOTIONS:-false}
     volumes:
       - api_data:/data
+    mem_limit: ${API_MEM_LIMIT:-1g}
     # SÃ³ o proxy reverso do servidor (localhost) fala com a API.
     ports: ["127.0.0.1:3333:3333"]
     depends_on:
@@ -147,12 +188,23 @@ services:
     logging: *default-logging
     image: clamav/clamav:stable
     # Sem 'ports': so a API (rede interna) usa o scanner. Na 1a subida baixa as definicoes (alguns minutos; ~1-2 GB de RAM).
+    # Nao reduza abaixo de ~1.5g: o clamd carrega o banco de assinaturas inteiro e e morto por OOM em loop.
+    # Sem ele, em producao a API RECUSA anexos/curriculos (503). Para liberar RAM, veja docs/DEPLOY-VPS.md (secao Desempenho).
+    mem_limit: ${CLAMAV_MEM_LIMIT:-2g}
     volumes:
       - clamav_data:/var/lib/clamav
+    # clamdcheck.sh vem na imagem oficial (faz PING no clamd). A API NAO depende deste healthcheck para subir:
+    # sem ClamAV ela sobe e os uploads falham fechados (503) ate o scanner ficar saudavel.
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
     restart: always
 
   web:
-    image: ${WEB_IMAGE:-innovation-web:local}
+    image: ${WEB_IMAGE:-ghcr.io/eduardo09e32y4rhf/innovation-web:${IMAGE_TAG:-latest}}
     logging: *default-logging
     build:
       context: .
@@ -160,11 +212,25 @@ services:
       args:
         NEXT_PUBLIC_ROBO_QA: ${NEXT_PUBLIC_ROBO_QA:-on}
         NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL: ${NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL:-false}
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+        NEXT_PUBLIC_FEATURE_AI: ${NEXT_PUBLIC_FEATURE_AI:-false}
+        NEXT_PUBLIC_FEATURE_PARTNERS: ${NEXT_PUBLIC_FEATURE_PARTNERS:-false}
+        NEXT_PUBLIC_FEATURE_COMMERCIAL_SALES: ${NEXT_PUBLIC_FEATURE_COMMERCIAL_SALES:-false}
+        NEXT_PUBLIC_FEATURE_PROPOSALS: ${NEXT_PUBLIC_FEATURE_PROPOSALS:-false}
+        NEXT_PUBLIC_FEATURE_MANUAL_CONTRACTS: ${NEXT_PUBLIC_FEATURE_MANUAL_CONTRACTS:-false}
+        NEXT_PUBLIC_FEATURE_CEO_ONBOARDING: ${NEXT_PUBLIC_FEATURE_CEO_ONBOARDING:-false}
+        NEXT_PUBLIC_FEATURE_COMMUNICATION: ${NEXT_PUBLIC_FEATURE_COMMUNICATION:-false}
+        NEXT_PUBLIC_FEATURE_PROMOTIONS: ${NEXT_PUBLIC_FEATURE_PROMOTIONS:-false}
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      NODE_OPTIONS: ${WEB_NODE_OPTIONS:---max-old-space-size=384}
+    mem_limit: ${WEB_MEM_LIMIT:-640m}
     ports: ["127.0.0.1:3000:3000"]
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
       interval: 30s

@@ -17,7 +17,7 @@ Comandos uteis na raiz do monorepo:
   npm run db:seed
 
 - Subir PostgreSQL local:
-  docker compose -f infra/docker-compose.yml up -d postgres
+  docker compose -f docker-compose.yml up -d postgres
 
 - Rodar API em desenvolvimento:
   npm run dev:api

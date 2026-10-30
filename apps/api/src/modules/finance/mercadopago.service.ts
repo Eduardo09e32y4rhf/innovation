@@ -1,3 +1,4 @@
+import { outboundFetch, TIMEOUT_PAYMENT_GATEWAY_MS } from '../../common/http/outbound';
 import { Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
@@ -75,7 +76,7 @@ export class MercadoPagoService {
     const { idempotencyKey, ...options } = init;
     let response: Response;
     try {
-      response = await fetch(`${API}${path}`, {
+      response = await outboundFetch(`${API}${path}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +85,7 @@ export class MercadoPagoService {
           ...(idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}),
           ...options.headers,
         },
-      });
+      }, { timeoutMs: TIMEOUT_PAYMENT_GATEWAY_MS });
     } catch (error) {
       this.logger.error(`Falha de rede com o Mercado Pago: ${String(error)}`);
       throw new ServiceUnavailableException('Não foi possível comunicar com o Mercado Pago. Tente novamente.');

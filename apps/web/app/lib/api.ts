@@ -4,6 +4,7 @@ import { clearAuthSession, persistAuthSession, readAuthSession, readParsedAuthSe
 import { refreshSession } from './refresh-session';
 import { resetAllQueryStates } from '../hooks/use-data';
 import { createSingleFlight, mutationFlightKey } from './single-flight';
+import { turnstileHeaders } from './turnstile';
 
 /**
  * Cliente HTTP central do Innovation RH System.
@@ -65,6 +66,7 @@ async function requestOnce<T>(path: string, opts: Opts = {}): Promise<T> {
       headers['Content-Type'] = 'application/json';
     }
   }
+  Object.assign(headers, turnstileHeaders(method, path));
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -642,6 +644,26 @@ export interface EmpresaResumo {
 }
 export type AccountingPeriodStatus = 'DRAFT' | 'CALCULATED' | 'PUBLISHED' | 'RETURNED' | 'RELEASED' | 'PAID';
 export interface AccountingPeriodEmployee { employeeId: string; name: string; closingId: string; closingStatus: string; gross: number; discounts: number; net: number; hasManualAdjustment: boolean }
+export interface PayrollSheetItem {
+  id: string; type: string; typeLabel: string; description: string; amount: number | null; isDeduction: boolean;
+  isManual: boolean; manualReason: string | null; editedAt: string | null; editedByName: string | null; editable: boolean; removable: boolean;
+}
+export interface LimitCheck { exceeded: boolean; limit: number; total: number; message: string | null }
+export interface PayrollSheetEmployee {
+  payrollId: string; employeeId: string; name: string; position: string | null; status: string; editable: boolean;
+  baseSalary: number | null; gross: number | null; net: number | null; inss: number | null; irrf: number | null; fgts: number | null;
+  items: PayrollSheetItem[]; limits: { loan: LimitCheck; transport: LimitCheck };
+}
+export interface FiscalSummary {
+  employees: number; gross: number; netToPay: number; totalDiscounts: number;
+  discountsByType: Array<{ type: string; label: string; amount: number }>;
+  charges: { fgts: number; employerInss: number; employerInssRate: number; total: number }; companyCost: number;
+}
+export interface PayrollSheet { month: string; summary: FiscalSummary; employees: PayrollSheetEmployee[] }
+export interface PayrollIssue { code: string; severity: 'ERROR' | 'WARNING'; employeeId: string; name: string; payrollId: string; message: string }
+export interface PayrollValidation { month: string; employees: number; valid: boolean; errors: number; warnings: number; issues: PayrollIssue[]; checkedAt: string }
+export interface PayrollItemInput { type?: string; description?: string; amount?: number; reason: string; forceLimit?: boolean }
+
 export interface AccountingPeriodView {
   id: string | null; companyId: string; month: string; status: AccountingPeriodStatus | null; statusLabel: string;
   totals: { gross: number; discounts: number; net: number; inss: number; fgts: number; irrf: number; employees: number };
@@ -843,6 +865,7 @@ export const api = {
   request,
 
   auth: {
+    issueResetCode: (userId: string) => request<{ code: string; expiresAt: string }>('/auth/password-reset/issue-code', { method: 'POST', body: { userId } }),
     verifyEmail: (token: string) => request<{ verified: boolean }>('/auth/verify-email', { method: 'POST', body: { token } }),
     refresh: () => request<{ access_token: string }>('/auth/refresh', { method: 'POST' }),
     verifyMfa: (mfaToken: string, code?: string, recoveryCode?: string) => request<any>('/auth/mfa/verify', { method: 'POST', body: { mfaToken, code: code || undefined, recoveryCode: recoveryCode || undefined } }),
@@ -906,7 +929,7 @@ export const api = {
     create: (input: CreateEmployeeInput) => request<Employee>('/employees', { method: 'POST', body: input }),
     update: (id: string, input: Partial<CreateEmployeeInput>) => request<Employee>(`/employees/${id}`, { method: 'PATCH', body: input }),
     terminate: (id: string) => request<Employee>(`/employees/${id}`, { method: 'DELETE' }),
-    delete: (id: string) => request<EmployeeDeleteResult>(`/employees/${id}/permanent`, { method: 'DELETE' }),
+    delete: (id: string, force = false) => request<EmployeeDeleteResult>(`/employees/${id}/permanent${force ? '?force=true' : ''}`, { method: 'DELETE' }),
     createAccess: (id: string, input: { email: string; role?: string; name?: string }) => request<{ success: boolean; userId?: string; temporaryPassword?: string; email: string; role: string }>(`/employees/${id}/access`, { method: 'POST', body: input }),
     linkAccess: (id: string, userId: string) => request<{ success: boolean; employeeId: string; userId: string }>(`/employees/${id}/access/link`, { method: 'POST', body: { userId } }),
     unlinkAccess: (id: string) => request<{ success: boolean; employeeId: string }>(`/employees/${id}/access/link`, { method: 'DELETE' }),
@@ -982,6 +1005,14 @@ export const api = {
     /** Ajuste manual de um item do fechamento (motivo obrigatório). */
     adjustClosing: (closingId: string, field: string, newValue: number, reason: string) =>
       request<unknown>(`/accounting/closings/${encodeURIComponent(closingId)}/adjust`, { method: 'PATCH', body: { field, newValue, reason } }),
+    /** Folha manual: ficha do mês linha a linha, conferência e linhas editáveis (motivo obrigatório). */
+    payrollSheet: (companyId: string, month: string) => request<PayrollSheet>(`/accounting/companies/${companyId}/payroll/${encodeURIComponent(month)}/sheet`),
+    payrollValidation: (companyId: string, month: string) => request<PayrollValidation>(`/accounting/companies/${companyId}/payroll/${encodeURIComponent(month)}/validation`),
+    payrollExportPath: (companyId: string, month: string, format: 'csv' | 'pdf') => `/accounting/companies/${companyId}/payroll/${encodeURIComponent(month)}/export.${format}`,
+    addPayrollItem: (payrollId: string, body: PayrollItemInput) => request<unknown>(`/accounting/payroll/${payrollId}/items`, { method: 'POST', body }),
+    updatePayrollItem: (payrollId: string, itemId: string, body: PayrollItemInput) => request<unknown>(`/accounting/payroll/${payrollId}/items/${itemId}`, { method: 'PUT', body }),
+    removePayrollItem: (payrollId: string, itemId: string, reason: string) => request<unknown>(`/accounting/payroll/${payrollId}/items/${itemId}?reason=${encodeURIComponent(reason)}`, { method: 'DELETE' }),
+    recalculatePayroll: (payrollId: string) => request<unknown>(`/accounting/payroll/${payrollId}/recalculate`, { method: 'POST' }),
   },
   payrollPeriods: {
     /** Fluxo do mês (RH/ADMIN da empresa): month = AAAA-MM. */
@@ -1166,6 +1197,8 @@ export const api = {
   },
 
   companyBilling: {
+    // Baixa por conciliacao (o servidor consulta o gateway). O GET de status nao grava mais: use antes dele apos o checkout.
+    syncPayment: () => request<{ checked: number; healed: number; linked: number; errors: number }>('/finance/company/sync-payment', { method: 'POST', silent: true, keepSessionOn401: true, timeoutMs: 20000 }),
     status: () => request<CompanyBillingResult>('/finance/company/status', { silent: true, keepSessionOn401: true, timeoutMs: 10000 }),
     pix: () => request<{ available: boolean; invoiceId?: string; payload?: string; encodedImage?: string | null; expirationDate?: string | null }>('/finance/company/pix', { silent: true, keepSessionOn401: true, timeoutMs: 15000 }),
     invoices: () => request<PlatformInvoice[]>('/finance/company/invoices', { silent: true, keepSessionOn401: true }),

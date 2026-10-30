@@ -1,5 +1,5 @@
 import { CreateAdminNoticeDto, RespondNotificationDto } from './dto/notification.dto';
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -24,7 +24,7 @@ export class NotificationsController {
   }
 
   @Patch(':id/read')
-  markAsRead(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  markAsRead(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.markAsRead(companyId, actor.sub, id);
   }
 
@@ -34,12 +34,12 @@ export class NotificationsController {
   }
 
   @Patch(':id/archive')
-  archive(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  archive(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.archive(companyId, actor.sub, id);
   }
 
   @Delete(':id')
-  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.delete(companyId, actor.sub, id);
   }
 
@@ -52,7 +52,7 @@ export class NotificationsController {
   }
 
   @Patch(':id/respond')
-  respond(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: RespondNotificationDto) {
+  respond(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: RespondNotificationDto) {
     return this.svc.respond(companyId, actor, id, body);
   }
 

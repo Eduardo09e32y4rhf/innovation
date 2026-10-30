@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { PromotionNotice } from './promotion-notice';
 import { DisciplinaryNotice } from './disciplinary-notice';
+import { ResetCodeIssuer } from './reset-code-issuer';
 
 const PRIORITY: Record<string, number> = { SUSPENSION_NOTICE: 0, WARNING_NOTICE: 1, PROMOTION_NOTICE: 2 };
 
@@ -18,7 +19,7 @@ const fmtDate = (value?: string | null) => {
 
 /** Tudo que o RH envia aparece assim que a pessoa entra, até ela confirmar. */
 export function PendingNotificationsGate({ children }: { children: ReactNode }) {
-  const { data: widget, refetch } = useQuery(() => api.notifications.dashboardWidget(), [], { pollMs: 30000 });
+  const { data: widget, refetch } = useQuery(() => api.notifications.dashboardWidget(), [], { pollMs: 60000 });
   const [error, setError] = useState('');
   const [refusing, setRefusing] = useState(false);
   const [reason, setReason] = useState('');
@@ -119,12 +120,7 @@ export function PendingNotificationsGate({ children }: { children: ReactNode }) 
               </div>
             )}
             {current.message && <p className="whitespace-pre-wrap">{current.message}</p>}
-            {extra.resetCode && (
-              <div className="border-2 border-slate-900 bg-slate-50 p-5 text-center">
-                <p className="mb-1 text-xs font-bold uppercase text-slate-600">Código de acesso</p>
-                <code className="text-2xl font-black tracking-[0.2em]">{extra.resetCode}</code>
-              </div>
-            )}
+            {extra.resetRequestUserId && <ResetCodeIssuer resetRequestUserId={extra.resetRequestUserId} />}
             <p className="text-sm text-slate-500">{isTrial ? `Aviso automático de ${fmtDate(current.createdAt)}.` : `Enviado por ${current.createdByUser?.name || 'Recursos Humanos'} em ${fmtDate(current.createdAt)}.`}</p>
           </div>
 

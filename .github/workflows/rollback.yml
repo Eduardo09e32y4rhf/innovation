@@ -13,14 +13,15 @@ on:
 
 jobs:
   rollback:
+    permissions: {}
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: appleboy/ssh-action@v1.2.0
+      - uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script_stop: true
           script: cd ${{ vars.PROD_DIR || '/var/www/innovation' }} && bash scripts/deploy/rollback.sh ${{ inputs.ref }} ${{ inputs.restore_db && '--restore-db' || '' }}
-      - run: curl -fsS --retry 10 --retry-delay 6 "${{ vars.PROD_URL }}/api/health"
+      - run: curl -fsS --retry 10 --retry-delay 6 "${{ vars.PROD_URL }}/api/health/ready"

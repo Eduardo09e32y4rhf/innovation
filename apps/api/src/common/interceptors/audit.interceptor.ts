@@ -1,8 +1,12 @@
+import { clientIp } from '../http/client-ip';
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
 import { PrismaService } from '../../database/prisma.service';
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+/** Telemetria de presenca (ping a cada minuto e page-view a cada navegacao): ja tem tabela propria; auditar geraria uma linha por clique. */
+const TELEMETRY_ROUTES = new Set(['/users/ping', '/users/activity/page-view']);
+
 const SECRET_KEY = /password|token|secret|authorization|otp|mfa|code$|cpf|cnpj|^rg|pis|email|document|phone|salary|salario|bank|pix|card|cvv|birth|mothername|fathername|cnh|votertitle/i;
 
 @Injectable()
@@ -14,6 +18,8 @@ export class AuditInterceptor implements NestInterceptor {
     const method = request.method;
     const user = request.user;
     if (!WRITE_METHODS.has(method) || !user?.companyId) return next.handle();
+    const routePath = String(request.route?.path ?? request.url ?? '').split('?')[0].replace(/^\/(api\/)?/, '/');
+    if (TELEMETRY_ROUTES.has(routePath)) return next.handle();
 
     const startedAt = Date.now();
     return next.handle().pipe(
@@ -74,6 +80,5 @@ function extractResultId(result: unknown) {
 }
 
 function getIpAddress(request: any) {
-  const forwardedFor = request.headers?.['x-forwarded-for'];
-  return Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(',')[0]?.trim() || request.ip;
+  return clientIp(request);
 }

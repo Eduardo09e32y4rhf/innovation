@@ -694,6 +694,7 @@ model Employee {
   @@index([companyId])
   @@index([companyId, status])
   @@index([companyId, name])
+  @@index([companyId, managerId])
   @@index([cpf])
 }
 
@@ -755,6 +756,7 @@ model TimeTrack {
   @@index([date])
   @@index([companyId, date])
   @@index([companyId, employeeId, date])
+  @@index([employeeId, manualStatus])
 }
 
 model WorkScheduleRule {
@@ -861,6 +863,8 @@ model Vacation {
   auditLogs   VacationAuditLog[]
 
   @@index([employeeId])
+  @@index([employeeId, status])
+  @@index([status])
   @@index([entitlementId])
 }
 
@@ -1166,6 +1170,7 @@ model Notification {
   recipients    NotificationRecipient[]
 
   @@index([companyId])
+  @@index([companyId, createdAt])
   @@index([type])
   @@index([priority])
   @@index([startsAt])
@@ -1190,6 +1195,7 @@ model NotificationRecipient {
 
   @@unique([notificationId, userId])
   @@index([userId])
+  @@index([userId, status])
   @@index([status])
   @@map("notification_recipients")
 }
@@ -1235,6 +1241,7 @@ model AuditLog {
 
   @@index([companyId])
   @@index([companyId, entity])
+  @@index([companyId, createdAt])
   @@index([userId])
   @@index([userId, createdAt])
   @@index([entity, entityId, createdAt])
@@ -2828,6 +2835,12 @@ enum PayrollItemType {
   ABSENCE_DEDUCTION
   OTHER_EARNING
   OTHER_DEDUCTION
+  CLT_LOAN
+  CONSIGNADO
+  VALE_TRANSPORTE
+  VALE_ALIMENTACAO
+  PENSAO_ALIMENTICIA
+  PLANO_SAUDE
 }
 
 model Payroll {
@@ -2878,6 +2891,13 @@ model PayrollItem {
   amount      Decimal         @db.Decimal(12, 2)
   isDeduction Boolean         @default(false)
   createdAt   DateTime        @default(now())
+  /// Lançamento manual da contabilidade/RH (auditoria: quem, quando e por quê).
+  isManual     Boolean   @default(false)
+  manualReason String?
+  editedById   String?   @db.Uuid
+  editedAt     DateTime?
+  /// Linha ligada a uma coluna da folha (salário, extras, noturno): o recálculo dos impostos a mantém em dia com a coluna.
+  isColumnLine Boolean   @default(false)
 
   payroll Payroll @relation(fields: [payrollId], references: [id], onDelete: Cascade)
 
@@ -3370,6 +3390,7 @@ model RefreshSession {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, revokedAt])
+  @@index([userId, family])
   @@index([family])
   @@index([expiresAt])
 }

@@ -53,7 +53,7 @@ function ResetForm() {
   };
 
   const title = step === 'done' ? 'Senha redefinida' : step === 'password' ? 'Crie a nova senha' : 'Redefinir senha';
-  const subtitle = step === 'done' ? 'Sua conta já está desbloqueada.' : step === 'password' ? 'Escolha uma senha forte e diferente das anteriores.' : 'Use o código de 6 caracteres fornecido pelo seu gestor, RH ou administrador.';
+  const subtitle = step === 'done' ? 'Sua conta já está desbloqueada.' : step === 'password' ? 'Escolha uma senha forte e diferente das anteriores.' : 'Use o código de 8 caracteres fornecido pelo seu gestor, RH ou administrador.';
 
   return (
     <AuthShell title={title} subtitle={subtitle} footer={<Link href="/login" className="font-semibold text-white underline">Voltar ao login</Link>}>
@@ -72,7 +72,7 @@ function ResetForm() {
           </div>
           <div>
             <label htmlFor="rp-code" className="mb-1.5 block text-sm font-medium text-zinc-700">Código de recuperação</label>
-            <input id="rp-code" required minLength={6} maxLength={6} autoComplete="one-time-code" disabled={loading} className={`${authInput} font-mono uppercase tracking-[0.3em]`} placeholder="A1B2C3" value={code} onChange={(e) => setCode(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
+            <input id="rp-code" required minLength={8} maxLength={8} autoComplete="one-time-code" disabled={loading} className={`${authInput} font-mono uppercase tracking-[0.3em]`} placeholder="A1B2C3D4" value={code} onChange={(e) => setCode(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())} />
           </div>
           <details className="rounded-lg border border-zinc-200 p-3 text-sm">
             <summary className="cursor-pointer font-medium text-zinc-700">Sou funcionário (confirmar identidade)</summary>
@@ -89,7 +89,7 @@ function ResetForm() {
             </div>
           </details>
           {error && <AuthAlert>{error}</AuthAlert>}
-          <button type="submit" disabled={loading || !email || code.length !== 6} className={authButton}>{loading ? 'Validando…' : 'Continuar'}</button>
+          <button type="submit" disabled={loading || !email || code.length !== 8} className={authButton}>{loading ? 'Validando…' : 'Continuar'}</button>
           <p className="text-center text-sm text-zinc-600">Não tem o código? <Link href="/esqueci-senha" className={authLink}>Solicitar agora</Link></p>
         </form>
       )}

@@ -72,11 +72,14 @@ export class AccountingController {
     return this.rules.list(parsed);
   }
 
+  /** Tabela global (todas as empresas): so DEV escreve; CEO e CONTABIL apenas leem. */
+  @Roles('DEV')
   @Post('rules')
   saveRule(@CurrentUser() actor: JwtUser, @Body() dto: SaveRuleDto) {
     return this.rules.saveVersion(actor, dto);
   }
 
+  @Roles('DEV')
   @Delete('rules/:id')
   deactivateRule(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.rules.deactivate(actor, id);
@@ -151,7 +154,7 @@ export class AccountingController {
   }
 
   @Get('office/tasks')
-  listTasks(@CurrentUser() actor: JwtUser, @Query('status') status?: string, @Query('companyId') companyId?: string, @Query('assigneeId') assigneeId?: string) {
+  listTasks(@CurrentUser() actor: JwtUser, @Query('status') status?: string, @Query('companyId', new ParseUUIDPipe({ optional: true })) companyId?: string, @Query('assigneeId', new ParseUUIDPipe({ optional: true })) assigneeId?: string) {
     return this.office.listTasks(actor, { status, companyId, assigneeId });
   }
 
@@ -171,7 +174,7 @@ export class AccountingController {
   }
 
   @Get('office/docs')
-  listDocs(@CurrentUser() actor: JwtUser, @Query('month') month?: string, @Query('companyId') companyId?: string, @Query('status') status?: string) {
+  listDocs(@CurrentUser() actor: JwtUser, @Query('month') month?: string, @Query('companyId', new ParseUUIDPipe({ optional: true })) companyId?: string, @Query('status') status?: string) {
     return this.office.listDocs(actor, { month, companyId, status });
   }
 

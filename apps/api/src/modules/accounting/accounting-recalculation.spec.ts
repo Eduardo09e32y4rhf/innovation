@@ -24,7 +24,7 @@ describe('recálculo de uma folha pela contabilidade', () => {
       },
       payroll: { update: vi.fn(({ data }: any) => Promise.resolve(data)) },
     };
-    const service = new AccountingHubService({} as any, new PayrollCalculationService(), {} as any, {} as any, {} as any);
+    const service = new AccountingHubService({} as any, new PayrollCalculationService(), {} as any, {} as any, {} as any, {} as any);
     const { result } = await (service as any).recalcPayrollRow(tx, payroll);
     expect(items.find((item) => item.id === 'dsr').amount).toBe(54.55);
     expect(result.grossPay).toBe(3354.55);

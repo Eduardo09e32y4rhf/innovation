@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { isFeatureEnabled } from '../../common/feature-flags';
 import { CommunicationController } from './communication.controller';
 import { CommunicationRepository } from './communication.repository';
 import { CommunicationService } from './communication.service';
@@ -12,7 +13,8 @@ import { WhatsappSessionService } from './whatsapp/whatsapp-session.service';
   providers: [
     CommunicationService,
     CommunicationRepository,
-    CommunicationGateway,
+    // Gateway so existe com FEATURE_COMMUNICATION ligada (SEG-14): desligada, nao ha namespace nem socket.io.
+    ...(isFeatureEnabled('communication') ? [CommunicationGateway] : []),
     OmniusAdapterService,
     WhatsappProvider,
     WhatsappSessionService,

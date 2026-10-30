@@ -42,7 +42,7 @@ export function GlobalCompetencia({ g, month, onOpenCompany }: { g: AccountingGl
         <Kpi label="Líquido" value={money(t.net)} tone="good" />
       </div>
       <p className="text-xs text-fg-sub">Totais: {t.payrolls} folha(s) e {t.estimatedClosings} fechamento(s) sem folha. A folha substitui a previsão do ponto para o mesmo funcionário e ciclo.</p>
-      <Obligations inss={t.inss} irrf={t.irrf} fgts={t.fgts} />
+      <Obligations month={month} inss={t.inss} irrf={t.irrf} fgts={t.fgts} />
 
       <section aria-label="Empresas" className="rounded-2xl border border-border bg-bg shadow-sm">
         <header className="flex flex-wrap items-center gap-3 border-b border-border p-4">
@@ -139,7 +139,7 @@ export function CompanyCompetencia({ c, month, canEdit, refetch }: { c: Accounti
         <Kpi label="Líquido" value={money(c.totals.net)} tone="good" />
       </div>
       <p className="text-xs text-fg-sub">Totais: {c.totals.payrolls} folha(s) e {c.totals.estimatedClosings} fechamento(s) ainda sem folha. Valores do ponto não são somados novamente quando há folha para o mesmo funcionário e ciclo.</p>
-      <Obligations inss={c.totals.inss} irrf={c.totals.irrf} fgts={c.totals.fgts} />
+      <Obligations month={month} inss={c.totals.inss} irrf={c.totals.irrf} fgts={c.totals.fgts} />
 
       <section className="rounded-2xl border border-border bg-bg shadow-sm">
         <header className="flex flex-wrap items-center gap-2 border-b border-border p-4">

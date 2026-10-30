@@ -1,5 +1,6 @@
+import { outboundFetch, OutboundTimeoutError, TIMEOUT_PUBLIC_LOOKUP_MS } from '../../common/http/outbound';
 import { describeAction } from '../users/user-activity';
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -311,9 +312,9 @@ export class PlatformService {
       throw new ConflictException('CNPJ invalido');
     }
     try {
-      const response = await fetch(`https://www.receitaws.com.br/v1/cnpj/${cleanCnpj}`);
+      const response = await outboundFetch(`https://www.receitaws.com.br/v1/cnpj/${cleanCnpj}`, {}, { timeoutMs: TIMEOUT_PUBLIC_LOOKUP_MS });
       if (!response.ok) {
-        throw new Error('Falha ao consultar CNPJ');
+        throw new ServiceUnavailableException('Falha ao consultar CNPJ. Tente novamente em instantes.');
       }
       const data = (await response.json()) as any;
       if (data.status === 'ERROR') {
@@ -321,6 +322,8 @@ export class PlatformService {
       }
       return data;
     } catch (e: any) {
+      if (e instanceof ConflictException || e instanceof ServiceUnavailableException) throw e;
+      if (e instanceof OutboundTimeoutError) throw new ServiceUnavailableException('A consulta de CNPJ demorou demais. Tente novamente em instantes.');
       throw new ConflictException(e.message || 'Erro ao consultar CNPJ');
     }
   }
