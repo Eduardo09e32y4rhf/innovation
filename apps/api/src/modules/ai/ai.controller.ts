@@ -1,7 +1,7 @@
 import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { ClassifyTicketDto, PlatformAssistantDto } from './dto/ai.dto';
-import { Body, Controller, Post, Param, UseGuards, Req, ForbiddenException, Get, NotFoundException }
-import { Throttle } from '@nestjs/throttler' from '@nestjs/common';
+import { Body, Controller, Post, Param, UseGuards, Req, ForbiddenException, Get, NotFoundException } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
