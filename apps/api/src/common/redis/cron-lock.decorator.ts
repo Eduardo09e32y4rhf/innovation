@@ -23,7 +23,8 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
  * O lock NAO e liberado ao terminar com sucesso: expira pelo TTL, para que uma instancia que dispare
  * poucos segundos depois nao reexecute o job. Use ttlSeconds menor que o intervalo do cron.
  * Se o job falhar, o lock e liberado (outra instancia ou a proxima tentativa pode rodar) e, com `retries`, repete com backoff.
- * Sem Redis conectado o job roda normalmente (mesmo fallback do RedisService: nao trava a operacao).
+ * Sem Redis conectado o RedisService usa lock em memoria (INF-03): seguro para UMA instancia, com alerta no log.
+ * Sem nenhum RedisService registrado (testes/scripts) o job roda sem lock.
  */
 export function CronLock(name: string, ttlSeconds: number, options: CronLockOptions = {}): MethodDecorator {
   const { retries = 0, backoffMs = 1000 } = options;
