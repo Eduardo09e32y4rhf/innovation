@@ -20,3 +20,8 @@ O `install-cron.sh` já agenda o backup (03:15). Acrescente a verificação remo
 ```
 ## Restaurar de verdade
 Baixe o `.enc`, `openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -in arq.sql.gz.enc -pass env:BACKUP_ENCRYPTION_PASSPHRASE | gunzip | docker compose -f docker-compose.prod.yml exec -T db psql -U innovation -d innovation_db` (siga o RUNBOOK em `infra/RUNBOOK-backup-e-resiliencia.md`).
+
+## Rotina interna da API desligada (INF-05)
+A API tinha um `@Cron` (meia-noite) que rodava `pg_dump` **dentro do container da API**, onde o `pg_dump` não existe e a pasta `storage/backups` não é volume: nunca produziu backup. Agora ela vem **desligada** (`INTERNAL_DB_BACKUP_ENABLED` diferente de `true`) e o log diz que o backup oficial é `scripts/backup/backup.sh` (cron do servidor). Não repasse essa variável ao container em produção. A métrica `cron_last_success_timestamp_seconds{job="db_backup"}` do alerta `CronParado_Backup` só existe com a rotina interna ligada, então esse alerta **não** monitora o backup real.
+
+Conferir na VPS: `crontab -l | grep innovation-backup`, `ls -lh storage/backups | tail`, e que `BACKUP_REMOTE` está preenchido no `.env` (sem ele a cópia fica no mesmo disco). Pendente (fora deste item): `scripts/backup/verify-remote.sh` e alerta de backup remoto com mais de 26 h.

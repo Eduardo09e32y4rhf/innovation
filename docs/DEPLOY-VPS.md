@@ -94,3 +94,32 @@ curl -sI https://SEU-DOMINIO/_next/static/ | head   # confira Cache-Control imut
 
 ### Cabecalhos de seguranca: NAO duplicar no nginx
 O Next ja envia (em `apps/web/next.config.js`, `headers()`): `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security` (so em producao), `Content-Security-Policy` e `Content-Security-Policy-Report-Only`. No bloco `location /` que faz proxy para o web **nao** use `add_header` para nenhum deles (cabecalho repetido chega duplicado ao navegador) nem `proxy_hide_header` para esconde-los. Se preferir HSTS no nginx, deixe-o somente la e remova do Next. `add_header Cache-Control` so em `/_next/static/`, como ja documentado. Conferir: `curl -sI https://SEU-DOMINIO/login | grep -ci '^strict-transport-security'` deve imprimir 1.
+
+## Contêineres, ordem de subida e legado (INF-07, INF-08, INF-09)
+- **Imagens**: API e web são multi-stage, rodam como usuário `node` (não root) e têm `HEALTHCHECK` (`/health/live` na 3333; `/` na 3000). A porta 3333 e o comando `node apps/api/dist/main.js` não mudaram. As dependências de desenvolvimento saem com `npm prune --omit=dev` depois de `prisma generate` e do build (o CLI do Prisma é devDependency; por isso o drift usa `npx`, abaixo).
+- **Volume `api_data`**: o volume antigo pertence ao root. O `vps-update.sh` roda, antes de subir a API, um `chown -R node:node /data` idempotente (`--user root`). Conferir: `docker compose -f docker-compose.prod.yml exec api sh -c 'id -u; ls -ld /data /data/*'` (uid diferente de 0; `/data` do `node`).
+- **Ordem**: `web` espera a API saudável (`depends_on: condition: service_healthy`). O ClamAV tem `healthcheck` (`clamdcheck.sh`, `start_period` 180 s), mas a API **não** depende dele: se o ClamAV demorar, a API sobe e envio de currículo/anexo falha fechado (503) até ele ficar `healthy`. Conferir: `docker compose -f docker-compose.prod.yml ps`.
+- **Legado**: a produção é só `docker-compose.prod.yml`. O que era legado/inseguro em `infra/` (compose com watchtower e `docker.sock`, Dockerfiles do nginx, render.yaml com seed, Caddyfile, etc.) foi para `docs/legado/infra/` (ver README lá). O `docker-compose.yml` da raiz é só desenvolvimento, com portas em 127.0.0.1. Conferir na VPS: `ss -ltn` deve mostrar só 22/80/443 em endereço público.
+
+## nginx de referência (INF-10)
+`infra/nginx-innovation.conf` é uma **referência** (TLS 1.2/1.3, limites, timeouts, `client_max_body_size 20m`, `limit_req` em `/api/auth/` e `/api/public/`, `/api/metrics` e `/api/health` completo bloqueados, webhooks sem limite, cache imutável só em `/_next/static/`). **Não afirma que o nginx real da VPS é assim.** A API não tem prefixo `/api`: o nginx o remove com `rewrite`, então `/api/finance/webhook/asaas` chega como `/finance/webhook/asaas` (as URLs de webhook cadastradas nos provedores continuam as mesmas). Cabeçalhos de segurança continuam só no Next.
+Aplicar sem derrubar o site:
+```
+sudo nginx -T > /tmp/nginx-atual.txt                       # guarde o real e compare com a referência
+sudo cp infra/nginx-innovation.conf /etc/nginx/conf.d/innovation.conf   # troque SEU-DOMINIO; remova gzip/upstream duplicados
+sudo nginx -t && sudo systemctl reload nginx                # reload, nunca restart
+curl -sI https://SEU-DOMINIO/login | grep -ci '^strict-transport-security'    # 1
+curl -s -o /dev/null -w '%{http_code}\n' https://SEU-DOMINIO/api/metrics       # 404
+curl -s -o /dev/null -w '%{http_code}\n' https://SEU-DOMINIO/api/health        # 404
+curl -s -o /dev/null -w '%{http_code}\n' https://SEU-DOMINIO/api/health/ready  # 200
+for i in $(seq 1 30); do curl -s -o /dev/null -w '%{http_code} ' -X POST https://SEU-DOMINIO/api/auth/login -H 'content-type: application/json' -d '{}'; done; echo   # passa a 429
+```
+Status: `nginx -t` **NÃO VERIFICADO** (sem nginx nem daemon Docker na sessão de desenvolvimento); a cobertura é o teste de contrato `tests/contract/nginx-innovation.spec.ts`.
+
+## Drift do schema (INF-12)
+Produção aplica migrations por `apply-migrations.sh` (tabela `_manual_migrations`), não por `migrate deploy`. `scripts/deploy/check-schema-drift.sh` roda `prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script` (somente leitura) dentro do container da API e sai com 0 (sem drift), 1 (drift, mostra o SQL) ou 2 (não mediu). Ignora `_manual_migrations`. O `vps-update.sh` o chama ao final como **aviso não bloqueante**. A imagem não traz o CLI do Prisma (devDependency): o script usa `npx prisma@<versão do @prisma/client>` no container (precisa de saída para a internet). Rodar a primeira vez à mão: `bash scripts/deploy/check-schema-drift.sh; echo $?` e anexar o resultado. Pendente (decisão): baseline e migração para `migrate deploy` (junto de DEP-06) e renomear migrations com timestamp duplicado.
+
+## CI: auditoria e actions (INF-11, DEP-05)
+- Todas as actions externas estão fixadas por SHA de 40 caracteres com o comentário `# vX.Y.Z` (o Dependabot `github-actions` atualiza o SHA e o comentário). Cada job declara `permissions` mínimas.
+- `ci.yml` tem `npm-audit` (`npm audit --omit=dev --audit-level=high`, `continue-on-error`, fora do `ci-ok`) e `dependency-review` (só PR). Quando o baseline de dependências ficar limpo (DEP-01..03), tire o `continue-on-error` e inclua os dois em `needs` do `ci-ok`.
+- RISCO: `images.yml` publica builds de branches `claude/**` no mesmo namespace do GHCR de onde a produção puxa. Só publica `branch-<nome>` e o SHA do commit, nunca `latest`; o `vps-update.sh` só aceita SHA que pertence à `main`. Reforço manual recomendado: restringir a escrita no pacote GHCR ou usar outro repositório/namespace.
