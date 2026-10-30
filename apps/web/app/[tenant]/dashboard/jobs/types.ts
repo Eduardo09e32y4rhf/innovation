@@ -231,6 +231,8 @@ export interface HirePayload {
   salary?: number;
   skipDocumentCheck?: boolean;
   skipDocumentReason?: string;
+  skipOfferCheck?: boolean;
+  skipOfferReason?: string;
 }
 
 export const JOB_STATUS_LABEL: Record<JobStatus, string> = {

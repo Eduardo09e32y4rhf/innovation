@@ -224,15 +224,34 @@ export class JobsService {
     if (!dto.department?.trim() || !dto.contractType?.trim() || !dto.admissionDate) {
       throw new BadRequestException('Informe departamento, tipo de contrato e data de admissao antes de contratar o candidato.');
     }
+    await this.assertAcceptedOffer(companyId, applicationId, actorId, dto);
     await this.assertHiringDocuments(companyId, applicationId, actorId, dto);
     const result = await this.repository.hire(companyId, applicationId, actorId, dto);
     if (!result) throw new NotFoundException('Candidatura nao encontrada.');
     if (!result.alreadyHired) {
       await this.recruitment.completeWorkflow?.(applicationId, 'COMPLETE_ADMISSION', 'Admissão concluída e funcionário criado.');
-      void this.documents.sendHireWelcome(companyId, actorId, applicationId, dto.admissionDate, dto.contractType);
+      void this.sendWelcomeWithRetry(companyId, actorId, applicationId, dto);
       await this.closeJobIfFilled(companyId, applicationId, actorId);
     }
     return result;
+  }
+
+  // RS-C-13: se houve proposta, ao menos uma precisa estar ACEITA; sem nenhuma proposta registrada (módulo opcional) segue livre.
+  private async assertAcceptedOffer(companyId: string, applicationId: string, actorId: string, dto: HireCandidateDto) {
+    const statuses: string[] = await this.repository.offerStatuses(companyId, applicationId);
+    if (!statuses.length || statuses.includes('ACCEPTED')) return;
+    if (!dto.skipOfferCheck) throw new BadRequestException('A proposta ainda não foi aceita pelo candidato. Aguarde o aceite ou registre uma exceção com justificativa.');
+    const reason = dto.skipOfferReason?.trim() ?? '';
+    if (reason.length < 10) throw new BadRequestException('Informe a justificativa (mínimo de 10 caracteres) para contratar sem proposta aceita.');
+    await this.repository.audit(companyId, actorId, 'HIRE_OFFER_OVERRIDE', applicationId, { statuses, reason });
+  }
+
+  // O e-mail de boas-vindas não pode se perder em silêncio: até 3 tentativas com espera crescente; a falha final fica no histórico (HIRED_EMAIL).
+  private async sendWelcomeWithRetry(companyId: string, actorId: string, applicationId: string, dto: HireCandidateDto) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (attempt) await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+      if (await this.documents.sendHireWelcome(companyId, actorId, applicationId, dto.admissionDate, dto.contractType)) return;
+    }
   }
 
   // RS-D-03: documentos obrigatórios da vaga precisam estar aprovados; exceção só com justificativa, e fica na auditoria.

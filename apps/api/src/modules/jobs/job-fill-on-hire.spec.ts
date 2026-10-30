@@ -5,6 +5,7 @@ const payload = { department: 'RH', contractType: 'CLT', admissionDate: '2026-11
 
 function setup(fill: any) {
   const repository = {
+    offerStatuses: vi.fn().mockResolvedValue([]),
     hire: vi.fn().mockResolvedValue({ employee: { id: 'e1' }, alreadyHired: false }),
     fillJobAfterHire: vi.fn().mockResolvedValue(fill),
     audit: vi.fn().mockResolvedValue({}),

@@ -325,6 +325,11 @@ export class JobsRepository {
     });
   }
 
+  async offerStatuses(companyId: string, applicationId: string): Promise<string[]> {
+    const rows = await this.prisma.jobOffer.findMany({ where: { companyId, applicationId }, select: { status: true } });
+    return rows.map((row) => row.status);
+  }
+
   /** Marca a vaga como FILLED quando as contratações atingem `openings`; devolve as candidaturas ativas a rejeitar. */
   async fillJobAfterHire(companyId: string, applicationId: string) {
     return this.prisma.$transaction(async (tx) => {

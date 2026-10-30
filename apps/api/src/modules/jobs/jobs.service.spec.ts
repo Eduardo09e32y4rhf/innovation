@@ -5,6 +5,7 @@ import { RecruitmentService } from './recruitment.service';
 
 function setup() {
   const repository = {
+    offerStatuses: vi.fn().mockResolvedValue([]),
     get: vi.fn(),
     find: vi.fn(),
     update: vi.fn(),

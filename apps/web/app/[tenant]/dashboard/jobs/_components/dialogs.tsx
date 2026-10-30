@@ -77,7 +77,7 @@ export function HireDialog({
     if (!valid || busy) return;
     setBusy(true);
     try {
-      await onConfirm({ department: form.department.trim(), contractType: form.contractType, admissionDate: form.admissionDate, salary: form.salary ? Number(form.salary) : undefined, ...(skipDocs ? { skipDocumentCheck: true, skipDocumentReason: skipReason.trim() } : {}) });
+      await onConfirm({ department: form.department.trim(), contractType: form.contractType, admissionDate: form.admissionDate, salary: form.salary ? Number(form.salary) : undefined, ...(skipDocs ? { skipDocumentCheck: true, skipDocumentReason: skipReason.trim(), skipOfferCheck: true, skipOfferReason: skipReason.trim() } : {}) });
     } finally { setBusy(false); }
   }
 
@@ -95,7 +95,7 @@ export function HireDialog({
         <Field label="Salário (R$)"><input type="number" min={0} className={inputClass} value={form.salary} onChange={(event) => setForm({ ...form, salary: event.target.value })} /></Field>
       </div>
       <p className="mt-3 text-xs text-slate-500">Os documentos obrigatórios da vaga precisam estar aprovados. Se algum faltar, a contratação é bloqueada e o sistema mostra quais.</p>
-      <label className="mt-2 flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={skipDocs} onChange={(event) => setSkipDocs(event.target.checked)} /> Contratar mesmo com documentos pendentes (exceção auditada)</label>
+      <label className="mt-2 flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={skipDocs} onChange={(event) => setSkipDocs(event.target.checked)} /> Contratar mesmo com documentos ou proposta pendentes (exceção auditada)</label>
       {skipDocs && <Field label="Justificativa (mín. 10 caracteres)" required><input className={inputClass} value={skipReason} maxLength={300} onChange={(event) => setSkipReason(event.target.value)} /></Field>}
       <div className="flex justify-end gap-2 pt-4">
         <Button variant="outline" onClick={onClose} disabled={busy}>Cancelar</Button>

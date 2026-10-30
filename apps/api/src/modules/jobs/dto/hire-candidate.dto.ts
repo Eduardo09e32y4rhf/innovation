@@ -44,4 +44,14 @@ export class HireCandidateDto {
   @IsString()
   @MaxLength(300)
   skipDocumentReason?: string;
+
+  /** RS-C-13: contratar sem proposta aceita (quando houve proposta) exige exceção e justificativa. */
+  @IsOptional()
+  @IsBoolean()
+  skipOfferCheck?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  skipOfferReason?: string;
 }
