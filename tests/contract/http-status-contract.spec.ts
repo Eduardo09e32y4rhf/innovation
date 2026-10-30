@@ -87,6 +87,7 @@ describe('API-01 regressao: throw new Error em codigo alcancavel por rota', () =
   const ALLOWED: Record<string, { count: number; why: string }> = {
     'config/env.validation.ts': { count: 3, why: 'falha de boot (configuracao), nunca em requisicao' },
     'modules/auth/auth.module.ts': { count: 1, why: 'boot; area do grupo G1' },
+    'modules/auth/auth.service.ts': { count: 1, why: 'area do grupo G1 (auth)' },
     'modules/auth/totp.ts': { count: 1, why: 'area do grupo G1 (auth)' },
     'common/crypto/crypto.service.ts': { count: 1, why: 'dado interno corrompido: 500 generico e correto' },
     'common/crypto/temporary-password.ts': { count: 1, why: 'dado interno corrompido: 500 generico e correto' },
