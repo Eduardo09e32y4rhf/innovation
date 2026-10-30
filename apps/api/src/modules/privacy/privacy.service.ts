@@ -40,7 +40,7 @@ export class PrivacyService {
     return {
       required: !consent,
       accepted: Boolean(consent),
-      pdfPending: consent ? !consent.pdfBase64 : false,
+      pdfPending: consent ? !consent.pdfBase64 && !consent.pdfKey : false,
       termVersion: CURRENT_TERMS_VERSION,
       acceptedAt: consent?.acceptedAt ?? null,
       purpose: TERMS_PURPOSE,
@@ -199,7 +199,8 @@ export class PrivacyService {
 
     const consent = await this.repository.findActiveConsent(targetUserId, CURRENT_TERMS_VERSION);
     if (!consent) return null;
-    if (consent.pdfBase64) return consent.pdfBase64;
+    const stored = await this.repository.readConsentPdf(consent).catch(() => null);
+    if (stored) return stored;
 
     try {
       const doc = await this.document({ ...user, sub: targetUserId, companyId: targetUser?.companyId, email: targetUser?.email, name: targetUser?.name, role: targetUser?.role } as JwtUser);

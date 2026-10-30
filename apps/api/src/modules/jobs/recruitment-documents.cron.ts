@@ -15,6 +15,7 @@ export class RecruitmentDocumentsCron {
   async daily() {
     const reminders = await this.documents.sendLinkReminders();
     const expiry = await this.documents.alertExpiringDocuments();
-    this.logger.log(`Documentos: ${reminders.reminded} lembrete(s) de link, ${expiry.alerted} alerta(s) de vencimento.`);
+    const files = await this.documents.encryptLegacyFiles();
+    this.logger.log(`Documentos: ${reminders.reminded} lembrete(s) de link, ${expiry.alerted} alerta(s) de vencimento, ${files.encrypted} arquivo(s) antigo(s) cifrado(s).`);
   }
 }

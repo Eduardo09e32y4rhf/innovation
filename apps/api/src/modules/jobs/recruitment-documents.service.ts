@@ -1,5 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional, PayloadTooLargeException, UnprocessableEntityException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
+import { Readable } from 'node:stream';
+import { decryptForCompany, fileEncryptionAvailable, sealFile, encryptForCompany } from '../../common/crypto/file-crypto';
 import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { candidateDocumentsEmail, candidateHiredEmail } from './recruitment-mails';
@@ -145,11 +147,47 @@ export class RecruitmentDocumentsService {
   }
 
   async download(companyId: string, actor: Actor, documentId: string) {
-    const doc = await this.prisma.recruitmentDocument.findFirst({ where: { id: documentId, companyId }, select: { id: true, applicationId: true, fileKey: true, fileName: true, mimeType: true } });
+    const doc = await this.prisma.recruitmentDocument.findFirst({ where: { id: documentId, companyId }, select: { id: true, applicationId: true, fileKey: true, fileName: true, mimeType: true, encrypted: true } });
     if (!doc) throw new NotFoundException('Documento nao encontrado.');
     await this.scope.assertApplication(companyId, actor, doc.applicationId);
     await this.audit(companyId, actor.sub, 'RECRUITMENT_DOCUMENT_DOWNLOADED', doc.applicationId, { documentId });
-    return { stream: this.storage.stream(doc.fileKey), name: doc.fileName, type: doc.mimeType };
+    return { stream: Readable.from(await this.openFile(companyId, doc)), name: doc.fileName, type: doc.mimeType };
+  }
+
+  /** Le o arquivo decifrado (ou legado em texto plano). Arquivo legado e cifrado na propria leitura (migracao preguicosa). */
+  async openFile(companyId: string, doc: { id: string; fileKey: string; encrypted: boolean }): Promise<Buffer> {
+    const raw = await this.storage.read(doc.fileKey);
+    const plain = decryptForCompany(raw, companyId);
+    if (!doc.encrypted) await this.sealLegacy(companyId, doc, plain);
+    return plain;
+  }
+
+  private async sealLegacy(companyId: string, doc: { id: string; fileKey: string }, plain: Buffer): Promise<boolean> {
+    if (!fileEncryptionAvailable()) return false;
+    try {
+      await this.storage.replace(doc.fileKey, encryptForCompany(plain, companyId));
+      await this.prisma.recruitmentDocument.updateMany({ where: { id: doc.id, companyId }, data: { encrypted: true } });
+      return true;
+    } catch (error) {
+      this.logger.warn(`Nao foi possivel cifrar o arquivo antigo do documento ${doc.id}: ${error instanceof Error ? error.message : error}`);
+      return false;
+    }
+  }
+
+  /** Migracao em lote dos arquivos antigos (cron diario): cifra ate `limit` documentos que ainda estao em texto plano. */
+  async encryptLegacyFiles(limit = 200): Promise<{ encrypted: number }> {
+    if (!fileEncryptionAvailable()) return { encrypted: 0 };
+    const rows = await this.prisma.recruitmentDocument.findMany({ where: { encrypted: false }, take: limit, orderBy: { createdAt: 'asc' }, select: { id: true, companyId: true, fileKey: true } });
+    let encrypted = 0;
+    for (const row of rows) {
+      try {
+        const plain = decryptForCompany(await this.storage.read(row.fileKey), row.companyId);
+        if (await this.sealLegacy(row.companyId, row, plain)) encrypted += 1;
+      } catch (error) {
+        this.logger.warn(`Arquivo antigo ${row.id} nao migrado: ${error instanceof Error ? error.message : error}`);
+      }
+    }
+    return { encrypted };
   }
 
   async review(companyId: string, actor: Actor, documentId: string, dto: { decision: 'APPROVED' | 'RETURNED'; reason?: string; expiresAt?: string | Date | null }) {
@@ -392,13 +430,14 @@ export class RecruitmentDocumentsService {
 
     const sha256 = createHash('sha256').update(file.buffer).digest('hex');
     const key = `${request.companyId}/documents/${request.applicationId}/${randomUUID()}.${type.extension}`;
-    try { await this.storage.save(key, file.buffer); } catch (error) { this.logger.error(`Documento do candidato: falha ao gravar o arquivo (${key}): ${error instanceof Error ? error.stack : error}`); throw error; }
+    const sealed = sealFile(file.buffer, request.companyId); // RS-D-14: AES-256-GCM com chave por empresa
+    try { await this.storage.save(key, sealed.data); } catch (error) { this.logger.error(`Documento do candidato: falha ao gravar o arquivo (${key}): ${error instanceof Error ? error.stack : error}`); throw error; }
     try {
       await this.prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`doc:${request.applicationId}:${label}`}))`;
         await tx.recruitmentDocument.updateMany({ where: { applicationId: request.applicationId, label, supersededAt: null }, data: { supersededAt: new Date() } });
         await tx.recruitmentDocument.create({
-          data: { companyId: request.companyId, applicationId: request.applicationId, requestId: request.id, label, fileKey: key, fileName: safeDownloadName(label, type.extension), mimeType: type.mime, size: file.buffer.length, sha256, docType: rule.type, sensitive: rule.sensitive, legalBasis: rule.legalBasis },
+          data: { companyId: request.companyId, applicationId: request.applicationId, requestId: request.id, label, fileKey: key, fileName: safeDownloadName(label, type.extension), mimeType: type.mime, size: file.buffer.length, sha256, encrypted: sealed.encrypted, docType: rule.type, sensitive: rule.sensitive, legalBasis: rule.legalBasis },
         });
       });
     } catch (error) {
