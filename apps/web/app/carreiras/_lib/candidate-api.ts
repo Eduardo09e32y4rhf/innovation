@@ -17,7 +17,7 @@ export const EDUCATION_STATUS = ['Completo', 'Cursando', 'Incompleto'] as const;
 export type ExperienceItem = { role: string; company: string; start: string | null; end: string | null; current: boolean; description: string };
 
 export type CandidateProfile = {
-  email: string; name: string | null; cpf: string | null; phone: string | null;
+  email: string; emailVerified: boolean; name: string | null; cpf: string | null; phone: string | null;
   cep: string | null; street: string | null; streetNumber: string | null; addressComplement: string | null; neighborhood: string | null; city: string | null; state: string | null;
   birthDate: string | null; profession: string | null; skills: string[]; hasDriverLicense: boolean | null; driverLicenseCategory: string | null; talentPoolConsent: boolean;
   education: EducationItem[];
@@ -54,6 +54,8 @@ export const candidateApi = {
   login: (email: string, password: string) => authed<{ token: string; expiresAt: string }>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   forgotPassword: (email: string) => authed<{ sent: boolean }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
   resetPassword: (email: string, code: string, password: string) => authed<{ token: string; expiresAt: string }>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ email, code, password }) }),
+  verifyEmail: (code: string) => authed<CandidateProfile>('/auth/verify-email', { method: 'POST', body: JSON.stringify({ code }) }),
+  resendVerification: () => authed<{ sent: boolean; alreadyVerified?: boolean }>('/auth/resend-verification', { method: 'POST' }),
   logout: () => authed<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
   me: () => authed<CandidateProfile>('/me'),
   cep: (cep: string) => authed<{ street: string; neighborhood: string; city: string; state: string }>(`/cep/${encodeURIComponent(cep.replace(/\D/g, ''))}`),

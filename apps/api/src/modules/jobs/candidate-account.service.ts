@@ -7,7 +7,7 @@ import { MailService } from '../mail/mail.service';
 import { JobsService } from './jobs.service';
 import { JobsStorageService } from './jobs-storage.service';
 import { assertResumeClean, CandidateDocumentScanner } from './candidate-document-scanner.service';
-import { candidatePasswordResetEmail } from './recruitment-mails';
+import { candidateEmailVerificationEmail, candidatePasswordResetEmail } from './recruitment-mails';
 import { PRIVACY_VERSION, STAGE_LABEL_FOR_CANDIDATE } from './recruitment-privacy';
 import {
   DRIVER_LICENSE_CATEGORIES, funnelCount, generateLoginCode, hashPassword, hashSecret, isEmail, isValidCpf, LOGIN_CODE_MAX_ATTEMPTS, LOGIN_CODE_TTL_MINUTES, LOGIN_LOCK_MINUTES, LOGIN_MAX_FAILURES,
@@ -55,7 +55,43 @@ export class CandidateAccountService {
     const account = await this.prisma.candidateAccount.create({
       data: { email, name: name?.replace(/\s+/g, ' ').trim().slice(0, 180) || null, passwordHash: hashPassword(password), lastLoginAt: new Date() },
     });
+    // RS-C-09: a conta nasce NAO verificada; o codigo de 6 digitos vai por e-mail (falha de envio nao derruba o cadastro: ha reenvio).
+    await this.issueVerificationCode(email).catch((error) => this.logger.error(`Falha ao enviar codigo de verificacao: ${error instanceof Error ? error.message : error}`));
     return this.startSession(account.id);
+  }
+
+  private async issueVerificationCode(email: string) {
+    await this.prisma.candidateLoginCode.updateMany({ where: { email, purpose: 'VERIFY', usedAt: null }, data: { usedAt: new Date() } });
+    const code = generateLoginCode();
+    await this.prisma.candidateLoginCode.create({ data: { email, purpose: 'VERIFY', codeHash: hashSecret(`${email}:${code}`), expiresAt: new Date(Date.now() + LOGIN_CODE_TTL_MINUTES * 60_000) } });
+    await this.mail.send(email, candidateEmailVerificationEmail({ code, minutes: LOGIN_CODE_TTL_MINUTES }));
+  }
+
+  /** Confirma o e-mail com o codigo de 6 digitos (10 min, 5 tentativas). Preenche `verifiedAt`. */
+  async verifyEmail(account: Account, code: string) {
+    const invalid = new BadRequestException('Código inválido ou expirado. Peça um novo código.');
+    if (!/^\d{6}$/.test(String(code ?? ''))) throw invalid;
+    if (account.verifiedAt) return this.profile(account);
+    const row = await this.prisma.candidateLoginCode.findFirst({ where: { email: account.email, purpose: 'VERIFY', usedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'desc' } });
+    if (!row || row.attempts >= LOGIN_CODE_MAX_ATTEMPTS) throw invalid;
+    if (!safeEqualHex(row.codeHash, hashSecret(`${account.email}:${code}`))) {
+      await this.prisma.candidateLoginCode.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
+      throw invalid;
+    }
+    await this.prisma.candidateLoginCode.update({ where: { id: row.id }, data: { usedAt: new Date() } });
+    const updated = await this.prisma.candidateAccount.update({ where: { id: account.id }, data: { verifiedAt: new Date() } });
+    return this.profile(updated);
+  }
+
+  /** Reenvio: no minimo 60 s entre envios e ate 3 codigos por janela de 10 minutos. */
+  async resendVerification(account: Account) {
+    if (account.verifiedAt) return { sent: false, alreadyVerified: true };
+    const last = await this.prisma.candidateLoginCode.findFirst({ where: { email: account.email, purpose: 'VERIFY' }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } });
+    if (last && Date.now() - last.createdAt.getTime() < 60_000) throw new HttpException('Aguarde um minuto antes de pedir outro código.', HttpStatus.TOO_MANY_REQUESTS);
+    const recent = await this.prisma.candidateLoginCode.count({ where: { email: account.email, purpose: 'VERIFY', createdAt: { gte: new Date(Date.now() - LOGIN_CODE_TTL_MINUTES * 60_000) } } });
+    if (recent >= MAX_CODES_PER_WINDOW) throw new HttpException('Muitos códigos pedidos. Tente novamente em alguns minutos.', HttpStatus.TOO_MANY_REQUESTS);
+    await this.issueVerificationCode(account.email);
+    return { sent: true };
   }
 
   async login(rawEmail: string, password: string) {
@@ -137,6 +173,7 @@ export class CandidateAccountService {
   profile(account: Account) {
     return {
       email: account.email,
+      emailVerified: Boolean(account.verifiedAt),
       name: account.name, cpf: account.cpf, phone: account.phone,
       cep: account.cep, street: account.street, streetNumber: account.streetNumber, addressComplement: account.addressComplement,
       neighborhood: account.neighborhood, city: account.city, state: account.state,
@@ -288,6 +325,7 @@ export class CandidateAccountService {
   /** O candidato escolheu "sim, reutilizar": envia nome, e-mail, telefone e o currículo salvo; as respostas às perguntas da vaga vêm do formulário. */
   async applyWithProfile(account: Account, jobId: string, dto: CandidateApplyDto) {
     if (!dto.consent) throw new BadRequestException({ message: 'Consentimento obrigatório para enviar a candidatura.', fields: { consent: 'Obrigatório' } });
+    if (!account.verifiedAt) throw new BadRequestException({ message: 'Confirme seu e-mail para reutilizar os dados do perfil. Enviamos um código de 6 dígitos para você.', fields: { email: 'E-mail não confirmado' } });
     const missing = profileChecklist(account).filter((item) => ['name', 'phone', 'resume'].includes(item.key) && !item.done).map((item) => item.label);
     if (missing.length) throw new BadRequestException({ message: `Complete seu perfil antes de reutilizar os dados: faltam ${missing.join(', ')}.`, fields: { profile: missing.join(', ') } });
     let buffer: Buffer;

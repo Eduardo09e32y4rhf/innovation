@@ -57,6 +57,14 @@ export function candidateRequestAnsweredEmail(input: { company: string; type: st
   };
 }
 
+export function candidateEmailVerificationEmail(input: { code: string; minutes: number }): MailContent {
+  return {
+    subject: `Confirme seu e-mail: código ${input.code}`,
+    html: portalLayout('Confirme seu e-mail', `<p style="margin:0 0 16px">Bem-vindo(a) ao portal de vagas. Digite o código abaixo na tela para confirmar que este e-mail é seu:</p><p style="margin:0 0 16px;background:#f0eafa;border:1px solid #e4d9f4;border-radius:12px;padding:18px;text-align:center;font-size:34px;font-weight:700;letter-spacing:10px;color:#5b29be">${escapeHtml(input.code)}</p><p style="margin:0;font-size:13px;color:#6b6478">O código vale por ${input.minutes} minutos. Se você não criou esta conta, ignore este e-mail.</p>`),
+    text: `Seu código para confirmar o e-mail no portal de vagas Innovation RH: ${input.code}\nVale por ${input.minutes} minutos. Se você não criou a conta, ignore.`,
+  };
+}
+
 export function candidatePasswordResetEmail(input: { code: string; minutes: number }): MailContent {
   return {
     subject: `Seu código para criar uma nova senha: ${input.code}`,

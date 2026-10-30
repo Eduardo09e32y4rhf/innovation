@@ -4,7 +4,7 @@ import { lookupCep } from '../lookup/lookup.controller';
 import { TurnstileGuard } from '../../common/turnstile/turnstile.guard';
 import { CandidateAuthGuard } from './candidate-account.guard';
 import { CandidateAccountService } from './candidate-account.service';
-import { CandidateApplyDto, CandidateEmailDto, CandidateLoginDto, CandidateRegisterDto, CandidateResetPasswordDto, CandidateUpdateProfileDto } from './dto/candidate-account.dto';
+import { CandidateApplyDto, CandidateVerifyEmailDto, CandidateEmailDto, CandidateLoginDto, CandidateRegisterDto, CandidateResetPasswordDto, CandidateUpdateProfileDto } from './dto/candidate-account.dto';
 
 /** Área do candidato: conta única com perfil mínimo, reaproveitável em qualquer empresa. Rotas separadas do login de empresa. */
 @Controller('candidate-portal')
@@ -46,6 +46,22 @@ export class CandidateAccountController {
   @HttpCode(200)
   logout(@Req() request: any) {
     return this.service.logout(request.candidateToken);
+  }
+
+  @UseGuards(CandidateAuthGuard)
+  @Post('auth/verify-email')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  verifyEmail(@Req() request: any, @Body() dto: CandidateVerifyEmailDto) {
+    return this.service.verifyEmail(request.candidateAccount, dto.code);
+  }
+
+  @UseGuards(CandidateAuthGuard)
+  @Post('auth/resend-verification')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  resendVerification(@Req() request: any) {
+    return this.service.resendVerification(request.candidateAccount);
   }
 
   @UseGuards(CandidateAuthGuard)

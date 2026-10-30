@@ -69,6 +69,8 @@ const ALLOWED: Record<string, Allowed> = {
   'POST /public/jobs/:jobId/apply': GUARD_PROPRIO('TurnstileGuard', 'candidatura externa'),
   'POST /public/internal-jobs/:jobId/apply': GUARD_PROPRIO('TurnstileGuard', 'candidatura interna'),
   'POST /candidate-portal/auth/logout': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
+  'POST /candidate-portal/auth/verify-email': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
+  'POST /candidate-portal/auth/resend-verification': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'GET /candidate-portal/me': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'PUT /candidate-portal/me': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'PUT /candidate-portal/me/resume': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
