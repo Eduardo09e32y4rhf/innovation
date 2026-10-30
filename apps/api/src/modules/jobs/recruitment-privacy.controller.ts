@@ -1,4 +1,6 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { TurnstileGuard } from '../../common/turnstile/turnstile.guard';
+import { clientIp } from '../../common/http/client-ip';
 import { Throttle } from '@nestjs/throttler';
 import { IsBoolean, IsEmail, IsIn, IsInt, IsOptional, IsString, MaxLength, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -21,6 +23,9 @@ class SettingsDto {
 class AnswerDto {
   @IsString() @MaxLength(2000) response!: string;
   @IsOptional() @IsBoolean() perform?: boolean;
+}
+class ConfirmRequestDto {
+  @IsString() @MaxLength(100) token!: string;
 }
 class PublicRequestDto {
   @IsEmail() @MaxLength(240) email!: string;
@@ -52,7 +57,15 @@ export class PublicCandidateController {
   @Throttle({ default: { limit: 30, ttl: 60000 } })
   status(@Param('token') token: string) { return this.service.publicStatus(token); }
 
+  /** RS-C-01: so envia o link de confirmacao ao e-mail; o pedido abre depois, em candidate-requests/confirm. */
   @Post('candidate-requests')
+  @HttpCode(200)
+  @UseGuards(TurnstileGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  request(@Body() dto: PublicRequestDto) { return this.service.createRequest(dto); }
+  request(@Body() dto: PublicRequestDto, @Req() req: any) { return this.service.createRequest(dto, { ip: clientIp(req) }); }
+
+  @Post('candidate-requests/confirm')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  confirm(@Body() dto: ConfirmRequestDto) { return this.service.confirmRequest(dto.token); }
 }

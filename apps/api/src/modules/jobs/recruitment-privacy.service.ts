@@ -1,17 +1,21 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { CronLock } from '../../common/redis/cron-lock.decorator';
 import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { JobsStorageService } from './jobs-storage.service';
 import { buildInterviewIcs, formatInterviewDate, googleCalendarUrl, interviewerLabel, mailFromAddress, mapsUrl, meetingProvider } from './interview-rules';
-import { applicationDuplicateEmail, applicationReceivedEmail, applicationRejectedEmail, candidateInterviewCanceledEmail, candidateInterviewEmail, candidateRequestAnsweredEmail } from './recruitment-mails';
+import { applicationDuplicateEmail, applicationReceivedEmail, applicationRejectedEmail, candidateInterviewCanceledEmail, candidateInterviewEmail, candidateRequestAnsweredEmail, candidateRequestConfirmEmail } from './recruitment-mails';
 import {
   clampRetention, DEFAULT_RETENTION_MONTHS, monthsAgo, phoneKey, GENDER_OPTIONS, newTrackingToken, parsePcd, pickOption, PRIVACY_VERSION, RACE_OPTIONS, REJECTION_CODES,
   REQUEST_TYPES, retentionDate, STAGE_LABEL_FOR_CANDIDATE, type RequestType,
 } from './recruitment-privacy';
 
+const VERIFICATION_TTL_MS = 2 * 3_600_000;
+/** LGPD art. 19, II: resposta completa em ate 15 dias. */
+export const REQUEST_DEADLINE_DAYS = 15;
+const hashToken = (value: string) => createHash('sha256').update(value).digest('hex');
 const appBase = () => (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
 
 @Injectable()
@@ -172,18 +176,46 @@ export class RecruitmentPrivacyService {
   }
 
   // ---------- pedidos do titular (LGPD art. 18) ----------
-  /** Resposta sempre genérica: não revela se o e-mail existe na base. */
-  async createRequest(dto: { email: string; type: string; message?: string }) {
+  /**
+   * RS-C-01. Passo 1: NAO abre o pedido. Se o e-mail existe na base, envia um link de confirmacao (valido 2 h, uso unico, so o
+   * hash fica gravado). Resposta sempre generica. Maximo de 3 confirmacoes por e-mail por hora.
+   */
+  async createRequest(dto: { email: string; type: string; message?: string }, ctx: { ip?: string } = {}) {
     const email = String(dto.email ?? '').trim().toLowerCase();
     const type = String(dto.type ?? '').toUpperCase() as RequestType;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !REQUEST_TYPES.includes(type)) return { received: true };
-    const candidates = await this.prisma.candidate.findMany({ where: { email: { equals: email, mode: 'insensitive' } }, select: { companyId: true } });
-    const companies = [...new Set(candidates.map((candidate) => candidate.companyId))];
-    for (const companyId of companies) {
-      const open = await this.prisma.candidateRequest.count({ where: { companyId, email, type, status: 'OPEN' } });
-      if (!open) await this.prisma.candidateRequest.create({ data: { companyId, email, type, message: dto.message?.trim().slice(0, 1500) || null } });
+    const known = await this.prisma.candidate.findMany({ where: { email: { equals: email, mode: 'insensitive' } }, select: { companyId: true }, take: 1 });
+    if (!known.length) return { received: true };
+    const recent = await this.prisma.candidateRequestVerification.count({ where: { email, createdAt: { gte: new Date(Date.now() - 3_600_000) } } });
+    if (recent >= 3) return { received: true };
+    const token = randomBytes(32).toString('hex');
+    await this.prisma.candidateRequestVerification.create({
+      data: { email, type, message: dto.message?.trim().slice(0, 1500) || null, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + VERIFICATION_TTL_MS), ip: ctx.ip ?? null },
+    });
+    try {
+      await this.mail.send(email, candidateRequestConfirmEmail({ type, confirmUrl: `${appBase()}/carreiras/privacidade/confirmar?token=${token}`, hours: 2 }));
+    } catch (error) {
+      this.logger.error(`Confirmacao de pedido LGPD nao enviada: ${error instanceof Error ? error.message : error}`);
     }
     return { received: true };
+  }
+
+  /** Passo 2: o titular provou que le o e-mail. Agora sim abre um pedido por empresa, com prazo de 15 dias (LGPD art. 19, II). */
+  async confirmRequest(token: string) {
+    const invalid = new BadRequestException('Link inválido ou expirado. Envie o pedido novamente.');
+    if (!/^[a-f0-9]{64}$/.test(String(token ?? ''))) throw invalid;
+    const row = await this.prisma.candidateRequestVerification.findUnique({ where: { tokenHash: hashToken(token) } });
+    if (!row || row.usedAt || row.expiresAt.getTime() < Date.now()) throw invalid;
+    const claimed = await this.prisma.candidateRequestVerification.updateMany({ where: { id: row.id, usedAt: null }, data: { usedAt: new Date() } });
+    if (!claimed.count) throw invalid;
+    const candidates = await this.prisma.candidate.findMany({ where: { email: { equals: row.email, mode: 'insensitive' } }, select: { companyId: true } });
+    const confirmedAt = new Date();
+    const dueAt = new Date(confirmedAt.getTime() + REQUEST_DEADLINE_DAYS * 86_400_000);
+    for (const companyId of [...new Set(candidates.map((candidate) => candidate.companyId))]) {
+      const open = await this.prisma.candidateRequest.count({ where: { companyId, email: row.email, type: row.type, status: 'OPEN' } });
+      if (!open) await this.prisma.candidateRequest.create({ data: { companyId, email: row.email, type: row.type, message: row.message, confirmedAt, dueAt } });
+    }
+    return { confirmed: true, type: row.type, deadlineDays: REQUEST_DEADLINE_DAYS };
   }
 
   listRequests(companyId: string, status?: string) {
@@ -200,11 +232,18 @@ export class RecruitmentPrivacyService {
     return { generatedAt: new Date().toISOString(), email: request.email, candidates: candidates.map((c) => ({ name: c.name, phone: c.phone, linkedinUrl: c.linkedinUrl, applications: c.applications.map((a) => ({ vaga: a.job.title, data: a.createdAt, situacao: a.status, origem: a.source, consentimento: a.consentAt, versaoDaPolitica: a.consentVersion, guardadoAte: a.retentionUntil, respostas: a.answers.map((x) => ({ pergunta: x.question.label, resposta: x.value })) })) })) };
   }
 
+  /** Exclusao exige decisao explicita do RH: perform=true executa; perform=false nega (com justificativa na resposta). Nunca por padrao. */
   async answerRequest(companyId: string, requestId: string, actorId: string, dto: { response: string; perform?: boolean }) {
     const request = await this.requestOrFail(companyId, requestId);
     if (request.status !== 'OPEN') return request;
-    if (request.type === 'DELETION' && dto.perform !== false) await this.anonymizeByEmail(companyId, request.email);
-    const updated = await this.prisma.candidateRequest.update({ where: { id: requestId }, data: { status: 'DONE', response: dto.response.trim().slice(0, 2000), resolvedAt: new Date(), resolvedBy: actorId } });
+    let decision: string | null = null;
+    if (request.type === 'DELETION') {
+      if (typeof dto.perform !== 'boolean') throw new BadRequestException('Informe a decisão sobre a exclusão: executar (perform=true) ou negar com justificativa (perform=false).');
+      if (dto.perform) await this.anonymizeByEmail(companyId, request.email);
+      decision = dto.perform ? 'EXECUTED' : 'DENIED';
+      await this.prisma.auditLog.create({ data: { companyId, userId: actorId, action: dto.perform ? 'LGPD_DELETION_EXECUTED' : 'LGPD_DELETION_DENIED', entity: 'CandidateRequest', entityId: requestId, metadata: { type: request.type, confirmedAt: request.confirmedAt ?? null } } });
+    }
+    const updated = await this.prisma.candidateRequest.update({ where: { id: requestId }, data: { status: 'DONE', response: dto.response.trim().slice(0, 2000), resolvedAt: new Date(), resolvedBy: actorId, ...(decision ? { decision } : {}) } });
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true } });
     await this.mail.send(request.email, candidateRequestAnsweredEmail({ company: company?.name ?? 'A empresa', type: request.type, response: dto.response.trim() }));
     return updated;

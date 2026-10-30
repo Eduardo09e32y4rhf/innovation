@@ -38,6 +38,16 @@ export function candidateStageChangedEmail(input: { name: string; jobTitle: stri
   return { subject: `Sua candidatura avançou: ${input.jobTitle}`, html: portalLayout('Atualização da sua candidatura', body, input.statusUrl ? { label: 'Acompanhar candidatura', url: input.statusUrl } : undefined), text: `Olá, ${input.name}.\n\nSua candidatura para ${input.jobTitle} na ${input.company} avançou para: ${input.stage}.${input.statusUrl ? `\n\nAcompanhe: ${input.statusUrl}` : ''}` };
 }
 
+export function candidateRequestConfirmEmail(input: { type: string; confirmUrl: string; hours: number }): MailContent {
+  const label: Record<string, string> = { ACCESS: 'acesso aos seus dados', CORRECTION: 'correção dos seus dados', DELETION: 'exclusão dos seus dados' };
+  const what = label[input.type] ?? 'privacidade';
+  return {
+    subject: 'Confirme seu pedido de privacidade',
+    html: layout('Confirme seu pedido', `<p>Recebemos um pedido de <strong>${escapeHtml(what)}</strong> para este e-mail. Para garantir que foi você, confirme no botão abaixo (o link vale ${input.hours} horas e só pode ser usado uma vez).</p><p style="font-size:12px;color:#666">Se não foi você, ignore esta mensagem: nada será feito.</p>`, { label: 'Confirmar meu pedido', url: input.confirmUrl }),
+    text: `Recebemos um pedido de ${what} para este e-mail. Confirme em até ${input.hours} horas: ${input.confirmUrl}\nSe não foi você, ignore esta mensagem.`,
+  };
+}
+
 export function candidateRequestAnsweredEmail(input: { company: string; type: string; response: string }): MailContent {
   const label: Record<string, string> = { ACCESS: 'acesso aos dados', CORRECTION: 'correção de dados', DELETION: 'exclusão de dados' };
   return {

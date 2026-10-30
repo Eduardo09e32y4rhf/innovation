@@ -3632,8 +3632,29 @@ model CandidateRequest {
   createdAt   DateTime  @default(now())
   resolvedAt  DateTime?
   resolvedBy  String?   @db.Uuid
+  /// RS-C-01: quando o titular confirmou ser dono do e-mail (link enviado antes de abrir o pedido).
+  confirmedAt DateTime?
+  /// Prazo de resposta (LGPD art. 19, II: ate 15 dias).
+  dueAt       DateTime?
+  /// EXECUTED | DENIED: decisao explicita do RH em pedidos de exclusao.
+  decision    String?
 
   @@index([companyId, status])
+}
+
+/// RS-C-01: pedido do titular aguardando confirmacao por e-mail. So o hash do token e gravado.
+model CandidateRequestVerification {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String
+  type      String
+  message   String?
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  ip        String?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
 }
 
 /// Requisicao de vaga: cada etapa de aprovacao (gestor, RH, financeiro) antes de publicar.

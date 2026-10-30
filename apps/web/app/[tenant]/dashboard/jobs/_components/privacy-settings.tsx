@@ -25,23 +25,26 @@ function RequestRow({ item, onDone }: { item: PrivacyRequest; onDone: () => void
     } catch (cause) { toast.error(message(cause, 'Não foi possível exportar.')); }
   }
   const askConfirm = useConfirm();
-  async function answer() {
-    if (item.type === 'DELETION' && !(await askConfirm({ title: 'Excluir dados do candidato', description: 'Excluir definitivamente os dados deste candidato (currículo, respostas, notas)? Esta ação não pode ser desfeita.', confirmText: 'Excluir dados', requireText: 'EXCLUIR' }))) return;
+  async function answer(perform?: boolean) {
+    if (perform === true && !(await askConfirm({ title: 'Excluir dados do candidato', description: 'Excluir definitivamente os dados deste candidato (currículo, respostas, notas)? Contratados são preservados. Esta ação não pode ser desfeita.', confirmText: 'Excluir dados', requireText: 'EXCLUIR' }))) return;
     setBusy(true);
-    try { await privacyApi.answer(item.id, { response }); toast.success('Pedido respondido.'); onDone(); }
+    try { await privacyApi.answer(item.id, { response, ...(perform === undefined ? {} : { perform }) }); toast.success('Pedido respondido.'); onDone(); }
     catch (cause) { toast.error(message(cause, 'Não foi possível responder.')); }
     finally { setBusy(false); }
   }
   return (
     <li className="space-y-2 rounded-xl border border-border p-3">
-      <p className="text-sm"><strong>{TYPE_LABEL[item.type]}</strong> · {item.email} · {new Date(item.createdAt).toLocaleDateString('pt-BR')} {item.status === 'DONE' && <span className="ml-2 rounded-full bg-emerald-100 px-2 text-xs font-bold text-emerald-800">Respondido</span>}</p>
+      <p className="text-sm"><strong>{TYPE_LABEL[item.type]}</strong> · {item.email} · {new Date(item.createdAt).toLocaleDateString('pt-BR')} {item.dueAt && item.status === 'OPEN' && <span className="ml-2 text-xs text-fg-sub">prazo {new Date(item.dueAt).toLocaleDateString('pt-BR')}</span>} {item.status === 'DONE' && <span className="ml-2 rounded-full bg-emerald-100 px-2 text-xs font-bold text-emerald-800">Respondido</span>}</p>
       {item.message && <p className="text-xs text-fg-sub">“{item.message}”</p>}
       {item.status === 'OPEN' ? (
         <div className="space-y-2">
           <textarea className={`${inputClass} min-h-16`} aria-label="Resposta ao candidato" maxLength={2000} placeholder="Resposta que o candidato vai receber por e-mail" value={response} onChange={(event) => setResponse(event.target.value)} />
           <div className="flex flex-wrap gap-2">
             {item.type === 'ACCESS' && <Button variant="outline" size="sm" onClick={download}>Baixar dados (JSON)</Button>}
-            <Button size="sm" isLoading={busy} disabled={response.trim().length < 5} onClick={answer}>{item.type === 'DELETION' ? 'Excluir dados e responder' : 'Responder'}</Button>
+            {item.type === 'DELETION' ? (<>
+              <Button size="sm" isLoading={busy} disabled={response.trim().length < 5} onClick={() => answer(true)}>Excluir dados e responder</Button>
+              <Button variant="outline" size="sm" isLoading={busy} disabled={response.trim().length < 5} onClick={() => answer(false)}>Negar exclusão (explique na resposta)</Button>
+            </>) : <Button size="sm" isLoading={busy} disabled={response.trim().length < 5} onClick={() => answer()}>Responder</Button>}
           </div>
         </div>
       ) : <p className="text-xs text-fg-sub">{item.response}</p>}

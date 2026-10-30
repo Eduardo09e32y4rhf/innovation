@@ -514,3 +514,7 @@ export async function getCandidateStatus(token: string): Promise<CandidateStatus
 export async function sendPrivacyRequest(input: { email: string; type: 'ACCESS' | 'CORRECTION' | 'DELETION'; message?: string }): Promise<void> {
   await fetchPublic('/public/candidate-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
 }
+
+export async function confirmPrivacyRequest(token: string): Promise<{ confirmed: boolean; type: string; deadlineDays: number }> {
+  return (await fetchPublic('/public/candidate-requests/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })) as { confirmed: boolean; type: string; deadlineDays: number };
+}

@@ -10,6 +10,7 @@ const PROTECTED_PATHS = [
   /^\/auth\/(login|register-company|password-reset\/request)$/,
   /^\/candidate-portal\/auth\/(register|login|forgot-password)$/,
   /^\/public\/jobs\/[^/]+\/apply$/,
+  /^\/public\/candidate-requests$/,
   /^\/public\/internal-jobs\/[^/]+\/apply$/,
   /^\/support\/public\/(tickets|password-reset)$/,
 ];

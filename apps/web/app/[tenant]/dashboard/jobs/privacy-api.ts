@@ -1,7 +1,7 @@
 import { request } from '@/app/lib/api';
 
 export interface RecruitmentSettings { retentionMonths: number; receiptEmail: boolean; rejectionEmail: boolean; rejectionMessage: string; privacyVersion: string }
-export interface PrivacyRequest { id: string; email: string; type: 'ACCESS' | 'CORRECTION' | 'DELETION'; message: string | null; status: 'OPEN' | 'DONE'; response: string | null; createdAt: string; resolvedAt: string | null }
+export interface PrivacyRequest { id: string; email: string; type: 'ACCESS' | 'CORRECTION' | 'DELETION'; message: string | null; status: 'OPEN' | 'DONE'; response: string | null; createdAt: string; resolvedAt: string | null; dueAt?: string | null; confirmedAt?: string | null; decision?: 'EXECUTED' | 'DENIED' | null }
 
 export const privacyApi = {
   settings: () => request<RecruitmentSettings>('/recruitment-privacy/settings'),
