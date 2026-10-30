@@ -1,10 +1,13 @@
 import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { clientIp } from '../../common/http/client-ip';
 import { lookupCep } from '../lookup/lookup.controller';
 import { TurnstileGuard } from '../../common/turnstile/turnstile.guard';
 import { CandidateAuthGuard } from './candidate-account.guard';
 import { CandidateAccountService } from './candidate-account.service';
 import { CandidateApplyDto, CandidateVerifyEmailDto, CandidateEmailDto, CandidateLoginDto, CandidateRegisterDto, CandidateResetPasswordDto, CandidateUpdateProfileDto } from './dto/candidate-account.dto';
+
+const reqCtx = (request: any) => ({ ip: clientIp(request), userAgent: typeof request.headers?.['user-agent'] === 'string' ? request.headers['user-agent'] : undefined });
 
 /** Área do candidato: conta única com perfil mínimo, reaproveitável em qualquer empresa. Rotas separadas do login de empresa. */
 @Controller('candidate-portal')
@@ -82,7 +85,7 @@ export class CandidateAccountController {
   @UseGuards(CandidateAuthGuard)
   @Put('me')
   update(@Req() request: any, @Body() dto: CandidateUpdateProfileDto) {
-    return this.service.updateProfile(request.candidateAccount, dto);
+    return this.service.updateProfile(request.candidateAccount, dto, reqCtx(request));
   }
 
   @UseGuards(CandidateAuthGuard)
@@ -119,6 +122,19 @@ export class CandidateAccountController {
   }
 
   @UseGuards(CandidateAuthGuard)
+  @Get('consents')
+  consents(@Req() request: any) {
+    return this.service.consentList(request.candidateAccount);
+  }
+
+  @UseGuards(CandidateAuthGuard)
+  @Post('consents/:id/revoke')
+  @HttpCode(200)
+  revokeConsent(@Req() request: any, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.service.consentRevoke(request.candidateAccount, id);
+  }
+
+  @UseGuards(CandidateAuthGuard)
   @Get('invites')
   invites(@Req() request: any) {
     return this.service.invites(request.candidateAccount);
@@ -136,6 +152,6 @@ export class CandidateAccountController {
   @Post('jobs/:jobId/apply')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   apply(@Req() request: any, @Param('jobId', new ParseUUIDPipe()) jobId: string, @Body() dto: CandidateApplyDto) {
-    return this.service.applyWithProfile(request.candidateAccount, jobId, dto);
+    return this.service.applyWithProfile(request.candidateAccount, jobId, dto, reqCtx(request));
   }
 }

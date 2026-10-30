@@ -122,6 +122,13 @@ export class JobsRepository {
     return this.prisma.auditLog.create({ data: { companyId, userId, action, entity: 'Job', entityId, metadata: metadata as any } });
   }
 
+  /** RS-D-19: trilha de auditoria de arquivo enviado por candidato (hash, tamanho, IP, user agent, rotulo). */
+  auditCandidateUpload(companyId: string, input: { action: string; label: string; entityId: string; sha256: string; size: number; mime: string; ip?: string; userAgent?: string }) {
+    return this.prisma.auditLog.create({
+      data: { companyId, userId: null, action: input.action, entity: 'Application', entityId: input.entityId, metadata: { label: input.label, sha256: input.sha256, size: input.size, mime: input.mime }, ipAddress: input.ip ?? null, userAgent: input.userAgent?.slice(0, 400) ?? null },
+    });
+  }
+
   application(companyId: string, id: string) {
     return this.prisma.application.findFirst({
       where: { companyId, id },
@@ -193,6 +200,8 @@ export class JobsRepository {
       select: {
         id: true,
         companyId: true,
+        title: true,
+        company: { select: { name: true } },
         screeningMinScore: true,
         screeningAction: true,
         questions: { select: { ...PUBLIC_QUESTION_SELECT, knockout: true, scoreRule: true }, orderBy: { position: 'asc' } },

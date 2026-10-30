@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ModuleGuard } from '../../common/guards/module.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
+import { CandidateConsentService } from './candidate-consent.service';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
 
 class SettingsDto {
@@ -51,7 +52,7 @@ export class RecruitmentPrivacyController {
 /** Páginas públicas do candidato: acompanhar status e pedir seus direitos de titular. */
 @Controller('public')
 export class PublicCandidateController {
-  constructor(private readonly service: RecruitmentPrivacyService) {}
+  constructor(private readonly service: RecruitmentPrivacyService, private readonly consents: CandidateConsentService) {}
 
   @Get('candidate-status/:token')
   @Throttle({ default: { limit: 30, ttl: 60000 } })
@@ -68,4 +69,15 @@ export class PublicCandidateController {
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   confirm(@Body() dto: ConfirmRequestDto) { return this.service.confirmRequest(dto.token); }
+
+  /** RS-D-06 / RS-C-18: links do recibo de consentimento (confirmar o banco de talentos, revogar). Token de 64 hex; so o hash fica no banco. */
+  @Post('consents/confirm')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  confirmConsent(@Body() dto: ConfirmRequestDto) { return this.consents.confirm(dto.token); }
+
+  @Post('consents/revoke')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  revokeConsent(@Body() dto: ConfirmRequestDto) { return this.consents.revoke(dto.token); }
 }

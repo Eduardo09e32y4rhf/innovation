@@ -6,6 +6,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { JobsService } from './jobs.service';
 import { JobsStorageService } from './jobs-storage.service';
+import { CandidateConsentService } from './candidate-consent.service';
 import { assertResumeClean, CandidateDocumentScanner } from './candidate-document-scanner.service';
 import { candidateEmailVerificationEmail, candidatePasswordResetEmail } from './recruitment-mails';
 import { PRIVACY_VERSION, STAGE_LABEL_FOR_CANDIDATE } from './recruitment-privacy';
@@ -34,6 +35,7 @@ export class CandidateAccountService {
     private readonly storage: JobsStorageService,
     private readonly jobs: JobsService,
     private readonly scanner?: CandidateDocumentScanner,
+    private readonly consents?: CandidateConsentService,
   ) {}
 
   // ---------- cadastro, login e recuperação de senha ----------
@@ -191,7 +193,7 @@ export class CandidateAccountService {
     };
   }
 
-  async updateProfile(account: Account, dto: CandidateUpdateProfileDto) {
+  async updateProfile(account: Account, dto: CandidateUpdateProfileDto, ctx: { ip?: string; userAgent?: string } = {}) {
     const data: Record<string, unknown> = {};
     const text = (value: string | undefined, max: number) => value?.replace(/\s+/g, ' ').trim().slice(0, max) || null;
     if (dto.name !== undefined) data.name = text(dto.name, 180);
@@ -228,10 +230,10 @@ export class CandidateAccountService {
       data.driverLicenseCategory = category || null;
     }
     if (dto.talentPoolConsent !== undefined) {
-      if (dto.talentPoolConsent && !account.talentPoolConsentAt) data.talentPoolConsentAt = new Date();
-      if (!dto.talentPoolConsent) data.talentPoolConsentAt = null;
+      if (dto.talentPoolConsent && !account.talentPoolConsentAt) { data.talentPoolConsentAt = new Date(); await this.consents?.recordAccountChange(account, 'TALENT_POOL', true, ctx); }
+      if (!dto.talentPoolConsent) { if (account.talentPoolConsentAt) await this.consents?.recordAccountChange(account, 'TALENT_POOL', false, ctx); data.talentPoolConsentAt = null; }
     }
-    if (dto.consent === true && !account.consentAt) { data.consentAt = new Date(); data.consentVersion = PRIVACY_VERSION; }
+    if (dto.consent === true && !account.consentAt) { data.consentAt = new Date(); data.consentVersion = PRIVACY_VERSION; await this.consents?.recordAccountChange(account, 'APPLICATION', true, ctx); }
     if (dto.admissionShareConsent !== undefined) data.admissionShareConsent = dto.admissionShareConsent;
     const updated = await this.prisma.candidateAccount.update({ where: { id: account.id }, data });
     return this.profile(updated);
@@ -304,6 +306,13 @@ export class CandidateAccountService {
     };
   }
 
+  // ---------- consentimentos (RS-D-06) ----------
+  consentList(account: Account) { return this.consents ? this.consents.listForAccount(account) : []; }
+  consentRevoke(account: Account, id: string) {
+    if (!this.consents) throw new NotFoundException('Consentimento não encontrado.');
+    return this.consents.revokeForAccount(account, id);
+  }
+
   // ---------- convites do banco de talentos ----------
   async invites(account: Account) {
     const rows = await this.prisma.candidateInvite.findMany({ where: { accountId: account.id }, orderBy: { createdAt: 'desc' }, take: 50 });
@@ -323,7 +332,7 @@ export class CandidateAccountService {
 
   // ---------- candidatura reaproveitando o perfil ----------
   /** O candidato escolheu "sim, reutilizar": envia nome, e-mail, telefone e o currículo salvo; as respostas às perguntas da vaga vêm do formulário. */
-  async applyWithProfile(account: Account, jobId: string, dto: CandidateApplyDto) {
+  async applyWithProfile(account: Account, jobId: string, dto: CandidateApplyDto, ctx: { ip?: string; userAgent?: string } = {}) {
     if (!dto.consent) throw new BadRequestException({ message: 'Consentimento obrigatório para enviar a candidatura.', fields: { consent: 'Obrigatório' } });
     if (!account.verifiedAt) throw new BadRequestException({ message: 'Confirme seu e-mail para reutilizar os dados do perfil. Enviamos um código de 6 dígitos para você.', fields: { email: 'E-mail não confirmado' } });
     const missing = profileChecklist(account).filter((item) => ['name', 'phone', 'resume'].includes(item.key) && !item.done).map((item) => item.label);
@@ -345,7 +354,7 @@ export class CandidateAccountService {
         answers: JSON.stringify(dto.answers ?? {}),
       },
       { buffer, filename: account.resumeName || 'curriculo.pdf', mimetype: account.resumeType || undefined },
-      { ownerVerified: Boolean(account.verifiedAt) },
+      { ownerVerified: Boolean(account.verifiedAt), ip: ctx.ip, userAgent: ctx.userAgent },
     );
     // Se veio de um convite do RH, o convite passa a "candidatou".
     await this.prisma.candidateInvite.updateMany({ where: { accountId: account.id, jobId, status: 'SENT' }, data: { status: 'APPLIED' } }).catch(() => undefined);

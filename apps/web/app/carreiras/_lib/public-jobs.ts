@@ -69,6 +69,8 @@ export type JobApplicationInput = {
   gender?: string;
   race?: string;
   pcd?: string;
+  talentPoolOptIn?: boolean;
+  sensitiveConsent?: boolean;
   resume: File;
   answers?: Record<string, string | string[]>;
 };
@@ -378,6 +380,8 @@ export async function applyToPublicJob(
     formData.append('website', input.website.trim());
   }
   formData.append('consent', String(Boolean(input.consent)));
+  if (input.talentPoolOptIn) formData.append('talentPoolOptIn', 'true');
+  if (input.sensitiveConsent) formData.append('sensitiveConsent', 'true');
   if (input.source) formData.append('source', input.source);
   for (const key of ['gender', 'race', 'pcd'] as const) { if (input[key]) formData.append(key, input[key] as string); }
   if (input.answers && Object.keys(input.answers).length) {
@@ -517,4 +521,8 @@ export async function sendPrivacyRequest(input: { email: string; type: 'ACCESS' 
 
 export async function confirmPrivacyRequest(token: string): Promise<{ confirmed: boolean; type: string; deadlineDays: number }> {
   return (await fetchPublic('/public/candidate-requests/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })) as { confirmed: boolean; type: string; deadlineDays: number };
+}
+
+export async function consentAction(action: 'confirm' | 'revoke', token: string): Promise<{ purpose: string }> {
+  return (await fetchPublic(`/public/consents/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })) as { purpose: string };
 }

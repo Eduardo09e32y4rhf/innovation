@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { JobsService } from './jobs.service';
 import { JobsRepository } from './jobs.repository';
@@ -7,16 +7,19 @@ import { JobsRepository } from './jobs.repository';
 const PDF = Buffer.from('%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n');
 const FIELDS = { name: 'Intruso Silva', email: 'maria@x.com', phone: '11988887777', consent: 'true' };
 
-function build(repoApply: any) {
+function build(repoApply: any, extraRepo: Record<string, any> = {}) {
   const repository: any = {
     jobForApplication: vi.fn(async () => ({ id: 'job-1', companyId: 'co-1', questions: [], screeningMinScore: null, screeningAction: null })),
     apply: vi.fn(repoApply),
+    auditCandidateUpload: vi.fn(async () => ({})),
+    ...extraRepo,
   };
   const storage: any = { save: vi.fn(), remove: vi.fn() };
   const recruitment: any = { evaluateApplication: vi.fn(async () => ({ scored: false, score: 0, knockedOut: false, reason: null, reject: false })) };
   const privacy: any = { afterApply: vi.fn(), notifyDuplicateApply: vi.fn(async () => undefined) };
-  const service = new JobsService(repository, storage, recruitment, privacy, {} as any, {} as any, { assertClean: vi.fn() } as any);
-  return { service, repository, storage, privacy };
+  const consents: any = { recordApplication: vi.fn(async () => undefined) };
+  const service = new JobsService(repository, storage, recruitment, privacy, {} as any, {} as any, { assertClean: vi.fn() } as any, consents);
+  return { service, repository, storage, privacy, consents };
 }
 
 describe('RS-C-12: candidatura publica e cadastro existente', () => {
@@ -50,6 +53,43 @@ describe('RS-C-12: candidatura publica e cadastro existente', () => {
   it('duplicada com dono verificado continua dando 409 claro', async () => {
     const { service } = build(async () => ({ duplicate: true, application: { id: 'app-old' } }));
     await expect(service.apply('job-1', { ...FIELDS }, { buffer: PDF, filename: 'cv.pdf' }, { ownerVerified: true })).rejects.toBeInstanceOf(ConflictException);
+  });
+});
+
+describe('RS-D-06 / RS-C-18 / RS-D-19: prova de consentimento e trilha do upload na candidatura', () => {
+  const ok = async () => ({ duplicate: false, application: { id: 'app-1' } });
+
+  it('dados de diversidade sem consentimento especifico sao recusados', async () => {
+    const { service, repository } = build(ok);
+    await expect(service.apply('job-1', { ...FIELDS, gender: 'MULHER' }, { buffer: PDF, filename: 'cv.pdf' })).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.apply).not.toHaveBeenCalled();
+  });
+
+  it('com consentimento especifico a diversidade segue e o livro registra IP e user agent', async () => {
+    const { service, privacy, consents } = build(ok);
+    await service.apply('job-1', { ...FIELDS, gender: 'MULHER', sensitiveConsent: 'true', talentPoolOptIn: 'true' }, { buffer: PDF, filename: 'cv.pdf' }, { ip: '8.8.8.8', userAgent: 'UA/9' });
+    expect(privacy.afterApply).toHaveBeenCalledWith('app-1', { gender: 'MULHER', race: undefined, pcd: undefined });
+    expect(consents.recordApplication).toHaveBeenCalledWith(expect.objectContaining({ applicationId: 'app-1', talentPoolOptIn: true, sensitive: true, ip: '8.8.8.8', userAgent: 'UA/9' }));
+  });
+
+  it('sem opt-in nada de banco de talentos nem de dados sensiveis e registrado', async () => {
+    const { service, consents } = build(ok);
+    await service.apply('job-1', { ...FIELDS }, { buffer: PDF, filename: 'cv.pdf' });
+    expect(consents.recordApplication).toHaveBeenCalledWith(expect.objectContaining({ talentPoolOptIn: false, sensitive: false }));
+  });
+
+  it('o envio do curriculo gera trilha de auditoria com hash, tamanho, IP, UA e rotulo', async () => {
+    const { service, repository } = build(ok);
+    await service.apply('job-1', { ...FIELDS }, { buffer: PDF, filename: 'cv.pdf' }, { ip: '8.8.8.8', userAgent: 'UA/9' });
+    const [companyId, entry] = repository.auditCandidateUpload.mock.calls[0];
+    expect(companyId).toBe('co-1');
+    expect(entry).toMatchObject({ action: 'CANDIDATE_RESUME_UPLOADED', label: 'CURRICULO_CANDIDATURA', entityId: 'app-1', size: PDF.length, ip: '8.8.8.8', userAgent: 'UA/9' });
+    expect(entry.sha256).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it('falha na auditoria ou no recibo nao derruba a candidatura', async () => {
+    const { service } = build(ok, { auditCandidateUpload: vi.fn(async () => { throw new Error('db'); }) });
+    await expect(service.apply('job-1', { ...FIELDS }, { buffer: PDF, filename: 'cv.pdf' })).resolves.toEqual({ received: true });
   });
 });
 

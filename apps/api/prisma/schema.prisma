@@ -3642,6 +3642,33 @@ model CandidateRequest {
   @@index([companyId, status])
 }
 
+/// RS-D-06: livro de consentimentos do candidato com prova (hash do texto, versao, IP, user agent). Sem FK: a prova sobrevive a exclusao da conta.
+model CandidateConsent {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String
+  accountId     String?   @db.Uuid
+  applicationId String?   @db.Uuid
+  companyId     String?   @db.Uuid
+  /// APPLICATION | TALENT_POOL | SENSITIVE_DATA
+  purpose       String
+  policyVersion String
+  textHash      String
+  ip            String?
+  userAgent     String?
+  grantedAt     DateTime  @default(now())
+  /// Duplo aceite (banco de talentos na candidatura sem conta): so vale depois de confirmar pelo e-mail.
+  confirmedAt   DateTime?
+  revokedAt     DateTime?
+  revokedVia    String?
+  /// Hash do token do link do recibo (confirmar/revogar).
+  tokenHash     String    @unique
+  receiptSentAt DateTime?
+
+  @@index([email, purpose])
+  @@index([accountId])
+  @@index([applicationId])
+}
+
 /// RS-C-01: pedido do titular aguardando confirmacao por e-mail. So o hash do token e gravado.
 model CandidateRequestVerification {
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid

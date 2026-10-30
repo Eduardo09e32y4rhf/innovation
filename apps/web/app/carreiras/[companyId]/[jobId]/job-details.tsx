@@ -1,6 +1,7 @@
 'use client';
 
 import { TurnstileWidget } from '@/app/_components/turnstile-widget';
+import { CONSENT_TEXTS } from '../../_lib/consent-texts';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { Button } from '@/app/components/ui/button';
@@ -13,7 +14,7 @@ import {
   type PublicJob, type PublicQuestion,
 } from '../../_lib/public-jobs';
 
-const EMPTY = { name: '', email: '', phone: '', linkedinUrl: '', coverLetter: '', website: '', consent: false, gender: '', race: '', pcd: '' };
+const EMPTY = { name: '', email: '', phone: '', linkedinUrl: '', coverLetter: '', website: '', consent: false, gender: '', race: '', pcd: '', talentPoolOptIn: false, sensitiveConsent: false };
 type Answers = Record<string, string | string[]>;
 
 function maskPhone(value: string) {
@@ -323,11 +324,15 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
                     <label className="block space-y-1"><span className="text-sm font-medium">Cor ou raça</span><select className={input} value={form.race} onChange={(event) => setForm((current) => ({ ...current, race: event.target.value }))}><option value="">Prefiro não informar</option><option value="AMARELA">Amarela</option><option value="BRANCA">Branca</option><option value="INDIGENA">Indígena</option><option value="PARDA">Parda</option><option value="PRETA">Preta</option></select></label>
                     <label className="block space-y-1"><span className="text-sm font-medium">Pessoa com deficiência</span><select className={input} value={form.pcd} onChange={(event) => setForm((current) => ({ ...current, pcd: event.target.value }))}><option value="">Prefiro não informar</option><option value="sim">Sim</option><option value="nao">Não</option></select></label>
                   </div>
+                  {(form.gender || form.race || form.pcd) && (
+                    <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg bg-bg-sub p-3"><input type="checkbox" required className="mt-1 h-5 w-5 shrink-0" checked={form.sensitiveConsent} onChange={(event) => setForm((current) => ({ ...current, sensitiveConsent: event.target.checked }))} /><span className="text-sm leading-6">{CONSENT_TEXTS.SENSITIVE_DATA}</span></label>
+                  )}
                 </fieldset>
                 <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg bg-bg-sub p-3"><input type="checkbox" required className="mt-1 h-5 w-5 shrink-0" checked={form.consent} onChange={(event) => setForm((current) => ({ ...current, consent: event.target.checked }))} />
-                  <span className="text-sm leading-6">Autorizo o tratamento dos dados enviados para avaliação da minha candidatura. Li a <Link className="underline" href="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</Link>. Meus dados serão guardados pelo prazo do processo seletivo e eu posso pedir acesso, correção ou exclusão a qualquer momento em <Link className="underline" href="/carreiras/privacidade" target="_blank" rel="noopener noreferrer">Meus dados</Link>.</span></label>
+                  <span className="text-sm leading-6">{CONSENT_TEXTS.APPLICATION} <Link className="underline" href="/privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</Link> · <Link className="underline" href="/carreiras/privacidade" target="_blank" rel="noopener noreferrer">Meus dados</Link>.</span></label>
+                <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg bg-bg-sub p-3"><input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={form.talentPoolOptIn} onChange={(event) => setForm((current) => ({ ...current, talentPoolOptIn: event.target.checked }))} /><span className="text-sm leading-6"><strong>Opcional.</strong> {CONSENT_TEXTS.TALENT_POOL} Vamos pedir uma confirmação por e-mail.</span></label>
                 <TurnstileWidget />
-                <Button type="submit" className="w-full !bg-[#7240da] hover:!bg-[#5b29be]" isLoading={submitting} disabled={!form.consent}>Enviar candidatura</Button>
+                <Button type="submit" className="w-full !bg-[#7240da] hover:!bg-[#5b29be]" isLoading={submitting} disabled={!form.consent || ((Boolean(form.gender || form.race || form.pcd)) && !form.sensitiveConsent)}>Enviar candidatura</Button>
               </form>
             )}
           </section>

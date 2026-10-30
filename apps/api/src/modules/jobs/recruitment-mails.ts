@@ -24,6 +24,15 @@ export function applicationDuplicateEmail(input: { name: string; jobTitle: strin
   };
 }
 
+export function consentReceiptEmail(input: { name: string; company: string; jobTitle: string; version: string; items: { label: string; text: string; revokeUrl: string; confirmUrl: string | null }[] }): MailContent {
+  const rows = input.items.map((item) => `<div style="margin:0 0 14px;padding:12px 14px;border:1px solid #e4d9f4;border-radius:10px"><p style="margin:0 0 6px;font-weight:700">${escapeHtml(item.label)}</p><p style="margin:0 0 8px;font-size:13px;color:#4b4560">${escapeHtml(item.text)}</p>${item.confirmUrl ? `<p style="margin:0 0 6px;font-size:13px"><strong>Falta um passo:</strong> <a href="${escapeHtml(item.confirmUrl)}">confirme que foi você</a>. Sem isso seu perfil não entra no banco de talentos.</p>` : ''}<p style="margin:0;font-size:12px"><a href="${escapeHtml(item.revokeUrl)}">Revogar este consentimento</a></p></div>`).join('');
+  return {
+    subject: `Recibo dos seus consentimentos (${input.jobTitle})`,
+    html: layout('Recibo de consentimento', `<p>Olá, ${escapeHtml(input.name)}.</p><p>Registramos, em nome da ${escapeHtml(input.company)} e para a vaga <strong>${escapeHtml(input.jobTitle)}</strong>, o que você autorizou (política versão ${escapeHtml(input.version)}). Guarde este e-mail como comprovante.</p>${rows}<p style="font-size:12px;color:#666">Você pode revogar quando quiser pelos links acima ou na sua conta.</p>`),
+    text: `Olá, ${input.name}.\n\nRecibo dos consentimentos registrados (${input.company}, ${input.jobTitle}, política ${input.version}):\n\n${input.items.map((item) => `- ${item.label}: ${item.text}\n  ${item.confirmUrl ? `Confirmar: ${item.confirmUrl}\n  ` : ''}Revogar: ${item.revokeUrl}`).join('\n')}`,
+  };
+}
+
 export function applicationRejectedEmail(input: { name: string; jobTitle: string; company: string; message?: string | null; privacyUrl: string }): MailContent {
   const body = (input.message ?? '').trim() || 'Neste momento seguiremos com outros perfis. Agradecemos o seu interesse e o tempo dedicado ao processo.';
   return {
