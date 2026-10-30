@@ -56,9 +56,9 @@ function RequestRow({ item, onDone }: { item: PrivacyRequest; onDone: () => void
 export function PrivacySettings() {
   const settings = useQuery(() => privacyApi.settings(), []);
   const requests = useQuery(() => privacyApi.requests(), []);
-  const [form, setForm] = useState({ retentionMonths: 12, receiptEmail: true, rejectionEmail: true, rejectionMessage: '' });
+  const [form, setForm] = useState({ retentionMonths: 12, trackingTokenDays: 90, receiptEmail: true, rejectionEmail: true, rejectionMessage: '' });
   const [saving, setSaving] = useState(false);
-  useEffect(() => { if (settings.data) setForm({ retentionMonths: settings.data.retentionMonths, receiptEmail: settings.data.receiptEmail, rejectionEmail: settings.data.rejectionEmail, rejectionMessage: settings.data.rejectionMessage }); }, [settings.data]);
+  useEffect(() => { if (settings.data) setForm({ retentionMonths: settings.data.retentionMonths, trackingTokenDays: settings.data.trackingTokenDays ?? 90, receiptEmail: settings.data.receiptEmail, rejectionEmail: settings.data.rejectionEmail, rejectionMessage: settings.data.rejectionMessage }); }, [settings.data]);
 
   async function save() {
     setSaving(true);
@@ -75,6 +75,7 @@ export function PrivacySettings() {
         {settings.loading && !settings.data ? <LoadingState label="Carregando…" /> : (
           <div className="space-y-3">
             <label className="block space-y-1 text-sm font-medium">Guardar dados de candidatos por (meses, de 3 a 60)<input type="number" min={3} max={60} className={`${inputClass} max-w-[140px]`} value={form.retentionMonths} onChange={(event) => setForm({ ...form, retentionMonths: Number(event.target.value) })} /></label>
+            <label className="block space-y-1 text-sm font-medium">Validade do link de acompanhamento do candidato (dias, de 7 a 365)<input type="number" min={7} max={365} className={`${inputClass} max-w-[140px]`} value={form.trackingTokenDays} onChange={(event) => setForm({ ...form, trackingTokenDays: Number(event.target.value) })} /></label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.receiptEmail} onChange={(event) => setForm({ ...form, receiptEmail: event.target.checked })} /> Enviar e-mail confirmando o recebimento da candidatura (com link para acompanhar)</label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.rejectionEmail} onChange={(event) => setForm({ ...form, rejectionEmail: event.target.checked })} /> Enviar feedback automático quando o candidato for reprovado</label>
             <label className="block space-y-1 text-sm font-medium">Mensagem de reprovação (opcional)<textarea className={`${inputClass} min-h-20`} maxLength={1500} placeholder="Se vazio, usamos um texto padrão e cordial." value={form.rejectionMessage} onChange={(event) => setForm({ ...form, rejectionMessage: event.target.value })} /></label>

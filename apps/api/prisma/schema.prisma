@@ -1562,6 +1562,7 @@ model ApplicationInterview {
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   feedbacks   InterviewFeedback[]
+  accessTokens RecruitmentAccessToken[]
 
   @@index([applicationId, scheduledAt])
 }
@@ -1664,6 +1665,7 @@ model Application {
   notes       ApplicationNote[]
   interviews  ApplicationInterview[]
   workflowRuns RecruitmentWorkflowRun[]
+  accessTokens RecruitmentAccessToken[]
 
   @@unique([companyId, candidateId, jobId])
   @@index([companyId])
@@ -3605,7 +3607,29 @@ model RecruitmentSetting {
   rejectionMessage   String?
   /// Etapas de aprovacao para publicar uma vaga, em ordem: GESTOR, RH, FINANCEIRO. Vazio = sem aprovacao.
   approvalSteps      String[] @default([])
+  /// RS-C-16: validade do link de acompanhamento do candidato (7 a 365 dias).
+  trackingTokenDays  Int      @default(90)
   updatedAt          DateTime @updatedAt
+}
+
+/// RS-C-16: links secretos do candidato (acompanhar, entrevista) guardados so como hash, com expiracao.
+model RecruitmentAccessToken {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String    @db.Uuid
+  interviewId   String?   @db.Uuid
+  /// TRACKING | INTERVIEW
+  kind          String
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  lastUsedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  application Application           @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  interview   ApplicationInterview? @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, kind])
+  @@index([interviewId])
+  @@index([expiresAt])
 }
 
 /// Dados de diversidade (opcionais, anonimos nos relatorios). Ficam separados da candidatura e nunca entram na avaliacao.

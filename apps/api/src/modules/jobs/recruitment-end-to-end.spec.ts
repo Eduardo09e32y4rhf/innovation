@@ -125,6 +125,7 @@ describe('autoagendamento e confirmacao', () => {
 
   function followup(interview: Record<string, unknown>) {
     const prisma: any = {
+      recruitmentAccessToken: { findUnique: vi.fn(async () => null), create: vi.fn(async () => ({})), update: vi.fn(async () => ({})) },
       applicationInterview: { findUnique: vi.fn(async () => interview), update: vi.fn(async () => ({})), findMany: vi.fn(async () => [interview]), updateMany: vi.fn(async () => ({ count: 1 })) },
       applicationEvent: { create: vi.fn(async () => ({})) },
       managementEvent: { findFirst: vi.fn(async () => ({ title: 'Entrevista: Maria · Vendedor' })), update: vi.fn(async () => ({})) },

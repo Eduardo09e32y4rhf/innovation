@@ -17,6 +17,7 @@ import { RecruitmentPrivacyService } from './recruitment-privacy.service';
 
 class SettingsDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(3) @Max(60) retentionMonths?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(7) @Max(365) trackingTokenDays?: number;
   @IsOptional() @IsBoolean() receiptEmail?: boolean;
   @IsOptional() @IsBoolean() rejectionEmail?: boolean;
   @IsOptional() @IsString() @MaxLength(1500) rejectionMessage?: string;
