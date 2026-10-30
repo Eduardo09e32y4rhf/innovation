@@ -56,12 +56,13 @@ describe('INF-11: images.yml (builds claude/** compartilham o namespace do GHCR 
     expect(t.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n')).not.toMatch(/[:,]latest\b/);
     expect(t).toMatch(/\$IMG:\$\{GITHUB_SHA\},\$IMG:\$BR/);
   });
-  it('dispara somente em branches claude/** (main publica via deploy.yml) e documenta o risco', () => {
+  it('dispara na main (imagem do commit para `vps-update.sh main`) e em claude/**, e documenta o risco', () => {
     const on = wf('images.yml').on;
-    expect(on.push.branches).toEqual(['claude/**']);
+    expect(on.push.branches).toEqual(['main', 'claude/**']);
     expect(t).toMatch(/RISCO/);
   });
-  it('tag de branch tem prefixo proprio que nao colide com tags de producao (SHA da main, main, vX)', () => {
+  it('a main publica a tag `main`; branch de trabalho tem prefixo proprio que nao colide com tags de producao (SHA da main, main, vX)', () => {
+    expect(t).toMatch(/\[ "\$GITHUB_REF_NAME" = main \]; then BR="main"/);
     expect(t).toMatch(/BR="branch-/);
   });
 });

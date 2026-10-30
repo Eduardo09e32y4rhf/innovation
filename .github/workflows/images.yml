@@ -9,8 +9,9 @@ name: Imagens Docker
 # A VPS so faz "docker compose pull" (sem build local, que derrubava a maquina por falta de memoria).
 on:
   push:
-    # Na main quem constroi e publica e o deploy.yml (imagens enviadas a VPS). Aqui so branches de trabalho e disparo manual.
-    branches: ['claude/**']
+    # main: publica a imagem do commit no GHCR para `vps-update.sh main` (deploy manual na VPS, sem compilar la).
+    # O deploy.yml constroi as suas proprias imagens e as envia a VPS; as duas vias convivem.
+    branches: [main, 'claude/**']
   workflow_dispatch:
 
 permissions:
@@ -37,7 +38,9 @@ jobs:
         id: tags
         run: |
           IMG="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/innovation-${{ matrix.app }}"
-          BR="branch-${GITHUB_REF_NAME//\//-}"
+          # main publica a tag `main` (o vps-update.sh usa `main` como reserva); branches de trabalho levam o prefixo
+          # `branch-` para nunca colidirem com as tags de producao (SHA da main, main, vX).
+          if [ "$GITHUB_REF_NAME" = main ]; then BR="main"; else BR="branch-${GITHUB_REF_NAME//\//-}"; fi
           echo "list=$IMG:${GITHUB_SHA},$IMG:$BR" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
