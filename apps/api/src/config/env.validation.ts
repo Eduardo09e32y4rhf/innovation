@@ -20,6 +20,9 @@ export const COMPOSE_API_PASSTHROUGH_ENV: Readonly<Record<string, string>> = {
   TRIAL_DOCUMENT_HASH_SECRET: '',
   WHATSAPP_SESSION_PATH: '',
   TURNSTILE_SECRET_KEY: '',
+  TURNSTILE_FAIL_MODE: '', // open|closed; vazio = padrao do codigo (closed so em producao com chave e TURNSTILE_ENFORCE=true)
+  TURNSTILE_ENFORCE: '', // 'true' liga o modo estrito
+  PASSWORD_RESET_CODE_SECRET: '', // vazio = usa JWT_SECRET
   OPENAI_API_KEY: '',
   OPENAI_AI_ENABLED: '',
   OPENAI_MODEL_FAST: '',

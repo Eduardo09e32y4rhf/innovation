@@ -45,13 +45,13 @@ export class HubController {
 
   @Roles(...rolesWith('calendar.read'))
   @Get('day')
-  getDay(@CurrentUser() actor: JwtUser, @Query('employeeId') employeeId: string, @Query('date') date: string) {
+  getDay(@CurrentUser() actor: JwtUser, @Query('employeeId', ParseUUIDPipe) employeeId: string, @Query('date') date: string) {
     return this.calendar.day(actor, employeeId, date);
   }
 
   @Roles(...rolesWith('calendar.read'))
   @Get('timesheet')
-  async getTimesheet(@CurrentUser() actor: JwtUser, @Query('month') month: string, @Query('employeeId') employeeId?: string) {
+  async getTimesheet(@CurrentUser() actor: JwtUser, @Query('month') month: string, @Query('employeeId', new ParseUUIDPipe({ optional: true })) employeeId?: string) {
     const target = employeeId ?? (await this.scope.employeeOf(actor))?.id;
     return this.calendar.timesheet(actor, target ?? '', month);
   }
@@ -113,7 +113,7 @@ export class HubController {
 
   @Roles(...rolesWith('schedule.write'))
   @Delete('overrides/:id')
-  removeOverride(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  removeOverride(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.overrides.remove(actor, id);
   }
 
@@ -160,7 +160,7 @@ export class HubController {
 
   @Roles(...rolesWith('schedule.write'))
   @Get('launch/attachments/:id')
-  async launchAttachmentFile(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Res() reply: any) {
+  async launchAttachmentFile(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Res() reply: any) {
     const { stream, fileName, mimetype } = await this.launches.attachmentFile(actor, id);
     reply.header('Content-Type', mimetype || 'application/octet-stream');
     reply.header('Content-Disposition', contentDisposition(fileName));

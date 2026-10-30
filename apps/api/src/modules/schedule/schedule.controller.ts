@@ -1,15 +1,5 @@
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { AssignScheduleDto } from './dto/assign-schedule.dto';
@@ -59,7 +49,7 @@ export class ScheduleController {
   @Get('calendar/:employeeId')
   calendar(
     @CurrentUser() actor: JwtUser,
-    @Param('employeeId') employeeId: string,
+    @Param('employeeId', ParseUUIDPipe) employeeId: string,
     @Query('month') month: string,
   ) {
     const m = month || currentMonthInSaoPaulo();
@@ -74,13 +64,13 @@ export class ScheduleController {
 
   @Roles(...rolesWith('policy.write'))
   @Patch(':id')
-  update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateScheduleDto) {
+  update(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateScheduleDto) {
     return this.service.updateSchedule(actor.companyId, actor, id, dto);
   }
 
   @Roles(...rolesWith('policy.write'))
   @Patch(':id/archive')
-  archive(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  archive(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.archiveSchedule(actor.companyId, actor, id);
   }
 
@@ -102,7 +92,7 @@ export class ScheduleController {
   @Get('governance/history')
   history(
     @CurrentUser() actor: JwtUser,
-    @Query('employeeId') employeeId?: string,
+    @Query('employeeId', new ParseUUIDPipe({ optional: true })) employeeId?: string,
     @Query('limit') limit?: string,
   ) {
     return this.service.history(actor.companyId, actor, employeeId, limit);
@@ -124,7 +114,7 @@ export class ScheduleController {
   }
 
   @Get(':id')
-  getOne(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  getOne(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.getSchedule(actor.companyId, id);
   }
 
@@ -138,7 +128,7 @@ export class ScheduleController {
 
   @Roles(...rolesWith('schedule.write'))
   @Delete('exceptions/:id')
-  deleteException(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  deleteException(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.deleteException(actor.companyId, actor, id);
   }
 }

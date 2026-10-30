@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Res, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -25,12 +25,12 @@ export class VacationsController {
   }
 
   @Get('employee/:employeeId')
-  listByEmployee(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('employeeId') employeeId: string) {
+  listByEmployee(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('employeeId', ParseUUIDPipe) employeeId: string) {
     return this.service.listByEmployee(companyId, actor, employeeId);
   }
 
   @Get('employee/:employeeId/entitlements')
-  listEntitlements(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('employeeId') employeeId: string) {
+  listEntitlements(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('employeeId', ParseUUIDPipe) employeeId: string) {
     return this.service.listEntitlements(companyId, actor, employeeId);
   }
 
@@ -43,7 +43,7 @@ export class VacationsController {
   listEmployeeMedicalCertificates(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('employeeId') employeeId: string,
+    @Param('employeeId', ParseUUIDPipe) employeeId: string,
   ) {
     return this.service.listMedicalCertificates(companyId, actor, employeeId);
   }
@@ -63,7 +63,7 @@ export class VacationsController {
   updateMedicalCertificateStatus(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateMedicalCertificateStatusDto,
   ) {
     return this.service.updateMedicalCertificateStatus(companyId, actor, id, dto);
@@ -73,7 +73,7 @@ export class VacationsController {
   async receiptPdf(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Res() response: any,
   ) {
     const receipt = await this.service.generateReceiptPdf(companyId, actor, id);
@@ -94,7 +94,7 @@ export class VacationsController {
 
   @Roles('ADMIN', 'RH', 'DEV')
   @Patch(':id/status')
-  updateStatus(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateVacationStatusDto) {
+  updateStatus(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateVacationStatusDto) {
     return this.service.updateStatus(companyId, actor, id, dto);
   }
 
@@ -103,7 +103,7 @@ export class VacationsController {
   recordPayment(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RecordVacationPaymentDto,
   ) {
     return this.service.recordPayment(companyId, actor, id, dto);

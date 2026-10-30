@@ -2,28 +2,10 @@ import { Injectable, NotFoundException, BadRequestException, ServiceUnavailableE
 import { PrismaService } from '../../database/prisma.service';
 import { AsaasService } from '../finance/asaas.service';
 import { randomBytes } from 'crypto';
+import { AcceptTermsDto, CreateProposalDto } from './dto/proposal.dto';
 import { assertInWallet, walletOwnerId } from '../../common/permissions/commercial-wallet';
 
 type ProposalActor = { sub?: string; id?: string; role?: string };
-
-export interface CreateProposalDto {
-  companyId: string;
-  title: string;
-  description?: string;
-  startDate: string;
-  endDate?: string;
-  planType: string;
-  monthlyPrice: number;
-  usersLimit: number;
-  employeesLimit: number;
-  features: string[];
-}
-
-export interface AcceptTermsDto {
-  signedByName: string;
-  signedByEmail: string;
-  signatureBase64?: string;
-}
 
 @Injectable()
 export class ProposalsService {

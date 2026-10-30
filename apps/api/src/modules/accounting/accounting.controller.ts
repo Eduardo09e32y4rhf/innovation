@@ -154,7 +154,7 @@ export class AccountingController {
   }
 
   @Get('office/tasks')
-  listTasks(@CurrentUser() actor: JwtUser, @Query('status') status?: string, @Query('companyId') companyId?: string, @Query('assigneeId') assigneeId?: string) {
+  listTasks(@CurrentUser() actor: JwtUser, @Query('status') status?: string, @Query('companyId', new ParseUUIDPipe({ optional: true })) companyId?: string, @Query('assigneeId', new ParseUUIDPipe({ optional: true })) assigneeId?: string) {
     return this.office.listTasks(actor, { status, companyId, assigneeId });
   }
 
@@ -174,7 +174,7 @@ export class AccountingController {
   }
 
   @Get('office/docs')
-  listDocs(@CurrentUser() actor: JwtUser, @Query('month') month?: string, @Query('companyId') companyId?: string, @Query('status') status?: string) {
+  listDocs(@CurrentUser() actor: JwtUser, @Query('month') month?: string, @Query('companyId', new ParseUUIDPipe({ optional: true })) companyId?: string, @Query('status') status?: string) {
     return this.office.listDocs(actor, { month, companyId, status });
   }
 

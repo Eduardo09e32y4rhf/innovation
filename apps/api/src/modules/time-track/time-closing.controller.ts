@@ -1,5 +1,5 @@
 import { AdjustClosingDto, GenerateClosingBodyDto, OvertimePolicyDto, ReopenClosingDto } from './dto/closing.dto';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, Res, UseGuards, ParseUUIDPipe, ParseEnumPipe } from '@nestjs/common';
 import { $Enums } from '@prisma/client';
 type TimeClosingStatus = $Enums.TimeClosingStatus;
 const TimeClosingStatus = $Enums.TimeClosingStatus;
@@ -34,7 +34,7 @@ export class TimeClosingController {
 
   @Get()
   @Roles('ADMIN', 'RH', 'CEO', 'CONTABIL')
-  list(@Req() req: any, @Query('status') status?: TimeClosingStatus) { return this.service.list(req.user.companyId, status); }
+  list(@Req() req: any, @Query('status', new ParseEnumPipe(TimeClosingStatus, { optional: true })) status?: TimeClosingStatus) { return this.service.list(req.user.companyId, status); }
 
   // Contracheque do próprio colaborador (declarado antes de ':id').
   @Get('me/payslips')
@@ -43,7 +43,7 @@ export class TimeClosingController {
 
   @Get('me/payslips/:id/pdf')
   @Roles('FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CEO', 'CONTABIL')
-  myPayslipPdf(@Req() req: any, @Res() res: any, @Param('id') id: string) { return this.service.streamMyPayslip(req.user.companyId, req.user, id, res); }
+  myPayslipPdf(@Req() req: any, @Res() res: any, @Param('id', ParseUUIDPipe) id: string) { return this.service.streamMyPayslip(req.user.companyId, req.user, id, res); }
 
   @Get('collective/pdf')
   @Roles(...rolesWith('closing.read'))
@@ -64,39 +64,39 @@ export class TimeClosingController {
 
   @Get(':id')
   @Roles(...rolesWith('closing.read'))
-  getById(@Req() req: any, @Param('id') id: string) { return this.service.getById(req.user.companyId, id, req.user); }
+  getById(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) { return this.service.getById(req.user.companyId, id, req.user); }
 
   @Patch(':id/adjust')
   @Roles(...rolesWith('closing.write'))
-  adjust(@Req() req: any, @Param('id') id: string, @Body() body: AdjustClosingDto) { return this.service.adjust(req.user.companyId, req.user, id, body); }
+  adjust(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: AdjustClosingDto) { return this.service.adjust(req.user.companyId, req.user, id, body); }
 
   @Post(':id/submit-review')
   @Roles(...rolesWith('closing.write'))
-  submitReview(@Req() req: any, @Param('id') id: string) { return this.service.submitReview(req.user.companyId, id); }
+  submitReview(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) { return this.service.submitReview(req.user.companyId, id); }
 
   @Post(':id/approve')
   @Roles(...rolesWith('closing.write'))
-  approve(@Req() req: any, @Param('id') id: string) { return this.service.approve(req.user.companyId, id); }
+  approve(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) { return this.service.approve(req.user.companyId, id); }
 
   @Post(':id/close')
   @Roles(...rolesWith('closing.write'))
-  close(@Req() req: any, @Param('id') id: string) { return this.service.close(req.user.companyId, req.user, id); }
+  close(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) { return this.service.close(req.user.companyId, req.user, id); }
 
   @Post(':id/reopen')
   @Roles(...rolesWith('closing.write'))
-  reopen(@Req() req: any, @Param('id') id: string, @Body() body: ReopenClosingDto) { return this.service.reopen(req.user.companyId, req.user, id, body.reason); }
+  reopen(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: ReopenClosingDto) { return this.service.reopen(req.user.companyId, req.user, id, body.reason); }
 
   @Delete(':id')
   @Roles(...rolesWith('closing.write'))
-  delete(@Req() req: any, @Param('id') id: string) { return this.service.delete(req.user.companyId, id); }
+  delete(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) { return this.service.delete(req.user.companyId, id); }
 
   @Get(':id/pdf')
   @Roles(...rolesWith('closing.read'))
-  getPdf(@Req() req: any, @Param('id') id: string) { return this.service.getPdf(req.user.companyId, id, req.user); }
+  getPdf(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) { return this.service.getPdf(req.user.companyId, id, req.user); }
 
   @Get(':id/pdf-stream')
   @Roles(...rolesWith('closing.read'))
-  streamPdf(@Req() req: any, @Res() res: any, @Param('id') id: string) { return this.service.streamPdf(req.user.companyId, id, res, req.user); }
+  streamPdf(@Req() req: any, @Res() res: any, @Param('id', ParseUUIDPipe) id: string) { return this.service.streamPdf(req.user.companyId, id, res, req.user); }
 
   /**
    * Antes de emitir a folha coletiva, refaz os totais do ponto e os fechamentos ainda em rascunho,

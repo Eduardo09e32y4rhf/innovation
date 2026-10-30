@@ -12,6 +12,7 @@ import {
   Req,
   Res,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -60,7 +61,7 @@ export class JobsController {
   }
 
   @Get(':id')
-  async get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  async get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     await this.scope.assertJob(companyId, actor, id);
     return this.service.get(companyId, id);
   }
@@ -68,7 +69,7 @@ export class JobsController {
   /** Gestor acompanha e avalia; criar, editar, excluir e duplicar vaga e com RH. */
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Patch(':id')
-  async update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateJobDto) {
+  async update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateJobDto) {
     await this.scope.assertJob(companyId, actor, id);
     return this.service.update(companyId, id, dto);
   }
@@ -76,7 +77,7 @@ export class JobsController {
   /** Gestor acompanha e avalia; criar, editar, excluir e duplicar vaga e com RH. */
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Delete(':id')
-  async delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Query('mode') mode?: string) {
+  async delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Query('mode') mode?: string) {
     await this.scope.assertJob(companyId, actor, id);
     return this.service.delete(companyId, id, actor.sub, mode === 'permanent' ? 'permanent' : 'archive');
   }
@@ -84,7 +85,7 @@ export class JobsController {
   /** Gestor acompanha e avalia; criar, editar, excluir e duplicar vaga e com RH. */
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Post(':id/duplicate')
-  async duplicate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  async duplicate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     await this.scope.assertJob(companyId, actor, id);
     const copy = await this.service.duplicate(companyId, id);
     await this.scope.assignCreator(companyId, actor, (copy as any).id);
@@ -101,13 +102,13 @@ export class JobsController {
   /** Atribuicao de responsaveis: quem recruta nao define o proprio escopo. */
   @Roles('DEV', 'ADMIN', 'RH')
   @Get(':id/recruiters')
-  recruiters(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  recruiters(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.scope.listRecruiters(companyId, actor, id);
   }
 
   @Roles('DEV', 'ADMIN', 'RH')
   @Put(':id/recruiters')
-  assignRecruiters(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: AssignRecruitersDto) {
+  assignRecruiters(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: AssignRecruitersDto) {
     return this.scope.setRecruiters(companyId, actor, id, dto.userIds);
   }
 
@@ -117,7 +118,7 @@ export class JobsController {
   hire(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: HireCandidateDto,
   ) {
     return this.service.hire(companyId, id, actor.sub, dto);
@@ -127,7 +128,7 @@ export class JobsController {
   async resume(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Res() reply: any,
   ) {
     await this.scope.assertApplication(companyId, actor, id);

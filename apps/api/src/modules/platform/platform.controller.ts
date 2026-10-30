@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Query, Req, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -41,7 +41,7 @@ export class PlatformController {
   @Roles('DEV')
   @Post('ghost-mode/:companyId')
   ghostMode(
-    @Param('companyId') companyId: string,
+    @Param('companyId', ParseUUIDPipe) companyId: string,
     @CurrentUser() actor: JwtUser,
     @Req() req: any,
   ) {
@@ -49,14 +49,14 @@ export class PlatformController {
   }
 
   @Get('company-users/:companyId')
-  listCompanyUsers(@CurrentUser() actor: JwtUser, @Param('companyId') companyId: string) {
+  listCompanyUsers(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string) {
     return this.service.listCompanyUsers(actor, companyId);
   }
 
   @Post('company-users/:companyId')
   createCompanyUser(
     @CurrentUser() actor: JwtUser,
-    @Param('companyId') companyId: string,
+    @Param('companyId', ParseUUIDPipe) companyId: string,
     @Body() dto: CreatePlatformCompanyUserDto,
   ) {
     return this.service.createCompanyUser(actor, companyId, dto);
@@ -65,8 +65,8 @@ export class PlatformController {
   @Patch('company-users/:companyId/:userId')
   updateCompanyUser(
     @CurrentUser() actor: JwtUser,
-    @Param('companyId') companyId: string,
-    @Param('userId') userId: string,
+    @Param('companyId', ParseUUIDPipe) companyId: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
     @Body() dto: UpdatePlatformCompanyUserDto,
   ) {
     return this.service.updateCompanyUser(actor, companyId, userId, dto);
@@ -75,14 +75,14 @@ export class PlatformController {
   @Delete('company-users/:companyId/:userId')
   deleteCompanyUser(
     @CurrentUser() actor: JwtUser,
-    @Param('companyId') companyId: string,
-    @Param('userId') userId: string,
+    @Param('companyId', ParseUUIDPipe) companyId: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
   ) {
     return this.service.deleteCompanyUser(actor, companyId, userId);
   }
 
   @Get('companies/:id/audit-logs')
-  companyAuditLogs(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Query('page') page?: string, @Query('limit') limit?: string) {
+  companyAuditLogs(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Query('page') page?: string, @Query('limit') limit?: string) {
     return this.service.companyAuditLogs(id, actor, {
       page: Number(page) || 1,
       limit: Number(limit) || 25,
@@ -90,7 +90,7 @@ export class PlatformController {
   }
 
   @Get('companies/:id')
-  getCompany(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  getCompany(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.getCompany(id, actor);
   }
 
@@ -100,19 +100,19 @@ export class PlatformController {
   }
 
   @Patch('companies/:id')
-  updateCompany(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdatePlatformCompanyDto) {
+  updateCompany(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdatePlatformCompanyDto) {
     this.assertDevOrCommercial(actor);
     return this.service.updateCompany(actor, id, dto);
   }
 
   @Delete('companies/:id')
-  deleteCompany(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  deleteCompany(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     this.assertDev(actor);
     return this.service.deleteCompany(id);
   }
 
   @Delete('companies/:id/purge')
-  purgeCompany(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  purgeCompany(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     this.assertDev(actor);
     return this.service.purgeCompany(id);
   }

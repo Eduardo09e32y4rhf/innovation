@@ -63,7 +63,7 @@ export class UsersController {
   }
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Get(':id')
-  get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.get(companyId, actor, id);
   }
 
@@ -72,7 +72,7 @@ export class UsersController {
   update(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserDto,
     @Req() request: any,
   ) {
@@ -87,7 +87,7 @@ export class UsersController {
 
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Delete(':id')
-  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Req() request: any) {
+  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Req() request: any) {
     return this.service.delete(companyId, actor, id, requestMeta(request));
   }
 
@@ -95,7 +95,7 @@ export class UsersController {
   @Header('Cache-Control', 'no-store')
   @Roles('DEV', 'ADMIN', 'RH')
   @Post(':id/reset-password')
-  resetPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  resetPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.reissueTemporaryPassword(companyId, actor, id);
   }
 
@@ -103,7 +103,7 @@ export class UsersController {
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Post(':id/temporary-password/reveal')
-  revealTemporaryPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  revealTemporaryPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.revealTemporaryPassword(companyId, actor, id);
   }
 
@@ -111,7 +111,7 @@ export class UsersController {
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')
   @Post(':id/temporary-password/reissue')
-  reissueTemporaryPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  reissueTemporaryPassword(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.reissueTemporaryPassword(companyId, actor, id);
   }
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')

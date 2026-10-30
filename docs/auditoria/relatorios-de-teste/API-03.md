@@ -11,7 +11,7 @@ RFC 9110 15.5.5 (404): https://www.rfc-editor.org/rfc/rfc9110.html#name-404-not-
 - `classify`: `RolesGuard` + `@Roles('DEV','COMERCIAL')` + `@Throttle` 10/min por usuario/IP.
 
 ## Resultado
-`npx vitest run tests/contract/ai-controller-contract.spec.ts tests/unit/ai`: 21 passaram. `tsc --noEmit -p apps/api`: ok. Front: `api.ts` declara `classify` mas nenhuma tela o usa.
+`npx vitest run tests/contract/ai-controller-contract.spec.ts tests/unit/ai`: 5 passaram no contrato (apos corrigir um import quebrado, commit seguinte); tsc ok. `tsc --noEmit -p apps/api`: ok. Front: `api.ts` declara `classify` mas nenhuma tela o usa.
 
 ## Pendencias / riscos
 - `OPENAI_MONTHLY_BUDGET` e orcamento GLOBAL (`ai-usage.service.ts`), nao por tenant: decisao do usuario se quer limite por empresa.

@@ -1,6 +1,6 @@
 import { AssignTicketDto } from './dto/platform-support.dto';
 import { AddSupportMessageDto } from './dto/add-support-message.dto';
-import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Req, ParseUUIDPipe } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { SupportRepository } from './support.repository';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -9,6 +9,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { SupportAuthorizationService } from './support-authorization.service';
 import { SupportTicketPriority, SupportTicketStatus } from '@prisma/client';
 import { ListSupportTicketsQueryDto } from './dto/list-support-tickets-query.dto';
+import { UpdateSupportPriorityDto } from './dto/update-support-priority.dto';
 import { UpdateSupportStatusDto } from './dto/update-support-status.dto';
 import { SupportRefundService } from './support-refund.service';
 import { SupportNotificationService } from './support-notification.service';
@@ -31,19 +32,19 @@ export class PlatformSupportController {
 
   @Post(':id/duplicate')
   @Roles('DEV', 'CEO')
-  async markDuplicate(@Req() req: any, @Param('id') id: string, @Body() body: MarkSupportDuplicateDto) {
+  async markDuplicate(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: MarkSupportDuplicateDto) {
     return this.duplicateService.markDuplicate(req.user, id, body.duplicateOfId);
   }
 
   @Post(':id/refund/approve')
   @Roles('DEV', 'CEO')
-  async approveRefund(@Req() req: any, @Param('id') id: string, @Body() body: RefundDecisionDto) {
+  async approveRefund(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: RefundDecisionDto) {
     return this.refundService.approve(req.user, id, body?.reason);
   }
 
   @Post(':id/refund/reject')
   @Roles('DEV', 'CEO')
-  async rejectRefund(@Req() req: any, @Param('id') id: string, @Body() body: RefundRejectDto) {
+  async rejectRefund(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: RefundRejectDto) {
     return this.refundService.reject(req.user, id, body.reason);
   }
 
@@ -71,14 +72,14 @@ export class PlatformSupportController {
   }
 
   @Get('tickets/:id')
-  async getTicket(@Req() req: any, @Param('id') id: string) {
+  async getTicket(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     this.authService.assertCanViewPlatformSupport(req.user);
     return this.supportService.getTicket(req.user, id);
   }
 
   @Patch('tickets/:id/assign')
   @Roles('DEV')
-  async assignTicket(@Req() req: any, @Param('id') id: string, @Body() body: AssignTicketDto) {
+  async assignTicket(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: AssignTicketDto) {
     const userId = body.userId;
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { assignedTo: { connect: { id: userId || req.user.sub } } });
@@ -88,7 +89,8 @@ export class PlatformSupportController {
 
   @Patch('tickets/:id/priority')
   @Roles('DEV')
-  async updatePriority(@Req() req: any, @Param('id') id: string, @Body('priority') priority: SupportTicketPriority) {
+  async updatePriority(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: UpdateSupportPriorityDto) {
+    const priority: SupportTicketPriority = body.priority;
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { priority });
     await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'PRIORITY_CHANGED', newValue: { priority } });
@@ -97,7 +99,7 @@ export class PlatformSupportController {
 
   @Patch('tickets/:id/status')
   @Roles('DEV')
-  async updateStatus(@Req() req: any, @Param('id') id: string, @Body() body: UpdateSupportStatusDto) {
+  async updateStatus(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: UpdateSupportStatusDto) {
     this.authService.assertCanManageTicket(req.user);
     const status = body.status as SupportTicketStatus;
     const lifecycle: any = { status };
@@ -115,19 +117,19 @@ export class PlatformSupportController {
 
   @Post('tickets/:id/messages')
   @Roles('DEV')
-  async addMessage(@Req() req: any, @Param('id') id: string, @Body() data: AddSupportMessageDto) {
+  async addMessage(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() data: AddSupportMessageDto) {
     return this.supportService.addMessage(req.user, id, data.message, 'PUBLIC');
   }
 
   @Post('tickets/:id/internal-notes')
   @Roles('DEV')
-  async addInternalNote(@Req() req: any, @Param('id') id: string, @Body() data: AddSupportMessageDto) {
+  async addInternalNote(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() data: AddSupportMessageDto) {
     return this.supportService.addMessage(req.user, id, data.message, 'INTERNAL');
   }
 
   @Post('tickets/:id/resolve')
   @Roles('DEV')
-  async resolveTicket(@Req() req: any, @Param('id') id: string) {
+  async resolveTicket(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     this.authService.assertCanManageTicket(req.user);
     const ticket = await this.repository.updateTicket(id, { status: 'RESOLVED', resolvedAt: new Date() });
     await this.repository.createEvent({ ticketId: id, actorUserId: req.user.sub, eventType: 'TICKET_RESOLVED' });
@@ -137,7 +139,7 @@ export class PlatformSupportController {
 
   @Post('tickets/:id/close')
   @Roles('DEV')
-  async closeTicket(@Req() req: any, @Param('id') id: string) {
+  async closeTicket(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     return this.supportService.closeTicket(req.user, id);
   }
 }

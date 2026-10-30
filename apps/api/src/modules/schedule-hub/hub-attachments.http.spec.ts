@@ -94,7 +94,7 @@ describe('anexo de escala (hub) sob Fastify (HTTP real)', () => {
   });
 
   it('download responde 200 com Content-Disposition seguro e nosniff', async () => {
-    const res = await app.inject({ method: 'GET', url: '/escalas/launch/attachments/a1' });
+    const res = await app.inject({ method: 'GET', url: '/escalas/launch/attachments/11111111-1111-4111-8111-111111111111' });
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('application/pdf');
     expect(String(res.headers['content-disposition'])).toMatch(/^attachment; filename="Atestado medico.pdf"; filename\*=UTF-8''/);

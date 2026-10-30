@@ -10,7 +10,8 @@ import { checkPromotion, DEFAULT_POLICY, promotionMessage, validatePolicy, type 
 const todaySp = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 const dayDate = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00.000Z`);
 
-export class PromotionDto { employeeId!: string; newPosition?: string; newSalary?: number | string; effectiveDate!: string; reason?: string }
+import { PromotionDto } from './dto/promotion.dto';
+export { PromotionDto };
 
 /**
  * Promoção feita pela empresa: o RH lança, o sistema confere a política, ajusta cargo e salário na data de vigência
@@ -60,7 +61,7 @@ export class PromotionsService {
     if (employee.status === 'TERMINATED') throw new BadRequestException('Funcionário desligado não pode ser promovido.');
     const policy = await this.getPolicy(companyId);
     const last = await this.prisma.employeePromotion.findFirst({ where: { companyId, employeeId: employee.id, status: 'APPLIED' }, orderBy: { effectiveDate: 'desc' }, select: { effectiveDate: true } });
-    const salary = dto.newSalary === undefined || dto.newSalary === null || String(dto.newSalary).trim() === '' ? null : Number(String(dto.newSalary).replace(/\./g, '').replace(',', '.'));
+    const salary = dto.newSalary === undefined || dto.newSalary === null || String(dto.newSalary).trim() === '' ? null : typeof dto.newSalary === 'number' ? dto.newSalary : Number(String(dto.newSalary).replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'));
     const input = { newPosition: dto.newPosition?.trim() || null, newSalary: salary, effectiveDate: String(dto.effectiveDate ?? '').slice(0, 10), reason: dto.reason?.trim() || null };
     const pending = await this.prisma.employeePromotion.count({ where: { companyId, employeeId: employee.id, status: 'SCHEDULED' } });
     if (pending > 0) throw new BadRequestException('Esta pessoa já tem uma promoção agendada. Cancele-a antes de lançar outra.');

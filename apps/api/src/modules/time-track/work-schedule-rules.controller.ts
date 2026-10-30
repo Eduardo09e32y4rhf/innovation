@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -26,7 +26,7 @@ export class WorkScheduleRulesController {
 
   @Roles(...SCHEDULE_MODULE_ROLES)
   @Get(':id')
-  getById(@CurrentCompany() companyId: string, @Param('id') id: string) {
+  getById(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.getById(companyId, id);
   }
 
@@ -38,19 +38,19 @@ export class WorkScheduleRulesController {
 
   @Roles(...rolesWith('policy.write'))
   @Put(':id')
-  update(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: WorkRuleDto) {
+  update(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string, @Body() dto: WorkRuleDto) {
     return this.svc.update(companyId, id, dto);
   }
 
   @Roles(...rolesWith('policy.write'))
   @Put(':id/archive')
-  archive(@CurrentCompany() companyId: string, @Param('id') id: string) {
+  archive(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.update(companyId, id, { status: 'INACTIVE' });
   }
 
   @Roles(...rolesWith('policy.write'))
   @Put(':id/activate')
-  activate(@CurrentCompany() companyId: string, @Param('id') id: string) {
+  activate(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.update(companyId, id, { status: 'ACTIVE' });
   }
 }

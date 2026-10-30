@@ -1,5 +1,5 @@
 import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -52,12 +52,12 @@ export class CommunicationController {
   }
 
   @Get('conversations/:id/messages')
-  messages(@CurrentCompany() companyId: string, @Param('id') id: string) {
+  messages(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.listMessages(companyId, id);
   }
 
   @Patch('conversations/:id/status')
-  status(@CurrentCompany() companyId: string, @Param('id') id: string, @Body() dto: UpdateConversationStatusDto) {
+  status(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateConversationStatusDto) {
     return this.service.updateConversationStatus(companyId, id, dto);
   }
 

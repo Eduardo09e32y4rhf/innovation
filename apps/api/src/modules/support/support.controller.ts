@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, Res, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, Res, BadRequestException, ParseUUIDPipe } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { readMultipartUpload } from '../../common/http/multipart-upload';
@@ -32,12 +32,12 @@ export class SupportController {
   }
 
   @Post(':id/rating')
-  async rate(@Req() req: any, @Param('id') id: string, @Body() dto: RateTicketDto) {
+  async rate(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() dto: RateTicketDto) {
     return this.satisfactionService.rate(req.user, id, dto.score, dto.comment);
   }
 
   @Post(':id/reopen')
-  async reopenResolved(@Req() req: any, @Param('id') id: string) {
+  async reopenResolved(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     return this.satisfactionService.reopen(req.user, id);
   }
 
@@ -58,7 +58,7 @@ export class SupportController {
   }
 
   @Get('tickets/:id')
-  async getTicket(@Req() req: any, @Param('id') id: string) {
+  async getTicket(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     return this.supportService.getTicket(req.user, id);
   }
 
@@ -68,24 +68,24 @@ export class SupportController {
   }
 
   @Post('tickets/:id/messages')
-  async addMessage(@Req() req: any, @Param('id') id: string, @Body() data: AddSupportMessageDto) {
+  async addMessage(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() data: AddSupportMessageDto) {
     return this.supportService.addMessage(req.user, id, data.message, data.visibility || 'PUBLIC');
   }
 
   @Post('tickets/:id/close')
-  async closeTicket(@Req() req: any, @Param('id') id: string) {
+  async closeTicket(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     await this.supportService.closeTicket(req.user, id);
     return { success: true };
   }
 
   @Post('tickets/:id/reopen')
-  async reopenTicket(@Req() req: any, @Param('id') id: string) {
+  async reopenTicket(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     await this.supportService.reopenTicket(req.user, id);
     return { success: true };
   }
 
   @Post('tickets/:id/attachments')
-  async uploadAttachment(@Req() req: any, @Param('id') ticketId: string) {
+  async uploadAttachment(@Req() req: any, @Param('id', ParseUUIDPipe) ticketId: string) {
     const { file } = await readMultipartUpload(req, { maxBytes: SUPPORT_ATTACHMENT_MAX_BYTES });
     if (!file) throw new BadRequestException('Nenhum arquivo enviado.');
     return this.attachmentService.uploadAttachment(req.user, ticketId, file);
@@ -94,7 +94,7 @@ export class SupportController {
   @Get('tickets/:id/attachments/:attachmentId/download')
   async downloadAttachment(
     @Req() req: any,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Param('attachmentId') attachmentId: string,
     @Res() reply: FastifyReply,
   ) {

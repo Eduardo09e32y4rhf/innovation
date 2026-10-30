@@ -1,5 +1,5 @@
 import { AsoClinicPresetDto, AsoRecordDto } from './dto/aso.dto';
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -22,7 +22,7 @@ export class AsoController {
   }
 
   @Get('employee/:employeeId')
-  listByEmployee(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('employeeId') employeeId: string) {
+  listByEmployee(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('employeeId', ParseUUIDPipe) employeeId: string) {
     return this.svc.listByEmployee(companyId, employeeId);
   }
 
@@ -46,14 +46,14 @@ export class AsoController {
 
   @Roles('DEV', 'ADMIN', 'RH')
   @Delete('clinic-presets/:id')
-  deleteClinicPreset(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('id') id: string) {
+  deleteClinicPreset(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.deleteClinicPreset(companyId, id);
   }
 
   // ─── ASO RECORDS ─────────────────────────────────────────────────────────────
 
   @Get(':id')
-  find(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('id') id: string) {
+  find(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.find(companyId, id);
   }
 
@@ -65,13 +65,13 @@ export class AsoController {
 
   @Roles('DEV', 'ADMIN', 'RH')
   @Patch(':id')
-  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() body: AsoRecordDto) {
+  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: AsoRecordDto) {
     return this.svc.update(companyId, id, actor.sub, body);
   }
 
   @Roles('DEV', 'ADMIN', 'RH')
   @Delete(':id')
-  delete(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('id') id: string) {
+  delete(@CurrentCompany() companyId: string, @CurrentUser() _actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.delete(companyId, id);
   }
 }

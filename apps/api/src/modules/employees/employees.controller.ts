@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { contentDisposition, EXPOSED_HEADERS } from '../../common/pdf/pdf-response';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -49,7 +49,7 @@ export class EmployeesController {
   }
 
   @Get(':id/dossier')
-  dossier(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  dossier(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.dossier(companyId, actor, id);
   }
 
@@ -58,7 +58,7 @@ export class EmployeesController {
   pointSheetPdf(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Query('month') month: string,
     @Res() response: any,
   ) {
@@ -70,7 +70,7 @@ export class EmployeesController {
   occurrencesPdf(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Query('month') month: string,
     @Res() response: any,
   ) {
@@ -82,7 +82,7 @@ export class EmployeesController {
   employeeRecordPdf(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Res() response: any,
   ) {
     return this.streamOfficialDocument(companyId, actor, id, 'EMPLOYEE_RECORD', response);
@@ -94,7 +94,7 @@ export class EmployeesController {
   }
 
   @Get(':id')
-  get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  get(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.get(companyId, actor, id);
   }
 
@@ -106,19 +106,19 @@ export class EmployeesController {
 
   @Roles('ADMIN', 'RH')
   @Patch(':id')
-  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateEmployeeDto) {
+  update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateEmployeeDto) {
     return this.service.update(companyId, actor, id, dto);
   }
 
   @Roles('ADMIN', 'RH')
   @Delete(':id/permanent')
-  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Query('force') force?: string) {
+  delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Query('force') force?: string) {
     return this.service.delete(companyId, actor, id, force === 'true');
   }
 
   @Roles('ADMIN', 'RH')
   @Delete(':id')
-  terminate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  terminate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.terminate(companyId, actor, id);
   }
 
@@ -127,7 +127,7 @@ export class EmployeesController {
   createAccess(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateEmployeeAccessDto,
   ) {
     return this.service.createAccess(companyId, actor, id, dto);
@@ -138,7 +138,7 @@ export class EmployeesController {
   linkAccess(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: LinkEmployeeAccessDto,
   ) {
     return this.service.linkAccess(companyId, actor, id, dto.userId);
@@ -146,7 +146,7 @@ export class EmployeesController {
 
   @Roles('ADMIN', 'RH', 'CEO', 'DEV')
   @Delete(':id/access/link')
-  unlinkAccess(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  unlinkAccess(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.unlinkAccess(companyId, actor, id);
   }
 
