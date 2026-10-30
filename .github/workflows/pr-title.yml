@@ -9,6 +9,7 @@ permissions: {}
 
 jobs:
   title:
+    permissions: {}
     name: Título do PR
     runs-on: ubuntu-latest
     steps:
