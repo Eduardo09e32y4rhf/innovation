@@ -34,6 +34,7 @@ export type PublicJob = {
   salaryMin?: number | null;
   salaryMax?: number | null;
   salaryHidden: boolean;
+  pcd: boolean;
   deadline?: string | null;
   questions: PublicQuestion[];
   createdAt?: string | null;
@@ -187,6 +188,7 @@ function normalizeJob(value: unknown, fallbackCompanyId: string): PublicJob | nu
     salaryMin: typeof record.salaryMin === 'number' ? record.salaryMin : null,
     salaryMax: typeof record.salaryMax === 'number' ? record.salaryMax : null,
     salaryHidden: Boolean(record.salaryHidden),
+    pcd: Boolean(record.pcd),
     deadline: optionalString(record.deadline),
     questions: normalizeQuestions(record.questions),
     createdAt: optionalString(record.createdAt),

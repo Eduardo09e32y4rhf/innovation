@@ -29,6 +29,7 @@ export interface Job {
   /** Processo interno: só funcionários da empresa se candidatam, pela matrícula. */
   isInternal?: boolean;
   confidential?: boolean;
+  pcd?: boolean;
   interviewGuide?: string[];
   screeningMinScore?: number | null;
   screeningAction?: 'FLAG' | 'REJECT' | null;
@@ -57,6 +58,7 @@ export interface JobPayload {
   deadline?: string | null;
   isInternal?: boolean;
   confidential?: boolean;
+  pcd?: boolean;
   screeningMinScore?: number | null;
   screeningAction?: 'FLAG' | 'REJECT' | null;
 }

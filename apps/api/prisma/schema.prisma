@@ -1348,6 +1348,8 @@ model Job {
   isInternal     Boolean   @default(false)
   // Vaga confidencial (reposicao/substituicao): nao aparece nas listas publicas, so por link direto.
   confidential   Boolean   @default(false)
+  /// Vaga afirmativa para pessoas com deficiencia (selo na pagina publica, filtro no portal, indicador de cota).
+  pcd            Boolean   @default(false)
   /// Roteiro de entrevista: perguntas sugeridas para quem entrevista.
   interviewGuide String[]  @default([])
   /// Nota minima da triagem (0 a 100%). Abaixo dela: FLAG (sinaliza) ou REJECT (reprova).

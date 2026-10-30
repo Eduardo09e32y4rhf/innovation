@@ -19,6 +19,7 @@ const PUBLIC_JOB_SELECT = {
   salaryMin: true,
   salaryMax: true,
   salaryHidden: true,
+  pcd: true,
   deadline: true,
   createdAt: true,
   updatedAt: true,

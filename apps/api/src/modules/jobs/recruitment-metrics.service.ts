@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { computeMetrics, type MetricApp } from './recruitment-metrics';
+import { pcdQuota } from './pcd-quota';
 
 const rank = ['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED'];
 
@@ -46,6 +47,19 @@ export class RecruitmentMetricsService {
     const users = actions.size ? await this.prisma.user.findMany({ where: { id: { in: [...actions.keys()] } }, select: { id: true, name: true } }) : [];
     const recruiters = [...actions.entries()].map(([userId, value]) => ({ userId, name: users.find((user) => user.id === userId)?.name ?? 'Usuário', jobsAssigned: jobs.filter((job) => job.recruiters.some((r) => r.userId === userId)).length, ...value })).sort((a, b) => b.moves - a.moves);
 
-    return { period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, ...result, recruiters, jobs: jobs.map((job) => ({ id: job.id, title: job.title })) };
+    const pcd = await this.pcdIndicator(companyId, jobWhere);
+
+    return { pcd, period: { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }, ...result, recruiters, jobs: jobs.map((job) => ({ id: job.id, title: job.title })) };
+  }
+
+  /** Indicador da cota PCD (Lei 8.213/91, art. 93): empregados ativos, contratados PCD declarados no processo seletivo e vagas PCD abertas. */
+  private async pcdIndicator(companyId: string, jobWhere: Prisma.JobWhereInput) {
+    const [employees, hired, openJobs] = await Promise.all([
+      this.prisma.employee.count({ where: { companyId, status: { in: ['ACTIVE', 'ONBOARDING'] } } }),
+      this.prisma.application.findMany({ where: { companyId, status: 'HIRED' }, select: { id: true }, take: 5000 }),
+      this.prisma.job.count({ where: { AND: [jobWhere, { pcd: true, status: 'OPEN' }] } }),
+    ]);
+    const filled = hired.length ? await this.prisma.candidateDiversity.count({ where: { companyId, pcd: true, applicationId: { in: hired.map((row) => row.id) } } }) : 0;
+    return { quota: pcdQuota(employees, filled), openPcdJobs: openJobs };
   }
 }

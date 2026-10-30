@@ -120,6 +120,11 @@ class JobFieldsDto {
   @IsOptional()
   @IsBoolean()
   confidential?: boolean;
+
+  /** Vaga afirmativa para pessoas com deficiencia (PCD). */
+  @IsOptional()
+  @IsBoolean()
+  pcd?: boolean;
 }
 
 export class CreateJobDto extends JobFieldsDto {

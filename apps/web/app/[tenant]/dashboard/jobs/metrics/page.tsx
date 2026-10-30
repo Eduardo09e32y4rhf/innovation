@@ -23,6 +23,7 @@ type Metrics = {
   recruiters: Array<{ userId: string; name: string; jobsAssigned: number; moves: number; hires: number }>;
   diversity: { responses: number; minGroup: number; gender: Record<string, number>; race: Record<string, number>; pcd: number | null };
   jobs: Array<{ id: string; title: string }>;
+  pcd: { quota: { applies: boolean; employees: number; percent: number; required: number; filled: number; missing: number; met: boolean }; openPcdJobs: number };
 };
 
 const REASON: Record<string, string> = { PERFIL: 'Perfil não aderente', EXPERIENCIA: 'Experiência insuficiente', SALARIO: 'Pretensão salarial', LOCALIZACAO: 'Localização', DISPONIBILIDADE: 'Disponibilidade', COMPORTAMENTAL: 'Comportamental', DESISTENCIA: 'Desistência', VAGA_CANCELADA: 'Vaga cancelada', OUTRO: 'Outro', SEM_CODIGO: 'Sem motivo padronizado' };
@@ -67,6 +68,17 @@ export default function RecruitmentMetricsPage() {
             <Kpi label="Tempo para preencher a vaga" value={days(m.timeToFillDays.average)} hint={`${m.timeToFillDays.samples} vaga(s) preenchida(s)`} />
             <Kpi label="Aceite de propostas" value={m.offerAcceptanceRate === null ? '—' : `${m.offerAcceptanceRate.toLocaleString('pt-BR')}%`} />
           </div>
+          <SectionCard title="Cota de vagas para pessoas com deficiência (PCD)" description="Lei 8.213/1991, art. 93: empresas com 100 ou mais empregados reservam de 2% a 5% dos cargos para pessoas com deficiência ou reabilitadas. O número de contratados vem das declarações voluntárias do processo seletivo; confira com o cadastro oficial antes de reportar.">
+            {m.pcd.quota.applies ? (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                <Kpi label="Empregados ativos" value={String(m.pcd.quota.employees)} />
+                <Kpi label="Cota exigida" value={`${m.pcd.quota.percent}% (${m.pcd.quota.required})`} />
+                <Kpi label="Contratados PCD (processo seletivo)" value={String(m.pcd.quota.filled)} />
+                <Kpi label={m.pcd.quota.met ? 'Cota atingida' : 'Faltam'} value={m.pcd.quota.met ? 'Sim' : String(m.pcd.quota.missing)} hint={m.pcd.quota.met ? undefined : 'contratações para cumprir a cota'} />
+                <Kpi label="Vagas PCD abertas" value={String(m.pcd.openPcdJobs)} />
+              </div>
+            ) : <p className="text-sm text-fg-sub">A cota não se aplica: a empresa tem {m.pcd.quota.employees} empregado(s) ativo(s), menos de 100. Vagas PCD abertas: {m.pcd.openPcdJobs}.</p>}
+          </SectionCard>
           <SectionCard title="Funil de conversão" description="Quantos candidatos chegaram a cada etapa e quanto passou da etapa anterior.">
             <ul className="space-y-2">{m.funnel.map((f) => (
               <li key={f.kind} className="grid grid-cols-[110px_1fr_90px] items-center gap-3 text-sm"><span>{f.label}</span><div className="h-3 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-purple-500" style={{ width: `${(f.count / maxFunnel) * 100}%` }} /></div><span className="text-right tabular-nums">{f.count}{f.conversionFromPrevious !== null ? ` · ${f.conversionFromPrevious}%` : ''}</span></li>

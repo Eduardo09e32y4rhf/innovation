@@ -19,7 +19,7 @@ export class JobTemplatesService {
     const [questions, criteria] = await Promise.all([this.recruitment.getQuestions(companyId, jobId), this.recruitment.getCriteria(companyId, jobId)]);
     const data = {
       title: job.title, description: job.description, location: job.location, employmentType: job.employmentType, salaryRange: job.salaryRange, benefits: job.benefits, requirements: job.requirements,
-      department: job.department, workMode: job.workMode, seniority: job.seniority, openings: job.openings, salaryMin: job.salaryMin, salaryMax: job.salaryMax, salaryHidden: job.salaryHidden,
+      department: job.department, workMode: job.workMode, seniority: job.seniority, openings: job.openings, salaryMin: job.salaryMin, salaryMax: job.salaryMax, salaryHidden: job.salaryHidden, pcd: job.pcd,
       questions: questions.map((q) => ({ label: q.label, type: q.type, required: q.required, options: q.options, knockout: q.knockout, scoreRule: q.scoreRule })),
       criteria: criteria.map((c) => ({ name: c.name, weight: c.weight })),
     };
