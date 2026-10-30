@@ -6,6 +6,7 @@ import { FiscalAdjustmentsService } from './fiscal-adjustments.service';
 import { InvoicePdfService } from './invoice-pdf.service';
 import { AsaasWebhookController } from './asaas-webhook.controller';
 import { AsaasWebhookProcessorService, AsaasWebhookWorker } from './asaas-webhook.processor';
+import { AsaasWebhookQueueMonitorService } from './asaas-webhook-queue-monitor.service';
 import { BillingCronService } from './billing-cron.service';
 import { CompanyBillingController } from './company-billing.controller';
 import { FaturasAcoesService } from './faturas-acoes.service';
@@ -54,6 +55,7 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     AsaasWebhookProcessorService,
     AsaasWebhookWorker,
     BillingCronService,
+    AsaasWebhookQueueMonitorService,
     PlatformFinanceService,
     PlatformRevenueReportService,
     PaymentRefundService,

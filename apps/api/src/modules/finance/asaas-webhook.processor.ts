@@ -1,3 +1,4 @@
+import { asaasUnhandledEvents } from './asaas-webhook-metrics';
 import { webhookFailures } from '../../common/metrics/app-metrics';
 import { Process, Processor } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
@@ -64,6 +65,9 @@ const INVOICE_EVENT_MAP: Record<string, FinanceNotificationType | undefined> = {
   INVOICE_CANCELED: 'INVOICE_CANCELED',
 };
 
+// PAYMENT_REFUND_DENIED: "estorno negado" (boleto) - VIA BUSCA, docs.asaas.com/docs/webhook-para-cobrancas; apenas reconcilia o estado da devolucao.
+const REFUND_EVENTS = ['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS', 'PAYMENT_REFUND_DENIED'];
+
 @Injectable()
 export class AsaasWebhookProcessorService {
   private readonly logger = new Logger(AsaasWebhookProcessorService.name);
@@ -93,7 +97,12 @@ export class AsaasWebhookProcessorService {
       if (payload.payment?.id) await this.handlePaymentEvent(event, payload.payment);
       if (payload.invoice?.id) await this.handleInvoiceEvent(event, payload.invoice);
 
-      const recognized = Boolean(this.statusFromEvent(event) || ['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS'].includes(event) || (event.startsWith('INVOICE_') && payload.invoice?.id));
+      const recognized = Boolean(this.statusFromEvent(event) || REFUND_EVENTS.includes(event) || (event.startsWith('INVOICE_') && payload.invoice?.id));
+      if (!recognized) {
+        // PAG-07: evento sem tratamento: log estruturado + metrica, nenhuma mudanca de estado de fatura.
+        this.logger.warn(`ASAAS_EVENT_UNHANDLED ${JSON.stringify({ event, paymentId: payload.payment?.id ?? null, invoiceId: payload.invoice?.id ?? null })}`);
+        asaasUnhandledEvents.inc({ event: String(event).slice(0, 80) });
+      }
       await this.prisma.asaasWebhookEvent.update({
         where: { id: eventId },
         data: {
@@ -113,7 +122,7 @@ export class AsaasWebhookProcessorService {
   }
 
   private async handlePaymentEvent(event: string, payment: AsaasWebhookPayment) {
-    if (['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS'].includes(event)) {
+    if (REFUND_EVENTS.includes(event)) {
       const invoice = await this.prisma.platformInvoice.findUnique({ where: { asaasPaymentId: payment.id } });
       if (!invoice) throw new Error('Devolução sem fatura vinculada: conciliação pendente.');
       if (!this.refunds) throw new Error('Serviço de devoluções indisponível.');
