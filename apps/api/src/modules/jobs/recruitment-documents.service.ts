@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, Optional, PayloadTooLargeException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus, ServiceUnavailableException, Injectable, Logger, NotFoundException, Optional, PayloadTooLargeException, UnprocessableEntityException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { decryptForCompany, fileEncryptionAvailable, sealFile, encryptForCompany } from '../../common/crypto/file-crypto';
@@ -10,10 +10,17 @@ import { JobScopeService } from './job-scope.service';
 import { JobsStorageService } from './jobs-storage.service';
 import { RecruitmentWorkflowService } from './recruitment-workflow.service';
 import { canReadSensitive, formatsLabel, resolveRequiredDocuments, ruleForLabel, validateApproval, type DocType } from './recruitment-doc-types';
-import { documentApprovedEmail, documentReminderEmail, documentReturnedEmail } from './recruitment-documents.mails';
+import { documentCodeEmail, documentApprovedEmail, documentReminderEmail, documentReturnedEmail } from './recruitment-documents.mails';
 import { RecruiterNotifierService } from './recruiter-notifier.service';
 import {
+  CODE_COOLDOWN_SECONDS,
+  CODE_MAX_ATTEMPTS,
+  CODE_MINUTES,
   DEFAULT_LINK_DAYS,
+  codeMatches,
+  generateVerificationCode,
+  hashVerificationCode,
+  maskEmail,
   MAX_DOCUMENT_BYTES,
   MAX_LINK_DAYS,
   detectDocumentType,
@@ -238,7 +245,7 @@ export class RecruitmentDocumentsService {
       let url: string | null = null;
       let expires: string | null = null;
       if (!app.forwardedAt && this.appBase()) {
-        const fresh = await this.issueRequest(companyId, applicationId, actorId, { items: [label], days: DEFAULT_LINK_DAYS });
+        const fresh = await this.issueRequest(companyId, applicationId, actorId, { items: [label], days: DEFAULT_LINK_DAYS, keepVerification: true });
         url = `${this.appBase()}/carreiras/documentos/${fresh.token}`;
         expires = this.fmtDay(fresh.expiresAt);
       }
@@ -253,12 +260,14 @@ export class RecruitmentDocumentsService {
   private fmtDay(date: Date) { return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }); }
 
   /** Cria um link novo (so o hash fica no banco). `reissuedFromId` encadeia o historico. */
-  private async issueRequest(companyId: string, applicationId: string, createdById: string, input: { items: string[]; days?: number; expiresAt?: Date; reissuedFromId?: string; reminders?: boolean }) {
+  private async issueRequest(companyId: string, applicationId: string, createdById: string, input: { items: string[]; days?: number; expiresAt?: Date; reissuedFromId?: string; reminders?: boolean; keepVerification?: boolean }) {
     const { token, hash } = generateAccessToken();
     const expiresAt = input.expiresAt ?? new Date(Date.now() + (input.days ?? DEFAULT_LINK_DAYS) * 86_400_000);
     const now = new Date();
+    // Link enviado pelo sistema ao mesmo e-mail ja confirmado (lembrete, devolucao) herda a confirmacao; o do RH nao.
+    const prior = input.keepVerification ? await this.prisma.recruitmentDocumentRequest.findFirst({ where: { companyId, applicationId, verifiedAt: { not: null } }, orderBy: { verifiedAt: 'desc' }, select: { verifiedAt: true } }) : null;
     const created = await this.prisma.recruitmentDocumentRequest.create({
-      data: { companyId, applicationId, tokenHash: hash, items: input.items, expiresAt, createdById, reissuedFromId: input.reissuedFromId ?? null, ...(input.reminders ? { reminderD3At: now, reminderD1At: now } : {}) },
+      data: { companyId, applicationId, tokenHash: hash, items: input.items, expiresAt, createdById, reissuedFromId: input.reissuedFromId ?? null, verifiedAt: prior?.verifiedAt ?? null, ...(input.reminders ? { reminderD3At: now, reminderD1At: now } : {}) },
       select: { id: true, items: true, expiresAt: true },
     });
     return { ...created, token };
@@ -311,7 +320,7 @@ export class RecruitmentDocumentsService {
         const marker = stage === 'D1' ? { reminderD3At: now, reminderD1At: now } : { reminderD3At: now };
         const claimed = await this.prisma.recruitmentDocumentRequest.updateMany({ where: { id: request.id, ...(stage === 'D1' ? { reminderD1At: null } : { reminderD3At: null }) }, data: marker });
         if (!claimed.count) continue; // outra instancia ja cuidou deste marco
-        const fresh = await this.issueRequest(request.companyId, request.applicationId, request.createdById, { items: request.items, expiresAt: request.expiresAt, reissuedFromId: request.id, reminders: true });
+        const fresh = await this.issueRequest(request.companyId, request.applicationId, request.createdById, { items: request.items, expiresAt: request.expiresAt, reissuedFromId: request.id, reminders: true, keepVerification: true });
         let sent = false;
         const email = request.application.candidate.email;
         if (email && this.appBase()) {
@@ -399,20 +408,59 @@ export class RecruitmentDocumentsService {
     if (!TOKEN_SHAPE.test(token ?? '')) throw new NotFoundException(INVALID_LINK);
     const request = await this.prisma.recruitmentDocumentRequest.findUnique({
       where: { tokenHash: hashAccessToken(token) },
-      select: { id: true, companyId: true, applicationId: true, items: true, expiresAt: true, revokedAt: true, application: { select: { forwardedAt: true, job: { select: { title: true, company: { select: { name: true } } } } } } },
+      select: { id: true, companyId: true, applicationId: true, items: true, expiresAt: true, revokedAt: true, verifiedAt: true, codeHash: true, codeExpiresAt: true, codeAttempts: true, codeSentAt: true, application: { select: { forwardedAt: true, candidate: { select: { name: true, email: true } }, job: { select: { title: true, company: { select: { name: true } } } } } } },
     });
     if (!request || linkState(request) !== 'ACTIVE' || request.application.forwardedAt) throw new NotFoundException(INVALID_LINK);
     return request;
+  }
+
+  /** RS-D-17: com e-mail cadastrado, o envio exige o codigo enviado a ele. Sem e-mail (nada a verificar) vale so o link. */
+  private needsCode(request: { verifiedAt?: Date | null; application?: { candidate?: { email?: string | null } | null } }) {
+    return Boolean(request.application?.candidate?.email) && !request.verifiedAt;
+  }
+
+  private assertVerified(request: Parameters<RecruitmentDocumentsService['needsCode']>[0]) {
+    if (this.needsCode(request)) throw new ForbiddenException({ code: 'CODE_REQUIRED', message: 'Confirme o codigo enviado ao seu e-mail antes de enviar documentos.' });
+  }
+
+  async sendVerificationCode(token: string, now: Date = new Date()) {
+    const request = await this.activeRequest(token);
+    const email = request.application.candidate?.email;
+    if (!email) throw new BadRequestException('Este processo nao tem e-mail cadastrado. Fale com o RH.');
+    if (request.verifiedAt) return { verified: true, sent: false, emailHint: maskEmail(email) };
+    if (request.codeSentAt && now.getTime() - request.codeSentAt.getTime() < CODE_COOLDOWN_SECONDS * 1000) {
+      throw new HttpException('Aguarde um minuto para pedir outro codigo.', HttpStatus.TOO_MANY_REQUESTS);
+    }
+    const code = generateVerificationCode();
+    await this.prisma.recruitmentDocumentRequest.update({ where: { id: request.id }, data: { codeHash: hashVerificationCode(request.id, code), codeExpiresAt: new Date(now.getTime() + CODE_MINUTES * 60_000), codeAttempts: 0, codeSentAt: now } });
+    const result = await this.mail.send(email, documentCodeEmail({ name: request.application.candidate!.name.split(' ')[0], code, minutes: CODE_MINUTES }));
+    if (!result.sent) throw new ServiceUnavailableException('Nao foi possivel enviar o codigo agora. Tente novamente em alguns minutos.');
+    return { verified: false, sent: true, emailHint: maskEmail(email) };
+  }
+
+  async verifyCode(token: string, code: string, now: Date = new Date()) {
+    const request = await this.activeRequest(token);
+    if (request.verifiedAt) return { verified: true };
+    if (!request.codeHash || !request.codeExpiresAt || request.codeExpiresAt.getTime() < now.getTime()) throw new BadRequestException('Codigo expirado ou nao solicitado. Peca um novo codigo.');
+    if (request.codeAttempts >= CODE_MAX_ATTEMPTS) throw new HttpException('Muitas tentativas. Peca um novo codigo.', HttpStatus.TOO_MANY_REQUESTS);
+    // Conta a tentativa antes de comparar (condicional: tentativas simultaneas nao passam do limite).
+    const counted = await this.prisma.recruitmentDocumentRequest.updateMany({ where: { id: request.id, codeAttempts: { lt: CODE_MAX_ATTEMPTS } }, data: { codeAttempts: { increment: 1 } } });
+    if (!counted.count) throw new HttpException('Muitas tentativas. Peca um novo codigo.', HttpStatus.TOO_MANY_REQUESTS);
+    if (!/^\d{6}$/.test(String(code ?? '').trim()) || !codeMatches(request.id, code, request.codeHash)) throw new BadRequestException('Codigo incorreto.');
+    await this.prisma.recruitmentDocumentRequest.update({ where: { id: request.id }, data: { verifiedAt: now, codeHash: null, codeExpiresAt: null } });
+    return { verified: true };
   }
 
   async publicView(token: string) {
     const request = await this.activeRequest(token);
     const docs = await this.prisma.recruitmentDocument.findMany({ where: { applicationId: request.applicationId, supersededAt: null }, select: { label: true, status: true, returnReason: true } });
     const byLabel = new Map(docs.map((doc) => [doc.label, doc]));
+    const email = request.application.candidate?.email;
     return {
       company: request.application.job.company.name,
       jobTitle: request.application.job.title,
       expiresAt: request.expiresAt,
+      verification: { required: Boolean(email), verified: Boolean(request.verifiedAt) || !email, emailHint: email ? maskEmail(email) : null },
       items: request.items.map((label) => {
         const doc = byLabel.get(label);
         const rule = ruleForLabel(label);
@@ -423,6 +471,7 @@ export class RecruitmentDocumentsService {
 
   async publicUpload(token: string, label: string, file?: { buffer: Buffer }) {
     const request = await this.activeRequest(token);
+    this.assertVerified(request);
     if (!request.items.includes(label)) throw new BadRequestException('Documento nao solicitado.');
     if (!file?.buffer?.length) throw new BadRequestException('Envie o arquivo do documento.');
     if (file.buffer.length > MAX_DOCUMENT_BYTES) throw new PayloadTooLargeException('O arquivo deve ter no maximo 5 MB.');

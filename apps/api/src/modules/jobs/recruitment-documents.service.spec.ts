@@ -74,7 +74,7 @@ describe('link de documentos', () => {
   it('a visao publica nao expoe dados pessoais nem o arquivo', async () => {
     const { svc, token } = build({ docs: [{ label: 'RG', status: 'RETURNED', returnReason: 'Ilegivel' }] });
     const view: any = await svc.publicView(token);
-    expect(view).toEqual({ company: 'Acme', jobTitle: 'Dev', expiresAt: expect.any(Date), items: [{ label: 'RG', status: 'RETURNED', returnReason: 'Ilegivel', accepts: 'PDF, PNG, JPEG', sensitive: false, legalBasis: null }, { label: 'CPF', status: 'PENDING', returnReason: null, accepts: 'PDF, PNG, JPEG', sensitive: false, legalBasis: null }] });
+    expect(view).toEqual({ company: 'Acme', jobTitle: 'Dev', expiresAt: expect.any(Date), verification: { required: false, verified: true, emailHint: null }, items: [{ label: 'RG', status: 'RETURNED', returnReason: 'Ilegivel', accepts: 'PDF, PNG, JPEG', sensitive: false, legalBasis: null }, { label: 'CPF', status: 'PENDING', returnReason: null, accepts: 'PDF, PNG, JPEG', sensitive: false, legalBasis: null }] });
   });
 });
 

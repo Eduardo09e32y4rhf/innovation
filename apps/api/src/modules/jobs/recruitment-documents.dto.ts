@@ -1,4 +1,4 @@
-import { IsDateString, ArrayMaxSize, IsBoolean, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { Matches, IsDateString, ArrayMaxSize, IsBoolean, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 export class CreateDocumentRequestDto {
   @IsArray()
@@ -32,6 +32,12 @@ export class ReviewDocumentDto {
   @IsOptional()
   @IsDateString()
   expiresAt?: string;
+}
+
+export class VerifyCodeDto {
+  @IsString()
+  @Matches(/^\d{6}$/, { message: 'O codigo tem 6 numeros.' })
+  code!: string;
 }
 
 export class ReissueDocumentRequestDto {

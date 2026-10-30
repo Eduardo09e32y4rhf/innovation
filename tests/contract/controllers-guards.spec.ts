@@ -46,6 +46,8 @@ const ALLOWED: Record<string, Allowed> = {
   'POST /candidate-portal/auth/reset-password': PUBLICA('codigo de 6 digitos com hash e tentativas'),
   'GET /public/candidate-documents/:token': PUBLICA('link com token de uso do candidato'),
   'POST /public/candidate-documents/:token/upload': PUBLICA('link com token de uso do candidato'),
+  'POST /public/candidate-documents/:token/code': PUBLICA('link com token de uso do candidato; envia o codigo ao e-mail do candidato'),
+  'POST /public/candidate-documents/:token/verify': PUBLICA('link com token de uso do candidato; confirma o codigo recebido por e-mail'),
   'POST /public/candidate-requests': PUBLICA('pedido LGPD do candidato; limite por IP'),
   'GET /public/candidate-status/:token': PUBLICA('status por token'),
   'GET /public/internal-jobs/:jobId': PUBLICA('vaga interna por link'),

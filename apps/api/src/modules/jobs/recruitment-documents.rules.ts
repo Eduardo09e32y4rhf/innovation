@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import { CONTRACT_KITS, kitFor } from './recruitment-doc-types';
 import { ALLOW, inspectFile, type FileKind } from '../../common/utils/file-validation';
 
@@ -38,6 +38,31 @@ export function normalizeItems(items: unknown): string[] {
     out.push(label);
   }
   return out.slice(0, MAX_REQUEST_ITEMS);
+}
+
+export const CODE_MINUTES = 10;
+export const CODE_COOLDOWN_SECONDS = 60;
+export const CODE_MAX_ATTEMPTS = 5;
+
+/** Codigo de 6 digitos (CSPRNG). So o hash (amarrado ao id do link) vai para o banco. */
+export function generateVerificationCode(): string {
+  return String(randomInt(0, 1_000_000)).padStart(6, '0');
+}
+
+export function hashVerificationCode(requestId: string, code: string): string {
+  return createHash('sha256').update(`${requestId}:${code}`).digest('hex');
+}
+
+export function codeMatches(requestId: string, code: string, storedHash: string): boolean {
+  const given = Buffer.from(hashVerificationCode(requestId, String(code ?? '').trim()), 'hex');
+  const stored = Buffer.from(storedHash, 'hex');
+  return given.length === stored.length && timingSafeEqual(given, stored);
+}
+
+/** a***@dominio.com: mostra onde o codigo foi sem expor o e-mail inteiro a quem so tem o link. */
+export function maskEmail(email: string): string {
+  const [user, domain] = email.split('@');
+  return `${(user ?? '').slice(0, 1)}***@${domain ?? ''}`;
 }
 
 export type LinkState = 'ACTIVE' | 'EXPIRED' | 'REVOKED';

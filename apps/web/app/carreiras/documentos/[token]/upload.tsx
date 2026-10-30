@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { CAREERS_API_URL } from '../../_lib/public-jobs';
-import { STATUS_LABEL, canUpload, explainUploadError, validateDocumentFile, type DocumentRequestView } from './documents-client';
+import { STATUS_LABEL, canUpload, explainCodeError, explainUploadError, isValidCode, validateDocumentFile, type DocumentRequestView } from './documents-client';
 
 async function readJson(response: Response) {
   try { return await response.json(); } catch { return null; }
@@ -14,6 +14,43 @@ export function DocumentUpload({ token }: { token: string }) {
   const [loadError, setLoadError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [messages, setMessages] = useState<Record<string, { ok: boolean; text: string }>>({});
+  const [code, setCode] = useState('');
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [codeMessage, setCodeMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function askCode() {
+    setCodeBusy(true);
+    setCodeMessage(null);
+    try {
+      const response = await fetch(`${CAREERS_API_URL}/public/candidate-documents/${encodeURIComponent(token)}/code`, { method: 'POST', referrerPolicy: 'no-referrer' });
+      const body = await readJson(response);
+      setCodeMessage(response.ok ? { ok: true, text: `Enviamos um código de 6 números para ${body?.emailHint ?? 'o seu e-mail'}. Ele vale por 10 minutos.` } : { ok: false, text: explainCodeError(response.status, typeof body?.message === 'string' ? body.message : undefined) });
+    } catch {
+      setCodeMessage({ ok: false, text: 'Não foi possível pedir o código agora. Tente novamente.' });
+    } finally {
+      setCodeBusy(false);
+    }
+  }
+
+  async function confirmCode() {
+    if (!isValidCode(code)) { setCodeMessage({ ok: false, text: 'Digite os 6 números do código.' }); return; }
+    setCodeBusy(true);
+    setCodeMessage(null);
+    try {
+      const response = await fetch(`${CAREERS_API_URL}/public/candidate-documents/${encodeURIComponent(token)}/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code.trim() }), referrerPolicy: 'no-referrer' });
+      if (!response.ok) {
+        const body = await readJson(response);
+        setCodeMessage({ ok: false, text: explainCodeError(response.status, typeof body?.message === 'string' ? body.message : undefined) });
+        return;
+      }
+      setCode('');
+      await load();
+    } catch {
+      setCodeMessage({ ok: false, text: 'Não foi possível validar o código agora. Tente novamente.' });
+    } finally {
+      setCodeBusy(false);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoadError('');
@@ -73,8 +110,23 @@ export function DocumentUpload({ token }: { token: string }) {
         <>
           <p className="mt-2 text-sm text-fg-sub">
             {view.company} · {view.jobTitle}. Este link vale até {new Date(view.expiresAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.
-            Aceitamos PDF, PNG ou JPEG de até 5 MB.
+            Cada documento mostra os formatos aceitos (até 5 MB).
           </p>
+          {view.verification?.required && !view.verification.verified && (
+            <section aria-labelledby="code-title" className="mt-6 space-y-3 rounded-xl border border-purple-300 bg-purple-50 p-4">
+              <h2 id="code-title" className="font-medium">Confirme que é você</h2>
+              <p className="text-sm">Para proteger seus documentos, enviamos um código de 6 números para <strong>{view.verification.emailHint}</strong>. Peça o código e digite abaixo antes de enviar os arquivos.</p>
+              <button type="button" onClick={() => void askCode()} disabled={codeBusy} className="min-h-11 rounded-lg border border-purple-500 bg-white px-4 text-sm font-semibold">Enviar código por e-mail</button>
+              <div>
+                <label htmlFor="verify-code" className="block text-sm font-medium">Código recebido</label>
+                <div className="mt-1 flex gap-2">
+                  <input id="verify-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))} className="min-h-11 w-40 rounded-lg border border-border px-3 text-lg tracking-widest" />
+                  <button type="button" onClick={() => void confirmCode()} disabled={codeBusy || code.length !== 6} className="min-h-11 rounded-lg bg-purple-700 px-4 text-sm font-semibold text-white disabled:opacity-50">Confirmar</button>
+                </div>
+              </div>
+              {codeMessage && <p role={codeMessage.ok ? 'status' : 'alert'} className={`text-sm ${codeMessage.ok ? 'text-fg-sub' : 'text-rose-800'}`}>{codeMessage.text}</p>}
+            </section>
+          )}
           <ul className="mt-6 space-y-4">
             {view.items.map((item) => {
               const inputId = `doc-${item.label.replace(/[^a-zA-Z0-9]+/g, '-')}`;
@@ -91,7 +143,7 @@ export function DocumentUpload({ token }: { token: string }) {
                   {canUpload(item.status) ? (
                     <div className="mt-3 space-y-2">
                       <label htmlFor={inputId} className="block text-sm font-medium">{item.status === 'PENDING' ? 'Escolher arquivo' : 'Enviar novamente'}</label>
-                      <input id={inputId} type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" disabled={busy !== null} className="block w-full min-h-11 text-base sm:text-sm"
+                      <input id={inputId} type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" disabled={busy !== null || Boolean(view.verification?.required && !view.verification.verified)} className="block w-full min-h-11 text-base sm:text-sm"
                         onChange={(event) => { const file = event.target.files?.[0] ?? null; if (file) void send(item.label, file); event.target.value = ''; }} />
                     </div>
                   ) : <p className="mt-3 text-sm">Documento aprovado. Nada mais a fazer aqui.</p>}
