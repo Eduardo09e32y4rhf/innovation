@@ -105,6 +105,8 @@ rollback() {
   exit "$code"
 }
 trap rollback ERR
+# A imagem roda como usuario node; o volume api_data criado antes era de root. Idempotente (so mexe se o dono for outro).
+compose run --rm --no-deps --user root --entrypoint sh api -c '[ "$(stat -c %U /data)" = node ] || chown -R node:node /data'
 compose up -d --no-build --no-deps api
 health api 3333 health/ready
 compose up -d --no-build --no-deps web
@@ -113,3 +115,5 @@ trap - ERR
 printf '%s\n' "$TARGET" > .deploy/current-sha
 echo "Deploy saudável: $TARGET"
 compose ps
+# INF-12: medicao de drift do schema (somente leitura). Aviso apenas: nunca derruba um deploy ja saudavel.
+bash scripts/deploy/check-schema-drift.sh || echo "AVISO: drift do schema nao zerado ou nao medido (código $?). Veja docs/DEPLOY-VPS.md, secao Drift."

@@ -18,6 +18,7 @@ function run(scenario = '') {
   stub('scripts/security/bootstrap-env.sh', 'echo bootstrap >> "$DEPLOY_LOG"');
   stub('scripts/backup/backup.sh', 'echo backup >> "$DEPLOY_LOG"');
   stub('scripts/deploy/apply-migrations.sh', 'echo migrations >> "$DEPLOY_LOG"');
+  stub('scripts/deploy/check-schema-drift.sh', 'echo drift-check >> "$DEPLOY_LOG"; if [ "$SCENARIO" = drift ]; then exit 1; fi');
   stub('bin/git', `if [ "$1" = rev-parse ]; then echo ${sha}; fi`);
   stub('bin/sleep', 'exit 0');
   stub('bin/docker', `
@@ -51,6 +52,13 @@ describe('deploy da VPS com imagens prontas', () => {
     expect(result.log.indexOf('migrations')).toBeLessThan(result.log.indexOf('up -d'));
     expect(result.log).not.toMatch(/docker .* build|--build|--remove-orphans|\bdown\b/);
     expect(readFileSync(join(result.dir, '.deploy/current-sha'), 'utf8').trim()).toBe(sha);
+  });
+  it('drift de schema (INF-12) roda ao final e e apenas aviso: nao derruba nem reverte o deploy', () => {
+    const result = run('drift');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('AVISO: drift do schema');
+    expect(result.log.indexOf('drift-check')).toBeGreaterThan(result.log.lastIndexOf('up -d'));
+    expect(result.log).not.toMatch(/api=old/);
   });
   it('não altera banco ou containers quando a configuração é inválida', () => {
     const result = run('preflight');
