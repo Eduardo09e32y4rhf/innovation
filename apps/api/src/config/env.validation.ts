@@ -22,6 +22,7 @@ export const COMPOSE_API_PASSTHROUGH_ENV: Readonly<Record<string, string>> = {
   TURNSTILE_SECRET_KEY: '',
   TURNSTILE_FAIL_MODE: '', // open|closed; vazio = padrao do codigo (closed so em producao com chave e TURNSTILE_ENFORCE=true)
   TURNSTILE_ENFORCE: '', // 'true' liga o modo estrito
+  TURNSTILE_PUBLIC_SUPPORT_REQUIRED: '', // 'true' exige o token do Turnstile em /support/public/* (so depois do formulario enviar o token)
   PASSWORD_RESET_CODE_SECRET: '', // vazio = usa JWT_SECRET
   OPENAI_API_KEY: '',
   OPENAI_AI_ENABLED: '',
