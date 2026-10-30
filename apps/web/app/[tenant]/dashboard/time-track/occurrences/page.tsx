@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
-export default function TimeTrackOccurrencesPage({ params }: { params: { tenant: string } }) {
+export default async function TimeTrackOccurrencesPage(props: { params: Promise<{ tenant: string }> }) {
+  const params = await props.params;
   redirect(`/${params.tenant}/dashboard/escalas?view=aprovacoes`);
 }
