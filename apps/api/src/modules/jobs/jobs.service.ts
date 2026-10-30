@@ -106,6 +106,7 @@ export class JobsService {
       this.recruitment.getQuestions(companyId, id),
       this.recruitment.getCriteria(companyId, id),
     ]);
+    const deadlineStillValid = Boolean(job.deadline && new Date(job.deadline).getTime() > Date.now());
     const copy = await this.repository.create(companyId, {
       title: `${job.title} (cópia)`,
       description: job.description,
@@ -127,8 +128,12 @@ export class JobsService {
       screeningAction: job.screeningAction,
       isInternal: job.isInternal,
       confidential: job.confidential,
+      // Prazo so e copiado se ainda esta no futuro: uma copia nasceria ja expirada (o RH define o novo prazo).
+      deadline: deadlineStillValid ? job.deadline : null,
       status: 'DRAFT',
     });
+    // Responsaveis (RS-R-15): quem duplica e atribuido pelo controller (RH_RS), por isso nao entra na copia.
+    await this.repository.copyRecruiters(companyId, id, copy.id, actorId);
     if (questions.length) {
       await this.recruitment.saveQuestions(companyId, copy.id, {
         questions: questions.map((question) => ({
@@ -147,7 +152,7 @@ export class JobsService {
       });
     }
     await this.audit?.record(companyId, actorId, 'JOB_DUPLICATED', copy.id, { sourceJobId: id, title: copy.title });
-    return copy;
+    return Object.assign(copy, { deadlineReset: Boolean(job.deadline) && !deadlineStillValid });
   }
 
   /** Cargos para o titulo da vaga: cargos cadastrados, cargos dos funcionarios e titulos de vagas anteriores. */
