@@ -11,7 +11,8 @@ import { useQuery } from '@/app/hooks/use-data';
 import { ApiError } from '@/app/lib/api';
 import { BENEFIT_SUGGESTIONS, CRITERIA_LIBRARY, draftFromTemplate, questionFromLibrary, ROLE_TEMPLATES, templateForTitle, TITLE_CATALOG, type RoleTemplate } from '../job-library';
 import { jobsApi } from '../jobs-api';
-import { toWholeReais } from '../payloads';
+import { toMoney, toWholeReais } from '../payloads';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { EMPLOYMENT_TYPE_LABEL, STAGE_KIND_LABEL, WORK_MODE_LABEL, salaryLabel, type Criterion, type Job, type JobStatus, type Question, type StageKind } from '../types';
 import { workflowApi } from '../workflow-api';
 import { Field, Pill, SectionCard, inputClass } from './bits';
@@ -26,14 +27,14 @@ type Kind = 'EXTERNAL' | 'INTERNAL' | 'CONFIDENTIAL';
 interface Draft {
   kind: Kind; title: string; department: string; location: string; workMode: string; employmentType: string; seniority: string; openings: number;
   description: string; requirementsText: string; benefitsText: string; interviewGuideText: string;
-  salaryMin: string; salaryMax: string; salaryHidden: boolean; pcd: boolean; deadline: string; status: JobStatus;
+  salaryMin: string; salaryMax: string; salaryHidden: boolean; pcd: boolean; costAmount: string; deadline: string; status: JobStatus;
   questions: Question[]; criteria: Criterion[]; screeningMinScore: number | null; screeningAction: 'FLAG' | 'REJECT';
 }
 
 const EMPTY: Draft = {
   kind: 'EXTERNAL', title: '', department: '', location: '', workMode: '', employmentType: 'CLT', seniority: '', openings: 1,
   description: '', requirementsText: '', benefitsText: '', interviewGuideText: '',
-  salaryMin: '', salaryMax: '', salaryHidden: false, pcd: false, deadline: '', status: 'DRAFT',
+  salaryMin: '', salaryMax: '', salaryHidden: false, pcd: false, costAmount: '', deadline: '', status: 'DRAFT',
   questions: [], criteria: [], screeningMinScore: null, screeningAction: 'REJECT',
 };
 
@@ -71,6 +72,8 @@ export function JobWizard({ jobId }: { jobId?: string }) {
   const router = useRouter();
   const { tenant = '' } = useParams<{ tenant: string }>();
   const base = `/${tenant}/dashboard/jobs`;
+  const { user } = useAuth();
+  const canSeeCost = ['DEV', 'ADMIN', 'RH'].includes((user?.profile ?? user?.role ?? '').toUpperCase());
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [loading, setLoading] = useState(Boolean(jobId));
@@ -100,7 +103,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
           employmentType: job.employmentType ?? '', seniority: job.seniority ?? '', openings: job.openings ?? 1,
           description: job.description, requirementsText: (job.requirements ?? []).join('\n'), benefitsText: (job.benefits ?? []).join('\n'), interviewGuideText: (job.interviewGuide ?? []).join('\n'),
           salaryMin: job.salaryMin != null ? String(job.salaryMin) : '', salaryMax: job.salaryMax != null ? String(job.salaryMax) : '',
-          salaryHidden: job.salaryHidden, pcd: Boolean(job.pcd), deadline: job.deadline ? job.deadline.slice(0, 10) : '', status: job.status,
+          salaryHidden: job.salaryHidden, pcd: Boolean(job.pcd), costAmount: job.costAmount != null ? String(job.costAmount).replace('.', ',') : '', deadline: job.deadline ? job.deadline.slice(0, 10) : '', status: job.status,
           questions: questions.map(({ id, label, type, required, options, knockout, scoreRule }) => ({ id, label, type, required, options: options ?? [], knockout: knockout ?? null, scoreRule: scoreRule ?? null })),
           criteria: criteria.map(({ id, name, weight }) => ({ id, name, weight })),
           screeningMinScore: job.screeningMinScore ?? null, screeningAction: job.screeningAction ?? 'REJECT',
@@ -161,7 +164,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
         openings: Math.max(1, Number(draft.openings) || 1),
         requirements: lines(draft.requirementsText), benefits: lines(draft.benefitsText), interviewGuide: lines(draft.interviewGuideText).slice(0, 30),
         salaryMin: toWholeReais(draft.salaryMin) ?? null, salaryMax: toWholeReais(draft.salaryMax) ?? null,
-        salaryHidden: draft.salaryHidden, pcd: draft.pcd, deadline: draft.deadline || null, status,
+        salaryHidden: draft.salaryHidden, pcd: draft.pcd, ...(canSeeCost ? { costAmount: toMoney(draft.costAmount) ?? null } : {}), deadline: draft.deadline || null, status,
         isInternal: draft.kind === 'INTERNAL', confidential: draft.kind === 'CONFIDENTIAL',
         screeningMinScore: draft.screeningMinScore, screeningAction: draft.screeningAction,
       };
@@ -312,6 +315,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                 <Field label="até (R$)"><input inputMode="decimal" className={inputClass} placeholder="2.500" value={draft.salaryMax} onChange={(event) => set('salaryMax', event.target.value)} /></Field>
                 <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" className="h-4 w-4" checked={draft.salaryHidden} onChange={(event) => set('salaryHidden', event.target.checked)} /> Não mostrar o salário (aparece &quot;A combinar&quot;)</label>
                 <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" className="h-4 w-4" checked={draft.pcd} onChange={(event) => set('pcd', event.target.checked)} /> Vaga afirmativa para pessoas com deficiência (PCD): mostra o selo &quot;Vaga PCD&quot; na página pública</label>
+                {canSeeCost && <Field label="Custo do recrutamento (R$)" hint="Anúncios, agência, testes. Usado no custo por contratação dos relatórios. Só RH e administradores veem."><input inputMode="decimal" className={inputClass} placeholder="1.500,00" value={draft.costAmount} onChange={(event) => set('costAmount', event.target.value)} /></Field>}
                 <Field label="Inscrições até" hint="Depois desta data a vaga para de receber candidaturas. Em branco = sem prazo."><input type="date" className={inputClass} value={draft.deadline} onChange={(event) => set('deadline', event.target.value)} /></Field>
               </div>
             </SectionCard>

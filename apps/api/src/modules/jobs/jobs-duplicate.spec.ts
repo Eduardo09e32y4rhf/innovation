@@ -34,4 +34,9 @@ describe('RS-R-15 duplicar vaga copia prazo e recrutadores', () => {
     await service.duplicate('c1', 'j1', 'u1');
     expect(repository.copyRecruiters).toHaveBeenCalledWith('c1', 'j1', 'copy1', 'u1');
   });
+  it('copia a flag PCD e o custo fixo da vaga', async () => {
+    const { service, repository } = setup({ deadline: null, pcd: true, costAmount: 1500 });
+    await service.duplicate('c1', 'j1', 'u1');
+    expect(repository.create.mock.calls[0][1]).toMatchObject({ pcd: true, costAmount: 1500 });
+  });
 });

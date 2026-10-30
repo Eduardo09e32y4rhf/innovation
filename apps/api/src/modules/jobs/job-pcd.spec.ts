@@ -48,6 +48,7 @@ describe('RS-R-11 indicador de cota na tela de metricas', () => {
       job: { findMany: vi.fn(async () => []), count: vi.fn(async () => 2) },
       candidateDiversity: { findMany: vi.fn(async () => []), count: vi.fn(async () => 4) },
       employee: { count: vi.fn(async () => 300) },
+      applicationInterview: { findMany: vi.fn(async () => []) },
       user: { findMany: vi.fn(async () => []) },
     };
     const result: any = await new RecruitmentMetricsService(prisma).metrics('c1', {}, {});

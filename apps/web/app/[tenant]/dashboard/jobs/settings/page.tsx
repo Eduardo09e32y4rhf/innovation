@@ -36,7 +36,7 @@ export default function RecruitmentSettingsPage() {
   const [tagColor, setTagColor] = useState(COLORS[0]);
   const base = `/${tenant}/dashboard/jobs`;
 
-  useEffect(() => { if (pipeline.data) setStages(pipeline.data.stages.map(({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel }) => ({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel }))); }, [pipeline.data]);
+  useEffect(() => { if (pipeline.data) setStages(pipeline.data.stages.map(({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel, slaDays }) => ({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel, slaDays }))); }, [pipeline.data]);
 
   const patch = (index: number, next: Partial<Stage>) => setStages((current) => current.map((stage, i) => (i === index ? { ...stage, ...next } : stage)));
   const move = (index: number, delta: -1 | 1) => setStages((current) => {
@@ -88,6 +88,9 @@ export default function RecruitmentSettingsPage() {
                     <select className={inputClass} value={stage.automation ?? 'NONE'} onChange={(event) => patch(index, { automation: event.target.value as StageAutomation })}>{Object.entries(AUTOMATIONS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
                     <input className={inputClass} value={stage.candidateLabel ?? ''} maxLength={100} placeholder="Como o candidato verá esta etapa" onChange={(event) => patch(index, { candidateLabel: event.target.value })} />
                   </div>
+                  {!['HIRED', 'REJECTED'].includes(stage.kind) && <label className="sm:col-start-2 sm:col-span-2 inline-flex flex-wrap items-center gap-2 text-sm font-semibold text-fg-sub">Prazo (SLA) da etapa, em dias
+                    <input type="number" min={1} max={365} inputMode="numeric" className={`${inputClass} !w-24`} aria-label={`Prazo em dias da etapa ${index + 1}`} value={stage.slaDays ?? ''} placeholder="sem prazo" onChange={(event) => patch(index, { slaDays: event.target.value ? Math.min(365, Math.max(1, Math.trunc(Number(event.target.value)))) : null })} />
+                    <span className="text-xs font-normal">Candidatos parados além do prazo aparecem nos relatórios.</span></label>}
                   <label className="sm:col-start-2 sm:col-span-2 inline-flex items-center gap-2 text-sm font-semibold text-fg-sub"><input type="checkbox" checked={Boolean(stage.notifyCandidate)} disabled={(stage.automation ?? 'NONE') !== 'NONE'} onChange={(event) => patch(index, { notifyCandidate: event.target.checked })} /> Enviar e-mail ao entrar nesta etapa</label>
                 </li>
               ))}

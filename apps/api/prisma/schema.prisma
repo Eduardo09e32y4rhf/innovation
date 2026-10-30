@@ -1350,6 +1350,8 @@ model Job {
   confidential   Boolean   @default(false)
   /// Vaga afirmativa para pessoas com deficiencia (selo na pagina publica, filtro no portal, indicador de cota).
   pcd            Boolean   @default(false)
+  /// Custo fixo do recrutamento desta vaga (R$); custos por origem ficam em JobSourceCost.
+  costAmount     Decimal?  @db.Decimal(12, 2)
   /// Roteiro de entrevista: perguntas sugeridas para quem entrevista.
   interviewGuide String[]  @default([])
   /// Nota minima da triagem (0 a 100%). Abaixo dela: FLAG (sinaliza) ou REJECT (reprova).
@@ -1364,9 +1366,26 @@ model Job {
   questions    JobQuestion[]
   criteria     JobCriterion[]
   recruiters   JobRecruiter[]
+  sourceCosts  JobSourceCost[]
 
   @@index([companyId])
   @@index([companyId, status])
+}
+
+/// Custo de divulgacao por origem (LinkedIn, Indeed, agencia...) de uma vaga, para custo por contratacao (RS-R-10).
+model JobSourceCost {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  jobId     String   @db.Uuid
+  source    String
+  amount    Decimal  @db.Decimal(12, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, source])
+  @@index([companyId])
 }
 
 model HiringPipeline {
@@ -1395,6 +1414,8 @@ model PipelineStage {
   automationConfig Json?
   notifyCandidate  Boolean @default(false)
   candidateLabel   String?
+  /// Prazo (dias) que um candidato pode ficar nesta etapa antes de contar como parado (RS-R-10).
+  slaDays          Int?
 
   pipeline     HiringPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   applications Application[]

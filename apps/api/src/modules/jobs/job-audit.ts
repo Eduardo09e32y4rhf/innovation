@@ -11,6 +11,7 @@ export const JOB_AUDIT_LABEL: Record<string, string> = {
   JOB_DUPLICATED: 'Vaga duplicada',
   JOB_STAGE_CHANGED: 'Candidato movido de etapa',
   JOB_DATA_EXPORTED: 'Dados de candidatos exportados',
+  JOB_COST_UPDATED: 'Custos da vaga atualizados',
   JOB_DELETED_PERMANENTLY: 'Vaga excluída de vez',
 };
 
@@ -22,7 +23,8 @@ export const AUDITED_FIELDS = [
 ] as const;
 
 const same = (a: unknown, b: unknown) => {
-  const norm = (value: unknown) => (value instanceof Date ? value.toISOString() : value === undefined || value === '' ? null : value);
+  // Decimal do Prisma chega como objeto: compara pelo numero.
+  const norm = (value: unknown) => (value instanceof Date ? value.toISOString() : value === undefined || value === '' ? null : value !== null && typeof value === 'object' && !Array.isArray(value) && typeof (value as { toString?: unknown }).toString === 'function' && /^-?\d+(\.\d+)?$/.test(String(value)) ? Number(String(value)) : value);
   return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
 };
 

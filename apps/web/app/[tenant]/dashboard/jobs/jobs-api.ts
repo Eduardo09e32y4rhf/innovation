@@ -55,6 +55,8 @@ async function download(path: string, fallbackName: string) {
   URL.revokeObjectURL(url);
 }
 
+export type JobCosts = { costAmount: number | null; sources: { source: string; amount: number }[] };
+
 export type TalentCard = {
   id: string; name: string; age: number | null; profession: string | null; skills: string[]; city: string | null; state: string | null; neighborhood: string | null;
   education: { level: string; status: string; course: string; school: string }[]; highestEducation: string | null;
@@ -75,6 +77,9 @@ export const jobsApi = {
   update: (id: string, payload: Partial<JobPayload>) => request<Job>(`/jobs/${enc(id)}`, { method: 'PATCH', body: payload }),
   remove: (id: string, mode: 'archive' | 'permanent' = 'archive') => request<{ deleted: boolean; archived?: boolean }>(`/jobs/${enc(id)}?mode=${mode}`, { method: 'DELETE' }),
   history: (id: string) => request<{ id: string; action: string; label: string; createdAt: string; userName: string | null; metadata: Record<string, unknown> }[]>(`/jobs/${enc(id)}/history`),
+  costs: (jobId: string) => request<JobCosts>(`/recruitment-metrics/jobs/${enc(jobId)}/costs`),
+  saveCosts: (jobId: string, body: { costAmount?: number | null; sources: { source: string; amount: number }[] }) => request<JobCosts>(`/recruitment-metrics/jobs/${enc(jobId)}/costs`, { method: 'PUT', body }),
+  metricsCsv: (params: { from: string; to: string; jobId?: string }) => download(`/recruitment-metrics/export${query(params as unknown as ApplicationFilters)}`, 'relatorio-recrutamento.csv'),
   duplicate: (id: string) => request<Job>(`/jobs/${enc(id)}/duplicate`, { method: 'POST', body: {} }),
 
   internalJobs: () => request<InternalJob[]>('/internal-jobs'),
@@ -85,7 +90,7 @@ export const jobsApi = {
   talent: (q = '') => request<{ id: string; name: string; email?: string | null; phone?: string | null; status: string; applications: { id: string; jobId: string; status: string; job: { title: string } }[] }[]>(`/jobs/talent${q ? `?q=${enc(q)}` : ''}`),
 
   pipeline: () => request<Pipeline>('/jobs/pipeline'),
-  savePipeline: (stages: Stage[], name?: string) => request<Pipeline>('/jobs/pipeline', { method: 'PUT', body: { name, stages: stages.map(({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel }) => ({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel })) } }),
+  savePipeline: (stages: Stage[], name?: string) => request<Pipeline>('/jobs/pipeline', { method: 'PUT', body: { name, stages: stages.map(({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel, slaDays }) => ({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel, slaDays: slaDays ?? null })) } }),
 
   questions: (jobId: string) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`),
   saveQuestions: (jobId: string, questions: Question[]) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`, { method: 'PUT', body: { questions: questions.map(questionPayload) } }),

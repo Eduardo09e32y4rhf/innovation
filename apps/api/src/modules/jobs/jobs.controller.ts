@@ -4,6 +4,7 @@ import {
   Query,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -35,6 +36,11 @@ import { JobsService } from './jobs.service';
 export class JobsController {
   constructor(private readonly service: JobsService, private readonly scope: JobScopeService, private readonly audit: JobAuditService) {}
 
+  /** Custo de recrutamento e dado financeiro: RH - R&S conduz o processo mas nao altera custos. */
+  private assertCostAllowed(actor: JwtUser, dto: { costAmount?: number | null }) {
+    if (dto.costAmount !== undefined && !['DEV', 'ADMIN', 'RH'].includes(actor.role)) throw new ForbiddenException('Seu perfil não altera o custo da vaga.');
+  }
+
   @Get()
   list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.service.list(companyId, this.scope.scope(actor));
@@ -44,6 +50,7 @@ export class JobsController {
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Post()
   async create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreateJobDto) {
+    this.assertCostAllowed(actor, dto);
     const job = await this.service.create(companyId, dto, actor.sub);
     try {
       await this.scope.assignCreator(companyId, actor, job.id);
@@ -70,6 +77,7 @@ export class JobsController {
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Patch(':id')
   async update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateJobDto) {
+    this.assertCostAllowed(actor, dto);
     await this.scope.assertJob(companyId, actor, id);
     return this.service.update(companyId, id, dto, actor.sub);
   }

@@ -129,6 +129,7 @@ export class JobsService {
       isInternal: job.isInternal,
       confidential: job.confidential,
       pcd: job.pcd,
+      costAmount: job.costAmount,
       // Prazo so e copiado se ainda esta no futuro: uma copia nasceria ja expirada (o RH define o novo prazo).
       deadline: deadlineStillValid ? job.deadline : null,
       status: 'DRAFT',
