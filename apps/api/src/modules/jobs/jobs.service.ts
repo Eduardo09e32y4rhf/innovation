@@ -27,6 +27,8 @@ import { JobWorkflowService } from './job-workflow.service';
 import { assertResumeClean, CandidateDocumentScanner } from './candidate-document-scanner.service';
 import { CandidateConsentService } from './candidate-consent.service';
 import { JobAuditService } from './job-audit.service';
+import { buildJobFeedJson, buildJobFeedXml, type FeedJob } from './job-feed';
+import { appBase } from './recruitment-tokens';
 import { changedFields, statusAction } from './job-audit';
 
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
@@ -273,6 +275,14 @@ export class JobsService {
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
     const jobs = await this.repository.publicJobs(company.id);
     return { company, jobs: jobs.map((job) => this.toPublicJob(job)) };
+  }
+
+  /** Feed de vagas abertas da empresa (XML estilo Indeed ou JSON). Mesmas regras da lista publica: sem confidenciais, sem internas, salario oculto respeitado. */
+  async publicFeed(companyKey: string, format: 'xml' | 'json') {
+    const { company, jobs } = await this.publicJobs(companyKey);
+    const base = appBase();
+    const feedJobs = jobs as unknown as FeedJob[];
+    return format === 'xml' ? buildJobFeedXml(company, feedJobs, base) : buildJobFeedJson(company, feedJobs, base);
   }
 
   async publicJobsCatalog() {

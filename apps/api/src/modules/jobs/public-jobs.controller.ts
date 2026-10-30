@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Optional, Param, Post, Req, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Optional, Param, Post, Req, Res, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { TurnstileGuard } from '../../common/turnstile/turnstile.guard';
 import { RedisService } from '../../common/redis/redis.service';
@@ -22,6 +22,23 @@ export class PublicJobsController {
   @Get('company/:companyKey')
   list(@Param('companyKey') companyKey: string) {
     return this.service.publicJobs(companyKey);
+  }
+
+  /** Feed XML (formato Indeed/Jooble) das vagas abertas da empresa. Publico: portais de vagas leem sem login. */
+  @Get('company/:companyKey/feed.xml')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  async feedXml(@Param('companyKey') companyKey: string, @Res() reply: any) {
+    const body = await this.service.publicFeed(companyKey, 'xml');
+    reply.header('Content-Type', 'application/xml; charset=utf-8').header('Cache-Control', 'public, max-age=900');
+    return reply.send(body);
+  }
+
+  @Get('company/:companyKey/feed.json')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  async feedJson(@Param('companyKey') companyKey: string, @Res() reply: any) {
+    const body = await this.service.publicFeed(companyKey, 'json');
+    reply.header('Cache-Control', 'public, max-age=900');
+    return reply.send(body);
   }
 
   @Get(':jobId')

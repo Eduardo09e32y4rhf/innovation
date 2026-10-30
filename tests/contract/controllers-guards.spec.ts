@@ -57,6 +57,8 @@ const ALLOWED: Record<string, Allowed> = {
   'GET /public/jobs': PUBLICA('vagas publicadas'),
   'GET /public/jobs/:jobId': PUBLICA('vaga publicada'),
   'GET /public/jobs/company/:companyKey': PUBLICA('vagas da empresa'),
+  'GET /public/jobs/company/:companyKey/feed.xml': PUBLICA('feed de vagas abertas para portais (mesmas regras da lista publica); limite por IP (RS-R-06)'),
+  'GET /public/jobs/company/:companyKey/feed.json': PUBLICA('feed JSON de vagas abertas; mesmas regras da lista publica; limite por IP (RS-R-06)'),
   'GET /public/recruitment/assessment/:token': PUBLICA('link com token do candidato'),
   'POST /public/recruitment/assessment/:token/start': PUBLICA('link com token do candidato'),
   'POST /public/recruitment/assessment/:token/submit': PUBLICA('link com token do candidato'),
