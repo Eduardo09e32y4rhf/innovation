@@ -30,7 +30,11 @@ export class JobWorkflowController {
   @Roles('DEV', 'ADMIN', 'RH') @Put('steps') saveSteps(@CurrentCompany() companyId: string, @Body() dto: StepsDto) { return this.workflow.setSteps(companyId, dto.steps); }
 
   @Get('pending') pending(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) { return this.workflow.pendingFor(companyId, actor); }
-  @Get('jobs/:id/approvals') approvals(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string) { return this.workflow.approvals(companyId, id); }
+  @Get('jobs/:id/approvals')
+  async approvals(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
+    await this.scope.assertJob(companyId, actor, id); // vaga da empresa e, para RH - R&S, do escopo de responsaveis (404 caso contrario)
+    return this.workflow.approvalsFor(companyId, id, actor);
+  }
   @HttpCode(200)
   @Post('jobs/:id/decide') decide(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: DecideDto) { return this.workflow.decide(companyId, id, actor, dto); }
 

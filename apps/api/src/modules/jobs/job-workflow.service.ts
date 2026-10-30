@@ -44,6 +44,16 @@ export class JobWorkflowService {
     ]);
   }
 
+  /**
+   * Leitura por papel (API-06): DEV/ADMIN/RH veem as etapas de qualquer vaga da empresa; GESTOR, CEO e CONTABIL so veem
+   * a vaga em que ha uma etapa que o proprio perfil decide (lista vazia nas demais, sem revelar que a vaga existe).
+   */
+  async approvalsFor(companyId: string, jobId: string, actor: { role?: string }) {
+    const all = await this.approvals(companyId, jobId);
+    if (['DEV', 'ADMIN', 'RH', 'RH_RS'].includes(String(actor.role))) return all;
+    return all.some((row) => canDecide(row.step, String(actor.role))) ? all : [];
+  }
+
   async approvals(companyId: string, jobId: string) {
     const rows = await this.prisma.jobApproval.findMany({ where: { companyId, jobId }, orderBy: { position: 'asc' } });
     const ids = rows.map((row) => row.decidedBy).filter((id): id is string => Boolean(id));
