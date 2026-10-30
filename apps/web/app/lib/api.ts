@@ -865,6 +865,7 @@ export const api = {
   request,
 
   auth: {
+    issueResetCode: (userId: string) => request<{ code: string; expiresAt: string }>('/auth/password-reset/issue-code', { method: 'POST', body: { userId } }),
     verifyEmail: (token: string) => request<{ verified: boolean }>('/auth/verify-email', { method: 'POST', body: { token } }),
     refresh: () => request<{ access_token: string }>('/auth/refresh', { method: 'POST' }),
     verifyMfa: (mfaToken: string, code?: string, recoveryCode?: string) => request<any>('/auth/mfa/verify', { method: 'POST', body: { mfaToken, code: code || undefined, recoveryCode: recoveryCode || undefined } }),
