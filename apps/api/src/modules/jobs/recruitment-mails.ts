@@ -241,3 +241,20 @@ export function candidateDocumentsEmail(input: { name: string; company: string; 
     text: `Olá, ${input.name}.\n\nA ${input.company} precisa dos documentos: ${input.items.join(', ')}.\nEnvie em: ${input.url}\nVálido até ${input.expires}.`,
   };
 }
+
+/** RS-C-08: o que o candidato precisa responder e em qual rota pública (proposta, teste ou escolha de horário). */
+export function assessmentReminderCopy(kind: 'OFFER' | 'ASSESSMENT' | 'SLOTS') {
+  if (kind === 'OFFER') return { path: 'proposta', what: 'a proposta de emprego', cta: 'Ver a proposta' };
+  if (kind === 'ASSESSMENT') return { path: 'teste', what: 'o teste online', cta: 'Abrir o teste' };
+  return { path: 'agendar', what: 'a escolha do horário da entrevista', cta: 'Escolher horário' };
+}
+
+/** Lembrete único antes de vencer o prazo de resposta do candidato. */
+export function deadlineReminderEmail(input: { name: string; company: string; jobTitle: string; what: string; cta: string; url: string; expires: string }): MailContent {
+  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p><p style="margin:0 0 14px">Ainda não recebemos sua resposta sobre ${escapeHtml(input.what)} da vaga <strong>${escapeHtml(input.jobTitle)}</strong> na <strong>${escapeHtml(input.company)}</strong>. O prazo termina em <strong>${escapeHtml(input.expires)}</strong>; depois disso o link deixa de funcionar.</p>`;
+  return {
+    subject: `Seu prazo está acabando: ${input.jobTitle} · ${input.company}`,
+    html: portalLayout('Seu prazo está acabando', body, { label: input.cta, url: input.url }),
+    text: `Olá, ${input.name}.\n\nAinda não recebemos sua resposta sobre ${input.what} da vaga ${input.jobTitle} na ${input.company}. O prazo termina em ${input.expires}.\n${input.cta}: ${input.url}`,
+  };
+}
