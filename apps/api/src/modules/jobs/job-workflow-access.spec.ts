@@ -6,7 +6,7 @@ import { JobWorkflowService } from './job-workflow.service';
 const rows = (steps: string[]) => steps.map((step, position) => ({ id: step, jobId: 'j1', companyId: 'c1', step, position, status: 'PENDING', decidedBy: null }));
 const svcWith = (steps: string[]) => {
   const prisma: any = { jobApproval: { findMany: vi.fn(async () => rows(steps)) }, user: { findMany: vi.fn(async () => []) } };
-  return new JobWorkflowService(prisma);
+  return new JobWorkflowService(prisma, { notify: vi.fn() } as any);
 };
 const actor = (role: string) => ({ sub: 'u1', companyId: 'c1', role }) as any;
 

@@ -3647,6 +3647,10 @@ model JobApproval {
   decidedBy String?   @db.Uuid
   decidedAt DateTime?
   note      String?
+  /// Quem pediu a aprovacao da vaga (recebe o resultado).
+  requestedBy String? @db.Uuid
+  /// Ultimo lembrete enviado quando a etapa da vez ficou parada.
+  remindedAt  DateTime?
   createdAt DateTime  @default(now())
 
   @@unique([jobId, step])

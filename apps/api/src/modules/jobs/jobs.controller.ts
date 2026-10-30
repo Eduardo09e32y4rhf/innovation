@@ -43,7 +43,7 @@ export class JobsController {
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Post()
   async create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreateJobDto) {
-    const job = await this.service.create(companyId, dto);
+    const job = await this.service.create(companyId, dto, actor.sub);
     try {
       await this.scope.assignCreator(companyId, actor, job.id);
     } catch (error) {
@@ -70,7 +70,7 @@ export class JobsController {
   @Patch(':id')
   async update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateJobDto) {
     await this.scope.assertJob(companyId, actor, id);
-    return this.service.update(companyId, id, dto);
+    return this.service.update(companyId, id, dto, actor.sub);
   }
 
   /** Gestor acompanha e avalia; criar, editar, excluir e duplicar vaga e com RH. */

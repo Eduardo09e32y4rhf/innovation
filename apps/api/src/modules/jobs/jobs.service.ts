@@ -67,15 +67,15 @@ export class JobsService {
     }
   }
 
-  async create(companyId: string, dto: CreateJobDto) {
+  async create(companyId: string, dto: CreateJobDto, actorId?: string) {
     await this.assertJobQuota(companyId);
     const gate = await this.workflow.prepare(companyId, { currentStatus: null, nextStatus: dto.status ?? 'OPEN', department: dto.department, openings: dto.openings });
     const job = await this.repository.create(companyId, { ...this.normalizeJob(dto), status: gate.status });
-    if (gate.startApproval) await this.workflow.startApproval(companyId, job.id, gate.steps);
+    if (gate.startApproval) await this.workflow.startApproval(companyId, job.id, gate.steps, actorId);
     return job;
   }
 
-  async update(companyId: string, id: string, dto: UpdateJobDto) {
+  async update(companyId: string, id: string, dto: UpdateJobDto, actorId?: string) {
     const current = await this.get(companyId, id);
     // Encerrar grava a data; reativar vale por 30 dias e NAO conta como vaga nova no limite do plano (nao passa por assertJobQuota).
     const change = dto.status ? statusChange(current, dto.status) : { ok: true as const, data: {} };
@@ -83,7 +83,7 @@ export class JobsService {
     const gate = await this.workflow.prepare(companyId, { currentStatus: current.status, nextStatus: dto.status, department: dto.department ?? current.department, openings: dto.openings ?? current.openings, jobId: id });
     const result = await this.repository.update(companyId, id, { ...this.normalizeJob(dto), ...change.data, ...(dto.status ? { status: gate.status } : {}) });
     if (!result.count) throw new NotFoundException('Vaga nao encontrada.');
-    if (gate.startApproval) await this.workflow.startApproval(companyId, id, gate.steps);
+    if (gate.startApproval) await this.workflow.startApproval(companyId, id, gate.steps, actorId);
     return this.get(companyId, id);
   }
 
