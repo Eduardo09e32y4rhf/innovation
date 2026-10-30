@@ -7,6 +7,7 @@ import { MailService } from '../mail/mail.service';
 import { formatInterviewDate, interviewerLabel, meetingProvider, normalizeInterview } from './interview-rules';
 import { RecruiterNotifierService } from './recruiter-notifier.service';
 import { interviewSlotsEmail } from './recruitment-mails';
+import { issueInterviewToken, resolveInterviewToken } from './recruitment-access-tokens';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
 import { RecruitmentService } from './recruitment.service';
 import { appBase, firstName, isPublicToken, newPublicToken } from './recruitment-tokens';
@@ -52,9 +53,9 @@ export class InterviewFollowupService {
 
   // ---------- confirmacao de presenca (pagina publica) ----------
   private async interviewByToken(token: string) {
-    if (!isPublicToken(token)) throw new NotFoundException('Convite não encontrado.');
+    const interviewId = await resolveInterviewToken(this.prisma, token);
     const interview = await this.prisma.applicationInterview.findUnique({
-      where: { responseToken: token },
+      where: { id: interviewId },
       include: { application: { select: { id: true, companyId: true, jobId: true, status: true, anonymizedAt: true, candidate: { select: { name: true } }, job: { select: { title: true, company: { select: { name: true, logoUrl: true } } } } } } },
     });
     if (!interview || interview.application.anonymizedAt) throw new NotFoundException('Convite não encontrado.');
@@ -237,14 +238,14 @@ export class InterviewFollowupService {
     const expired = offer.status === 'PENDING' && offer.expiresAt.getTime() < Date.now();
     const status = expired ? 'EXPIRED' : ['REJECTED', 'HIRED'].includes(app.status) && offer.status === 'PENDING' ? 'CANCELED' : offer.status;
     const slots = status === 'PENDING' ? await this.freeSlots(offer) : [];
-    const booked = offer.interviewId ? await this.prisma.applicationInterview.findUnique({ where: { id: offer.interviewId }, select: { scheduledAt: true, responseToken: true } }) : null;
+    const booked = offer.interviewId ? await this.prisma.applicationInterview.findUnique({ where: { id: offer.interviewId }, select: { id: true, applicationId: true, scheduledAt: true } }) : null;
     return {
       candidate: firstName(app.candidate.name), company: app.job.company.name, logoUrl: app.job.company.logoUrl, job: app.job.title,
       mode: offer.mode, durationMinutes: offer.durationMinutes, location: offer.mode === 'PRESENCIAL' ? offer.location : null,
       interviewer: interviewerLabel(offer.interviewerRole, offer.interviewer), message: offer.candidateMessage,
       status, expiresAt: offer.expiresAt,
       slots: slots.map((date) => ({ value: date.toISOString(), label: formatInterviewDate(date).long })),
-      booked: booked ? { when: formatInterviewDate(booked.scheduledAt).long, responseToken: booked.responseToken } : null,
+      booked: booked ? { when: formatInterviewDate(booked.scheduledAt).long, responseToken: (await issueInterviewToken(this.prisma, booked)).raw } : null,
     };
   }
 

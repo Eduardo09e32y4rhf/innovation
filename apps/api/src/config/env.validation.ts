@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { FROZEN_FEATURES, featureEnvName, featureFlagProblems } from '../common/feature-flags';
 
 /**
@@ -49,6 +50,30 @@ export const COMPOSE_WEB_BUILD_ARGS: Readonly<Record<string, string>> = {
   ...Object.fromEntries(FROZEN_FEATURES.map((name) => [`NEXT_PUBLIC_${featureEnvName(name)}`, 'false'])),
 };
 
+export type TurnstileBootStatus = {
+  level: 'ok' | 'info' | 'warn' | 'alarm' | 'error';
+  enabled: boolean;
+  enforce: boolean;
+  message: string;
+};
+
+/**
+ * RS-C-02. Estado do anti-robo para o log de boot e para a tela do DEV (nunca devolve o segredo).
+ * - ENFORCE=true sem chave em producao: erro (o boot falha, ver productionEnvProblems).
+ * - Sem chave em producao e sem ENFORCE: alarme (formularios publicos ficam sem captcha).
+ */
+export function turnstileBootStatus(env: Record<string, unknown>): TurnstileBootStatus {
+  const text = (key: string) => String(env[key] ?? '').trim();
+  const enabled = Boolean(text('TURNSTILE_SECRET_KEY'));
+  const enforce = text('TURNSTILE_ENFORCE').toLowerCase() === 'true';
+  const production = text('NODE_ENV') === 'production';
+  if (!production) return { level: 'info', enabled, enforce, message: enabled ? 'Turnstile ativo (ambiente nao produtivo).' : 'Turnstile desligado (ambiente nao produtivo).' };
+  if (enforce && !enabled) return { level: 'error', enabled, enforce, message: 'TURNSTILE_ENFORCE=true mas TURNSTILE_SECRET_KEY nao esta definida.' };
+  if (!enabled) return { level: 'alarm', enabled, enforce, message: 'ALARME: TURNSTILE_SECRET_KEY nao definida em producao. Candidatura, cadastro e pedidos LGPD ficam SEM captcha. Configure a chave e TURNSTILE_ENFORCE=true (docs/TURNSTILE.md).' };
+  if (!enforce) return { level: 'warn', enabled, enforce, message: 'Turnstile ativo, mas TURNSTILE_ENFORCE nao e true: se a Cloudflare falhar, a verificacao passa sem validar (modo aberto).' };
+  return { level: 'ok', enabled, enforce, message: 'Turnstile ativo em modo estrito.' };
+}
+
 const WEAK_JWT_MARKERS = ['TROQUE_', 'local-development', 'innovation-secret-key', 'changeme', 'secret'];
 
 const PLACEHOLDER_MARKERS = ['troque_', 'token_seguro', 'sua_', 'your_', 'changeme', 'example'];
@@ -59,6 +84,11 @@ export function productionEnvProblems(config: Record<string, unknown>): string[]
   const text = (key: string) => String(config[key] ?? '').trim();
 
   if (!text('ALLOWED_ORIGINS')) problems.push('ALLOWED_ORIGINS is required in production.');
+
+  // RS-C-02: so quebra quem optou pelo modo estrito; quem ainda nao configurou recebe o alarme de boot (validateEnv).
+  if (text('TURNSTILE_ENFORCE').toLowerCase() === 'true' && !text('TURNSTILE_SECRET_KEY')) {
+    problems.push('TURNSTILE_SECRET_KEY is required when TURNSTILE_ENFORCE=true (anti-bot would be silently disabled).');
+  }
 
   const jwt = text('JWT_SECRET');
   if (jwt.length < 32 || WEAK_JWT_MARKERS.some((marker) => jwt.toLowerCase().includes(marker.toLowerCase()))) {
@@ -125,6 +155,8 @@ export function validateEnv(config: Record<string, unknown>) {
     if (problems.length) {
       throw new Error(`Insecure production configuration:\n - ${problems.join('\n - ')}`);
     }
+    const turnstile = turnstileBootStatus({ ...config, NODE_ENV: 'production' });
+    if (turnstile.level === 'alarm' || turnstile.level === 'warn') new Logger('Config').error(turnstile.message);
   }
 
   return config;

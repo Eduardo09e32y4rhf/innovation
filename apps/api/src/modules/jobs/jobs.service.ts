@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { createHash, randomUUID } from 'crypto';
@@ -21,11 +22,24 @@ import { normalizeAnswerValue, validateAnswerShape, type RuleQuestion } from './
 import { normalizeSource } from './application-source';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
 import { JobWorkflowService } from './job-workflow.service';
+import { assertResumeClean, CandidateDocumentScanner } from './candidate-document-scanner.service';
+import { CandidateConsentService } from './candidate-consent.service';
 
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 
+/** Contexto da candidatura: quem prova posse do e-mail (conta verificada) e a origem tecnica da requisicao. */
+export type ApplyContext = {
+  /** Conta do candidato com e-mail verificado: so ela pode atualizar nome/telefone de um cadastro existente e ver o 409 de duplicidade. */
+  ownerVerified?: boolean;
+  /** IP (clientIp) e user agent da requisicao: prova de consentimento e trilha de upload (RS-D-06, RS-D-19). */
+  ip?: string;
+  userAgent?: string;
+};
+
 @Injectable()
 export class JobsService {
+  private readonly logger = new Logger(JobsService.name);
+
   constructor(
     private readonly repository: JobsRepository,
     private readonly storage: JobsStorageService,
@@ -33,6 +47,8 @@ export class JobsService {
     private readonly privacy: RecruitmentPrivacyService,
     private readonly workflow: JobWorkflowService,
     private readonly documents: RecruitmentDocumentsService,
+    private readonly scanner?: CandidateDocumentScanner,
+    private readonly consents?: CandidateConsentService,
   ) {}
 
   async list(companyId: string, jobScope: Prisma.JobWhereInput = {}) {
@@ -281,6 +297,7 @@ export class JobsService {
     jobId: string,
     raw: Record<string, unknown>,
     file?: { buffer: Buffer; filename: string; mimetype?: string },
+    context: ApplyContext = {},
   ) {
     const { answers: rawAnswers, ...rawFields } = raw || {};
     const cleanedRaw = Object.fromEntries(
@@ -298,12 +315,18 @@ export class JobsService {
       });
     }
     if (dto.website) return { received: true };
+    // RS-D-06: dados sensiveis de diversidade so com consentimento proprio.
+    if ((dto.gender || dto.race || dto.pcd) && !dto.sensitiveConsent) {
+      throw new BadRequestException({ message: 'Para informar gênero, cor ou raça e deficiência, marque a autorização específica de dados de diversidade.', fields: { sensitiveConsent: 'Autorização obrigatória' } });
+    }
     if (!file?.buffer?.length) throw new BadRequestException('Envie seu curriculo em PDF ou DOCX.');
     if (file.buffer.length > MAX_RESUME_SIZE) throw new BadRequestException('O curriculo deve ter no maximo 5 MB.');
 
     const checked = inspectFile(file.buffer, { allow: ALLOW.RESUME, maxBytes: MAX_RESUME_SIZE, filename: file.filename });
     if (!checked.ok) throw new BadRequestException(checked.code === 'UNSAFE' ? checked.message : 'Curriculo invalido. Envie um arquivo PDF ou DOCX verdadeiro.');
     const format = { extension: checked.extension, mime: checked.mime };
+    // RS-C-03: antivirus antes de gravar (fail-closed em producao).
+    await assertResumeClean(this.scanner, file.buffer);
 
     const job = await this.repository.jobForApplication(jobId);
     if (!job) throw new NotFoundException('Vaga nao encontrada ou encerrada.');
@@ -337,7 +360,7 @@ export class JobsService {
       const result = await this.repository.apply(
         job.companyId,
         job.id,
-        { ...dto, source: normalizeSource(dto.source), name: safeName, email: normalizedEmail },
+        { ...dto, source: normalizeSource(dto.source), name: safeName, email: normalizedEmail, ownerVerified: Boolean(context.ownerVerified) },
         {
           key: storageKey,
           name: this.safeFileName(file.filename, format.extension),
@@ -354,14 +377,41 @@ export class JobsService {
       );
       if (result.duplicate) {
         await this.storage.remove(storageKey);
-        throw new ConflictException('Voce ja se inscreveu nesta vaga. Sua candidatura esta em analise.');
+        if (context.ownerVerified) throw new ConflictException('Voce ja se inscreveu nesta vaga. Sua candidatura esta em analise.');
+        // RS-C-12: quem nao provou a posse do e-mail recebe a mesma resposta de uma candidatura nova (sem enumerar e-mails);
+        // o dono do e-mail e avisado por mensagem.
+        await this.privacy.notifyDuplicateApply(result.application.id);
+        return { received: true };
       }
-      await this.privacy.afterApply(result.application.id, { gender: dto.gender, race: dto.race, pcd: dto.pcd });
+      await this.privacy.afterApply(result.application.id, dto.sensitiveConsent ? { gender: dto.gender, race: dto.race, pcd: dto.pcd } : {});
+      await this.afterApplyProof(result.application.id, job, dto, normalizedEmail, safeName, hash, { size: file.buffer.length, mime: format.mime }, context);
       // Reprovado por pergunta eliminatoria: o retorno ao candidato sai 24h depois (InterviewFollowupService.sendDelayedKnockoutFeedback).
-      return { received: true, applicationId: result.application.id };
+      return context.ownerVerified ? { received: true, applicationId: result.application.id } : { received: true };
     } catch (error) {
       if (!(error instanceof ConflictException)) await this.storage.remove(storageKey);
       throw error;
+    }
+  }
+
+  /** RS-D-06 + RS-D-19: livro de consentimentos (com recibo) e trilha de auditoria do envio do curriculo. Nunca derruba a candidatura. */
+  private async afterApplyProof(
+    applicationId: string,
+    job: { id: string; companyId: string; title?: string; company?: { name?: string } | null },
+    dto: ApplyJobDto,
+    email: string,
+    name: string,
+    sha256: string,
+    file: { size: number; mime: string },
+    context: ApplyContext,
+  ) {
+    try {
+      await this.consents?.recordApplication({
+        email, name, applicationId, companyId: job.companyId, jobTitle: job.title ?? 'Vaga', company: job.company?.name ?? 'Empresa',
+        talentPoolOptIn: Boolean(dto.talentPoolOptIn), sensitive: Boolean(dto.sensitiveConsent && (dto.gender || dto.race || dto.pcd)), ip: context.ip, userAgent: context.userAgent,
+      });
+      await this.repository.auditCandidateUpload?.(job.companyId, { action: 'CANDIDATE_RESUME_UPLOADED', label: 'CURRICULO_CANDIDATURA', entityId: applicationId, sha256, size: file.size, mime: file.mime, ip: context.ip, userAgent: context.userAgent });
+    } catch (error) {
+      this.logger.error(`Prova de consentimento/auditoria do curriculo falhou (${applicationId}): ${error instanceof Error ? error.message : error}`);
     }
   }
 

@@ -1562,6 +1562,7 @@ model ApplicationInterview {
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   feedbacks   InterviewFeedback[]
+  accessTokens RecruitmentAccessToken[]
 
   @@index([applicationId, scheduledAt])
 }
@@ -1664,6 +1665,7 @@ model Application {
   notes       ApplicationNote[]
   interviews  ApplicationInterview[]
   workflowRuns RecruitmentWorkflowRun[]
+  accessTokens RecruitmentAccessToken[]
 
   @@unique([companyId, candidateId, jobId])
   @@index([companyId])
@@ -3605,7 +3607,29 @@ model RecruitmentSetting {
   rejectionMessage   String?
   /// Etapas de aprovacao para publicar uma vaga, em ordem: GESTOR, RH, FINANCEIRO. Vazio = sem aprovacao.
   approvalSteps      String[] @default([])
+  /// RS-C-16: validade do link de acompanhamento do candidato (7 a 365 dias).
+  trackingTokenDays  Int      @default(90)
   updatedAt          DateTime @updatedAt
+}
+
+/// RS-C-16: links secretos do candidato (acompanhar, entrevista) guardados so como hash, com expiracao.
+model RecruitmentAccessToken {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String    @db.Uuid
+  interviewId   String?   @db.Uuid
+  /// TRACKING | INTERVIEW
+  kind          String
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  lastUsedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  application Application           @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  interview   ApplicationInterview? @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, kind])
+  @@index([interviewId])
+  @@index([expiresAt])
 }
 
 /// Dados de diversidade (opcionais, anonimos nos relatorios). Ficam separados da candidatura e nunca entram na avaliacao.
@@ -3632,8 +3656,56 @@ model CandidateRequest {
   createdAt   DateTime  @default(now())
   resolvedAt  DateTime?
   resolvedBy  String?   @db.Uuid
+  /// RS-C-01: quando o titular confirmou ser dono do e-mail (link enviado antes de abrir o pedido).
+  confirmedAt DateTime?
+  /// Prazo de resposta (LGPD art. 19, II: ate 15 dias).
+  dueAt       DateTime?
+  /// EXECUTED | DENIED: decisao explicita do RH em pedidos de exclusao.
+  decision    String?
 
   @@index([companyId, status])
+}
+
+/// RS-D-06: livro de consentimentos do candidato com prova (hash do texto, versao, IP, user agent). Sem FK: a prova sobrevive a exclusao da conta.
+model CandidateConsent {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String
+  accountId     String?   @db.Uuid
+  applicationId String?   @db.Uuid
+  companyId     String?   @db.Uuid
+  /// APPLICATION | TALENT_POOL | SENSITIVE_DATA
+  purpose       String
+  policyVersion String
+  textHash      String
+  ip            String?
+  userAgent     String?
+  grantedAt     DateTime  @default(now())
+  /// Duplo aceite (banco de talentos na candidatura sem conta): so vale depois de confirmar pelo e-mail.
+  confirmedAt   DateTime?
+  revokedAt     DateTime?
+  revokedVia    String?
+  /// Hash do token do link do recibo (confirmar/revogar).
+  tokenHash     String    @unique
+  receiptSentAt DateTime?
+
+  @@index([email, purpose])
+  @@index([accountId])
+  @@index([applicationId])
+}
+
+/// RS-C-01: pedido do titular aguardando confirmacao por e-mail. So o hash do token e gravado.
+model CandidateRequestVerification {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String
+  type      String
+  message   String?
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  ip        String?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
 }
 
 /// Requisicao de vaga: cada etapa de aprovacao (gestor, RH, financeiro) antes de publicar.

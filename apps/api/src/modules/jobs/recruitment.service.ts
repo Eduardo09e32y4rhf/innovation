@@ -1,5 +1,4 @@
 import { formatInterviewDate, interviewerLabel, normalizeInterview } from './interview-rules';
-import { newPublicToken } from './recruitment-tokens';
 import { visibleEvaluations } from './blind-evaluation';
 import { REJECTION_CODES } from './recruitment-privacy';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
@@ -603,7 +602,6 @@ export class RecruitmentService {
         candidateMessage: input.candidateMessage,
         agendaEventId: agenda.id,
         createdById: userId,
-        responseToken: newPublicToken(),
       },
     });
     const when = formatInterviewDate(input.scheduledAt).short;
