@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -25,6 +25,11 @@ export class CouponsController {
   @Patch(':id')
   @Audited({ action: 'COUPON_UPDATED', entity: 'PromotionCoupon' })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCouponDto, @CurrentUser() actor: JwtUser) { return this.service.update(id, dto, actor); }
+
+  @Delete(':id')
+  @Roles('DEV', 'CEO')
+  @Audited({ action: 'COUPON_DELETED', entity: 'PromotionCoupon' })
+  remove(@Param('id', ParseUUIDPipe) id: string) { return this.service.remove(id); }
 
   @Patch(':id/activate')
   @Audited({ action: 'COUPON_ACTIVATED', entity: 'PromotionCoupon' })

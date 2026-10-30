@@ -27,4 +27,13 @@ export class CouponsRepository {
   update(id: string, data: any) {
     return this.prisma.promotionCoupon.update({ where: { id }, data });
   }
+
+  /** Usos registrados (cada um marca o CPF/CNPJ que ja usou o teste gratis). */
+  countRedemptions(id: string) {
+    return this.prisma.couponRedemption.count({ where: { couponId: id } });
+  }
+
+  delete(id: string) {
+    return this.prisma.promotionCoupon.delete({ where: { id } });
+  }
 }
