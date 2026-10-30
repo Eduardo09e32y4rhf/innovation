@@ -1,17 +1,22 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { CronLock } from '../../common/redis/cron-lock.decorator';
 import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { JobsStorageService } from './jobs-storage.service';
+import { clampTrackingDays, issueInterviewToken, issueTrackingToken, resolveTrackingToken } from './recruitment-access-tokens';
 import { buildInterviewIcs, formatInterviewDate, googleCalendarUrl, interviewerLabel, mailFromAddress, mapsUrl, meetingProvider } from './interview-rules';
-import { applicationReceivedEmail, applicationRejectedEmail, candidateInterviewCanceledEmail, candidateInterviewEmail, candidateRequestAnsweredEmail } from './recruitment-mails';
+import { applicationDuplicateEmail, applicationReceivedEmail, applicationRejectedEmail, candidateInterviewCanceledEmail, candidateInterviewEmail, candidateRequestAnsweredEmail, candidateRequestConfirmEmail } from './recruitment-mails';
 import {
-  clampRetention, DEFAULT_RETENTION_MONTHS, monthsAgo, phoneKey, GENDER_OPTIONS, newTrackingToken, parsePcd, pickOption, PRIVACY_VERSION, RACE_OPTIONS, REJECTION_CODES,
+  clampRetention, DEFAULT_RETENTION_MONTHS, monthsAgo, phoneKey, GENDER_OPTIONS, parsePcd, pickOption, PRIVACY_VERSION, RACE_OPTIONS, REJECTION_CODES,
   REQUEST_TYPES, retentionDate, STAGE_LABEL_FOR_CANDIDATE, type RequestType,
 } from './recruitment-privacy';
 
+const VERIFICATION_TTL_MS = 2 * 3_600_000;
+/** LGPD art. 19, II: resposta completa em ate 15 dias. */
+export const REQUEST_DEADLINE_DAYS = 15;
+const hashToken = (value: string) => createHash('sha256').update(value).digest('hex');
 const appBase = () => (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
 
 @Injectable()
@@ -23,12 +28,13 @@ export class RecruitmentPrivacyService {
   // ---------- configuração ----------
   async getSettings(companyId: string) {
     const row = await this.prisma.recruitmentSetting.findUnique({ where: { companyId } });
-    return { retentionMonths: row?.retentionMonths ?? DEFAULT_RETENTION_MONTHS, receiptEmail: row?.receiptEmail ?? true, rejectionEmail: row?.rejectionEmail ?? true, rejectionMessage: row?.rejectionMessage ?? '', privacyVersion: PRIVACY_VERSION, rejectionCodes: REJECTION_CODES };
+    return { retentionMonths: row?.retentionMonths ?? DEFAULT_RETENTION_MONTHS, trackingTokenDays: clampTrackingDays(row?.trackingTokenDays ?? 90), receiptEmail: row?.receiptEmail ?? true, rejectionEmail: row?.rejectionEmail ?? true, rejectionMessage: row?.rejectionMessage ?? '', privacyVersion: PRIVACY_VERSION, rejectionCodes: REJECTION_CODES };
   }
 
-  async saveSettings(companyId: string, dto: { retentionMonths?: number; receiptEmail?: boolean; rejectionEmail?: boolean; rejectionMessage?: string }) {
+  async saveSettings(companyId: string, dto: { retentionMonths?: number; trackingTokenDays?: number; receiptEmail?: boolean; rejectionEmail?: boolean; rejectionMessage?: string }) {
     const data = {
       ...(dto.retentionMonths !== undefined ? { retentionMonths: clampRetention(dto.retentionMonths) } : {}),
+      ...(dto.trackingTokenDays !== undefined ? { trackingTokenDays: clampTrackingDays(dto.trackingTokenDays) } : {}),
       ...(dto.receiptEmail !== undefined ? { receiptEmail: Boolean(dto.receiptEmail) } : {}),
       ...(dto.rejectionEmail !== undefined ? { rejectionEmail: Boolean(dto.rejectionEmail) } : {}),
       ...(dto.rejectionMessage !== undefined ? { rejectionMessage: String(dto.rejectionMessage).trim().slice(0, 1500) || null } : {}),
@@ -44,16 +50,28 @@ export class RecruitmentPrivacyService {
       const app = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { candidate: true, job: { include: { company: { select: { name: true } } } } } });
       if (!app) return;
       const settings = await this.getSettings(app.companyId);
-      const token = newTrackingToken(randomBytes(20).toString('hex'));
-      await this.prisma.application.update({ where: { id: app.id }, data: { trackingToken: token, consentVersion: app.consentGiven ? PRIVACY_VERSION : null, retentionUntil: retentionDate(settings.retentionMonths) } });
+      // RS-C-16: so o hash do token fica no banco; o valor bruto vai apenas no e-mail.
+      const tracking = await issueTrackingToken(this.prisma, app.id, app.companyId);
+      await this.prisma.application.update({ where: { id: app.id }, data: { consentVersion: app.consentGiven ? PRIVACY_VERSION : null, retentionUntil: retentionDate(settings.retentionMonths) } });
       await this.flagDuplicates(app.id, app.companyId, app.candidate.id, app.candidate.phone);
       const gender = pickOption(GENDER_OPTIONS, extra.gender); const race = pickOption(RACE_OPTIONS, extra.race); const pcd = parsePcd(extra.pcd);
       if (gender || race || pcd !== null) await this.prisma.candidateDiversity.upsert({ where: { applicationId: app.id }, create: { applicationId: app.id, companyId: app.companyId, gender, race, pcd }, update: { gender, race, pcd } });
       if (settings.receiptEmail && app.candidate.email) {
-        await this.mail.send(app.candidate.email, applicationReceivedEmail({ name: app.candidate.name, jobTitle: app.job.title, company: app.job.company.name, statusUrl: `${appBase()}/carreiras/acompanhar/${token}`, privacyUrl: `${appBase()}/carreiras/privacidade` }));
+        await this.mail.send(app.candidate.email, applicationReceivedEmail({ name: app.candidate.name, jobTitle: app.job.title, company: app.job.company.name, statusUrl: tracking.url ?? `${appBase()}/carreiras/conta`, privacyUrl: `${appBase()}/carreiras/privacidade` }));
       }
     } catch (error) {
       this.logger.error(`Pós-candidatura falhou (${applicationId}): ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  /** RS-C-12: alguem enviou de novo uma candidatura ja existente para este e-mail; so o dono do e-mail fica sabendo. Nunca derruba a requisicao. */
+  async notifyDuplicateApply(applicationId: string) {
+    try {
+      const app = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { candidate: true, job: { include: { company: { select: { name: true } } } } } });
+      if (!app || app.anonymizedAt || !app.candidate.email) return;
+      await this.mail.send(app.candidate.email, applicationDuplicateEmail({ name: app.candidate.name, jobTitle: app.job.title, company: app.job.company.name, accountUrl: `${appBase()}/carreiras/conta`, privacyUrl: `${appBase()}/carreiras/privacidade` }));
+    } catch (error) {
+      this.logger.error(`Aviso de candidatura repetida falhou (${applicationId}): ${error instanceof Error ? error.message : error}`);
     }
   }
 
@@ -71,6 +89,7 @@ export class RecruitmentPrivacyService {
     try {
       const app = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { candidate: true, job: { include: { company: { select: { name: true } } } } } });
       if (!app || app.status !== 'REJECTED' || app.anonymizedAt || !app.candidate.email) return;
+      if (app.rejectionCode === 'DESISTENCIA') return; // o próprio candidato desistiu: não há devolutiva de reprovação
       const already = await this.prisma.applicationEvent.count({ where: { applicationId, type: 'REJECTION_EMAIL_SENT' } });
       if (already) return;
       const settings = await this.getSettings(app.companyId);
@@ -131,8 +150,8 @@ export class RecruitmentPrivacyService {
         interviewer: interviewerLabel(interview.interviewerRole, interview.interviewer),
         message: interview.candidateMessage,
         calendarUrl,
-        statusUrl: app.trackingToken && appBase() ? `${appBase()}/carreiras/acompanhar/${app.trackingToken}` : null,
-        responseUrl: interview.responseToken && appBase() ? `${appBase()}/carreiras/entrevista/${interview.responseToken}` : null,
+        statusUrl: (await issueTrackingToken(this.prisma, app.id, app.companyId)).url,
+        responseUrl: interview.id ? (await issueInterviewToken(this.prisma, { id: interview.id, applicationId, scheduledAt: interview.scheduledAt })).url : null,
         reminder,
       });
       // O lembrete nao reenvia o .ics (evita evento duplicado na agenda do candidato).
@@ -147,9 +166,9 @@ export class RecruitmentPrivacyService {
 
   // ---------- portal do candidato ----------
   async publicStatus(token: string) {
-    if (!/^[a-f0-9]{40}$/.test(token)) throw new NotFoundException('Candidatura não encontrada.');
+    const applicationId = await resolveTrackingToken(this.prisma, token);
     const app = await this.prisma.application.findUnique({
-      where: { trackingToken: token },
+      where: { id: applicationId },
       include: { job: { select: { title: true, company: { select: { name: true } } } }, stage: { select: { name: true } }, events: { where: { type: { in: ['APPLIED', 'STAGE_CHANGED', 'REJECTED'] } }, orderBy: { createdAt: 'asc' }, select: { type: true, toStage: true, createdAt: true } } },
     });
     if (!app || app.anonymizedAt) throw new NotFoundException('Candidatura não encontrada.');
@@ -161,18 +180,46 @@ export class RecruitmentPrivacyService {
   }
 
   // ---------- pedidos do titular (LGPD art. 18) ----------
-  /** Resposta sempre genérica: não revela se o e-mail existe na base. */
-  async createRequest(dto: { email: string; type: string; message?: string }) {
+  /**
+   * RS-C-01. Passo 1: NAO abre o pedido. Se o e-mail existe na base, envia um link de confirmacao (valido 2 h, uso unico, so o
+   * hash fica gravado). Resposta sempre generica. Maximo de 3 confirmacoes por e-mail por hora.
+   */
+  async createRequest(dto: { email: string; type: string; message?: string }, ctx: { ip?: string } = {}) {
     const email = String(dto.email ?? '').trim().toLowerCase();
     const type = String(dto.type ?? '').toUpperCase() as RequestType;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !REQUEST_TYPES.includes(type)) return { received: true };
-    const candidates = await this.prisma.candidate.findMany({ where: { email: { equals: email, mode: 'insensitive' } }, select: { companyId: true } });
-    const companies = [...new Set(candidates.map((candidate) => candidate.companyId))];
-    for (const companyId of companies) {
-      const open = await this.prisma.candidateRequest.count({ where: { companyId, email, type, status: 'OPEN' } });
-      if (!open) await this.prisma.candidateRequest.create({ data: { companyId, email, type, message: dto.message?.trim().slice(0, 1500) || null } });
+    const known = await this.prisma.candidate.findMany({ where: { email: { equals: email, mode: 'insensitive' } }, select: { companyId: true }, take: 1 });
+    if (!known.length) return { received: true };
+    const recent = await this.prisma.candidateRequestVerification.count({ where: { email, createdAt: { gte: new Date(Date.now() - 3_600_000) } } });
+    if (recent >= 3) return { received: true };
+    const token = randomBytes(32).toString('hex');
+    await this.prisma.candidateRequestVerification.create({
+      data: { email, type, message: dto.message?.trim().slice(0, 1500) || null, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + VERIFICATION_TTL_MS), ip: ctx.ip ?? null },
+    });
+    try {
+      await this.mail.send(email, candidateRequestConfirmEmail({ type, confirmUrl: `${appBase()}/carreiras/privacidade/confirmar?token=${token}`, hours: 2 }));
+    } catch (error) {
+      this.logger.error(`Confirmacao de pedido LGPD nao enviada: ${error instanceof Error ? error.message : error}`);
     }
     return { received: true };
+  }
+
+  /** Passo 2: o titular provou que le o e-mail. Agora sim abre um pedido por empresa, com prazo de 15 dias (LGPD art. 19, II). */
+  async confirmRequest(token: string) {
+    const invalid = new BadRequestException('Link inválido ou expirado. Envie o pedido novamente.');
+    if (!/^[a-f0-9]{64}$/.test(String(token ?? ''))) throw invalid;
+    const row = await this.prisma.candidateRequestVerification.findUnique({ where: { tokenHash: hashToken(token) } });
+    if (!row || row.usedAt || row.expiresAt.getTime() < Date.now()) throw invalid;
+    const claimed = await this.prisma.candidateRequestVerification.updateMany({ where: { id: row.id, usedAt: null }, data: { usedAt: new Date() } });
+    if (!claimed.count) throw invalid;
+    const candidates = await this.prisma.candidate.findMany({ where: { email: { equals: row.email, mode: 'insensitive' } }, select: { companyId: true } });
+    const confirmedAt = new Date();
+    const dueAt = new Date(confirmedAt.getTime() + REQUEST_DEADLINE_DAYS * 86_400_000);
+    for (const companyId of [...new Set(candidates.map((candidate) => candidate.companyId))]) {
+      const open = await this.prisma.candidateRequest.count({ where: { companyId, email: row.email, type: row.type, status: 'OPEN' } });
+      if (!open) await this.prisma.candidateRequest.create({ data: { companyId, email: row.email, type: row.type, message: row.message, confirmedAt, dueAt } });
+    }
+    return { confirmed: true, type: row.type, deadlineDays: REQUEST_DEADLINE_DAYS };
   }
 
   listRequests(companyId: string, status?: string) {
@@ -189,11 +236,18 @@ export class RecruitmentPrivacyService {
     return { generatedAt: new Date().toISOString(), email: request.email, candidates: candidates.map((c) => ({ name: c.name, phone: c.phone, linkedinUrl: c.linkedinUrl, applications: c.applications.map((a) => ({ vaga: a.job.title, data: a.createdAt, situacao: a.status, origem: a.source, consentimento: a.consentAt, versaoDaPolitica: a.consentVersion, guardadoAte: a.retentionUntil, respostas: a.answers.map((x) => ({ pergunta: x.question.label, resposta: x.value })) })) })) };
   }
 
+  /** Exclusao exige decisao explicita do RH: perform=true executa; perform=false nega (com justificativa na resposta). Nunca por padrao. */
   async answerRequest(companyId: string, requestId: string, actorId: string, dto: { response: string; perform?: boolean }) {
     const request = await this.requestOrFail(companyId, requestId);
     if (request.status !== 'OPEN') return request;
-    if (request.type === 'DELETION' && dto.perform !== false) await this.anonymizeByEmail(companyId, request.email);
-    const updated = await this.prisma.candidateRequest.update({ where: { id: requestId }, data: { status: 'DONE', response: dto.response.trim().slice(0, 2000), resolvedAt: new Date(), resolvedBy: actorId } });
+    let decision: string | null = null;
+    if (request.type === 'DELETION') {
+      if (typeof dto.perform !== 'boolean') throw new BadRequestException('Informe a decisão sobre a exclusão: executar (perform=true) ou negar com justificativa (perform=false).');
+      if (dto.perform) await this.anonymizeByEmail(companyId, request.email);
+      decision = dto.perform ? 'EXECUTED' : 'DENIED';
+      await this.prisma.auditLog.create({ data: { companyId, userId: actorId, action: dto.perform ? 'LGPD_DELETION_EXECUTED' : 'LGPD_DELETION_DENIED', entity: 'CandidateRequest', entityId: requestId, metadata: { type: request.type, confirmedAt: request.confirmedAt ?? null } } });
+    }
+    const updated = await this.prisma.candidateRequest.update({ where: { id: requestId }, data: { status: 'DONE', response: dto.response.trim().slice(0, 2000), resolvedAt: new Date(), resolvedBy: actorId, ...(decision ? { decision } : {}) } });
     const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { name: true } });
     await this.mail.send(request.email, candidateRequestAnsweredEmail({ company: company?.name ?? 'A empresa', type: request.type, response: dto.response.trim() }));
     return updated;
@@ -228,6 +282,7 @@ export class RecruitmentPrivacyService {
       this.prisma.applicationAnswer.deleteMany({ where: { applicationId: { in: ids } } }),
       this.prisma.applicationNote.deleteMany({ where: { applicationId: { in: ids } } }),
       this.prisma.application.updateMany({ where: { id: { in: ids } }, data: { coverLetter: null, linkedinUrl: null, resumeUrl: null, resumeName: null, resumeType: null, resumeSize: null, aiSummary: null, trackingToken: null, anonymizedAt: new Date() } }),
+      this.prisma.recruitmentAccessToken.deleteMany({ where: { applicationId: { in: ids } } }),
       this.prisma.candidate.update({ where: { id: candidateId }, data: { name: 'Candidato anonimizado', email: null, phone: null, linkedinUrl: null, coverLetter: null, resumeUrl: null, resumeName: null, resumeType: null, resumeSize: null, aiSummary: null, aiNotes: null, aiSkills: [] } }),
     ]);
     return 1;
@@ -240,6 +295,7 @@ export class RecruitmentPrivacyService {
     const expired = await this.prisma.application.findMany({ where: { anonymizedAt: null, status: { not: 'HIRED' }, OR: [{ retentionUntil: { lte: new Date() } }, { retentionUntil: null, createdAt: { lte: monthsAgo(DEFAULT_RETENTION_MONTHS) } }] }, select: { candidateId: true }, distinct: ['candidateId'], take: 500 });
     let done = 0;
     for (const { candidateId } of expired) done += await this.anonymizeCandidate(candidateId);
+    await this.prisma.recruitmentAccessToken.deleteMany({ where: { expiresAt: { lt: new Date(Date.now() - 30 * 86_400_000) } } }).catch(() => undefined);
     if (expired.length) this.logger.log(`Retenção LGPD: ${done} candidato(s) anonimizado(s).`);
     return done;
   }

@@ -9,6 +9,9 @@ import { PageHeader } from '@/app/components/ui';
 import { useQuery } from '@/app/hooks/use-data';
 import { request } from '@/app/lib/api';
 import { SectionCard, inputClass } from '../_components/bits';
+import { CostSection, SlaSection, type CostMetrics, type NoShowMetrics, type SlaMetrics } from '../_components/metrics-cost-sla';
+import { jobsApi } from '../jobs-api';
+import { toast } from 'sonner';
 
 type Metrics = {
   period: { from: string; to: string };
@@ -23,6 +26,10 @@ type Metrics = {
   recruiters: Array<{ userId: string; name: string; jobsAssigned: number; moves: number; hires: number }>;
   diversity: { responses: number; minGroup: number; gender: Record<string, number>; race: Record<string, number>; pcd: number | null };
   jobs: Array<{ id: string; title: string }>;
+  costs: CostMetrics;
+  stageSla: SlaMetrics;
+  noShow: NoShowMetrics;
+  pcd: { quota: { applies: boolean; employees: number; percent: number; required: number; filled: number; missing: number; met: boolean }; openPcdJobs: number };
 };
 
 const REASON: Record<string, string> = { PERFIL: 'Perfil não aderente', EXPERIENCIA: 'Experiência insuficiente', SALARIO: 'Pretensão salarial', LOCALIZACAO: 'Localização', DISPONIBILIDADE: 'Disponibilidade', COMPORTAMENTAL: 'Comportamental', DESISTENCIA: 'Desistência', VAGA_CANCELADA: 'Vaga cancelada', OUTRO: 'Outro', SEM_CODIGO: 'Sem motivo padronizado' };
@@ -32,13 +39,6 @@ const iso = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISO
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return <div className="card-v2 p-4"><p className="text-xs text-fg-sub">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>{hint && <p className="text-[11px] text-fg-mut">{hint}</p>}</div>;
-}
-
-function csv(m: Metrics) {
-  const rows: unknown[][] = [['Indicador', 'Valor'], ['Candidaturas', m.totals.applications], ['Contratados', m.totals.hired], ['Tempo médio para contratar (dias)', m.timeToHireDays.average ?? ''], ['Tempo médio para preencher (dias)', m.timeToFillDays.average ?? ''], ['Aceite de propostas (%)', m.offerAcceptanceRate ?? ''], [], ['Etapa', 'Candidatos', 'Conversão (%)'], ...m.funnel.map((f) => [f.label, f.count, f.conversionFromPrevious ?? '']), [], ['Origem', 'Candidaturas', 'Contratados'], ...m.bySource.map((s) => [LABEL[s.source] ?? s.source, s.applications, s.hires]), [], ['Recrutador', 'Movimentações', 'Contratações'], ...m.recruiters.map((r) => [r.name, r.moves, r.hires])];
-  const text = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\r\n');
-  const url = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }));
-  const a = document.createElement('a'); a.href = url; a.download = `recrutamento-${m.period.from}-${m.period.to}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 export default function RecruitmentMetricsPage() {
@@ -51,7 +51,7 @@ export default function RecruitmentMetricsPage() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-6">
       <Link href={`/${tenant}/dashboard/jobs`} className="inline-flex items-center gap-1 text-sm text-fg-sub hover:text-fg"><ArrowLeft size={15} aria-hidden="true" /> Voltar para vagas</Link>
-      <PageHeader title="Relatórios de recrutamento" subtitle="Quanto tempo leva, de onde vêm os candidatos e onde o processo perde gente." actions={m ? <button type="button" className="btn btn-outline" onClick={() => csv(m)}><Download size={15} aria-hidden="true" /> Exportar CSV</button> : undefined} />
+      <PageHeader title="Relatórios de recrutamento" subtitle="Quanto tempo leva, de onde vêm os candidatos e onde o processo perde gente." actions={m ? <button type="button" className="btn btn-outline" onClick={() => jobsApi.metricsCsv({ from, to, jobId: jobId || undefined }).catch(() => toast.error('Não foi possível exportar o relatório.'))}><Download size={15} aria-hidden="true" /> Exportar CSV</button> : undefined} />
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1 text-xs font-semibold">De<input type="date" className={inputClass} value={from} onChange={(e) => setFrom(e.target.value)} /></label>
         <label className="space-y-1 text-xs font-semibold">Até<input type="date" className={inputClass} value={to} onChange={(e) => setTo(e.target.value)} /></label>
@@ -67,6 +67,19 @@ export default function RecruitmentMetricsPage() {
             <Kpi label="Tempo para preencher a vaga" value={days(m.timeToFillDays.average)} hint={`${m.timeToFillDays.samples} vaga(s) preenchida(s)`} />
             <Kpi label="Aceite de propostas" value={m.offerAcceptanceRate === null ? '—' : `${m.offerAcceptanceRate.toLocaleString('pt-BR')}%`} />
           </div>
+          <CostSection costs={m.costs} base={`/${tenant}/dashboard/jobs`} />
+          <SlaSection sla={m.stageSla} noShow={m.noShow} base={`/${tenant}/dashboard/jobs`} />
+          <SectionCard title="Cota de vagas para pessoas com deficiência (PCD)" description="Lei 8.213/1991, art. 93: empresas com 100 ou mais empregados reservam de 2% a 5% dos cargos para pessoas com deficiência ou reabilitadas. O número de contratados vem das declarações voluntárias do processo seletivo; confira com o cadastro oficial antes de reportar.">
+            {m.pcd.quota.applies ? (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                <Kpi label="Empregados ativos" value={String(m.pcd.quota.employees)} />
+                <Kpi label="Cota exigida" value={`${m.pcd.quota.percent}% (${m.pcd.quota.required})`} />
+                <Kpi label="Contratados PCD (processo seletivo)" value={String(m.pcd.quota.filled)} />
+                <Kpi label={m.pcd.quota.met ? 'Cota atingida' : 'Faltam'} value={m.pcd.quota.met ? 'Sim' : String(m.pcd.quota.missing)} hint={m.pcd.quota.met ? undefined : 'contratações para cumprir a cota'} />
+                <Kpi label="Vagas PCD abertas" value={String(m.pcd.openPcdJobs)} />
+              </div>
+            ) : <p className="text-sm text-fg-sub">A cota não se aplica: a empresa tem {m.pcd.quota.employees} empregado(s) ativo(s), menos de 100. Vagas PCD abertas: {m.pcd.openPcdJobs}.</p>}
+          </SectionCard>
           <SectionCard title="Funil de conversão" description="Quantos candidatos chegaram a cada etapa e quanto passou da etapa anterior.">
             <ul className="space-y-2">{m.funnel.map((f) => (
               <li key={f.kind} className="grid grid-cols-[110px_1fr_90px] items-center gap-3 text-sm"><span>{f.label}</span><div className="h-3 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-purple-500" style={{ width: `${(f.count / maxFunnel) * 100}%` }} /></div><span className="text-right tabular-nums">{f.count}{f.conversionFromPrevious !== null ? ` · ${f.conversionFromPrevious}%` : ''}</span></li>

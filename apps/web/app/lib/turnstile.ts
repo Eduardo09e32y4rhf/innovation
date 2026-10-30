@@ -5,12 +5,14 @@
 export const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
 export const TURNSTILE_HEADER = 'x-turnstile-token';
 
-/** Rotas POST protegidas na API (login, cadastro de empresa, esqueci-senha, conta de candidato e candidatura publica). */
+/** Rotas POST protegidas na API (login, cadastro de empresa, esqueci-senha, conta de candidato, candidatura publica e suporte publico). */
 const PROTECTED_PATHS = [
   /^\/auth\/(login|register-company|password-reset\/request)$/,
   /^\/candidate-portal\/auth\/(register|login|forgot-password)$/,
   /^\/public\/jobs\/[^/]+\/apply$/,
+  /^\/public\/candidate-requests$/,
   /^\/public\/internal-jobs\/[^/]+\/apply$/,
+  /^\/support\/public\/(tickets|password-reset)$/,
 ];
 
 let token = '';

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Header, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, Res, UseGuards, HttpCode } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -92,6 +92,7 @@ export class UsersController {
   }
 
   /** Reset administrativo: o administrador nunca escolhe a senha de outra pessoa; emite-se uma provisoria nova (mesmo fluxo da reemissao). */
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Header('Cache-Control', 'no-store')
   @Roles('DEV', 'ADMIN', 'RH')
   @Post(':id/reset-password')
@@ -147,11 +148,13 @@ export class UsersController {
   }
 
   @Roles('DEV', 'CEO', 'ADMIN', 'RH')
+  @HttpCode(200)
   @Post(':id/cancel')
   cancel(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: ReasonDto, @Req() request: any) {
     return this.service.cancel(companyId, actor, id, dto.reason, requestMeta(request));
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Roles('DEV')
   @Post(':id/mfa/reset')
   resetMfa(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Req() request: any) {

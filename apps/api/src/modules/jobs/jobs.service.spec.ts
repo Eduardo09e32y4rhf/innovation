@@ -5,6 +5,7 @@ import { RecruitmentService } from './recruitment.service';
 
 function setup() {
   const repository = {
+    offerStatuses: vi.fn().mockResolvedValue([]),
     get: vi.fn(),
     find: vi.fn(),
     update: vi.fn(),
@@ -14,7 +15,7 @@ function setup() {
     audit: vi.fn().mockResolvedValue({}),
   } as any;
   const storage = { remove: vi.fn().mockResolvedValue(undefined) } as any;
-  return { service: new JobsService(repository, storage, {} as any, {} as any, {} as any, { sendHireWelcome: vi.fn() } as any), repository };
+  return { service: new JobsService(repository, storage, {} as any, {} as any, {} as any, { sendHireWelcome: vi.fn(), hiringKitStatus: vi.fn().mockResolvedValue({ required: [], approved: [], missing: [] }) } as any), repository };
 }
 
 describe('JobsService', () => {

@@ -1,6 +1,12 @@
 import { Transform } from 'class-transformer';
 import { ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsObject, IsOptional, IsString, Length, MaxLength } from 'class-validator';
 
+export class CandidateVerifyEmailDto {
+  @IsString()
+  @Length(6, 6)
+  code!: string;
+}
+
 export class CandidateEmailDto {
   @IsEmail()
   @MaxLength(240)

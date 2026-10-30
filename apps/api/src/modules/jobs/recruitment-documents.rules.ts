@@ -1,5 +1,6 @@
-import { createHash, randomBytes } from 'node:crypto';
-import { ALLOW, inspectFile } from '../../common/utils/file-validation';
+import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
+import { CONTRACT_KITS, kitFor } from './recruitment-doc-types';
+import { ALLOW, inspectFile, type FileKind } from '../../common/utils/file-validation';
 
 export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 export const MAX_REQUEST_ITEMS = 80;
@@ -7,8 +8,8 @@ export const DEFAULT_LINK_DAYS = 7;
 export const MAX_LINK_DAYS = 30;
 
 /** Tipo real pelo conteudo (assinatura binaria), nunca pela extensao ou pelo Content-Type informado. */
-export function detectDocumentType(buffer: Buffer): { mime: string; extension: string } | null {
-  const checked = inspectFile(buffer, { allow: ALLOW.DOCUMENT, maxBytes: Number.MAX_SAFE_INTEGER });
+export function detectDocumentType(buffer: Buffer, formats: readonly FileKind[] = ALLOW.DOCUMENT): { mime: string; extension: string } | null {
+  const checked = inspectFile(buffer, { allow: formats, maxBytes: Number.MAX_SAFE_INTEGER });
   return checked.ok ? { mime: checked.mime, extension: checked.extension } : null;
 }
 
@@ -37,6 +38,31 @@ export function normalizeItems(items: unknown): string[] {
     out.push(label);
   }
   return out.slice(0, MAX_REQUEST_ITEMS);
+}
+
+export const CODE_MINUTES = 10;
+export const CODE_COOLDOWN_SECONDS = 60;
+export const CODE_MAX_ATTEMPTS = 5;
+
+/** Codigo de 6 digitos (CSPRNG). So o hash (amarrado ao id do link) vai para o banco. */
+export function generateVerificationCode(): string {
+  return String(randomInt(0, 1_000_000)).padStart(6, '0');
+}
+
+export function hashVerificationCode(requestId: string, code: string): string {
+  return createHash('sha256').update(`${requestId}:${code}`).digest('hex');
+}
+
+export function codeMatches(requestId: string, code: string, storedHash: string): boolean {
+  const given = Buffer.from(hashVerificationCode(requestId, String(code ?? '').trim()), 'hex');
+  const stored = Buffer.from(storedHash, 'hex');
+  return given.length === stored.length && timingSafeEqual(given, stored);
+}
+
+/** a***@dominio.com: mostra onde o codigo foi sem expor o e-mail inteiro a quem so tem o link. */
+export function maskEmail(email: string): string {
+  const [user, domain] = email.split('@');
+  return `${(user ?? '').slice(0, 1)}***@${domain ?? ''}`;
 }
 
 export type LinkState = 'ACTIVE' | 'EXPIRED' | 'REVOKED';
@@ -70,13 +96,9 @@ export function safeDownloadName(label: string, extension: string): string {
   return `${base}.${extension}`;
 }
 
-/** Documentos pedidos na contratacao, conforme o contrato (CLT ou PJ). O RH pode pedir outros depois, pelo catalogo completo. */
-export const HIRE_DOCUMENT_KITS = {
-  CLT: ['RG ou CNH', 'CPF', 'Título de eleitor', 'Carteira de trabalho (CTPS)', 'PIS/PASEP/NIS', 'Comprovante de residência', 'Certidão de nascimento ou casamento', 'Comprovante de escolaridade', 'Foto 3x4', 'Dados bancários (comprovante de conta)', 'Certificado de reservista (homens)', 'Documentos dos dependentes (se houver)'],
-  PJ: ['Cartão CNPJ', 'Contrato social ou certificado MEI (CCMEI)', 'RG ou CNH do sócio', 'CPF do sócio', 'Comprovante de endereço da empresa', 'Dados bancários da empresa (PJ)', 'Certidão negativa de débitos federais', 'Inscrição municipal'],
-} as const;
+/** Kits por tipo de contrato (CLT, PJ, estagio, aprendiz, temporario): ver recruitment-doc-types.ts. Mantido aqui por compatibilidade. */
+export const HIRE_DOCUMENT_KITS = CONTRACT_KITS;
 
 export function hireKitFor(contractType?: string | null): string[] {
-  const key = String(contractType ?? '').toUpperCase();
-  return [...(key.includes('PJ') || key.includes('MEI') || key.includes('PRESTA') ? HIRE_DOCUMENT_KITS.PJ : HIRE_DOCUMENT_KITS.CLT)];
+  return kitFor(contractType);
 }

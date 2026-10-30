@@ -1,2 +1,5 @@
 import { redirect } from 'next/navigation';
-export default function RhPage({ params }: { params: { tenant: string } }) { redirect(`/${params.tenant}/dashboard/management`); }
+export default async function RhPage(props: { params: Promise<{ tenant: string }> }) {
+  const params = await props.params;
+  redirect(`/${params.tenant}/dashboard/management`);
+}

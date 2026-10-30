@@ -1,3 +1,4 @@
+import { Throttle } from '@nestjs/throttler';
 import type { FastifyReply } from 'fastify';
 import { CompanyChargeDto } from './dto/company-charge.dto';
 import { Body, Controller, Delete, Get, Headers, Param, ParseUUIDPipe, Patch, Post, Query, Res, UseGuards, NotFoundException, BadRequestException } from '@nestjs/common';
@@ -82,6 +83,7 @@ export class FinanceController {
     return this.service.resumeBilling(companyId, actor);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('platform/companies/:companyId/checkout')
   @Roles('DEV')
   companyCheckout(@Param('companyId') companyId: string, @CurrentUser() actor: JwtUser) {
@@ -199,6 +201,7 @@ export class FinanceController {
     });
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('platform/webhook-events/:id/retry')
   @Roles('DEV')
   async retryWebhookEvent(@Param('id') id: string) {

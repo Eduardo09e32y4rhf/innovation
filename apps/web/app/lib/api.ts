@@ -962,6 +962,8 @@ export const api = {
     policy: () => request<PromotionPolicy>('/promotions/policy'),
     savePolicy: (body: PromotionPolicy) => request<PromotionPolicy>('/promotions/policy', { method: 'PUT', body }),
     list: () => request<PromotionItem[]>('/promotions'),
+    // O GET /promotions so le. Promocao agendada ja vencida e aplicada por este POST (e pelo cron diario).
+    applyDue: () => request<{ applied: number }>('/promotions/apply-due', { method: 'POST', body: {}, silent: true }),
     create: (body: { employeeId: string; newPosition?: string; newSalary?: number; effectiveDate: string; reason?: string }) => request<PromotionItem>('/promotions', { method: 'POST', body }),
     cancel: (id: string) => request<{ id: string; status: string }>(`/promotions/${id}/cancel`, { method: 'POST', body: {} }),
   },

@@ -1,4 +1,5 @@
 import { admissionPrefill } from './candidate-account.rules';
+import { onboardingTasksFromDocs } from './onboarding-from-hire';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -19,6 +20,7 @@ const PUBLIC_JOB_SELECT = {
   salaryMin: true,
   salaryMax: true,
   salaryHidden: true,
+  pcd: true,
   deadline: true,
   createdAt: true,
   updatedAt: true,
@@ -118,8 +120,23 @@ export class JobsRepository {
     return { hired, resumeKeys: apps.map((row) => row.resumeUrl as string), documentKeys: docs.map((row) => row.fileKey) };
   }
 
+  /** Copia os responsaveis (JobRecruiter) de uma vaga para outra, sem repetir `exceptUserId`. */
+  async copyRecruiters(companyId: string, fromJobId: string, toJobId: string, exceptUserId?: string) {
+    const rows = await this.prisma.jobRecruiter.findMany({ where: { companyId, jobId: fromJobId, ...(exceptUserId ? { userId: { not: exceptUserId } } : {}) }, select: { userId: true } });
+    if (!rows.length) return 0;
+    const result = await this.prisma.jobRecruiter.createMany({ data: rows.map((row) => ({ companyId, jobId: toJobId, userId: row.userId, assignedById: exceptUserId ?? null })), skipDuplicates: true });
+    return result.count;
+  }
+
   audit(companyId: string, userId: string, action: string, entityId: string, metadata: Record<string, unknown>) {
     return this.prisma.auditLog.create({ data: { companyId, userId, action, entity: 'Job', entityId, metadata: metadata as any } });
+  }
+
+  /** RS-D-19: trilha de auditoria de arquivo enviado por candidato (hash, tamanho, IP, user agent, rotulo). */
+  auditCandidateUpload(companyId: string, input: { action: string; label: string; entityId: string; sha256: string; size: number; mime: string; ip?: string; userAgent?: string }) {
+    return this.prisma.auditLog.create({
+      data: { companyId, userId: null, action: input.action, entity: 'Application', entityId: input.entityId, metadata: { label: input.label, sha256: input.sha256, size: input.size, mime: input.mime }, ipAddress: input.ip ?? null, userAgent: input.userAgent?.slice(0, 400) ?? null },
+    });
   }
 
   application(companyId: string, id: string) {
@@ -193,6 +210,8 @@ export class JobsRepository {
       select: {
         id: true,
         companyId: true,
+        title: true,
+        company: { select: { name: true } },
         screeningMinScore: true,
         screeningAction: true,
         questions: { select: { ...PUBLIC_QUESTION_SELECT, knockout: true, scoreRule: true }, orderBy: { position: 'asc' } },
@@ -236,6 +255,7 @@ export class JobsRepository {
       let candidate = await tx.candidate.findFirst({
         where: { companyId, email: { equals: data.email, mode: 'insensitive' } },
       });
+      let mismatch: string | null = null;
 
       if (!candidate) {
         candidate = await tx.candidate.create({
@@ -244,10 +264,17 @@ export class JobsRepository {
       } else {
         const duplicate = await tx.application.findFirst({ where: { companyId, candidateId: candidate.id, jobId } });
         if (duplicate) return { duplicate: true as const, application: duplicate };
+        // RS-C-12: so quem provou a posse do e-mail (conta verificada) atualiza nome/telefone; os demais so completam campos vazios.
+        // O resultado pertence a cada candidatura: nova candidatura nao reverte o estado consolidado do candidato.
+        const verified = Boolean(data.ownerVerified);
+        mismatch = !verified && (candidate.name !== data.name || (candidate.phone ?? '') !== (data.phone ?? ''))
+          ? `Nome/telefone informados nesta candidatura diferem do cadastro (nome: ${String(data.name).slice(0, 80)}; telefone: ${String(data.phone ?? '').slice(0, 20)}). Cadastro mantido; confirme com o candidato.`
+          : null;
         candidate = await tx.candidate.update({
           where: { id: candidate.id },
-          // O resultado pertence a cada candidatura: nova candidatura nao reverte o estado consolidado do candidato.
-          data: { name: data.name, phone: data.phone, linkedinUrl: data.linkedinUrl ?? candidate.linkedinUrl },
+          data: verified
+            ? { name: data.name, phone: data.phone, linkedinUrl: data.linkedinUrl ?? candidate.linkedinUrl }
+            : { phone: candidate.phone ?? data.phone, linkedinUrl: candidate.linkedinUrl ?? data.linkedinUrl },
         });
       }
 
@@ -286,6 +313,7 @@ export class JobsRepository {
           events: {
             create: [
               { type: 'APPLIED', toStage: firstStage?.name ?? null, note: 'Candidatura recebida pelo portal' },
+              ...(mismatch ? [{ type: 'DATA_MISMATCH', note: mismatch }] : []),
               ...(autoReject ? [{ type: 'REJECTED', fromStage: firstStage?.name ?? null, toStage: rejectedStage!.name, note: extra.knockoutReason }] : []),
             ],
           },
@@ -294,6 +322,32 @@ export class JobsRepository {
       if (autoReject) await tx.candidate.updateMany({ where: { id: candidate.id, status: { not: 'HIRED' } }, data: { status: 'REJECTED' } });
 
       return { duplicate: false as const, application };
+    });
+  }
+
+  async jobRecruiterIds(companyId: string, jobId: string): Promise<string[]> {
+    const rows = await this.prisma.jobRecruiter.findMany({ where: { companyId, jobId }, select: { userId: true } });
+    return rows.map((row) => row.userId);
+  }
+
+  async offerStatuses(companyId: string, applicationId: string): Promise<string[]> {
+    const rows = await this.prisma.jobOffer.findMany({ where: { companyId, applicationId }, select: { status: true } });
+    return rows.map((row) => row.status);
+  }
+
+  /** Marca a vaga como FILLED quando as contratações atingem `openings`; devolve as candidaturas ativas a rejeitar. */
+  async fillJobAfterHire(companyId: string, applicationId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const app = await tx.application.findFirst({ where: { companyId, id: applicationId }, select: { jobId: true, job: { select: { id: true, title: true, openings: true, status: true, pipelineId: true } } } });
+      if (!app) return null;
+      const { job } = app;
+      const hired = await tx.application.count({ where: { companyId, jobId: job.id, status: 'HIRED' } });
+      if (hired < (job.openings ?? 1) || job.status === 'FILLED') return { filled: false, jobId: job.id, title: job.title, pending: [] as { id: string; rejectedStageId: string }[] };
+      await tx.job.update({ where: { id: job.id }, data: { status: 'FILLED', closedAt: new Date() } });
+      const pipelineId = job.pipelineId ?? (await tx.hiringPipeline.findFirst({ where: { companyId, isDefault: true }, select: { id: true } }))?.id;
+      const rejected = pipelineId ? await tx.pipelineStage.findFirst({ where: { pipelineId, kind: 'REJECTED' }, orderBy: { position: 'asc' }, select: { id: true } }) : null;
+      const open = rejected ? await tx.application.findMany({ where: { companyId, jobId: job.id, status: { notIn: ['HIRED', 'REJECTED'] } }, select: { id: true } }) : [];
+      return { filled: true, jobId: job.id, title: job.title, pending: open.map((row) => ({ id: row.id, rejectedStageId: rejected!.id })) };
     });
   }
 
@@ -376,6 +430,29 @@ export class JobsRepository {
               uploadedByUserId: actorId,
             },
           });
+        }
+
+        // RS-D-02: documentos aprovados entram no dossiê do colaborador como referência ao arquivo único (cifrado, só RH, com auditoria de leitura).
+        const approvedDocs = await tx.recruitmentDocument.findMany({ where: { companyId, applicationId: application.id, status: 'APPROVED', supersededAt: null }, select: { id: true, label: true, fileName: true, mimeType: true, size: true } });
+        if (approvedDocs.length) {
+          await tx.attachment.createMany({
+            data: approvedDocs.map((doc) => ({ companyId, ownerType: 'EMPLOYEE' as const, ownerId: employee.id, fileName: `${doc.label} - ${doc.fileName}`.slice(0, 200), fileType: doc.mimeType, fileSize: doc.size, fileUrl: `/jobs/documents/${doc.id}/download`, storageKey: null, uploadedByUserId: actorId })),
+          });
+        }
+
+        // RS-R-04 / RS-D-18: o onboarding nasce na contratação (um por colaborador), com envios já concluídos para o que foi aprovado.
+        const flow = await tx.onboardingFlow.upsert({
+          where: { companyId_employeeId: { companyId, employeeId: employee.id } },
+          create: { companyId, employeeId: employee.id, status: 'PENDING' },
+          update: {},
+          select: { id: true },
+        });
+        const existingTasks = await tx.onboardingTask.count({ where: { flowId: flow.id } });
+        if (!existingTasks) {
+          await tx.onboardingTask.createMany({ data: onboardingTasksFromDocs(approvedDocs.map((doc) => doc.label)).map((task) => ({ ...task, companyId, flowId: flow.id })) });
+          if (approvedDocs.length) {
+            await tx.onboardingDocument.createMany({ data: approvedDocs.map((doc) => ({ companyId, flowId: flow.id, name: doc.label, fileUrl: `/jobs/documents/${doc.id}/download`, required: true, uploadedAt: new Date() })) });
+          }
         }
 
         const pipelineId =

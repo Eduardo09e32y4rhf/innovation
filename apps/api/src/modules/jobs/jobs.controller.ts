@@ -4,6 +4,7 @@ import {
   Query,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -12,8 +13,7 @@ import {
   Req,
   Res,
   UseGuards,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  ParseUUIDPipe, HttpCode } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -26,6 +26,7 @@ import { AssignRecruitersDto } from './dto/assign-recruiters.dto';
 import { CreateJobDto, UpdateJobDto } from './dto/create-job.dto';
 import { HireCandidateDto } from './dto/hire-candidate.dto';
 import { JobScopeService } from './job-scope.service';
+import { JobAuditService } from './job-audit.service';
 import { JobsService } from './jobs.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard, ModuleGuard)
@@ -33,7 +34,12 @@ import { JobsService } from './jobs.service';
 @Roles('DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR')
 @Controller('jobs')
 export class JobsController {
-  constructor(private readonly service: JobsService, private readonly scope: JobScopeService) {}
+  constructor(private readonly service: JobsService, private readonly scope: JobScopeService, private readonly audit: JobAuditService) {}
+
+  /** Custo de recrutamento e dado financeiro: RH - R&S conduz o processo mas nao altera custos. */
+  private assertCostAllowed(actor: JwtUser, dto: { costAmount?: number | null }) {
+    if (dto.costAmount !== undefined && !['DEV', 'ADMIN', 'RH'].includes(actor.role)) throw new ForbiddenException('Seu perfil não altera o custo da vaga.');
+  }
 
   @Get()
   list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
@@ -44,7 +50,8 @@ export class JobsController {
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Post()
   async create(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: CreateJobDto) {
-    const job = await this.service.create(companyId, dto);
+    this.assertCostAllowed(actor, dto);
+    const job = await this.service.create(companyId, dto, actor.sub);
     try {
       await this.scope.assignCreator(companyId, actor, job.id);
     } catch (error) {
@@ -70,8 +77,9 @@ export class JobsController {
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Patch(':id')
   async update(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateJobDto) {
+    this.assertCostAllowed(actor, dto);
     await this.scope.assertJob(companyId, actor, id);
-    return this.service.update(companyId, id, dto);
+    return this.service.update(companyId, id, dto, actor.sub);
   }
 
   /** Gestor acompanha e avalia; criar, editar, excluir e duplicar vaga e com RH. */
@@ -87,9 +95,17 @@ export class JobsController {
   @Post(':id/duplicate')
   async duplicate(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     await this.scope.assertJob(companyId, actor, id);
-    const copy = await this.service.duplicate(companyId, id);
+    const copy = await this.service.duplicate(companyId, id, actor.sub);
     await this.scope.assignCreator(companyId, actor, (copy as any).id);
     return copy;
+  }
+
+  /** Historico de auditoria da vaga (criar, editar, publicar, encerrar, duplicar, mover etapa, exportar). */
+  @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
+  @Get(':id/history')
+  async history(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
+    await this.scope.assertJob(companyId, actor, id);
+    return this.audit.history(companyId, id);
   }
 
   /** Lista de quem pode ser responsavel (rota estatica: tem prioridade sobre :id). */
@@ -114,6 +130,7 @@ export class JobsController {
 
   /** Efetivar cria Employee: RH_RS so seleciona/encaminha, nunca contrata. */
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
+  @HttpCode(200)
   @Post('applications/:id/hire')
   hire(
     @CurrentCompany() companyId: string,

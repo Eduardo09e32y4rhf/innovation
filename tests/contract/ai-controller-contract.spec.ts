@@ -60,7 +60,7 @@ describe('API-03 AiController (Nest + Fastify reais)', () => {
   it('COMERCIAL (suporte da plataforma) e DEV podem classificar', async () => {
     for (const role of ['COMERCIAL', 'DEV']) {
       const res = await app.inject({ method: 'POST', url: '/ai/support/classify', headers: { 'x-role': role }, payload: { title: 'Erro' } });
-      expect(res.statusCode, role).toBe(201);
+      expect(res.statusCode, role).toBe(200);
     }
   });
   it('classify tem limite proprio (@Throttle)', () => {

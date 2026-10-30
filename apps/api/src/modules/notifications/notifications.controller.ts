@@ -1,3 +1,4 @@
+import { AnyAuthenticated } from '../../common/decorators/any-authenticated.decorator';
 import { CreateAdminNoticeDto, RespondNotificationDto } from './dto/notification.dto';
 import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
@@ -13,31 +14,37 @@ import { NotificationsService } from './notifications.service';
 export class NotificationsController {
   constructor(private readonly svc: NotificationsService) {}
 
+  @AnyAuthenticated()
   @Get()
   list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.svc.list(companyId, actor);
   }
 
+  @AnyAuthenticated()
   @Get('unread-count')
   unreadCount(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.svc.unreadCount(companyId, actor);
   }
 
+  @AnyAuthenticated()
   @Patch(':id/read')
   markAsRead(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.markAsRead(companyId, actor.sub, id);
   }
 
+  @AnyAuthenticated()
   @Patch('read-all')
   markAllAsRead(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.svc.markAllAsRead(companyId, actor.sub);
   }
 
+  @AnyAuthenticated()
   @Patch(':id/archive')
   archive(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.archive(companyId, actor.sub, id);
   }
 
+  @AnyAuthenticated()
   @Delete(':id')
   delete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.delete(companyId, actor.sub, id);
@@ -51,11 +58,13 @@ export class NotificationsController {
     return this.svc.createAdminNotice(companyId, actor.sub, body);
   }
 
+  @AnyAuthenticated()
   @Patch(':id/respond')
   respond(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() body: RespondNotificationDto) {
     return this.svc.respond(companyId, actor, id, body);
   }
 
+  @AnyAuthenticated()
   @Get('dashboard-widget')
   dashboardWidget(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.svc.dashboardWidget(companyId, actor);

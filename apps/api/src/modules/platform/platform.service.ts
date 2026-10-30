@@ -309,7 +309,7 @@ export class PlatformService {
   async lookupCnpj(cnpj: string) {
     const cleanCnpj = cnpj.replace(/\D/g, '');
     if (cleanCnpj.length !== 14) {
-      throw new ConflictException('CNPJ invalido');
+      throw new BadRequestException('CNPJ invalido');
     }
     try {
       const response = await outboundFetch(`https://www.receitaws.com.br/v1/cnpj/${cleanCnpj}`, {}, { timeoutMs: TIMEOUT_PUBLIC_LOOKUP_MS });

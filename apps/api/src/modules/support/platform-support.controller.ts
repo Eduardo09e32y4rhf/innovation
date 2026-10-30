@@ -1,6 +1,6 @@
 import { AssignTicketDto } from './dto/platform-support.dto';
 import { AddSupportMessageDto } from './dto/add-support-message.dto';
-import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Req, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Req, ParseUUIDPipe, HttpCode } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { SupportRepository } from './support.repository';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -36,12 +36,14 @@ export class PlatformSupportController {
     return this.duplicateService.markDuplicate(req.user, id, body.duplicateOfId);
   }
 
+  @HttpCode(200)
   @Post(':id/refund/approve')
   @Roles('DEV', 'CEO')
   async approveRefund(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: RefundDecisionDto) {
     return this.refundService.approve(req.user, id, body?.reason);
   }
 
+  @HttpCode(200)
   @Post(':id/refund/reject')
   @Roles('DEV', 'CEO')
   async rejectRefund(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: RefundRejectDto) {
@@ -137,6 +139,7 @@ export class PlatformSupportController {
     return ticket;
   }
 
+  @HttpCode(200)
   @Post('tickets/:id/close')
   @Roles('DEV')
   async closeTicket(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {

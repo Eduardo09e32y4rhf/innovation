@@ -126,7 +126,7 @@ export class ManagementEventsService {
 
   private async assertEmployee(companyId: string, employeeId: string) {
     const found = await this.prisma.employee.findFirst({ where: { id: employeeId, companyId }, select: { id: true } });
-    if (!found) throw new BadRequestException('Funcionário não encontrado nesta empresa.');
+    if (!found) throw new NotFoundException('Funcionário não encontrado nesta empresa.');
   }
 
   async kanban(companyId: string, actor?: EventsActor) {

@@ -1215,6 +1215,9 @@ model PrivacyConsent {
   address     String?
   photoBase64 String?   @db.Text
   pdfBase64   String?   @db.Text
+  /// Chaves no armazenamento privado (cifradas) que substituem os campos base64 acima.
+  photoKey    String?
+  pdfKey      String?
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1348,11 +1351,17 @@ model Job {
   isInternal     Boolean   @default(false)
   // Vaga confidencial (reposicao/substituicao): nao aparece nas listas publicas, so por link direto.
   confidential   Boolean   @default(false)
+  /// Vaga afirmativa para pessoas com deficiencia (selo na pagina publica, filtro no portal, indicador de cota).
+  pcd            Boolean   @default(false)
+  /// Custo fixo do recrutamento desta vaga (R$); custos por origem ficam em JobSourceCost.
+  costAmount     Decimal?  @db.Decimal(12, 2)
   /// Roteiro de entrevista: perguntas sugeridas para quem entrevista.
   interviewGuide String[]  @default([])
   /// Nota minima da triagem (0 a 100%). Abaixo dela: FLAG (sinaliza) ou REJECT (reprova).
   screeningMinScore Int?
   screeningAction   String?
+  /// Documentos exigidos na admissao: [{label, required}]. Vazio = kit do tipo de contrato.
+  requiredDocuments Json?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -1362,9 +1371,26 @@ model Job {
   questions    JobQuestion[]
   criteria     JobCriterion[]
   recruiters   JobRecruiter[]
+  sourceCosts  JobSourceCost[]
 
   @@index([companyId])
   @@index([companyId, status])
+}
+
+/// Custo de divulgacao por origem (LinkedIn, Indeed, agencia...) de uma vaga, para custo por contratacao (RS-R-10).
+model JobSourceCost {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  jobId     String   @db.Uuid
+  source    String
+  amount    Decimal  @db.Decimal(12, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, source])
+  @@index([companyId])
 }
 
 model HiringPipeline {
@@ -1393,6 +1419,8 @@ model PipelineStage {
   automationConfig Json?
   notifyCandidate  Boolean @default(false)
   candidateLabel   String?
+  /// Prazo (dias) que um candidato pode ficar nesta etapa antes de contar como parado (RS-R-10).
+  slaDays          Int?
 
   pipeline     HiringPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   applications Application[]
@@ -1562,6 +1590,7 @@ model ApplicationInterview {
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   feedbacks   InterviewFeedback[]
+  accessTokens RecruitmentAccessToken[]
 
   @@index([applicationId, scheduledAt])
 }
@@ -1664,6 +1693,7 @@ model Application {
   notes       ApplicationNote[]
   interviews  ApplicationInterview[]
   workflowRuns RecruitmentWorkflowRun[]
+  accessTokens RecruitmentAccessToken[]
 
   @@unique([companyId, candidateId, jobId])
   @@index([companyId])
@@ -1923,12 +1953,74 @@ model DocumentTemplate {
   body            String   @db.Text
   isActive        Boolean  @default(true)
   createdByUserId String?  @db.Uuid
+  /// Versao do texto (sobe a cada alteracao de titulo/corpo) e hash SHA-256 do texto vigente.
+  version         Int      @default(1)
+  contentHash     String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company  Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  versions DocumentTemplateVersion[]
 
   @@index([companyId, kind, isActive])
+}
+
+/// Historico imutavel do texto de cada modelo de documento (a assinatura aponta para a versao exata).
+model DocumentTemplateVersion {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId   String   @db.Uuid
+  templateId  String   @db.Uuid
+  version     Int
+  name        String
+  kind        String
+  title       String
+  body        String   @db.Text
+  contentHash String
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  template DocumentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, version])
+  @@index([companyId])
+}
+
+/// Assinatura eletronica simples (MP 2.200-2/2001 art. 10 par. 2; Lei 14.063/2020 art. 4 I): evidencia do aceite.
+model SignedDocument {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId       String   @db.Uuid
+  applicationId   String?  @db.Uuid
+  kind            String
+  templateId      String?  @db.Uuid
+  templateVersion Int?
+  /// Texto exato assinado e seu SHA-256.
+  text            String   @db.Text
+  textHash        String
+  pdfKey          String
+  pdfSha256       String
+  signerName      String
+  signerEmail     String?
+  signerDocument  String?
+  ipAddress       String?
+  userAgent       String?
+  signedAt        DateTime @default(now())
+
+  @@index([companyId, applicationId])
+  @@index([companyId, kind])
+}
+
+/// Dependentes, vale-transporte e vale-refeicao informados pelo candidato no link de documentos.
+model RecruitmentAdmissionForm {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId     String   @db.Uuid
+  applicationId String   @unique @db.Uuid
+  dependents    Json?
+  transport     Json?
+  meal          Json?
+  submittedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([companyId])
 }
 
 model TimeClosingAdjustment {
@@ -3457,6 +3549,16 @@ model RecruitmentDocumentRequest {
   revokedAt     DateTime?
   createdById   String    @db.Uuid
   createdAt     DateTime  @default(now())
+  /// Link anterior que este substituiu (reemissao sem perder o historico).
+  reissuedFromId String?  @db.Uuid
+  reminderD3At  DateTime?
+  reminderD1At  DateTime?
+  /// Codigo por e-mail antes do upload (so o hash fica guardado).
+  verifiedAt    DateTime?
+  codeHash      String?
+  codeExpiresAt DateTime?
+  codeAttempts  Int       @default(0)
+  codeSentAt    DateTime?
 
   application Application           @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   documents   RecruitmentDocument[]
@@ -3482,6 +3584,15 @@ model RecruitmentDocument {
   reviewedAt   DateTime?
   supersededAt DateTime?
   createdAt    DateTime                  @default(now())
+  /// Tipo normalizado do documento (regras de formato/validade) e vencimento informado na conferencia.
+  docType      String?
+  expiresAt    DateTime?
+  expiryAlertedAt DateTime?
+  /// Dado sensivel (art. 11 LGPD): leitura so RH, com base legal registrada e auditoria de leitura.
+  sensitive    Boolean                   @default(false)
+  legalBasis   String?
+  /// Arquivo cifrado em repouso (AES-256-GCM, chave derivada por empresa).
+  encrypted    Boolean                   @default(false)
 
   application Application                @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   request     RecruitmentDocumentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
@@ -3605,7 +3716,29 @@ model RecruitmentSetting {
   rejectionMessage   String?
   /// Etapas de aprovacao para publicar uma vaga, em ordem: GESTOR, RH, FINANCEIRO. Vazio = sem aprovacao.
   approvalSteps      String[] @default([])
+  /// RS-C-16: validade do link de acompanhamento do candidato (7 a 365 dias).
+  trackingTokenDays  Int      @default(90)
   updatedAt          DateTime @updatedAt
+}
+
+/// RS-C-16: links secretos do candidato (acompanhar, entrevista) guardados so como hash, com expiracao.
+model RecruitmentAccessToken {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  applicationId String    @db.Uuid
+  interviewId   String?   @db.Uuid
+  /// TRACKING | INTERVIEW
+  kind          String
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  lastUsedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  application Application           @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  interview   ApplicationInterview? @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, kind])
+  @@index([interviewId])
+  @@index([expiresAt])
 }
 
 /// Dados de diversidade (opcionais, anonimos nos relatorios). Ficam separados da candidatura e nunca entram na avaliacao.
@@ -3632,8 +3765,56 @@ model CandidateRequest {
   createdAt   DateTime  @default(now())
   resolvedAt  DateTime?
   resolvedBy  String?   @db.Uuid
+  /// RS-C-01: quando o titular confirmou ser dono do e-mail (link enviado antes de abrir o pedido).
+  confirmedAt DateTime?
+  /// Prazo de resposta (LGPD art. 19, II: ate 15 dias).
+  dueAt       DateTime?
+  /// EXECUTED | DENIED: decisao explicita do RH em pedidos de exclusao.
+  decision    String?
 
   @@index([companyId, status])
+}
+
+/// RS-D-06: livro de consentimentos do candidato com prova (hash do texto, versao, IP, user agent). Sem FK: a prova sobrevive a exclusao da conta.
+model CandidateConsent {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String
+  accountId     String?   @db.Uuid
+  applicationId String?   @db.Uuid
+  companyId     String?   @db.Uuid
+  /// APPLICATION | TALENT_POOL | SENSITIVE_DATA
+  purpose       String
+  policyVersion String
+  textHash      String
+  ip            String?
+  userAgent     String?
+  grantedAt     DateTime  @default(now())
+  /// Duplo aceite (banco de talentos na candidatura sem conta): so vale depois de confirmar pelo e-mail.
+  confirmedAt   DateTime?
+  revokedAt     DateTime?
+  revokedVia    String?
+  /// Hash do token do link do recibo (confirmar/revogar).
+  tokenHash     String    @unique
+  receiptSentAt DateTime?
+
+  @@index([email, purpose])
+  @@index([accountId])
+  @@index([applicationId])
+}
+
+/// RS-C-01: pedido do titular aguardando confirmacao por e-mail. So o hash do token e gravado.
+model CandidateRequestVerification {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String
+  type      String
+  message   String?
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  ip        String?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
 }
 
 /// Requisicao de vaga: cada etapa de aprovacao (gestor, RH, financeiro) antes de publicar.
@@ -3647,6 +3828,10 @@ model JobApproval {
   decidedBy String?   @db.Uuid
   decidedAt DateTime?
   note      String?
+  /// Quem pediu a aprovacao da vaga (recebe o resultado).
+  requestedBy String? @db.Uuid
+  /// Ultimo lembrete enviado quando a etapa da vez ficou parada.
+  remindedAt  DateTime?
   createdAt DateTime  @default(now())
 
   @@unique([jobId, step])
@@ -3849,6 +4034,7 @@ model InterviewSlotOffer {
   bookedAt         DateTime?
   interviewId      String?   @db.Uuid
   createdById      String?   @db.Uuid
+  reminderSentAt   DateTime?
   createdAt        DateTime  @default(now())
 
   @@index([companyId, applicationId])
@@ -3881,6 +4067,7 @@ model JobOffer {
   viewedAt       DateTime?
   respondedAt    DateTime?
   declineReason  String?
+  reminderSentAt DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -3928,6 +4115,7 @@ model AssessmentInvite {
   result        Json?
   answers       Json?
   createdById   String?   @db.Uuid
+  reminderSentAt DateTime?
   createdAt     DateTime  @default(now())
 
   @@index([companyId, applicationId])

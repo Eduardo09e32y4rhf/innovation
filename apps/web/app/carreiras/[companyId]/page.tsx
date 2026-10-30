@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { CareersList } from './careers-list';
 
 type CareersPageProps = {
-  params: { companyId: string };
+  params: Promise<{ companyId: string }>;
 };
 
 export const metadata: Metadata = {
@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   description: 'Conheça as oportunidades abertas e encontre a próxima etapa da sua carreira.',
 };
 
-export default function CareersPage({ params }: CareersPageProps) {
+export default async function CareersPage(props: CareersPageProps) {
+  const params = await props.params;
   return <CareersList companyId={params.companyId} />;
 }

@@ -46,7 +46,7 @@ export class SupportAttachmentService {
   async uploadAttachment(actor: any, ticketId: string, file: any, messageId?: string) {
     const ticket = await this.repository.findPlatformTicketById(ticketId);
     if (!ticket) {
-      throw new BadRequestException('Chamado nao encontrado.');
+      throw new NotFoundException('Chamado nao encontrado.');
     }
     await this.authorizationService.assertCanUploadAttachment(actor, ticket);
 

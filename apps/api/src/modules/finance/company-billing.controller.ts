@@ -1,3 +1,4 @@
+import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -43,6 +44,7 @@ export class CompanyBillingController {
     return this.service.listCompanyInvoices(companyId);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('checkout')
   checkout(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.service.ensureCompanyOnboardingBilling(companyId, actor);

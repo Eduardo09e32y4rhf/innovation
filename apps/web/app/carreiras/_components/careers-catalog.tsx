@@ -28,6 +28,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
   const [levels, setLevels] = useState<string[]>([]);
   const [saved, setSaved] = useState<string[]>([]);
   const [onlySaved, setOnlySaved] = useState(false);
+  const [onlyPcd, setOnlyPcd] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const query = useDeferredValue(search.trim().normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('pt-BR'));
@@ -59,7 +60,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
     };
     void load(); return () => { active = false; };
   }, [companyId, reload]);
-  useEffect(() => { setPage(1); }, [query, location, companyFilter, modes, contracts, levels, onlySaved, companyId]);
+  useEffect(() => { setPage(1); }, [query, location, companyFilter, modes, contracts, levels, onlySaved, onlyPcd, companyId]);
 
   const locations = useMemo(() => Array.from(new Set(jobs.map(job => job.location).filter(Boolean) as string[])).sort(), [jobs]);
   const modeOptions = useMemo(() => Array.from(new Set(jobs.map(job => job.workMode).filter(Boolean) as string[])).sort(), [jobs]);
@@ -71,13 +72,13 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
 
   const filtered = useMemo(() => jobs.filter(job => (!location || job.location === location) && (!companyFilter || job.companyId === companyFilter)
     && (!modes.length || (job.workMode && modes.includes(job.workMode))) && (!contracts.length || (job.employmentType && contracts.includes(job.employmentType)))
-    && (!levels.length || (job.seniority && levels.includes(job.seniority))) && (!onlySaved || saved.includes(job.id))
+    && (!levels.length || (job.seniority && levels.includes(job.seniority))) && (!onlySaved || saved.includes(job.id)) && (!onlyPcd || job.pcd)
     && (!query || [job.title, job.description, job.location, job.department, job.employmentType, job.workMode, job.company?.name].filter(Boolean).join(' ').normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('pt-BR').includes(query))),
-  [jobs, location, companyFilter, modes, contracts, levels, onlySaved, saved, query]);
+  [jobs, location, companyFilter, modes, contracts, levels, onlySaved, onlyPcd, saved, query]);
   const pages = Math.max(1, Math.ceil(filtered.length / 12));
   const currentPage = Math.min(page, pages);
-  const hasFilter = Boolean(search || location || companyFilter || modes.length || contracts.length || levels.length || onlySaved);
-  function clear() { setSearch(''); setLocation(''); setCompanyFilter(''); setModes([]); setContracts([]); setLevels([]); setOnlySaved(false); setPage(1); }
+  const hasFilter = Boolean(search || location || companyFilter || modes.length || contracts.length || levels.length || onlySaved || onlyPcd);
+  function clear() { setSearch(''); setLocation(''); setCompanyFilter(''); setModes([]); setContracts([]); setLevels([]); setOnlySaved(false); setOnlyPcd(false); setPage(1); }
   const check = (label: string, checked: boolean, total: number, onChange: () => void) => <label key={label} className="my-3 flex cursor-pointer items-center gap-2.5 text-xs text-[#6b6478]"><input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4 accent-[#7240da]" />{label}<span className="ml-auto text-[10px] text-[#8d869a]">{total}</span></label>;
 
   return <main className="min-h-screen bg-[#fbfafc] text-[#241b38]">
@@ -125,6 +126,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
             {!companyId && companiesWithJobs.length > 0 && <div className="mb-5 border-b border-[#e9e5f0] pb-5"><h3 className="mb-3.5 text-xs font-semibold">Empresa</h3><select value={companyFilter} onChange={e => setCompanyFilter(e.target.value)} aria-label="Filtrar por empresa" className="w-full rounded-lg border border-[#e9e5f0] bg-white px-2 py-2.5 text-[11px] text-[#736d80]"><option value="">Todas as empresas</option>{companiesWithJobs.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>}
             {modeOptions.length > 0 && <div className="mb-5 border-b border-[#e9e5f0] pb-4"><h3 className="text-xs font-semibold">Modelo de trabalho</h3>{modeOptions.map(value => check(workModeLabel(value) ?? value, modes.includes(value), count(job => job.workMode, value), () => setModes(current => toggleIn(current, value))))}</div>}
             {contractOptions.length > 0 && <div className="mb-5 border-b border-[#e9e5f0] pb-4"><h3 className="text-xs font-semibold">Tipo de contratação</h3>{contractOptions.map(value => check(employmentTypeLabel(value), contracts.includes(value), count(job => job.employmentType, value), () => setContracts(current => toggleIn(current, value))))}</div>}
+            {jobs.some(job => job.pcd) && <div className="mb-5 border-b border-[#e9e5f0] pb-4"><h3 className="text-xs font-semibold">Inclusão</h3>{check('Vagas para pessoas com deficiência (PCD)', onlyPcd, jobs.filter(job => job.pcd).length, () => setOnlyPcd(value => !value))}</div>}
             {levelOptions.length > 0 && <div className="mb-5 border-b border-[#e9e5f0] pb-4"><h3 className="text-xs font-semibold">Nível de experiência</h3>{levelOptions.map(value => check(value, levels.includes(value), count(job => job.seniority, value), () => setLevels(current => toggleIn(current, value))))}</div>}
             {!companyId && companyFilter && (() => { const item = companies.find(entry => entry.id === companyFilter); return item ? <div className="hidden rounded-xl bg-[#f0eafa] p-5 md:block"><CareersLogo company={item} /><h3 className="mt-3 text-sm font-semibold leading-snug">{item.name}</h3>{item.description && <p className="mb-3 mt-2 text-[11px] leading-relaxed text-[#736d80]">{item.description}</p>}<Link href={'/carreiras/' + encodeURIComponent(item.id)} className="text-[11px] font-semibold text-[#7240da]">Ver empresa ↗</Link></div> : null; })()}
           </aside>
@@ -149,7 +151,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
                 </div>
                 <h3 className="mb-2.5 mt-4 max-w-[610px] break-words text-[19px] font-semibold leading-snug tracking-tight"><Link href={href} className="hover:text-[#7240da]">{job.title}</Link></h3>
                 <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#736d80]"><span className="inline-flex items-center gap-1"><MapPin size={13} aria-hidden="true" />{job.location || 'Local não informado'}</span><span className="inline-flex items-center gap-1"><Briefcase size={13} aria-hidden="true" />{employmentTypeLabel(job.employmentType)}</span></p>
-                <div className="my-4 flex flex-wrap gap-2">{mode && <span className={'rounded-md px-2 py-1 text-[11px] ' + (job.workMode === 'REMOTO' ? 'bg-[#eaf4ee] text-[#327450]' : 'bg-[#f0e8fd] text-[#7650ac]')}>{mode}</span>}{job.seniority && <span className={tag}>{job.seniority}</span>}{job.department && <span className={tag}>{job.department}</span>}</div>
+                <div className="my-4 flex flex-wrap gap-2">{mode && <span className={'rounded-md px-2 py-1 text-[11px] ' + (job.workMode === 'REMOTO' ? 'bg-[#eaf4ee] text-[#327450]' : 'bg-[#f0e8fd] text-[#7650ac]')}>{mode}</span>}{job.pcd && <span className="rounded-md bg-[#e8f1fb] px-2 py-1 text-[11px] font-semibold text-[#1f5a96]">Vaga PCD</span>}{job.seniority && <span className={tag}>{job.seniority}</span>}{job.department && <span className={tag}>{job.department}</span>}</div>
                 <p className="line-clamp-3 max-w-[620px] text-xs leading-[1.7] text-[#736d80]">{job.description}</p>
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0edf5] pt-4">
                   <div className="text-[17px] font-bold">{salary || 'A combinar'}<small className="mt-1 block text-[10px] font-normal text-[#736d80]">Remuneração informada na vaga</small></div>

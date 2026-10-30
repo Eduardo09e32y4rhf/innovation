@@ -19,3 +19,17 @@ Antes da correcao `apps/api/src/common/guards/throttler-ip.spec.ts`: 3 falhas de
 
 ## Riscos que sobram
 IP compartilhado (NAT) em login/cadastro/reset: ajustar `THROTTLE_IP_FACTOR`. Depende de `TRUST_PROXY` correto (INF-01). As "10 rotas sensiveis" de checkout/reset de MFA/aceite de termo ficam em modulos de outros grupos (finance/users): nao alteradas; ficam cobertas apenas pelo global 300/min (e por conta, se autenticadas).
+
+## Restante (onda 1, grupo A): as rotas sensiveis sem limite proprio
+Problema: `apps/api/src/common/guards/throttle-sensitive-routes.spec.ts` (novo) falhou 15/15 antes (13 rotas sem `@Throttle` e dois testes de 429 que nao disparavam).
+Documentacao: https://docs.nestjs.com/security/rate-limiting (`@Throttle({ default: { limit, ttl } })` por rota) — VIA BUSCA (host bloqueado), mesma fonte do restante deste relatorio. Valores sao decisao de calibragem, nao regra de documento.
+Correcao: `@Throttle` (por minuto, rotas autenticadas: chave do limitador `default` = token do usuario, `ip` nao se aplica a rotas com JwtAuthGuard):
+- reset de senha: `POST /users/:id/reset-password` 10, `POST /auth/password-reset/employee` 10 (RH/ADMIN)
+- reset de MFA: `POST /users/:id/mfa/reset` 10
+- aceite de termos: `POST /legal/terms/accept` 20
+- anexo de suporte: `POST /support/tickets/:id/attachments` 20
+- consultas externas: `GET /lookup/cep/:cep`, `GET /lookup/cnpj/:cnpj`, `GET /platform/receita/:cnpj`, `GET /candidate-portal/cep/:cep` 30 (o do candidato tambem tem o limite por IP)
+- checkout: `POST /finance/company/checkout`, `POST /faturas/empresa/checkout`, `POST /finance/platform/companies/:id/checkout` 10; `POST /finance/platform/webhook-events/:id/retry` 10 (so decorators; sem tocar na logica de dinheiro).
+Teste: tabela metadata x limite (13) + Nest/Fastify com ThrottlerModule real: reset de MFA 11a chamada = 429, aceite de termos 21a = 429.
+Testes: `npx vitest run apps/api/src/common/guards tests/contract apps/api/src/modules/{users,lookup,finance,support,platform}`: 87 arquivos, 710 testes passaram. `npx tsc --noEmit -p apps/api`: sem erros.
+Risco: usuario legitimo que consulte CEP/CNPJ em lote (>30/min) recebe 429; ajustar o numero na rota.

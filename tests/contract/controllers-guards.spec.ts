@@ -39,19 +39,26 @@ const ALLOWED: Record<string, Allowed> = {
   'POST /finance/webhook/asaas': PUBLICA('webhook Asaas; token do provedor; limite por IP'),
   'POST /finance/webhook/mercadopago': PUBLICA('webhook Mercado Pago; assinatura x-signature; limite por IP'),
   // suporte publico
-  'POST /support/public/tickets': PUBLICA('suporte na tela de login; honeypot + 5/min por IP'),
-  'POST /support/public/password-reset': PUBLICA('pedido de ajuda de senha; honeypot + 5/min por IP'),
+  'POST /support/public/tickets': GUARD_PROPRIO('TurnstileOptionalGuard', 'suporte na tela de login; honeypot + 5/min por IP; Turnstile se o token for enviado'),
+  'POST /support/public/password-reset': GUARD_PROPRIO('TurnstileOptionalGuard', 'pedido de ajuda de senha; honeypot + 5/min por IP; Turnstile se o token for enviado'),
   // analytics / vagas / candidatos
   'POST /public/visits': PUBLICA('contagem de visitas anonima; limite proprio'),
   'POST /candidate-portal/auth/reset-password': PUBLICA('codigo de 6 digitos com hash e tentativas'),
   'GET /public/candidate-documents/:token': PUBLICA('link com token de uso do candidato'),
   'POST /public/candidate-documents/:token/upload': PUBLICA('link com token de uso do candidato'),
-  'POST /public/candidate-requests': PUBLICA('pedido LGPD do candidato; limite por IP'),
+  'POST /public/candidate-documents/:token/code': PUBLICA('link com token de uso do candidato; envia o codigo ao e-mail do candidato'),
+  'POST /public/candidate-documents/:token/verify': PUBLICA('link com token de uso do candidato; confirma o codigo recebido por e-mail'),
+  'POST /public/candidate-requests': PUBLICA('pedido LGPD do candidato; Turnstile + limite por IP; so envia link de confirmacao ao e-mail (RS-C-01)'),
+  'POST /public/consents/confirm': PUBLICA('confirma o banco de talentos pelo link do recibo; token de 64 hex (hash no banco); limite por IP (RS-C-18)'),
+  'POST /public/consents/revoke': PUBLICA('revoga consentimento pelo link do recibo; token de 64 hex (hash no banco); limite por IP (RS-D-06)'),
+  'POST /public/candidate-requests/confirm': PUBLICA('confirmacao do titular por token de uso unico (hash) recebido no e-mail; limite por IP (RS-C-01)'),
   'GET /public/candidate-status/:token': PUBLICA('status por token'),
   'GET /public/internal-jobs/:jobId': PUBLICA('vaga interna por link'),
   'GET /public/jobs': PUBLICA('vagas publicadas'),
   'GET /public/jobs/:jobId': PUBLICA('vaga publicada'),
   'GET /public/jobs/company/:companyKey': PUBLICA('vagas da empresa'),
+  'GET /public/jobs/company/:companyKey/feed.xml': PUBLICA('feed de vagas abertas para portais (mesmas regras da lista publica); limite por IP (RS-R-06)'),
+  'GET /public/jobs/company/:companyKey/feed.json': PUBLICA('feed JSON de vagas abertas; mesmas regras da lista publica; limite por IP (RS-R-06)'),
   'GET /public/recruitment/assessment/:token': PUBLICA('link com token do candidato'),
   'POST /public/recruitment/assessment/:token/start': PUBLICA('link com token do candidato'),
   'POST /public/recruitment/assessment/:token/submit': PUBLICA('link com token do candidato'),
@@ -67,23 +74,27 @@ const ALLOWED: Record<string, Allowed> = {
   'POST /candidate-portal/auth/forgot-password': GUARD_PROPRIO('TurnstileGuard', 'esqueci a senha do candidato'),
   'POST /public/jobs/:jobId/apply': GUARD_PROPRIO('TurnstileGuard', 'candidatura externa'),
   'POST /public/internal-jobs/:jobId/apply': GUARD_PROPRIO('TurnstileGuard', 'candidatura interna'),
+  'GET /candidate-portal/consents': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
+  'POST /candidate-portal/consents/:id/revoke': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'POST /candidate-portal/auth/logout': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
+  'POST /candidate-portal/auth/verify-email': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
+  'POST /candidate-portal/auth/resend-verification': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'GET /candidate-portal/me': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'PUT /candidate-portal/me': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'PUT /candidate-portal/me/resume': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'DELETE /candidate-portal/me': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'GET /candidate-portal/cep/:cep': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'GET /candidate-portal/applications': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
+  'POST /candidate-portal/applications/:id/withdraw': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato; so a candidatura do proprio e-mail'),
   'GET /candidate-portal/invites': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'POST /candidate-portal/invites/:inviteId/decline': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'POST /candidate-portal/jobs/:jobId/apply': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
 };
 
 /**
- * Camada 2 (avaliada, NAO aplicada): RolesGuard libera qualquer logado quando nao ha @Roles. Negar por padrao quebraria
- * hoje exatamente estas 10 rotas (so-logado legitimas: notificacoes do proprio usuario, empresa propria, permissoes proprias).
- * Enquanto nao existir um `@AnyAuthenticated()` migrado nelas, o teste trava o conjunto: rota nova com RolesGuard e
- * sem @Roles precisa estar aqui de proposito (ou receber @Roles).
+ * Camada 2 (SEG-09, aplicada): o RolesGuard nega por padrao. Rota com login precisa de @Roles(...) ou @AnyAuthenticated();
+ * rota publica e a listada em ALLOWED (sem JwtAuthGuard). As 20 rotas abaixo sao "so logado" de proposito
+ * (10 com RolesGuard: notificacoes do proprio usuario, empresa propria, permissoes proprias; 10 de autosservico em /auth).
  */
 const LOGGED_IN_ONLY = new Set([
   'GET /companies/me',
@@ -96,6 +107,16 @@ const LOGGED_IN_ONLY = new Set([
   'DELETE /notifications/:id',
   'PATCH /notifications/:id/respond',
   'GET /notifications/dashboard-widget',
+  'POST /auth/resend-verification',
+  'GET /auth/sessions',
+  'POST /auth/sessions/revoke-others',
+  'DELETE /auth/sessions/:id',
+  'GET /auth/mfa/status',
+  'POST /auth/mfa/setup',
+  'POST /auth/mfa/enable',
+  'POST /auth/mfa/disable',
+  'POST /auth/change-password',
+  'GET /auth/me',
 ]);
 
 function controllerFiles(dir: string, out: string[] = []): string[] {
@@ -111,7 +132,7 @@ const join2 = (...parts: string[]) => '/' + parts.flatMap((p) => String(p ?? '')
 const METHODS: Record<number, string> = { 0: 'GET', 1: 'POST', 2: 'PUT', 3: 'DELETE', 4: 'PATCH', 5: 'ALL', 6: 'OPTIONS', 7: 'HEAD' };
 const guardNames = (target: object): string[] => ((Reflect.getMetadata('__guards__', target) as any[]) ?? []).map((g) => g?.name ?? String(g));
 
-interface RouteInfo { key: string; file: string; guards: string[]; roles: unknown }
+interface RouteInfo { key: string; file: string; guards: string[]; roles: unknown; anyAuth: boolean }
 
 async function collect(): Promise<{ routes: RouteInfo[]; controllers: string[]; unloadable: string[] }> {
   const routes: RouteInfo[] = [];
@@ -133,7 +154,7 @@ async function collect(): Promise<{ routes: RouteInfo[]; controllers: string[]; 
         if (method === undefined) continue;
         const paths: string[] = [].concat(Reflect.getMetadata('path', handler) ?? '');
         for (const p of paths) {
-          routes.push({ key: `${METHODS[method] ?? method} ${join2(base, p)}`, file: relative(SRC, file), guards: [...classGuards, ...guardNames(handler)], roles: Reflect.getMetadata('roles', handler) ?? Reflect.getMetadata('roles', exported) });
+          routes.push({ key: `${METHODS[method] ?? method} ${join2(base, p)}`, file: relative(SRC, file), guards: [...classGuards, ...guardNames(handler)], roles: Reflect.getMetadata('roles', handler) ?? Reflect.getMetadata('roles', exported), anyAuth: Boolean(Reflect.getMetadata('anyAuthenticated', handler) ?? Reflect.getMetadata('anyAuthenticated', exported)) });
         }
       }
     }
@@ -164,11 +185,19 @@ describe('SEG-09: todo controller declara JwtAuthGuard ou esta na lista de excec
     }
   }, 120000);
 
-  it('RolesGuard sem @Roles (libera qualquer logado) so nas 10 rotas "so logado" conhecidas', async () => {
+  it('TODA rota tem uma das tres marcas: @Roles, @AnyAuthenticated ou publica declarada (ALLOWED)', async () => {
     const { routes } = await collect();
-    const noRoles = routes.filter((r) => r.guards.includes('RolesGuard') && !r.roles).map((r) => r.key);
-    expect(noRoles.filter((k) => !LOGGED_IN_ONLY.has(k)), 'rota com RolesGuard mas sem @Roles: adicione @Roles ou inclua em LOGGED_IN_ONLY').toEqual([]);
-    expect([...LOGGED_IN_ONLY].filter((k) => !noRoles.includes(k)), 'excecao velha em LOGGED_IN_ONLY').toEqual([]);
+    const sem = routes.filter((r) => r.guards.includes('JwtAuthGuard') && !(r.roles as any[] | undefined)?.length && !r.anyAuth).map((r) => `${r.key} (${r.file})`);
+    expect(sem, 'rota com login sem @Roles e sem @AnyAuthenticated: o RolesGuard responderia 403').toEqual([]);
+    const semGuardNemLista = routes.filter((r) => !r.guards.includes('JwtAuthGuard') && !ALLOWED[r.key]).map((r) => r.key);
+    expect(semGuardNemLista).toEqual([]);
+  }, 120000);
+
+  it('@AnyAuthenticated so nas rotas "so logado" conhecidas (nao vira atalho para esquecer @Roles)', async () => {
+    const { routes } = await collect();
+    const marcadas = routes.filter((r) => r.anyAuth && !(r.roles as any[] | undefined)?.length).map((r) => r.key);
+    expect(marcadas.filter((k) => !LOGGED_IN_ONLY.has(k)), 'rota com @AnyAuthenticated fora de LOGGED_IN_ONLY').toEqual([]);
+    expect([...LOGGED_IN_ONLY].filter((k) => !marcadas.includes(k)), 'excecao velha em LOGGED_IN_ONLY').toEqual([]);
   }, 120000);
 
   it('a lista cobre as rotas publicas do inventario da auditoria (01a: 19 publicas, 01b: 22)', () => {

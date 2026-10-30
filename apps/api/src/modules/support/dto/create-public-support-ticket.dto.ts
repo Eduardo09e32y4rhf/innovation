@@ -1,3 +1,4 @@
+import { MaxLength } from 'class-validator';
 import { IsEnum, IsNotEmpty, IsOptional, IsString, IsEmail } from 'class-validator';
 import { IsIn } from 'class-validator';
 
@@ -31,6 +32,12 @@ export class CreatePublicSupportTicketDto {
   @IsOptional()
   @IsString()
   website?: string;
+
+  // Token do Cloudflare Turnstile (tambem aceito no header x-turnstile-token)
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  turnstileToken?: string;
 }
 
 export { CreatePublicSupportTicketDto as CreatepublicsupportticketDto };

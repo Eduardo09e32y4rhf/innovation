@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Header, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Param, ParseUUIDPipe, Post, Res, UseGuards, HttpCode } from '@nestjs/common';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -8,7 +8,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ModuleGuard } from '../../common/guards/module.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
-import { CreateDocumentRequestDto, ReviewDocumentDto } from './recruitment-documents.dto';
+import { CreateDocumentRequestDto, ReissueDocumentRequestDto, ReviewDocumentDto } from './recruitment-documents.dto';
 import { RecruitmentDocumentsService } from './recruitment-documents.service';
 
 /** Documentos de candidatura: RH e RH - R&S, com modulo e escopo de vaga. Nada aqui cria funcionario. */
@@ -26,6 +26,13 @@ export class RecruitmentDocumentsController {
   }
 
   @Header('Cache-Control', 'no-store')
+  @Header('Cache-Control', 'no-store')
+  @Get('applications/:id/document-kit')
+  kit(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.kitForApplication(companyId, actor, id);
+  }
+
+  @Header('Cache-Control', 'no-store')
   @Get('applications/:id/documents')
   list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.listForApplication(companyId, actor, id);
@@ -36,6 +43,7 @@ export class RecruitmentDocumentsController {
     return this.service.select(companyId, actor, id);
   }
 
+  @HttpCode(200)
   @Post('applications/:id/forward')
   forward(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.forward(companyId, actor, id);
@@ -46,6 +54,14 @@ export class RecruitmentDocumentsController {
     return this.service.revokeRequest(companyId, actor, requestId);
   }
 
+  @Header('Cache-Control', 'no-store')
+  @HttpCode(200)
+  @Post('document-requests/:requestId/reissue')
+  reissue(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('requestId', ParseUUIDPipe) requestId: string, @Body() dto: ReissueDocumentRequestDto) {
+    return this.service.reissueRequest(companyId, actor, requestId, dto);
+  }
+
+  @HttpCode(200)
   @Post('documents/:documentId/review')
   review(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('documentId', ParseUUIDPipe) documentId: string, @Body() dto: ReviewDocumentDto) {
     return this.service.review(companyId, actor, documentId, dto);

@@ -1,5 +1,5 @@
 import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Patch, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Patch, ParseUUIDPipe, HttpCode } from '@nestjs/common';
 import { ProposalsService } from './proposals.service';
 import { AcceptTermsDto, CreateProposalDto } from './dto/proposal.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -41,6 +41,7 @@ export class ProposalsController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV', 'COMERCIAL')
+  @HttpCode(200)
   @Post(':id/send')
   async sendProposal(@Request() req: any, @Param('id', ParseUUIDPipe) id: string) {
     return this.proposalsService.sendProposal(id, req.user.sub || req.user.id, req.user);

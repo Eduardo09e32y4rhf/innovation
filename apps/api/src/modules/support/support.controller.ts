@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, Res, BadRequestException, ParseUUIDPipe } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, Res, BadRequestException, ParseUUIDPipe, HttpCode } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { readMultipartUpload } from '../../common/http/multipart-upload';
@@ -36,6 +37,7 @@ export class SupportController {
     return this.satisfactionService.rate(req.user, id, dto.score, dto.comment);
   }
 
+  @HttpCode(200)
   @Post(':id/reopen')
   async reopenResolved(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     return this.satisfactionService.reopen(req.user, id);
@@ -72,18 +74,21 @@ export class SupportController {
     return this.supportService.addMessage(req.user, id, data.message, data.visibility || 'PUBLIC');
   }
 
+  @HttpCode(200)
   @Post('tickets/:id/close')
   async closeTicket(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     await this.supportService.closeTicket(req.user, id);
     return { success: true };
   }
 
+  @HttpCode(200)
   @Post('tickets/:id/reopen')
   async reopenTicket(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
     await this.supportService.reopenTicket(req.user, id);
     return { success: true };
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('tickets/:id/attachments')
   async uploadAttachment(@Req() req: any, @Param('id', ParseUUIDPipe) ticketId: string) {
     const { file } = await readMultipartUpload(req, { maxBytes: SUPPORT_ATTACHMENT_MAX_BYTES });

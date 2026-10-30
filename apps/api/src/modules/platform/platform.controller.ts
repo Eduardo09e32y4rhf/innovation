@@ -1,3 +1,4 @@
+import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Query, Req, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -129,6 +130,7 @@ export class PlatformController {
     }
   }
 
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Get('receita/:cnpj')
   async lookupCnpj(@Param('cnpj') cnpj: string) {
     return this.service.lookupCnpj(cnpj);

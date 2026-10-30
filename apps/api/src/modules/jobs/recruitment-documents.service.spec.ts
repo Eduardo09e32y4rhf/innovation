@@ -74,7 +74,7 @@ describe('link de documentos', () => {
   it('a visao publica nao expoe dados pessoais nem o arquivo', async () => {
     const { svc, token } = build({ docs: [{ label: 'RG', status: 'RETURNED', returnReason: 'Ilegivel' }] });
     const view: any = await svc.publicView(token);
-    expect(view).toEqual({ company: 'Acme', jobTitle: 'Dev', expiresAt: expect.any(Date), items: [{ label: 'RG', status: 'RETURNED', returnReason: 'Ilegivel' }, { label: 'CPF', status: 'PENDING', returnReason: null }] });
+    expect(view).toEqual({ company: 'Acme', jobTitle: 'Dev', expiresAt: expect.any(Date), verification: { required: false, verified: true, emailHint: null }, items: [{ label: 'RG', status: 'RETURNED', returnReason: 'Ilegivel', accepts: 'PDF, PNG, JPEG', sensitive: false, legalBasis: null }, { label: 'CPF', status: 'PENDING', returnReason: null, accepts: 'PDF, PNG, JPEG', sensitive: false, legalBasis: null }] });
   });
 });
 
@@ -128,12 +128,12 @@ describe('envio do documento pelo candidato', () => {
 describe('conferencia e encaminhamento', () => {
   it('devolver exige motivo; decisao concorrente nao sobrescreve', async () => {
     const { svc, prisma } = build();
-    prisma.recruitmentDocument.findFirst.mockResolvedValue({ id: 'd1', applicationId: 'app-1', status: 'RECEIVED', supersededAt: null });
+    prisma.recruitmentDocument.findFirst.mockResolvedValue({ id: 'd1', applicationId: 'app-1', status: 'RECEIVED', supersededAt: null, label: 'RG', docType: null });
     await expect(svc.review('c1', actor, 'd1', { decision: 'RETURNED', reason: ' ' })).rejects.toBeInstanceOf(BadRequestException);
     prisma.recruitmentDocument.updateMany.mockResolvedValueOnce({ count: 0 });
     await expect(svc.review('c1', actor, 'd1', { decision: 'APPROVED' })).rejects.toBeInstanceOf(ConflictException);
     prisma.recruitmentDocument.updateMany.mockResolvedValueOnce({ count: 1 });
-    await expect(svc.review('c1', actor, 'd1', { decision: 'RETURNED', reason: 'Imagem ilegivel' })).resolves.toEqual({ id: 'd1', status: 'RETURNED' });
+    await expect(svc.review('c1', actor, 'd1', { decision: 'RETURNED', reason: 'Imagem ilegivel' })).resolves.toEqual({ id: 'd1', status: 'RETURNED', emailed: false });
   });
 
   it('documento de outra empresa/escopo responde 404 e nao e baixado nem revisado', async () => {

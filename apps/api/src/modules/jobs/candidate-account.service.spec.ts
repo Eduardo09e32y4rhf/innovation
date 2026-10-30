@@ -186,7 +186,7 @@ describe('minhas candidaturas', () => {
 });
 
 describe('candidatura reaproveitando o perfil', () => {
-  const full: any = { id: 'acc-1', email: 'c@x.com', name: 'Camila', phone: '(11) 91234-5678', resumeKey: 'candidates/acc-1/x.pdf', resumeName: 'cv.pdf', resumeType: 'application/pdf' };
+  const full: any = { id: 'acc-1', email: 'c@x.com', name: 'Camila', phone: '(11) 91234-5678', resumeKey: 'candidates/acc-1/x.pdf', resumeName: 'cv.pdf', resumeType: 'application/pdf', verifiedAt: new Date() };
   it('exige consentimento', async () => {
     const { svc } = build();
     await expect(svc.applyWithProfile(full, 'j1', { consent: false } as any)).rejects.toThrow('Consentimento');

@@ -16,6 +16,23 @@ export function applicationReceivedEmail(input: { name: string; jobTitle: string
   };
 }
 
+export function applicationDuplicateEmail(input: { name: string; jobTitle: string; company: string; accountUrl: string; privacyUrl: string }): MailContent {
+  return {
+    subject: `Sua candidatura já estava registrada: ${input.jobTitle}`,
+    html: layout('Candidatura já registrada', `<p>Olá, ${escapeHtml(input.name)}.</p><p>Alguém enviou novamente uma candidatura para <strong>${escapeHtml(input.jobTitle)}</strong> na ${escapeHtml(input.company)} usando este e-mail. Como você já tinha se candidatado, nada foi alterado e o seu cadastro continua igual.</p><p>Se não foi você, ignore esta mensagem. Para acompanhar suas candidaturas, entre na sua conta. Seus dados: <a href="${escapeHtml(input.privacyUrl)}">privacidade</a>.</p>`, { label: 'Entrar na área do candidato', url: input.accountUrl }),
+    text: `Olá, ${input.name}.\n\nUma candidatura para ${input.jobTitle} (${input.company}) foi enviada novamente com este e-mail. Você já havia se candidatado; nada foi alterado.\nSe não foi você, ignore. Área do candidato: ${input.accountUrl}\nPrivacidade: ${input.privacyUrl}`,
+  };
+}
+
+export function consentReceiptEmail(input: { name: string; company: string; jobTitle: string; version: string; items: { label: string; text: string; revokeUrl: string; confirmUrl: string | null }[] }): MailContent {
+  const rows = input.items.map((item) => `<div style="margin:0 0 14px;padding:12px 14px;border:1px solid #e4d9f4;border-radius:10px"><p style="margin:0 0 6px;font-weight:700">${escapeHtml(item.label)}</p><p style="margin:0 0 8px;font-size:13px;color:#4b4560">${escapeHtml(item.text)}</p>${item.confirmUrl ? `<p style="margin:0 0 6px;font-size:13px"><strong>Falta um passo:</strong> <a href="${escapeHtml(item.confirmUrl)}">confirme que foi você</a>. Sem isso seu perfil não entra no banco de talentos.</p>` : ''}<p style="margin:0;font-size:12px"><a href="${escapeHtml(item.revokeUrl)}">Revogar este consentimento</a></p></div>`).join('');
+  return {
+    subject: `Recibo dos seus consentimentos (${input.jobTitle})`,
+    html: layout('Recibo de consentimento', `<p>Olá, ${escapeHtml(input.name)}.</p><p>Registramos, em nome da ${escapeHtml(input.company)} e para a vaga <strong>${escapeHtml(input.jobTitle)}</strong>, o que você autorizou (política versão ${escapeHtml(input.version)}). Guarde este e-mail como comprovante.</p>${rows}<p style="font-size:12px;color:#666">Você pode revogar quando quiser pelos links acima ou na sua conta.</p>`),
+    text: `Olá, ${input.name}.\n\nRecibo dos consentimentos registrados (${input.company}, ${input.jobTitle}, política ${input.version}):\n\n${input.items.map((item) => `- ${item.label}: ${item.text}\n  ${item.confirmUrl ? `Confirmar: ${item.confirmUrl}\n  ` : ''}Revogar: ${item.revokeUrl}`).join('\n')}`,
+  };
+}
+
 export function applicationRejectedEmail(input: { name: string; jobTitle: string; company: string; message?: string | null; privacyUrl: string }): MailContent {
   const body = (input.message ?? '').trim() || 'Neste momento seguiremos com outros perfis. Agradecemos o seu interesse e o tempo dedicado ao processo.';
   return {
@@ -30,12 +47,30 @@ export function candidateStageChangedEmail(input: { name: string; jobTitle: stri
   return { subject: `Sua candidatura avançou: ${input.jobTitle}`, html: portalLayout('Atualização da sua candidatura', body, input.statusUrl ? { label: 'Acompanhar candidatura', url: input.statusUrl } : undefined), text: `Olá, ${input.name}.\n\nSua candidatura para ${input.jobTitle} na ${input.company} avançou para: ${input.stage}.${input.statusUrl ? `\n\nAcompanhe: ${input.statusUrl}` : ''}` };
 }
 
+export function candidateRequestConfirmEmail(input: { type: string; confirmUrl: string; hours: number }): MailContent {
+  const label: Record<string, string> = { ACCESS: 'acesso aos seus dados', CORRECTION: 'correção dos seus dados', DELETION: 'exclusão dos seus dados' };
+  const what = label[input.type] ?? 'privacidade';
+  return {
+    subject: 'Confirme seu pedido de privacidade',
+    html: layout('Confirme seu pedido', `<p>Recebemos um pedido de <strong>${escapeHtml(what)}</strong> para este e-mail. Para garantir que foi você, confirme no botão abaixo (o link vale ${input.hours} horas e só pode ser usado uma vez).</p><p style="font-size:12px;color:#666">Se não foi você, ignore esta mensagem: nada será feito.</p>`, { label: 'Confirmar meu pedido', url: input.confirmUrl }),
+    text: `Recebemos um pedido de ${what} para este e-mail. Confirme em até ${input.hours} horas: ${input.confirmUrl}\nSe não foi você, ignore esta mensagem.`,
+  };
+}
+
 export function candidateRequestAnsweredEmail(input: { company: string; type: string; response: string }): MailContent {
   const label: Record<string, string> = { ACCESS: 'acesso aos dados', CORRECTION: 'correção de dados', DELETION: 'exclusão de dados' };
   return {
     subject: `Resposta ao seu pedido de ${label[input.type] ?? 'privacidade'}`,
     html: layout('Resposta ao seu pedido', `<p>${escapeHtml(input.company)} respondeu ao seu pedido de ${escapeHtml(label[input.type] ?? 'privacidade')}:</p><p>${escapeHtml(input.response).replace(/\n/g, '<br>')}</p>`),
     text: `${input.company} respondeu ao seu pedido de ${label[input.type] ?? 'privacidade'}:\n\n${input.response}`,
+  };
+}
+
+export function candidateEmailVerificationEmail(input: { code: string; minutes: number }): MailContent {
+  return {
+    subject: `Confirme seu e-mail: código ${input.code}`,
+    html: portalLayout('Confirme seu e-mail', `<p style="margin:0 0 16px">Bem-vindo(a) ao portal de vagas. Digite o código abaixo na tela para confirmar que este e-mail é seu:</p><p style="margin:0 0 16px;background:#f0eafa;border:1px solid #e4d9f4;border-radius:12px;padding:18px;text-align:center;font-size:34px;font-weight:700;letter-spacing:10px;color:#5b29be">${escapeHtml(input.code)}</p><p style="margin:0;font-size:13px;color:#6b6478">O código vale por ${input.minutes} minutos. Se você não criou esta conta, ignore este e-mail.</p>`),
+    text: `Seu código para confirmar o e-mail no portal de vagas Innovation RH: ${input.code}\nVale por ${input.minutes} minutos. Se você não criou a conta, ignore.`,
   };
 }
 
@@ -204,5 +239,22 @@ export function candidateDocumentsEmail(input: { name: string; company: string; 
     subject: `Envio de documentos: ${input.jobTitle} · ${input.company}`,
     html: portalLayout('Envie seus documentos', body),
     text: `Olá, ${input.name}.\n\nA ${input.company} precisa dos documentos: ${input.items.join(', ')}.\nEnvie em: ${input.url}\nVálido até ${input.expires}.`,
+  };
+}
+
+/** RS-C-08: o que o candidato precisa responder e em qual rota pública (proposta, teste ou escolha de horário). */
+export function assessmentReminderCopy(kind: 'OFFER' | 'ASSESSMENT' | 'SLOTS') {
+  if (kind === 'OFFER') return { path: 'proposta', what: 'a proposta de emprego', cta: 'Ver a proposta' };
+  if (kind === 'ASSESSMENT') return { path: 'teste', what: 'o teste online', cta: 'Abrir o teste' };
+  return { path: 'agendar', what: 'a escolha do horário da entrevista', cta: 'Escolher horário' };
+}
+
+/** Lembrete único antes de vencer o prazo de resposta do candidato. */
+export function deadlineReminderEmail(input: { name: string; company: string; jobTitle: string; what: string; cta: string; url: string; expires: string }): MailContent {
+  const body = `<p style="margin:0 0 12px">Olá, ${escapeHtml(input.name)}.</p><p style="margin:0 0 14px">Ainda não recebemos sua resposta sobre ${escapeHtml(input.what)} da vaga <strong>${escapeHtml(input.jobTitle)}</strong> na <strong>${escapeHtml(input.company)}</strong>. O prazo termina em <strong>${escapeHtml(input.expires)}</strong>; depois disso o link deixa de funcionar.</p>`;
+  return {
+    subject: `Seu prazo está acabando: ${input.jobTitle} · ${input.company}`,
+    html: portalLayout('Seu prazo está acabando', body, { label: input.cta, url: input.url }),
+    text: `Olá, ${input.name}.\n\nAinda não recebemos sua resposta sobre ${input.what} da vaga ${input.jobTitle} na ${input.company}. O prazo termina em ${input.expires}.\n${input.cta}: ${input.url}`,
   };
 }

@@ -1,5 +1,4 @@
 import { formatInterviewDate, interviewerLabel, normalizeInterview } from './interview-rules';
-import { newPublicToken } from './recruitment-tokens';
 import { visibleEvaluations } from './blind-evaluation';
 import { REJECTION_CODES } from './recruitment-privacy';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
@@ -131,7 +130,7 @@ export class RecruitmentService {
       }
 
       for (const [position, stage] of dto.stages.entries()) {
-        const data = { name: stage.name.trim(), color: stage.color || '#6b7280', kind: stage.kind as any, position, automation: stage.automation ?? 'NONE', automationConfig: (stage.automationConfig ?? undefined) as any, notifyCandidate: Boolean(stage.notifyCandidate), candidateLabel: stage.candidateLabel?.trim() || null };
+        const data = { name: stage.name.trim(), color: stage.color || '#6b7280', kind: stage.kind as any, position, automation: stage.automation ?? 'NONE', automationConfig: (stage.automationConfig ?? undefined) as any, notifyCandidate: Boolean(stage.notifyCandidate), candidateLabel: stage.candidateLabel?.trim() || null, slaDays: stage.slaDays ?? null };
         if (stage.id) {
           const before = current.find((item) => item.id === stage.id);
           await tx.pipelineStage.update({ where: { id: stage.id }, data });
@@ -603,7 +602,6 @@ export class RecruitmentService {
         candidateMessage: input.candidateMessage,
         agendaEventId: agenda.id,
         createdById: userId,
-        responseToken: newPublicToken(),
       },
     });
     const when = formatInterviewDate(input.scheduledAt).short;

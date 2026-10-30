@@ -1,3 +1,4 @@
+import { Throttle } from '@nestjs/throttler';
 import { outboundFetch } from '../../common/http/outbound';
 import { BadRequestException, Controller, Get, NotFoundException, Param, UseGuards } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -59,11 +60,13 @@ export async function lookupCep(raw: string) {
 @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR')
 @Controller('lookup')
 export class LookupController {
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Get('cep/:cep')
   cep(@Param('cep') raw: string) {
     return lookupCep(raw);
   }
 
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Get('cnpj/:cnpj')
   async cnpj(@Param('cnpj') raw: string) {
     const cnpj = raw.replace(/\D/g, '');

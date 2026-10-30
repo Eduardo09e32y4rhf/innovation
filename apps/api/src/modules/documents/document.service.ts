@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, Inject, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { SupportStorageService } from '../support/support-storage.service';
 import * as crypto from 'crypto';
@@ -79,11 +79,11 @@ export class DocumentService {
   }
   async getDocumentStream(actor: any, documentId: string) {
     const doc = await this.prisma.generatedDocument.findUnique({ where: { id: documentId } });
-    if (!doc) throw new BadRequestException('Documento não encontrado');
+    if (!doc) throw new NotFoundException('Documento não encontrado');
 
     if (actor.role !== 'DEV' && actor.role !== 'SUPORTE') {
       if (doc.companyId !== actor.companyId) {
-        throw new BadRequestException('Acesso negado a este documento');
+        throw new ForbiddenException('Acesso negado a este documento');
       }
     }
 
@@ -94,7 +94,7 @@ export class DocumentService {
   /** Bytes do PDF gerado, sempre escopado pela empresa dona do documento. */
   async readBuffer(companyId: string, documentId: string): Promise<Buffer> {
     const doc = await this.prisma.generatedDocument.findFirst({ where: { id: documentId, companyId } });
-    if (!doc) throw new BadRequestException('Documento não encontrado');
+    if (!doc) throw new NotFoundException('Documento não encontrado');
     const stream = await this.storageService.getFileStream(doc.storageKey);
     const chunks: Buffer[] = [];
     for await (const chunk of stream as AsyncIterable<Buffer | string>) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));

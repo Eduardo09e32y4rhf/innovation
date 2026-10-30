@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, Req, Res, UseGuards, HttpCode } from '@nestjs/common';
 import { readMultipartUpload } from '../../common/http/multipart-upload';
 import { LaunchDto, LaunchService } from './launch/launch.service';
 import { contentDisposition, safeFileName } from '../../common/pdf/pdf-response';
@@ -119,6 +119,7 @@ export class HubController {
 
   /** Lançamento de escala em lote: valida o escopo (gestor só a própria equipe) e reaproveita a atribuição com bloqueios e prévia. */
   @Roles(...rolesWith('schedule.write'))
+  @HttpCode(200)
   @Post('assign/preview')
   async assignPreview(@CurrentUser() actor: JwtUser, @Body() dto: AssignScheduleDto) {
     await this.assertAssignScope(actor, dto);

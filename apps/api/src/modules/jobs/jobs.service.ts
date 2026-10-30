@@ -1,9 +1,12 @@
 import { ALLOW, inspectFile, sanitizeFileName } from '../../common/utils/file-validation';
+import { normalizeRequiredDocuments } from './recruitment-doc-types';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { createHash, randomUUID } from 'crypto';
 import { plainToInstance } from 'class-transformer';
@@ -21,11 +24,29 @@ import { normalizeAnswerValue, validateAnswerShape, type RuleQuestion } from './
 import { normalizeSource } from './application-source';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
 import { JobWorkflowService } from './job-workflow.service';
+import { assertResumeClean, CandidateDocumentScanner } from './candidate-document-scanner.service';
+import { CandidateConsentService } from './candidate-consent.service';
+import { JobAuditService } from './job-audit.service';
+import { RecruiterNotifierService } from './recruiter-notifier.service';
+import { buildJobFeedJson, buildJobFeedXml, type FeedJob } from './job-feed';
+import { appBase } from './recruitment-tokens';
+import { changedFields, statusAction } from './job-audit';
 
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 
+/** Contexto da candidatura: quem prova posse do e-mail (conta verificada) e a origem tecnica da requisicao. */
+export type ApplyContext = {
+  /** Conta do candidato com e-mail verificado: so ela pode atualizar nome/telefone de um cadastro existente e ver o 409 de duplicidade. */
+  ownerVerified?: boolean;
+  /** IP (clientIp) e user agent da requisicao: prova de consentimento e trilha de upload (RS-D-06, RS-D-19). */
+  ip?: string;
+  userAgent?: string;
+};
+
 @Injectable()
 export class JobsService {
+  private readonly logger = new Logger(JobsService.name);
+
   constructor(
     private readonly repository: JobsRepository,
     private readonly storage: JobsStorageService,
@@ -33,6 +54,10 @@ export class JobsService {
     private readonly privacy: RecruitmentPrivacyService,
     private readonly workflow: JobWorkflowService,
     private readonly documents: RecruitmentDocumentsService,
+    private readonly scanner?: CandidateDocumentScanner,
+    private readonly consents?: CandidateConsentService,
+    @Optional() private readonly audit?: JobAuditService,
+    @Optional() private readonly notifier?: RecruiterNotifierService,
   ) {}
 
   async list(companyId: string, jobScope: Prisma.JobWhereInput = {}) {
@@ -67,15 +92,18 @@ export class JobsService {
     }
   }
 
-  async create(companyId: string, dto: CreateJobDto) {
+  async create(companyId: string, dto: CreateJobDto, actorId?: string) {
     await this.assertJobQuota(companyId);
     const gate = await this.workflow.prepare(companyId, { currentStatus: null, nextStatus: dto.status ?? 'OPEN', department: dto.department, openings: dto.openings });
     const job = await this.repository.create(companyId, { ...this.normalizeJob(dto), status: gate.status });
-    if (gate.startApproval) await this.workflow.startApproval(companyId, job.id, gate.steps);
+    if (gate.startApproval) await this.workflow.startApproval(companyId, job.id, gate.steps, actorId);
+    await this.audit?.record(companyId, actorId, 'JOB_CREATED', job.id, { title: job.title, status: job.status });
+    const created = statusAction(null, job.status);
+    if (created) await this.audit?.record(companyId, actorId, created, job.id, { from: null, to: job.status });
     return job;
   }
 
-  async update(companyId: string, id: string, dto: UpdateJobDto) {
+  async update(companyId: string, id: string, dto: UpdateJobDto, actorId?: string) {
     const current = await this.get(companyId, id);
     // Encerrar grava a data; reativar vale por 30 dias e NAO conta como vaga nova no limite do plano (nao passa por assertJobQuota).
     const change = dto.status ? statusChange(current, dto.status) : { ok: true as const, data: {} };
@@ -83,17 +111,23 @@ export class JobsService {
     const gate = await this.workflow.prepare(companyId, { currentStatus: current.status, nextStatus: dto.status, department: dto.department ?? current.department, openings: dto.openings ?? current.openings, jobId: id });
     const result = await this.repository.update(companyId, id, { ...this.normalizeJob(dto), ...change.data, ...(dto.status ? { status: gate.status } : {}) });
     if (!result.count) throw new NotFoundException('Vaga nao encontrada.');
-    if (gate.startApproval) await this.workflow.startApproval(companyId, id, gate.steps);
+    if (gate.startApproval) await this.workflow.startApproval(companyId, id, gate.steps, actorId);
+    const finalStatus = dto.status ? gate.status : current.status;
+    const moved = statusAction(current.status, finalStatus);
+    if (moved) await this.audit?.record(companyId, actorId, moved, id, { from: current.status, to: finalStatus });
+    const fields = changedFields(current as unknown as Record<string, unknown>, dto as unknown as Record<string, unknown>);
+    if (fields.length) await this.audit?.record(companyId, actorId, 'JOB_UPDATED', id, { fields });
     return this.get(companyId, id);
   }
 
-  async duplicate(companyId: string, id: string) {
+  async duplicate(companyId: string, id: string, actorId?: string) {
     await this.assertJobQuota(companyId);
     const job = await this.get(companyId, id);
     const [questions, criteria] = await Promise.all([
       this.recruitment.getQuestions(companyId, id),
       this.recruitment.getCriteria(companyId, id),
     ]);
+    const deadlineStillValid = Boolean(job.deadline && new Date(job.deadline).getTime() > Date.now());
     const copy = await this.repository.create(companyId, {
       title: `${job.title} (cópia)`,
       description: job.description,
@@ -111,12 +145,19 @@ export class JobsService {
       salaryHidden: job.salaryHidden,
       pipelineId: job.pipelineId,
       interviewGuide: job.interviewGuide ?? [],
+      requiredDocuments: normalizeRequiredDocuments(job.requiredDocuments) as any,
       screeningMinScore: job.screeningMinScore,
       screeningAction: job.screeningAction,
       isInternal: job.isInternal,
       confidential: job.confidential,
+      pcd: job.pcd,
+      costAmount: job.costAmount,
+      // Prazo so e copiado se ainda esta no futuro: uma copia nasceria ja expirada (o RH define o novo prazo).
+      deadline: deadlineStillValid ? job.deadline : null,
       status: 'DRAFT',
     });
+    // Responsaveis (RS-R-15): quem duplica e atribuido pelo controller (RH_RS), por isso nao entra na copia.
+    await this.repository.copyRecruiters(companyId, id, copy.id, actorId);
     if (questions.length) {
       await this.recruitment.saveQuestions(companyId, copy.id, {
         questions: questions.map((question) => ({
@@ -134,7 +175,8 @@ export class JobsService {
         criteria: criteria.map((item) => ({ name: item.name, weight: item.weight })),
       });
     }
-    return copy;
+    await this.audit?.record(companyId, actorId, 'JOB_DUPLICATED', copy.id, { sourceJobId: id, title: copy.title });
+    return Object.assign(copy, { deadlineReset: Boolean(job.deadline) && !deadlineStillValid });
   }
 
   /** Cargos para o titulo da vaga: cargos cadastrados, cargos dos funcionarios e titulos de vagas anteriores. */
@@ -172,9 +214,11 @@ export class JobsService {
     }
     if (job._count.applications === 0 && job.status === 'DRAFT') {
       await this.repository.delete(companyId, id);
+      await this.audit?.record(companyId, actorId, 'JOB_DELETED_PERMANENTLY', id, { title: job.title, applications: 0, draft: true });
       return { deleted: true, archived: false };
     }
     if (job.status !== 'CLOSED' && job.status !== 'FILLED') await this.repository.update(companyId, id, { status: 'CLOSED', closedAt: new Date() });
+    await this.audit?.record(companyId, actorId, 'JOB_ARCHIVED', id, { title: job.title, from: job.status });
     return { deleted: false, archived: true };
   }
 
@@ -182,13 +226,67 @@ export class JobsService {
     if (!dto.department?.trim() || !dto.contractType?.trim() || !dto.admissionDate) {
       throw new BadRequestException('Informe departamento, tipo de contrato e data de admissao antes de contratar o candidato.');
     }
+    await this.assertAcceptedOffer(companyId, applicationId, actorId, dto);
+    await this.assertHiringDocuments(companyId, applicationId, actorId, dto);
     const result = await this.repository.hire(companyId, applicationId, actorId, dto);
     if (!result) throw new NotFoundException('Candidatura nao encontrada.');
     if (!result.alreadyHired) {
       await this.recruitment.completeWorkflow?.(applicationId, 'COMPLETE_ADMISSION', 'Admissão concluída e funcionário criado.');
-      void this.documents.sendHireWelcome(companyId, actorId, applicationId, dto.admissionDate, dto.contractType);
+      void this.sendWelcomeWithRetry(companyId, actorId, applicationId, dto);
+      await this.closeJobIfFilled(companyId, applicationId, actorId);
     }
     return result;
+  }
+
+  // RS-C-13: se houve proposta, ao menos uma precisa estar ACEITA; sem nenhuma proposta registrada (módulo opcional) segue livre.
+  private async assertAcceptedOffer(companyId: string, applicationId: string, actorId: string, dto: HireCandidateDto) {
+    const statuses: string[] = await this.repository.offerStatuses(companyId, applicationId);
+    if (!statuses.length || statuses.includes('ACCEPTED')) return;
+    if (!dto.skipOfferCheck) throw new BadRequestException('A proposta ainda não foi aceita pelo candidato. Aguarde o aceite ou registre uma exceção com justificativa.');
+    const reason = dto.skipOfferReason?.trim() ?? '';
+    if (reason.length < 10) throw new BadRequestException('Informe a justificativa (mínimo de 10 caracteres) para contratar sem proposta aceita.');
+    await this.repository.audit(companyId, actorId, 'HIRE_OFFER_OVERRIDE', applicationId, { statuses, reason });
+  }
+
+  // O e-mail de boas-vindas não pode se perder em silêncio: até 3 tentativas com espera crescente; a falha final fica no histórico (HIRED_EMAIL).
+  private async sendWelcomeWithRetry(companyId: string, actorId: string, applicationId: string, dto: HireCandidateDto) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (attempt) await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+      if (await this.documents.sendHireWelcome(companyId, actorId, applicationId, dto.admissionDate, dto.contractType)) return;
+    }
+  }
+
+  // RS-D-03: documentos obrigatórios da vaga precisam estar aprovados; exceção só com justificativa, e fica na auditoria.
+  private async assertHiringDocuments(companyId: string, applicationId: string, actorId: string, dto: HireCandidateDto) {
+    const kit = await this.documents.hiringKitStatus(applicationId, companyId);
+    if (!kit.missing.length) return;
+    if (!dto.skipDocumentCheck) {
+      throw new BadRequestException(`Faltam documentos obrigatórios aprovados: ${kit.missing.join(', ')}. Aprove-os ou registre uma exceção com justificativa.`);
+    }
+    const reason = dto.skipDocumentReason?.trim() ?? '';
+    if (reason.length < 10) throw new BadRequestException('Informe a justificativa (mínimo de 10 caracteres) para contratar com documentos pendentes.');
+    await this.repository.audit(companyId, actorId, 'HIRE_DOCUMENTS_OVERRIDE', applicationId, { missing: kit.missing, reason });
+  }
+
+  // RS-R-02: ao atingir o número de vagas, a vaga vira FILLED e os demais candidatos ativos recebem a devolutiva.
+  // Falha em um candidato não desfaz a contratação (já commitada) nem impede os outros.
+  private async closeJobIfFilled(companyId: string, applicationId: string, actorId: string) {
+    try {
+      const fill = await this.repository.fillJobAfterHire(companyId, applicationId);
+      if (!fill?.filled) return;
+      let rejected = 0;
+      for (const item of fill.pending) {
+        try {
+          await this.recruitment.moveApplication(companyId, actorId, item.id, { stageId: item.rejectedStageId, rejectionCode: 'VAGA_PREENCHIDA', rejectionReason: 'A vaga foi preenchida por outro candidato.' });
+          rejected += 1;
+        } catch {
+          // a candidatura segue ativa para o RH tratar manualmente
+        }
+      }
+      await this.repository.audit(companyId, actorId, 'JOB_FILLED', fill.jobId, { title: fill.title, rejected, pending: fill.pending.length });
+    } catch {
+      // o fechamento pode ser refeito pelo RH; a contratação já está salva
+    }
   }
 
   // ─── Portal público ─────────────────────────────────────────────
@@ -211,6 +309,14 @@ export class JobsService {
     if (!company) throw new NotFoundException('Empresa nao encontrada.');
     const jobs = await this.repository.publicJobs(company.id);
     return { company, jobs: jobs.map((job) => this.toPublicJob(job)) };
+  }
+
+  /** Feed de vagas abertas da empresa (XML estilo Indeed ou JSON). Mesmas regras da lista publica: sem confidenciais, sem internas, salario oculto respeitado. */
+  async publicFeed(companyKey: string, format: 'xml' | 'json') {
+    const { company, jobs } = await this.publicJobs(companyKey);
+    const base = appBase();
+    const feedJobs = jobs as unknown as FeedJob[];
+    return format === 'xml' ? buildJobFeedXml(company, feedJobs, base) : buildJobFeedJson(company, feedJobs, base);
   }
 
   async publicJobsCatalog() {
@@ -259,6 +365,7 @@ export class JobsService {
     jobId: string,
     raw: Record<string, unknown>,
     file?: { buffer: Buffer; filename: string; mimetype?: string },
+    context: ApplyContext = {},
   ) {
     const { answers: rawAnswers, ...rawFields } = raw || {};
     const cleanedRaw = Object.fromEntries(
@@ -276,12 +383,18 @@ export class JobsService {
       });
     }
     if (dto.website) return { received: true };
+    // RS-D-06: dados sensiveis de diversidade so com consentimento proprio.
+    if ((dto.gender || dto.race || dto.pcd) && !dto.sensitiveConsent) {
+      throw new BadRequestException({ message: 'Para informar gênero, cor ou raça e deficiência, marque a autorização específica de dados de diversidade.', fields: { sensitiveConsent: 'Autorização obrigatória' } });
+    }
     if (!file?.buffer?.length) throw new BadRequestException('Envie seu curriculo em PDF ou DOCX.');
     if (file.buffer.length > MAX_RESUME_SIZE) throw new BadRequestException('O curriculo deve ter no maximo 5 MB.');
 
     const checked = inspectFile(file.buffer, { allow: ALLOW.RESUME, maxBytes: MAX_RESUME_SIZE, filename: file.filename });
     if (!checked.ok) throw new BadRequestException(checked.code === 'UNSAFE' ? checked.message : 'Curriculo invalido. Envie um arquivo PDF ou DOCX verdadeiro.');
     const format = { extension: checked.extension, mime: checked.mime };
+    // RS-C-03: antivirus antes de gravar (fail-closed em producao).
+    await assertResumeClean(this.scanner, file.buffer);
 
     const job = await this.repository.jobForApplication(jobId);
     if (!job) throw new NotFoundException('Vaga nao encontrada ou encerrada.');
@@ -315,7 +428,7 @@ export class JobsService {
       const result = await this.repository.apply(
         job.companyId,
         job.id,
-        { ...dto, source: normalizeSource(dto.source), name: safeName, email: normalizedEmail },
+        { ...dto, source: normalizeSource(dto.source), name: safeName, email: normalizedEmail, ownerVerified: Boolean(context.ownerVerified) },
         {
           key: storageKey,
           name: this.safeFileName(file.filename, format.extension),
@@ -332,14 +445,53 @@ export class JobsService {
       );
       if (result.duplicate) {
         await this.storage.remove(storageKey);
-        throw new ConflictException('Voce ja se inscreveu nesta vaga. Sua candidatura esta em analise.');
+        if (context.ownerVerified) throw new ConflictException('Voce ja se inscreveu nesta vaga. Sua candidatura esta em analise.');
+        // RS-C-12: quem nao provou a posse do e-mail recebe a mesma resposta de uma candidatura nova (sem enumerar e-mails);
+        // o dono do e-mail e avisado por mensagem.
+        await this.privacy.notifyDuplicateApply(result.application.id);
+        return { received: true };
       }
-      await this.privacy.afterApply(result.application.id, { gender: dto.gender, race: dto.race, pcd: dto.pcd });
+      await this.privacy.afterApply(result.application.id, dto.sensitiveConsent ? { gender: dto.gender, race: dto.race, pcd: dto.pcd } : {});
+      await this.afterApplyProof(result.application.id, job, dto, normalizedEmail, safeName, hash, { size: file.buffer.length, mime: format.mime }, context);
+      void this.notifyNewApplication(job, safeName, evaluation.reject && evaluation.knockedOut);
       // Reprovado por pergunta eliminatoria: o retorno ao candidato sai 24h depois (InterviewFollowupService.sendDelayedKnockoutFeedback).
-      return { received: true, applicationId: result.application.id };
+      return context.ownerVerified ? { received: true, applicationId: result.application.id } : { received: true };
     } catch (error) {
       if (!(error instanceof ConflictException)) await this.storage.remove(storageKey);
       throw error;
+    }
+  }
+
+  // RS-R-03: quem conduz a vaga sabe na hora que chegou candidatura (e-mail aos responsáveis + sino do RH). Falha não derruba a candidatura.
+  private async notifyNewApplication(job: { id: string; companyId: string; title?: string }, name: string, autoRejected: boolean) {
+    if (autoRejected || !this.notifier) return;
+    try {
+      const userIds = await this.repository.jobRecruiterIds(job.companyId, job.id);
+      await this.notifier.notify({ companyId: job.companyId, jobId: job.id, userIds, title: `Nova candidatura: ${name}`, lines: [`${name} se candidatou à vaga ${job.title ?? ''}. Abra a vaga para analisar o currículo.`.replace('  ', ' ')], priority: 'LOW', kind: 'APPLICATION_RECEIVED', cta: 'Ver candidatura' });
+    } catch {
+      // o aviso é complementar; a candidatura já foi registrada
+    }
+  }
+
+  /** RS-D-06 + RS-D-19: livro de consentimentos (com recibo) e trilha de auditoria do envio do curriculo. Nunca derruba a candidatura. */
+  private async afterApplyProof(
+    applicationId: string,
+    job: { id: string; companyId: string; title?: string; company?: { name?: string } | null },
+    dto: ApplyJobDto,
+    email: string,
+    name: string,
+    sha256: string,
+    file: { size: number; mime: string },
+    context: ApplyContext,
+  ) {
+    try {
+      await this.consents?.recordApplication({
+        email, name, applicationId, companyId: job.companyId, jobTitle: job.title ?? 'Vaga', company: job.company?.name ?? 'Empresa',
+        talentPoolOptIn: Boolean(dto.talentPoolOptIn), sensitive: Boolean(dto.sensitiveConsent && (dto.gender || dto.race || dto.pcd)), ip: context.ip, userAgent: context.userAgent,
+      });
+      await this.repository.auditCandidateUpload?.(job.companyId, { action: 'CANDIDATE_RESUME_UPLOADED', label: 'CURRICULO_CANDIDATURA', entityId: applicationId, sha256, size: file.size, mime: file.mime, ip: context.ip, userAgent: context.userAgent });
+    } catch (error) {
+      this.logger.error(`Prova de consentimento/auditoria do curriculo falhou (${applicationId}): ${error instanceof Error ? error.message : error}`);
     }
   }
 
@@ -372,6 +524,7 @@ export class JobsService {
       ...('workMode' in dto ? { workMode: optional((dto as { workMode?: string | null }).workMode) } : {}),
       benefits: dto.benefits?.map((item) => item.trim()).filter(Boolean),
       interviewGuide: dto.interviewGuide?.map((item) => item.trim()).filter(Boolean),
+      ...(dto.requiredDocuments !== undefined ? { requiredDocuments: normalizeRequiredDocuments(dto.requiredDocuments) as any } : {}),
       requirements: dto.requirements?.map((item) => item.trim()).filter(Boolean),
       salaryMin,
       salaryMax,
