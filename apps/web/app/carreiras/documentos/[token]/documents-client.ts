@@ -7,7 +7,7 @@ export type DocumentRequestView = {
   company: string;
   jobTitle: string;
   expiresAt: string;
-  items: Array<{ label: string; status: DocumentItemStatus; returnReason: string | null }>;
+  items: Array<{ label: string; status: DocumentItemStatus; returnReason: string | null; accepts?: string; sensitive?: boolean; legalBasis?: string | null }>;
 };
 
 /** Texto sempre acompanha a cor: o estado nunca depende so de cor. */

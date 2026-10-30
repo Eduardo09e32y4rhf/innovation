@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional, PayloadTooLargeException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, Optional, PayloadTooLargeException, UnprocessableEntityException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { decryptForCompany, fileEncryptionAvailable, sealFile, encryptForCompany } from '../../common/crypto/file-crypto';
@@ -9,7 +9,7 @@ import { CandidateDocumentScanner } from './candidate-document-scanner.service';
 import { JobScopeService } from './job-scope.service';
 import { JobsStorageService } from './jobs-storage.service';
 import { RecruitmentWorkflowService } from './recruitment-workflow.service';
-import { formatsLabel, resolveRequiredDocuments, ruleForLabel, validateApproval, type DocType } from './recruitment-doc-types';
+import { canReadSensitive, formatsLabel, resolveRequiredDocuments, ruleForLabel, validateApproval, type DocType } from './recruitment-doc-types';
 import { documentApprovedEmail, documentReminderEmail, documentReturnedEmail } from './recruitment-documents.mails';
 import { RecruiterNotifierService } from './recruiter-notifier.service';
 import {
@@ -129,11 +129,14 @@ export class RecruitmentDocumentsService {
       this.prisma.application.findFirst({ where: { id: applicationId, companyId }, select: { selectedAt: true, forwardedAt: true } }),
     ]);
     const now = new Date();
+    const mayRead = canReadSensitive(actor.role);
     return {
       selectedAt: application?.selectedAt ?? null,
       forwardedAt: application?.forwardedAt ?? null,
       requests: requests.map((request) => ({ ...request, state: linkState(request, now) })),
-      documents,
+      // Sensivel: quem nao e RH ve o estado, mas nao o nome do arquivo nem pode abrir (restricted).
+      documents: documents.map((doc) => (doc.sensitive && !mayRead ? { ...doc, fileName: 'Documento sensível', restricted: true } : { ...doc, restricted: false })),
+      canReadSensitive: mayRead,
     };
   }
 
@@ -147,10 +150,12 @@ export class RecruitmentDocumentsService {
   }
 
   async download(companyId: string, actor: Actor, documentId: string) {
-    const doc = await this.prisma.recruitmentDocument.findFirst({ where: { id: documentId, companyId }, select: { id: true, applicationId: true, fileKey: true, fileName: true, mimeType: true, encrypted: true } });
+    const doc = await this.prisma.recruitmentDocument.findFirst({ where: { id: documentId, companyId }, select: { id: true, applicationId: true, fileKey: true, fileName: true, mimeType: true, encrypted: true, sensitive: true, legalBasis: true, docType: true } });
     if (!doc) throw new NotFoundException('Documento nao encontrado.');
     await this.scope.assertApplication(companyId, actor, doc.applicationId);
-    await this.audit(companyId, actor.sub, 'RECRUITMENT_DOCUMENT_DOWNLOADED', doc.applicationId, { documentId });
+    if (doc.sensitive && !canReadSensitive(actor.role)) throw new ForbiddenException('Documento sensivel: somente o RH pode abrir.');
+    // RS-D-08: leitura de dado sensivel e auditada com a base legal; nunca registra URL, nome do arquivo ou conteudo.
+    await this.audit(companyId, actor.sub, doc.sensitive ? 'RECRUITMENT_SENSITIVE_DOCUMENT_READ' : 'RECRUITMENT_DOCUMENT_DOWNLOADED', doc.applicationId, { documentId, ...(doc.sensitive ? { docType: doc.docType, legalBasis: doc.legalBasis } : {}) });
     return { stream: Readable.from(await this.openFile(companyId, doc)), name: doc.fileName, type: doc.mimeType };
   }
 
@@ -191,9 +196,10 @@ export class RecruitmentDocumentsService {
   }
 
   async review(companyId: string, actor: Actor, documentId: string, dto: { decision: 'APPROVED' | 'RETURNED'; reason?: string; expiresAt?: string | Date | null }) {
-    const doc = await this.prisma.recruitmentDocument.findFirst({ where: { id: documentId, companyId }, select: { id: true, applicationId: true, status: true, supersededAt: true, label: true, docType: true } });
+    const doc = await this.prisma.recruitmentDocument.findFirst({ where: { id: documentId, companyId }, select: { id: true, applicationId: true, status: true, supersededAt: true, label: true, docType: true, sensitive: true } });
     if (!doc) throw new NotFoundException('Documento nao encontrado.');
     await this.scope.assertApplication(companyId, actor, doc.applicationId);
+    if (doc.sensitive && !canReadSensitive(actor.role)) throw new ForbiddenException('Documento sensivel: somente o RH pode conferir.');
     if (doc.supersededAt) throw new ConflictException('Este documento foi substituido por um envio mais recente.');
     const reason = dto.reason?.trim();
     if (dto.decision === 'RETURNED' && (!reason || reason.length < 5)) throw new BadRequestException('Informe o motivo da devolucao (minimo 5 caracteres).');
@@ -409,7 +415,8 @@ export class RecruitmentDocumentsService {
       expiresAt: request.expiresAt,
       items: request.items.map((label) => {
         const doc = byLabel.get(label);
-        return { label, status: doc?.status ?? 'PENDING', returnReason: doc?.status === 'RETURNED' ? doc.returnReason : null };
+        const rule = ruleForLabel(label);
+        return { label, status: doc?.status ?? 'PENDING', returnReason: doc?.status === 'RETURNED' ? doc.returnReason : null, accepts: formatsLabel(rule.formats), sensitive: rule.sensitive, legalBasis: rule.sensitive ? rule.legalBasis : null };
       }),
     };
   }
@@ -431,7 +438,7 @@ export class RecruitmentDocumentsService {
     const sha256 = createHash('sha256').update(file.buffer).digest('hex');
     const key = `${request.companyId}/documents/${request.applicationId}/${randomUUID()}.${type.extension}`;
     const sealed = sealFile(file.buffer, request.companyId); // RS-D-14: AES-256-GCM com chave por empresa
-    try { await this.storage.save(key, sealed.data); } catch (error) { this.logger.error(`Documento do candidato: falha ao gravar o arquivo (${key}): ${error instanceof Error ? error.stack : error}`); throw error; }
+    try { await this.storage.save(key, sealed.data); } catch (error) { this.logger.error(`Documento do candidato: falha ao gravar o arquivo (candidatura ${request.applicationId}): ${(error as { code?: string; name?: string })?.code ?? (error as Error)?.name ?? 'erro'}`); throw error; }
     try {
       await this.prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`doc:${request.applicationId}:${label}`}))`;
@@ -441,7 +448,7 @@ export class RecruitmentDocumentsService {
         });
       });
     } catch (error) {
-      this.logger.error(`Documento do candidato: falha ao gravar no banco (${request.applicationId}): ${error instanceof Error ? error.stack : error}`);
+      this.logger.error(`Documento do candidato: falha ao gravar no banco (${request.applicationId}): ${(error as { code?: string; name?: string })?.code ?? (error as Error)?.name ?? 'erro'}`);
       await this.storage.remove(key);
       throw error;
     }

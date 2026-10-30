@@ -8,7 +8,7 @@ import type { FileKind } from '../../common/utils/file-validation';
  */
 export const DOC_TYPES = [
   'IDENTIDADE', 'CPF', 'TITULO_ELEITOR', 'CTPS', 'PIS', 'COMPROVANTE_RESIDENCIA', 'CERTIDAO_CIVIL', 'ESCOLARIDADE', 'DIPLOMA',
-  'FOTO', 'DADOS_BANCARIOS', 'RESERVISTA', 'DEPENDENTES', 'CNH', 'ASO', 'ANTECEDENTES', 'VACINA', 'CERTIDAO', 'PESSOA_JURIDICA', 'CONTRATO', 'OUTRO',
+  'FOTO', 'DADOS_BANCARIOS', 'RESERVISTA', 'DEPENDENTES', 'CNH', 'ASO', 'ANTECEDENTES', 'VACINA', 'LAUDO_PCD', 'CERTIDAO', 'PESSOA_JURIDICA', 'CONTRATO', 'OUTRO',
 ] as const;
 export type DocType = (typeof DOC_TYPES)[number];
 
@@ -50,6 +50,7 @@ export const DOC_TYPE_RULES: Record<DocType, DocTypeRule> = {
   ASO: { type: 'ASO', formats: BASIC, tracksExpiry: true, requiresExpiry: true, suggestedValidityMonths: 12, sensitive: true, legalBasis: BASE_HEALTH, mandatory: true },
   ANTECEDENTES: { type: 'ANTECEDENTES', formats: BASIC, tracksExpiry: true, requiresExpiry: true, suggestedValidityMonths: 3, sensitive: true, legalBasis: 'LGPD art. 7, II ou IX, conforme a funcao; so quando a lei ou a natureza do cargo justificar (tema trabalhista sensivel). Validacao juridica pendente.', mandatory: false },
   VACINA: { type: 'VACINA', formats: BASIC, tracksExpiry: true, requiresExpiry: false, suggestedValidityMonths: null, sensitive: true, legalBasis: BASE_HEALTH, mandatory: false },
+  LAUDO_PCD: { type: 'LAUDO_PCD', formats: BASIC, tracksExpiry: false, requiresExpiry: false, suggestedValidityMonths: null, sensitive: true, legalBasis: 'LGPD art. 11, II, "a" (cota de pessoa com deficiencia: Lei 8.213/1991 art. 93) ou consentimento especifico (art. 11, I). Validacao juridica pendente.', mandatory: false },
   CERTIDAO: { type: 'CERTIDAO', formats: BASIC, tracksExpiry: true, requiresExpiry: true, suggestedValidityMonths: 6, sensitive: false, legalBasis: null, mandatory: false },
   PESSOA_JURIDICA: { type: 'PESSOA_JURIDICA', formats: BASIC, tracksExpiry: false, requiresExpiry: false, suggestedValidityMonths: null, sensitive: false, legalBasis: null, mandatory: true },
   CONTRATO: { type: 'CONTRATO', formats: BASIC, tracksExpiry: false, requiresExpiry: false, suggestedValidityMonths: null, sensitive: false, legalBasis: null, mandatory: false },
@@ -62,6 +63,7 @@ const norm = (value: string) => value.normalize('NFD').replace(/[̀-ͯ]/g, '').t
 const LABEL_RULES: Array<[RegExp, DocType]> = [
   [/\baso\b|atestado de saude|exame.* admission|exames? medic/, 'ASO'],
   [/antecedentes/, 'ANTECEDENTES'],
+  [/laudo|\bcid\b|\bpcd\b|deficiencia/, 'LAUDO_PCD'],
   [/vacina/, 'VACINA'],
   [/categoria exigida|^cnh\b/, 'CNH'],
   [/diploma/, 'DIPLOMA'],
@@ -138,6 +140,12 @@ export function kitFor(contractType?: string | null): string[] {
 }
 
 export type RequiredDocItem = { label: string; required: boolean };
+
+export const SENSITIVE_READ_ROLES = ['DEV', 'ADMIN', 'RH'] as const;
+/** Dado sensivel (saude, antecedentes, PCD/CID): leitura somente RH, ADMIN e DEV. RH - R&S e gestores nao abrem o arquivo. */
+export function canReadSensitive(role?: string | null): boolean {
+  return (SENSITIVE_READ_ROLES as readonly string[]).includes(String(role ?? ''));
+}
 
 /** Normaliza o que vem da vaga (JSON): rotulos curtos, sem repeticao, no maximo 80. */
 export function normalizeRequiredDocuments(input: unknown): RequiredDocItem[] {

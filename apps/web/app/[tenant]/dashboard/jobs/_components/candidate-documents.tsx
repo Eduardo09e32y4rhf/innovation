@@ -129,11 +129,12 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
               return (
                 <li key={label} className="space-y-2 rounded-lg border border-border p-3 text-sm">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-medium">{label}</span>
+                    <span className="font-medium">{label}{doc?.sensitive && <span className="ml-2 rounded-full border border-amber-400 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900">Dado sensível</span>}</span>
                     <Pill tone={tone[status]}>{DOC_STATUS_LABEL[status]}</Pill>
                   </div>
                   {doc?.status === 'RETURNED' && doc.returnReason && <p className="text-xs text-fg-sub">Motivo: {doc.returnReason}</p>}
-                  {doc && (
+                  {doc?.restricted && <p className="text-xs text-amber-900" role="status">Dado sensível (saúde ou antecedentes): somente o RH pode abrir e conferir. A leitura fica registrada.</p>}
+                  {doc && !doc.restricted && (
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" size="sm" onClick={() => jobsApi.downloadDocument(doc.id, doc.fileName).catch((cause) => fail(cause, 'Não foi possível baixar o documento.'))}><Download size={14} aria-hidden="true" /> Baixar</Button>
                       {doc.status === 'RECEIVED' && !forwarded && (

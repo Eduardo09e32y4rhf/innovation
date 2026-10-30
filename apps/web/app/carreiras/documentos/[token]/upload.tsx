@@ -85,6 +85,8 @@ export function DocumentUpload({ token }: { token: string }) {
                     <h2 className="font-medium">{item.label}</h2>
                     <span className="rounded-full border border-border px-2.5 py-0.5 text-xs font-medium">{STATUS_LABEL[item.status]}</span>
                   </div>
+                  {item.sensitive && <p className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-950" role="note">Dado pessoal sensível. Só o RH da empresa pode abrir este arquivo, o acesso fica registrado e ele é usado apenas para a admissão (obrigação legal). Ele é guardado cifrado.</p>}
+                  {item.accepts && <p className="mt-1 text-xs text-fg-sub">Formatos aceitos: {item.accepts}.</p>}
                   {item.status === 'RETURNED' && item.returnReason && <p className="mt-2 text-sm text-rose-800">Motivo: {item.returnReason}</p>}
                   {canUpload(item.status) ? (
                     <div className="mt-3 space-y-2">
