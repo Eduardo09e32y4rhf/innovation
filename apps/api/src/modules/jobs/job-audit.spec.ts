@@ -33,6 +33,7 @@ function jobsSetup(current: Record<string, unknown> = { id: 'j1', title: 'Dev', 
     update: vi.fn(async () => ({ count: 1 })),
     delete: vi.fn(async () => ({ count: 1 })),
     permanentDeletePlan: vi.fn(async () => ({ hired: 0, resumeKeys: [], documentKeys: [] })),
+    copyRecruiters: vi.fn(async () => 0),
     audit: vi.fn(async () => ({})),
   };
   const workflow: any = { prepare: vi.fn(async (_c: string, i: any) => ({ status: i.nextStatus, startApproval: false, steps: [] })), startApproval: vi.fn() };
