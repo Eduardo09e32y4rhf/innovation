@@ -13,6 +13,7 @@ import {
   MaxLength,
   Max,
   Min,
+  ValidateNested,
 } from 'class-validator';
 
 export const WORK_MODES = ['PRESENCIAL', 'HIBRIDO', 'REMOTO'] as const;
@@ -99,6 +100,14 @@ class JobFieldsDto {
   @MaxLength(300, { each: true })
   interviewGuide?: string[];
 
+  /** Documentos exigidos na admissao desta vaga (vazio = kit do tipo de contrato). */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(80)
+  @ValidateNested({ each: true })
+  @Type(() => RequiredDocumentDto)
+  requiredDocuments?: RequiredDocumentDto[];
+
   @IsOptional()
   @IsBoolean()
   salaryHidden?: boolean;
@@ -132,6 +141,16 @@ export class CreateJobDto extends JobFieldsDto {
   @IsNotEmpty()
   @MaxLength(12000)
   description!: string;
+}
+
+export class RequiredDocumentDto {
+  @IsString()
+  @MaxLength(60)
+  label!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  required?: boolean;
 }
 
 export class UpdateJobDto extends JobFieldsDto {

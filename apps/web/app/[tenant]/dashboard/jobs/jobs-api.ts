@@ -120,6 +120,7 @@ export const jobsApi = {
   assignRecruiters: (jobId: string, userIds: string[]) => request<{ userId: string }[]>(`/jobs/${enc(jobId)}/recruiters`, { method: 'PUT', body: { userIds } }),
 
   // Documentos do candidato (RH e RH - R&S). O token do link so volta na criacao.
+  documentKit: (applicationId: string) => request<{ configured: boolean; employmentType: string | null; items: Array<{ label: string; required: boolean; docType: string }> }>(`/jobs/applications/${enc(applicationId)}/document-kit`),
   documents: (applicationId: string) => request<DocumentsPayload>(`/jobs/applications/${enc(applicationId)}/documents`),
   createDocumentRequest: (applicationId: string, items: string[], expiresInDays?: number, sendEmail?: boolean) => request<CreatedRequest>(`/jobs/applications/${enc(applicationId)}/document-requests`, { method: 'POST', body: { items, expiresInDays, sendEmail } }),
   revokeDocumentRequest: (requestId: string) => request<{ revoked: boolean }>(`/jobs/document-requests/${enc(requestId)}`, { method: 'DELETE' }),

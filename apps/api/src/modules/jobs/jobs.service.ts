@@ -1,4 +1,5 @@
 import { ALLOW, inspectFile, sanitizeFileName } from '../../common/utils/file-validation';
+import { normalizeRequiredDocuments } from './recruitment-doc-types';
 import {
   BadRequestException,
   ConflictException,
@@ -111,6 +112,7 @@ export class JobsService {
       salaryHidden: job.salaryHidden,
       pipelineId: job.pipelineId,
       interviewGuide: job.interviewGuide ?? [],
+      requiredDocuments: normalizeRequiredDocuments(job.requiredDocuments) as any,
       screeningMinScore: job.screeningMinScore,
       screeningAction: job.screeningAction,
       isInternal: job.isInternal,
@@ -372,6 +374,7 @@ export class JobsService {
       ...('workMode' in dto ? { workMode: optional((dto as { workMode?: string | null }).workMode) } : {}),
       benefits: dto.benefits?.map((item) => item.trim()).filter(Boolean),
       interviewGuide: dto.interviewGuide?.map((item) => item.trim()).filter(Boolean),
+      ...(dto.requiredDocuments !== undefined ? { requiredDocuments: normalizeRequiredDocuments(dto.requiredDocuments) as any } : {}),
       requirements: dto.requirements?.map((item) => item.trim()).filter(Boolean),
       salaryMin,
       salaryMax,

@@ -26,6 +26,13 @@ export class RecruitmentDocumentsController {
   }
 
   @Header('Cache-Control', 'no-store')
+  @Header('Cache-Control', 'no-store')
+  @Get('applications/:id/document-kit')
+  kit(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.kitForApplication(companyId, actor, id);
+  }
+
+  @Header('Cache-Control', 'no-store')
   @Get('applications/:id/documents')
   list(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.listForApplication(companyId, actor, id);

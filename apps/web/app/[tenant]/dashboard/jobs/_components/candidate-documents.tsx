@@ -1,7 +1,7 @@
 'use client';
 
 import { Copy, Download, FileCheck2, Link2, RotateCcw, ShieldCheck, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button } from '@/app/components/ui';
@@ -22,6 +22,7 @@ const dateTime = (value: string) => new Date(value).toLocaleString('pt-BR', { da
  */
 export function CandidateDocuments({ applicationId, onChanged }: { applicationId: string; onChanged: () => void }) {
   const query = useQuery(() => jobsApi.documents(applicationId), [applicationId]);
+  const kit = useQuery(() => jobsApi.documentKit(applicationId), [applicationId]);
   const [itemsText, setItemsText] = useState('');
   const [days, setDays] = useState(7);
   const [sendEmail, setSendEmail] = useState(true);
@@ -29,6 +30,11 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
   const [returning, setReturning] = useState<{ id: string; reason: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const data = query.data;
+  const [prefilled, setPrefilled] = useState(false);
+  // Ao abrir o candidato sem pedido anterior, a lista da vaga (ou o kit do contrato) ja vem preenchida.
+  useEffect(() => {
+    if (!prefilled && kit.data?.items.length && data && data.requests.length === 0) { setItemsText(kit.data.items.map((item) => item.label).join('\n')); setPrefilled(true); }
+  }, [prefilled, kit.data, data]);
 
   async function run(action: () => Promise<unknown>, success?: string) {
     if (busy) return;
@@ -62,6 +68,11 @@ export function CandidateDocuments({ applicationId, onChanged }: { applicationId
           <div className="space-y-2">
             <p className="text-sm font-medium">Escolha os documentos (CLT, PJ, estágio) ou digite outros abaixo</p>
             <textarea id="doc-items" aria-label="Documentos, um por linha" rows={3} className={inputClass} value={itemsText} onChange={(event) => setItemsText(event.target.value)} placeholder={'Ex.: Documento de identificação\nComprovante de residência'} />
+            {!itemsText.trim() && (kit.data?.items.length ?? 0) > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setItemsText(kit.data!.items.map((item) => item.label).join('\n'))}>
+                {kit.data!.configured ? 'Usar a lista de documentos da vaga' : `Usar o kit do contrato ${kit.data!.employmentType || 'CLT'}`} ({kit.data!.items.length})
+              </Button>
+            )}
             <DocumentPicker value={parseItemsInput(itemsText)} onChange={(items) => setItemsText(items.join('\n'))} />
             <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5 accent-[var(--color-brand)]" checked={sendEmail} onChange={(event) => setSendEmail(event.target.checked)} /> Enviar o link por e-mail ao candidato</label>
             <div className="flex flex-wrap items-end gap-3">

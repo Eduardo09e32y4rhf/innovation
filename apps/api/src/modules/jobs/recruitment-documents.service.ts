@@ -7,6 +7,7 @@ import { CandidateDocumentScanner } from './candidate-document-scanner.service';
 import { JobScopeService } from './job-scope.service';
 import { JobsStorageService } from './jobs-storage.service';
 import { RecruitmentWorkflowService } from './recruitment-workflow.service';
+import { formatsLabel, resolveRequiredDocuments, ruleForLabel } from './recruitment-doc-types';
 import {
   DEFAULT_LINK_DAYS,
   MAX_DOCUMENT_BYTES,
@@ -55,6 +56,34 @@ export class RecruitmentDocumentsService {
       await this.prisma.applicationEvent.create({ data: { applicationId, userId: actorId, type: 'HIRED_EMAIL', note: result.sent ? 'E-mail de contratação enviado ao candidato, com o link de documentos' : 'E-mail de contratação NÃO foi enviado (verifique o e-mail do candidato e o provedor de e-mail)' } });
       return result.sent;
     } catch { return false; }
+  }
+
+  // ─── Kit de documentos da admissao (RS-D-09) ────────────────────────────
+
+  /** Lista exigida da vaga da candidatura (configurada na vaga ou kit do tipo de contrato), para pre-carregar o pedido. */
+  async kitForApplication(companyId: string, actor: Actor, applicationId: string) {
+    await this.scope.assertApplication(companyId, actor, applicationId);
+    const app = await this.prisma.application.findFirst({ where: { id: applicationId, companyId }, select: { job: { select: { requiredDocuments: true, employmentType: true } } } });
+    if (!app) throw new NotFoundException('Candidatura nao encontrada.');
+    const items = resolveRequiredDocuments(app.job);
+    return { configured: Array.isArray(app.job.requiredDocuments) && (app.job.requiredDocuments as unknown[]).length > 0, employmentType: app.job.employmentType, items: items.map((item) => ({ ...item, docType: ruleForLabel(item.label).type })) };
+  }
+
+  /**
+   * Usado pela contratacao: {required, approved, missing} (rotulos). `required` = itens obrigatorios da vaga (ou do kit do contrato)
+   * mais tudo que ja foi pedido ao candidato; `approved` = com a versao vigente APROVADA; `missing` = required sem aprovacao.
+   * `companyId` e opcional (filtra a candidatura quando o chamador ja o conhece).
+   */
+  async hiringKitStatus(applicationId: string, companyId?: string) {
+    const app = await this.prisma.application.findFirst({ where: { id: applicationId, ...(companyId ? { companyId } : {}) }, select: { companyId: true, job: { select: { requiredDocuments: true, employmentType: true } } } });
+    if (!app) throw new NotFoundException('Candidatura nao encontrada.');
+    const [requests, docs] = await Promise.all([
+      this.prisma.recruitmentDocumentRequest.findMany({ where: { companyId: app.companyId, applicationId }, select: { items: true } }),
+      this.prisma.recruitmentDocument.findMany({ where: { companyId: app.companyId, applicationId, supersededAt: null }, select: { label: true, status: true } }),
+    ]);
+    const required = [...new Set([...resolveRequiredDocuments(app.job).filter((item) => item.required).map((item) => item.label), ...requests.flatMap((request) => request.items)])];
+    const approvedLabels = new Set(docs.filter((doc) => doc.status === 'APPROVED').map((doc) => doc.label));
+    return { required, approved: required.filter((label) => approvedLabels.has(label)), missing: required.filter((label) => !approvedLabels.has(label)) };
   }
 
   // ─── Area interna (empresa + escopo da vaga) ────────────────────────────
@@ -206,8 +235,9 @@ export class RecruitmentDocumentsService {
     if (!request.items.includes(label)) throw new BadRequestException('Documento nao solicitado.');
     if (!file?.buffer?.length) throw new BadRequestException('Envie o arquivo do documento.');
     if (file.buffer.length > MAX_DOCUMENT_BYTES) throw new PayloadTooLargeException('O arquivo deve ter no maximo 5 MB.');
-    const type = detectDocumentType(file.buffer);
-    if (!type) throw new UnprocessableEntityException('Formato invalido. Envie PDF, PNG ou JPEG.');
+    const rule = ruleForLabel(label);
+    const type = detectDocumentType(file.buffer, rule.formats);
+    if (!type) throw new UnprocessableEntityException(`Formato invalido para este documento. Envie ${formatsLabel(rule.formats)}.`);
 
     const current = await this.prisma.recruitmentDocument.findFirst({ where: { applicationId: request.applicationId, label, supersededAt: null }, select: { status: true } });
     if (current?.status === 'APPROVED') throw new ConflictException('Este documento ja foi aprovado.');
@@ -222,7 +252,7 @@ export class RecruitmentDocumentsService {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`doc:${request.applicationId}:${label}`}))`;
         await tx.recruitmentDocument.updateMany({ where: { applicationId: request.applicationId, label, supersededAt: null }, data: { supersededAt: new Date() } });
         await tx.recruitmentDocument.create({
-          data: { companyId: request.companyId, applicationId: request.applicationId, requestId: request.id, label, fileKey: key, fileName: safeDownloadName(label, type.extension), mimeType: type.mime, size: file.buffer.length, sha256 },
+          data: { companyId: request.companyId, applicationId: request.applicationId, requestId: request.id, label, fileKey: key, fileName: safeDownloadName(label, type.extension), mimeType: type.mime, size: file.buffer.length, sha256, docType: rule.type, sensitive: rule.sensitive, legalBasis: rule.legalBasis },
         });
       });
     } catch (error) {

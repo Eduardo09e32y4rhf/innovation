@@ -1215,6 +1215,9 @@ model PrivacyConsent {
   address     String?
   photoBase64 String?   @db.Text
   pdfBase64   String?   @db.Text
+  /// Chaves no armazenamento privado (cifradas) que substituem os campos base64 acima.
+  photoKey    String?
+  pdfKey      String?
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1353,6 +1356,8 @@ model Job {
   /// Nota minima da triagem (0 a 100%). Abaixo dela: FLAG (sinaliza) ou REJECT (reprova).
   screeningMinScore Int?
   screeningAction   String?
+  /// Documentos exigidos na admissao: [{label, required}]. Vazio = kit do tipo de contrato.
+  requiredDocuments Json?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -1923,12 +1928,74 @@ model DocumentTemplate {
   body            String   @db.Text
   isActive        Boolean  @default(true)
   createdByUserId String?  @db.Uuid
+  /// Versao do texto (sobe a cada alteracao de titulo/corpo) e hash SHA-256 do texto vigente.
+  version         Int      @default(1)
+  contentHash     String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company  Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  versions DocumentTemplateVersion[]
 
   @@index([companyId, kind, isActive])
+}
+
+/// Historico imutavel do texto de cada modelo de documento (a assinatura aponta para a versao exata).
+model DocumentTemplateVersion {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId   String   @db.Uuid
+  templateId  String   @db.Uuid
+  version     Int
+  name        String
+  kind        String
+  title       String
+  body        String   @db.Text
+  contentHash String
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  template DocumentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, version])
+  @@index([companyId])
+}
+
+/// Assinatura eletronica simples (MP 2.200-2/2001 art. 10 par. 2; Lei 14.063/2020 art. 4 I): evidencia do aceite.
+model SignedDocument {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId       String   @db.Uuid
+  applicationId   String?  @db.Uuid
+  kind            String
+  templateId      String?  @db.Uuid
+  templateVersion Int?
+  /// Texto exato assinado e seu SHA-256.
+  text            String   @db.Text
+  textHash        String
+  pdfKey          String
+  pdfSha256       String
+  signerName      String
+  signerEmail     String?
+  signerDocument  String?
+  ipAddress       String?
+  userAgent       String?
+  signedAt        DateTime @default(now())
+
+  @@index([companyId, applicationId])
+  @@index([companyId, kind])
+}
+
+/// Dependentes, vale-transporte e vale-refeicao informados pelo candidato no link de documentos.
+model RecruitmentAdmissionForm {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId     String   @db.Uuid
+  applicationId String   @unique @db.Uuid
+  dependents    Json?
+  transport     Json?
+  meal          Json?
+  submittedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([companyId])
 }
 
 model TimeClosingAdjustment {
@@ -3457,6 +3524,16 @@ model RecruitmentDocumentRequest {
   revokedAt     DateTime?
   createdById   String    @db.Uuid
   createdAt     DateTime  @default(now())
+  /// Link anterior que este substituiu (reemissao sem perder o historico).
+  reissuedFromId String?  @db.Uuid
+  reminderD3At  DateTime?
+  reminderD1At  DateTime?
+  /// Codigo por e-mail antes do upload (so o hash fica guardado).
+  verifiedAt    DateTime?
+  codeHash      String?
+  codeExpiresAt DateTime?
+  codeAttempts  Int       @default(0)
+  codeSentAt    DateTime?
 
   application Application           @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   documents   RecruitmentDocument[]
@@ -3482,6 +3559,15 @@ model RecruitmentDocument {
   reviewedAt   DateTime?
   supersededAt DateTime?
   createdAt    DateTime                  @default(now())
+  /// Tipo normalizado do documento (regras de formato/validade) e vencimento informado na conferencia.
+  docType      String?
+  expiresAt    DateTime?
+  expiryAlertedAt DateTime?
+  /// Dado sensivel (art. 11 LGPD): leitura so RH, com base legal registrada e auditoria de leitura.
+  sensitive    Boolean                   @default(false)
+  legalBasis   String?
+  /// Arquivo cifrado em repouso (AES-256-GCM, chave derivada por empresa).
+  encrypted    Boolean                   @default(false)
 
   application Application                @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   request     RecruitmentDocumentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
