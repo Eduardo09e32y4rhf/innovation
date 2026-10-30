@@ -145,6 +145,13 @@ describe('autoagendamento e confirmacao', () => {
     expect(n.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'INTERVIEW_DECLINED', priority: 'HIGH', userIds: ['u1'] }));
     expect(page.candidate).toBe('Maria');
   });
+  it('RS-C-04: candidato pede outro horario: grava como nao-pode, registra o pedido e avisa o RH com prioridade alta', async () => {
+    const { svc, prisma, n } = followup(base());
+    await svc.respond(token, { response: 'RESCHEDULE', reason: 'Prefiro terça ou quarta à tarde' });
+    expect(prisma.applicationInterview.update).toHaveBeenCalledWith({ where: { id: 'i1' }, data: expect.objectContaining({ candidateResponse: 'DECLINED', declineReason: 'Prefiro terça ou quarta à tarde' }) });
+    expect(prisma.applicationEvent.create).toHaveBeenCalledWith({ data: expect.objectContaining({ type: 'INTERVIEW_RESCHEDULE_REQUESTED' }) });
+    expect(n.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'INTERVIEW_RESCHEDULE_REQUESTED', priority: 'HIGH', userIds: ['u1'] }));
+  });
   it('nao responde entrevista que ja passou', async () => {
     const { svc } = followup({ ...base(), scheduledAt: new Date(Date.now() - HOUR) });
     await expect(svc.respond(token, { response: 'CONFIRMED' })).rejects.toThrow(GoneException);

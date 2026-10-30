@@ -190,7 +190,7 @@ export class CandidateActionsController {
 }
 
 class InterviewResponseDto {
-  @IsIn(['CONFIRMED', 'DECLINED']) response!: 'CONFIRMED' | 'DECLINED';
+  @IsIn(['CONFIRMED', 'DECLINED', 'RESCHEDULE']) response!: 'CONFIRMED' | 'DECLINED' | 'RESCHEDULE';
   @IsOptional() @IsString() @MaxLength(500) reason?: string;
 }
 class BookSlotDto { @IsDateString() slot!: string; }

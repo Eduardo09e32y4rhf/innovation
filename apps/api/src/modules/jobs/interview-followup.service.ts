@@ -86,17 +86,20 @@ export class InterviewFollowupService {
     };
   }
 
-  async respond(token: string, input: { response: 'CONFIRMED' | 'DECLINED'; reason?: string }) {
+  // RESCHEDULE (RS-C-04): o candidato quer outro horário. Fica registrado como "não pode" (DECLINED) para a agenda e o RH, mas com evento e aviso próprios.
+  async respond(token: string, input: { response: 'CONFIRMED' | 'DECLINED' | 'RESCHEDULE'; reason?: string }) {
+    const resched = input.response === 'RESCHEDULE';
+    const stored: 'CONFIRMED' | 'DECLINED' = input.response === 'RESCHEDULE' ? 'DECLINED' : input.response;
     const interview = await this.interviewByToken(token);
     if (['REJECTED', 'HIRED'].includes(interview.application.status)) throw new GoneException('Este processo seletivo já foi encerrado.');
     if (interview.scheduledAt.getTime() < Date.now()) throw new GoneException('O horário desta entrevista já passou.');
     const reason = String(input.reason ?? '').trim().slice(0, 500) || null;
-    if (interview.candidateResponse === input.response && (input.response === 'CONFIRMED' || interview.declineReason === reason)) return this.publicInterview(token);
-    await this.prisma.applicationInterview.update({ where: { id: interview.id }, data: { candidateResponse: input.response, respondedAt: new Date(), declineReason: input.response === 'DECLINED' ? reason : null } });
+    if (!resched && interview.candidateResponse === stored && (stored === 'CONFIRMED' || interview.declineReason === reason)) return this.publicInterview(token);
+    await this.prisma.applicationInterview.update({ where: { id: interview.id }, data: { candidateResponse: stored, respondedAt: new Date(), declineReason: stored === 'DECLINED' ? reason : null } });
     const when = formatInterviewDate(interview.scheduledAt).short;
     const name = interview.application.candidate.name;
     await this.prisma.applicationEvent.create({
-      data: { applicationId: interview.applicationId, type: input.response === 'CONFIRMED' ? 'INTERVIEW_CONFIRMED' : 'INTERVIEW_DECLINED', note: input.response === 'CONFIRMED' ? `Candidato confirmou a entrevista de ${when}` : `Candidato avisou que não pode na entrevista de ${when}${reason ? `: ${reason}` : ''}` },
+      data: { applicationId: interview.applicationId, type: stored === 'CONFIRMED' ? 'INTERVIEW_CONFIRMED' : resched ? 'INTERVIEW_RESCHEDULE_REQUESTED' : 'INTERVIEW_DECLINED', note: stored === 'CONFIRMED' ? `Candidato confirmou a entrevista de ${when}` : resched ? `Candidato pediu outro horário para a entrevista de ${when}${reason ? `: ${reason}` : ''}` : `Candidato avisou que não pode na entrevista de ${when}${reason ? `: ${reason}` : ''}` },
     });
     if (interview.agendaEventId) {
       const event = await this.prisma.managementEvent.findFirst({ where: { id: interview.agendaEventId, companyId: interview.application.companyId }, select: { title: true } });
@@ -109,12 +112,12 @@ export class InterviewFollowupService {
       companyId: interview.application.companyId,
       jobId: interview.application.jobId,
       userIds: [interview.createdById],
-      title: input.response === 'CONFIRMED' ? `${name} confirmou a entrevista (${when})` : `${name} não pode na entrevista de ${when}`,
-      lines: input.response === 'CONFIRMED'
+      title: stored === 'CONFIRMED' ? `${name} confirmou a entrevista (${when})` : resched ? `${name} pediu outro horário para a entrevista de ${when}` : `${name} não pode na entrevista de ${when}`,
+      lines: stored === 'CONFIRMED'
         ? [`${name} confirmou presença na entrevista da vaga ${interview.application.job.title}, ${formatInterviewDate(interview.scheduledAt).long}.`]
-        : [`${name} avisou que não vai conseguir ir à entrevista da vaga ${interview.application.job.title} (${when}).`, reason ? `Motivo: ${reason}` : 'Sem motivo informado.', 'Remarque pela ficha do candidato: ofereça novos horários para ele escolher.'],
-      priority: input.response === 'DECLINED' ? 'HIGH' : 'LOW',
-      kind: input.response === 'CONFIRMED' ? 'INTERVIEW_CONFIRMED' : 'INTERVIEW_DECLINED',
+        : [resched ? `${name} pediu para remarcar a entrevista da vaga ${interview.application.job.title} (${when}).` : `${name} avisou que não vai conseguir ir à entrevista da vaga ${interview.application.job.title} (${when}).`, reason ? `${resched ? 'Preferência' : 'Motivo'}: ${reason}` : 'Sem motivo informado.', 'Ofereça novos horários pela ficha do candidato para ele escolher.'],
+      priority: stored === 'DECLINED' ? 'HIGH' : 'LOW',
+      kind: stored === 'CONFIRMED' ? 'INTERVIEW_CONFIRMED' : resched ? 'INTERVIEW_RESCHEDULE_REQUESTED' : 'INTERVIEW_DECLINED',
       cta: 'Abrir a vaga',
     });
     return this.publicInterview(token);
