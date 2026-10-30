@@ -12,6 +12,9 @@ import { appConfig } from './config/app.config';
 import { validateEnv } from './config/env.validation';
 import { DatabaseModule } from './database/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
+import { RedisService } from './common/redis/redis.service';
+import { RedisThrottlerStorage } from './common/redis/redis-throttler.storage';
+import { buildThrottlerOptions } from './common/guards/throttler.config';
 import { TurnstileModule } from './common/turnstile/turnstile.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -85,7 +88,12 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
       load: [appConfig],
       validate: validateEnv,
     }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 300 }]),
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
+      inject: [RedisService],
+      // SEG-05: contador no Redis (sobrevive a reinicio, vale entre instancias); sem Redis cai para memoria.
+      useFactory: (redis: RedisService) => buildThrottlerOptions(new RedisThrottlerStorage(redis)),
+    }),
     RedisModule,
     DatabaseModule,
     HealthModule,
