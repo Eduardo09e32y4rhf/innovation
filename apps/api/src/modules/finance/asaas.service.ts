@@ -77,8 +77,16 @@ export class AsaasService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.apiUrl}${endpoint}`;
     if (!this.apiKey) {
-      this.logger.warn(`Asaas nao configurado: ${options.method || 'GET'} ${endpoint}`);
-      return {} as T;
+      const call = `${options.method || 'GET'} ${endpoint.split('?')[0]}`;
+      // PAG-04: sem chave NUNCA devolve {} com cara de sucesso, exceto modo simulado explicito fora de producao.
+      const mockAllowed = process.env.NODE_ENV !== 'production'
+        && String(this.configService.get<string>('ALLOW_MOCK_PAYMENTS') ?? process.env.ALLOW_MOCK_PAYMENTS ?? '').toLowerCase() === 'true';
+      if (mockAllowed) {
+        this.logger.warn(`Asaas nao configurado (modo simulado ALLOW_MOCK_PAYMENTS=true): ${call}`);
+        return {} as T;
+      }
+      this.logger.error(`Asaas nao configurado (ASAAS_API_KEY ausente): ${call}`);
+      throw new ServiceUnavailableException('Provedor de pagamento não configurado');
     }
 
     try {
