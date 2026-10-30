@@ -6,6 +6,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { JobsService } from './jobs.service';
 import { JobsStorageService } from './jobs-storage.service';
+import { assertResumeClean, CandidateDocumentScanner } from './candidate-document-scanner.service';
 import { candidatePasswordResetEmail } from './recruitment-mails';
 import { PRIVACY_VERSION, STAGE_LABEL_FOR_CANDIDATE } from './recruitment-privacy';
 import {
@@ -32,6 +33,7 @@ export class CandidateAccountService {
     private readonly mail: MailService,
     private readonly storage: JobsStorageService,
     private readonly jobs: JobsService,
+    private readonly scanner?: CandidateDocumentScanner,
   ) {}
 
   // ---------- cadastro, login e recuperação de senha ----------
@@ -204,6 +206,7 @@ export class CandidateAccountService {
     const checked = inspectFile(file.buffer, { allow: ALLOW.RESUME, maxBytes: MAX_RESUME_SIZE, filename: file.filename });
     if (!checked.ok) throw new BadRequestException(checked.code === 'UNSAFE' ? checked.message : 'Currículo inválido. Envie um arquivo PDF ou DOCX verdadeiro.');
     const format = { extension: checked.extension, mime: checked.mime };
+    await assertResumeClean(this.scanner, file.buffer);
     const key = `candidates/${account.id}/${randomUUID()}.${format.extension}`;
     await this.storage.save(key, file.buffer);
     const previous = account.resumeKey;

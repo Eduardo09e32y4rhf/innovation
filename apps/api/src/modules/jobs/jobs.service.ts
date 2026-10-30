@@ -21,6 +21,7 @@ import { normalizeAnswerValue, validateAnswerShape, type RuleQuestion } from './
 import { normalizeSource } from './application-source';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
 import { JobWorkflowService } from './job-workflow.service';
+import { assertResumeClean, CandidateDocumentScanner } from './candidate-document-scanner.service';
 
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 
@@ -33,6 +34,7 @@ export class JobsService {
     private readonly privacy: RecruitmentPrivacyService,
     private readonly workflow: JobWorkflowService,
     private readonly documents: RecruitmentDocumentsService,
+    private readonly scanner?: CandidateDocumentScanner,
   ) {}
 
   async list(companyId: string, jobScope: Prisma.JobWhereInput = {}) {
@@ -282,6 +284,8 @@ export class JobsService {
     const checked = inspectFile(file.buffer, { allow: ALLOW.RESUME, maxBytes: MAX_RESUME_SIZE, filename: file.filename });
     if (!checked.ok) throw new BadRequestException(checked.code === 'UNSAFE' ? checked.message : 'Curriculo invalido. Envie um arquivo PDF ou DOCX verdadeiro.');
     const format = { extension: checked.extension, mime: checked.mime };
+    // RS-C-03: antivirus antes de gravar (fail-closed em producao).
+    await assertResumeClean(this.scanner, file.buffer);
 
     const job = await this.repository.jobForApplication(jobId);
     if (!job) throw new NotFoundException('Vaga nao encontrada ou encerrada.');
