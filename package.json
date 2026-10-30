@@ -48,13 +48,13 @@
     "@swc/core": "1.15.46",
     "@types/express": "5.0.6",
     "@types/supertest": "7.2.1",
-    "@vitest/coverage-v8": "4.1.10",
+    "@vitest/coverage-v8": "4.1.12",
     "dotenv": "17.4.2",
     "eslint": "8.57.1",
     "supertest": "7.2.2",
     "typescript": "^5.8.3",
     "unplugin-swc": "1.5.9",
-    "vitest": "4.1.10"
+    "vitest": "4.1.12"
   },
   "workspaces": [
     "apps/web",
@@ -73,7 +73,8 @@
     "@nestjs/swagger": {
       "js-yaml": "5.5.0"
     },
-    "baseline-browser-mapping": "2.11.34"
+    "baseline-browser-mapping": "2.11.34",
+    "browserslist": "4.29.5"
   },
   "dependencies": {
     "@fastify/static": "10.1.8",
