@@ -1,3 +1,4 @@
+import { Throttle } from '@nestjs/throttler';
 import type { FastifyReply } from 'fastify';
 import { PlainJsonInterceptor } from '../../common/interceptors/plain-json.interceptor';
 import { Body, Controller, Delete, Get, Headers, Param, ParseUUIDPipe, Post, Query, Res, UseGuards, UseInterceptors } from '@nestjs/common';
@@ -55,6 +56,7 @@ export class FaturasController {
     return this.service.listCompanyInvoices(companyId);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('empresa/checkout')
   @RequireFaturasPermission('faturas.pagar')
   checkout(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {

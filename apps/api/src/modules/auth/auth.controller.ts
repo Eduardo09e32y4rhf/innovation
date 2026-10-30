@@ -205,6 +205,7 @@ export class AuthController {
     );
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'RH', 'DEV')
   @Post('password-reset/employee')

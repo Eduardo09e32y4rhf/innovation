@@ -55,6 +55,7 @@ export class CandidateAccountController {
   }
 
   /** Preenche rua, bairro, cidade e UF pelo CEP. */
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @UseGuards(CandidateAuthGuard)
   @Get('cep/:cep')
   @Throttle({ default: { limit: 20, ttl: 60000 } })

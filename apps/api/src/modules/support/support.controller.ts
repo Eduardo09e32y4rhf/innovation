@@ -1,3 +1,4 @@
+import { Throttle } from '@nestjs/throttler';
 import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, Res, BadRequestException, ParseUUIDPipe, HttpCode } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { contentDisposition } from '../../common/pdf/pdf-response';
@@ -87,6 +88,7 @@ export class SupportController {
     return { success: true };
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('tickets/:id/attachments')
   async uploadAttachment(@Req() req: any, @Param('id', ParseUUIDPipe) ticketId: string) {
     const { file } = await readMultipartUpload(req, { maxBytes: SUPPORT_ATTACHMENT_MAX_BYTES });

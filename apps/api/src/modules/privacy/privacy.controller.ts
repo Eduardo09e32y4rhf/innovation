@@ -1,3 +1,4 @@
+import { Throttle } from '@nestjs/throttler';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { clientIp } from '../../common/http/client-ip';
 import { Body, Controller, Get, Post, Req, Res, UseGuards, Param, ParseUUIDPipe } from '@nestjs/common';
@@ -31,6 +32,7 @@ export class PrivacyController {
     return this.service.document(user);
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('terms/accept')
   accept(@CurrentUser() user: JwtUser, @Req() request: any, @Body() body: AcceptTermsDto) {
     return this.service.accept(user, getRequestMeta(request), body);
