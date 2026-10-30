@@ -2,7 +2,7 @@
 import { PrismaService } from '../../database/prisma.service';
 import { OnboardingStatus } from '@prisma/client';
 
-const DEFAULT_TASKS: Array<{
+export const DEFAULT_TASKS: Array<{
   title: string;
   taskType: 'DOCUMENT_UPLOAD' | 'FORM_FILL' | 'CONTRACT_SIGN' | 'TRAINING' | 'SYSTEM_ACCESS' | 'OTHER';
   required: boolean;

@@ -19,6 +19,9 @@ describe('RS-D-02: documentos aprovados entram no dossiê do colaborador', () =>
       pipelineStage: { findFirst: vi.fn().mockResolvedValue(null) },
       applicationEvent: { create: vi.fn() },
       candidate: { update: vi.fn() },
+      onboardingFlow: { upsert: vi.fn().mockResolvedValue({ id: 'f1' }) },
+      onboardingTask: { count: vi.fn().mockResolvedValue(0), createMany: vi.fn() },
+      onboardingDocument: { createMany: vi.fn() },
     };
     const prisma: any = { $transaction: (fn: any) => fn(tx) };
     const repo = new JobsRepository(prisma);
@@ -26,5 +29,9 @@ describe('RS-D-02: documentos aprovados entram no dossiê do colaborador', () =>
     expect(result?.alreadyHired).toBe(false);
     expect(tx.recruitmentDocument.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ status: 'APPROVED', supersededAt: null, applicationId: 'a1' }) }));
     expect(createMany).toHaveBeenCalledWith({ data: [expect.objectContaining({ ownerType: 'EMPLOYEE', ownerId: 'emp1', fileUrl: '/jobs/documents/d1/download', storageKey: null, fileName: 'RG - rg.pdf' })] });
+    expect(tx.onboardingFlow.upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { companyId_employeeId: { companyId: 'c1', employeeId: 'emp1' } } }));
+    const tasks = tx.onboardingTask.createMany.mock.calls[0][0].data;
+    expect(tasks.find((t: any) => t.title === 'Enviar RG ou CNH').completedAt).toBeInstanceOf(Date);
+    expect(tx.onboardingDocument.createMany).toHaveBeenCalledWith({ data: [expect.objectContaining({ flowId: 'f1', name: 'RG' })] });
   });
 });

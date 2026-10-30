@@ -1,4 +1,5 @@
 import { admissionPrefill } from './candidate-account.rules';
+import { onboardingTasksFromDocs } from './onboarding-from-hire';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -427,6 +428,21 @@ export class JobsRepository {
           await tx.attachment.createMany({
             data: approvedDocs.map((doc) => ({ companyId, ownerType: 'EMPLOYEE' as const, ownerId: employee.id, fileName: `${doc.label} - ${doc.fileName}`.slice(0, 200), fileType: doc.mimeType, fileSize: doc.size, fileUrl: `/jobs/documents/${doc.id}/download`, storageKey: null, uploadedByUserId: actorId })),
           });
+        }
+
+        // RS-R-04 / RS-D-18: o onboarding nasce na contratação (um por colaborador), com envios já concluídos para o que foi aprovado.
+        const flow = await tx.onboardingFlow.upsert({
+          where: { companyId_employeeId: { companyId, employeeId: employee.id } },
+          create: { companyId, employeeId: employee.id, status: 'PENDING' },
+          update: {},
+          select: { id: true },
+        });
+        const existingTasks = await tx.onboardingTask.count({ where: { flowId: flow.id } });
+        if (!existingTasks) {
+          await tx.onboardingTask.createMany({ data: onboardingTasksFromDocs(approvedDocs.map((doc) => doc.label)).map((task) => ({ ...task, companyId, flowId: flow.id })) });
+          if (approvedDocs.length) {
+            await tx.onboardingDocument.createMany({ data: approvedDocs.map((doc) => ({ companyId, flowId: flow.id, name: doc.label, fileUrl: `/jobs/documents/${doc.id}/download`, required: true, uploadedAt: new Date() })) });
+          }
         }
 
         const pipelineId =
