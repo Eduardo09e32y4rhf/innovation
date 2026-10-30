@@ -236,6 +236,7 @@ export class JobsRepository {
       let candidate = await tx.candidate.findFirst({
         where: { companyId, email: { equals: data.email, mode: 'insensitive' } },
       });
+      let mismatch: string | null = null;
 
       if (!candidate) {
         candidate = await tx.candidate.create({
@@ -244,10 +245,17 @@ export class JobsRepository {
       } else {
         const duplicate = await tx.application.findFirst({ where: { companyId, candidateId: candidate.id, jobId } });
         if (duplicate) return { duplicate: true as const, application: duplicate };
+        // RS-C-12: so quem provou a posse do e-mail (conta verificada) atualiza nome/telefone; os demais so completam campos vazios.
+        // O resultado pertence a cada candidatura: nova candidatura nao reverte o estado consolidado do candidato.
+        const verified = Boolean(data.ownerVerified);
+        mismatch = !verified && (candidate.name !== data.name || (candidate.phone ?? '') !== (data.phone ?? ''))
+          ? `Nome/telefone informados nesta candidatura diferem do cadastro (nome: ${String(data.name).slice(0, 80)}; telefone: ${String(data.phone ?? '').slice(0, 20)}). Cadastro mantido; confirme com o candidato.`
+          : null;
         candidate = await tx.candidate.update({
           where: { id: candidate.id },
-          // O resultado pertence a cada candidatura: nova candidatura nao reverte o estado consolidado do candidato.
-          data: { name: data.name, phone: data.phone, linkedinUrl: data.linkedinUrl ?? candidate.linkedinUrl },
+          data: verified
+            ? { name: data.name, phone: data.phone, linkedinUrl: data.linkedinUrl ?? candidate.linkedinUrl }
+            : { phone: candidate.phone ?? data.phone, linkedinUrl: candidate.linkedinUrl ?? data.linkedinUrl },
         });
       }
 
@@ -286,6 +294,7 @@ export class JobsRepository {
           events: {
             create: [
               { type: 'APPLIED', toStage: firstStage?.name ?? null, note: 'Candidatura recebida pelo portal' },
+              ...(mismatch ? [{ type: 'DATA_MISMATCH', note: mismatch }] : []),
               ...(autoReject ? [{ type: 'REJECTED', fromStage: firstStage?.name ?? null, toStage: rejectedStage!.name, note: extra.knockoutReason }] : []),
             ],
           },

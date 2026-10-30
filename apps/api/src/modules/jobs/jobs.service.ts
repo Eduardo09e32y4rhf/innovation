@@ -25,6 +25,12 @@ import { assertResumeClean, CandidateDocumentScanner } from './candidate-documen
 
 const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 
+/** Contexto da candidatura: quem prova posse do e-mail (conta verificada) e a origem tecnica da requisicao. */
+export type ApplyContext = {
+  /** Conta do candidato com e-mail verificado: so ela pode atualizar nome/telefone de um cadastro existente e ver o 409 de duplicidade. */
+  ownerVerified?: boolean;
+};
+
 @Injectable()
 export class JobsService {
   constructor(
@@ -261,6 +267,7 @@ export class JobsService {
     jobId: string,
     raw: Record<string, unknown>,
     file?: { buffer: Buffer; filename: string; mimetype?: string },
+    context: ApplyContext = {},
   ) {
     const { answers: rawAnswers, ...rawFields } = raw || {};
     const cleanedRaw = Object.fromEntries(
@@ -319,7 +326,7 @@ export class JobsService {
       const result = await this.repository.apply(
         job.companyId,
         job.id,
-        { ...dto, source: normalizeSource(dto.source), name: safeName, email: normalizedEmail },
+        { ...dto, source: normalizeSource(dto.source), name: safeName, email: normalizedEmail, ownerVerified: Boolean(context.ownerVerified) },
         {
           key: storageKey,
           name: this.safeFileName(file.filename, format.extension),
@@ -336,11 +343,15 @@ export class JobsService {
       );
       if (result.duplicate) {
         await this.storage.remove(storageKey);
-        throw new ConflictException('Voce ja se inscreveu nesta vaga. Sua candidatura esta em analise.');
+        if (context.ownerVerified) throw new ConflictException('Voce ja se inscreveu nesta vaga. Sua candidatura esta em analise.');
+        // RS-C-12: quem nao provou a posse do e-mail recebe a mesma resposta de uma candidatura nova (sem enumerar e-mails);
+        // o dono do e-mail e avisado por mensagem.
+        await this.privacy.notifyDuplicateApply(result.application.id);
+        return { received: true };
       }
       await this.privacy.afterApply(result.application.id, { gender: dto.gender, race: dto.race, pcd: dto.pcd });
       // Reprovado por pergunta eliminatoria: o retorno ao candidato sai 24h depois (InterviewFollowupService.sendDelayedKnockoutFeedback).
-      return { received: true, applicationId: result.application.id };
+      return context.ownerVerified ? { received: true, applicationId: result.application.id } : { received: true };
     } catch (error) {
       if (!(error instanceof ConflictException)) await this.storage.remove(storageKey);
       throw error;

@@ -307,6 +307,7 @@ export class CandidateAccountService {
         answers: JSON.stringify(dto.answers ?? {}),
       },
       { buffer, filename: account.resumeName || 'curriculo.pdf', mimetype: account.resumeType || undefined },
+      { ownerVerified: Boolean(account.verifiedAt) },
     );
     // Se veio de um convite do RH, o convite passa a "candidatou".
     await this.prisma.candidateInvite.updateMany({ where: { accountId: account.id, jobId, status: 'SENT' }, data: { status: 'APPLIED' } }).catch(() => undefined);

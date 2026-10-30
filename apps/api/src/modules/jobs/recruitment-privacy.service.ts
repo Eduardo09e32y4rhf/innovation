@@ -6,7 +6,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { JobsStorageService } from './jobs-storage.service';
 import { buildInterviewIcs, formatInterviewDate, googleCalendarUrl, interviewerLabel, mailFromAddress, mapsUrl, meetingProvider } from './interview-rules';
-import { applicationReceivedEmail, applicationRejectedEmail, candidateInterviewCanceledEmail, candidateInterviewEmail, candidateRequestAnsweredEmail } from './recruitment-mails';
+import { applicationDuplicateEmail, applicationReceivedEmail, applicationRejectedEmail, candidateInterviewCanceledEmail, candidateInterviewEmail, candidateRequestAnsweredEmail } from './recruitment-mails';
 import {
   clampRetention, DEFAULT_RETENTION_MONTHS, monthsAgo, phoneKey, GENDER_OPTIONS, newTrackingToken, parsePcd, pickOption, PRIVACY_VERSION, RACE_OPTIONS, REJECTION_CODES,
   REQUEST_TYPES, retentionDate, STAGE_LABEL_FOR_CANDIDATE, type RequestType,
@@ -54,6 +54,17 @@ export class RecruitmentPrivacyService {
       }
     } catch (error) {
       this.logger.error(`Pós-candidatura falhou (${applicationId}): ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  /** RS-C-12: alguem enviou de novo uma candidatura ja existente para este e-mail; so o dono do e-mail fica sabendo. Nunca derruba a requisicao. */
+  async notifyDuplicateApply(applicationId: string) {
+    try {
+      const app = await this.prisma.application.findUnique({ where: { id: applicationId }, include: { candidate: true, job: { include: { company: { select: { name: true } } } } } });
+      if (!app || app.anonymizedAt || !app.candidate.email) return;
+      await this.mail.send(app.candidate.email, applicationDuplicateEmail({ name: app.candidate.name, jobTitle: app.job.title, company: app.job.company.name, accountUrl: `${appBase()}/carreiras/conta`, privacyUrl: `${appBase()}/carreiras/privacidade` }));
+    } catch (error) {
+      this.logger.error(`Aviso de candidatura repetida falhou (${applicationId}): ${error instanceof Error ? error.message : error}`);
     }
   }
 

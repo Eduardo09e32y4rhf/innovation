@@ -16,6 +16,14 @@ export function applicationReceivedEmail(input: { name: string; jobTitle: string
   };
 }
 
+export function applicationDuplicateEmail(input: { name: string; jobTitle: string; company: string; accountUrl: string; privacyUrl: string }): MailContent {
+  return {
+    subject: `Sua candidatura já estava registrada: ${input.jobTitle}`,
+    html: layout('Candidatura já registrada', `<p>Olá, ${escapeHtml(input.name)}.</p><p>Alguém enviou novamente uma candidatura para <strong>${escapeHtml(input.jobTitle)}</strong> na ${escapeHtml(input.company)} usando este e-mail. Como você já tinha se candidatado, nada foi alterado e o seu cadastro continua igual.</p><p>Se não foi você, ignore esta mensagem. Para acompanhar suas candidaturas, entre na sua conta. Seus dados: <a href="${escapeHtml(input.privacyUrl)}">privacidade</a>.</p>`, { label: 'Entrar na área do candidato', url: input.accountUrl }),
+    text: `Olá, ${input.name}.\n\nUma candidatura para ${input.jobTitle} (${input.company}) foi enviada novamente com este e-mail. Você já havia se candidatado; nada foi alterado.\nSe não foi você, ignore. Área do candidato: ${input.accountUrl}\nPrivacidade: ${input.privacyUrl}`,
+  };
+}
+
 export function applicationRejectedEmail(input: { name: string; jobTitle: string; company: string; message?: string | null; privacyUrl: string }): MailContent {
   const body = (input.message ?? '').trim() || 'Neste momento seguiremos com outros perfis. Agradecemos o seu interesse e o tempo dedicado ao processo.';
   return {
