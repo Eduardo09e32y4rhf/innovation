@@ -1,3 +1,4 @@
+import { AnyAuthenticated } from '../../common/decorators/any-authenticated.decorator';
 import { Body, Controller, ForbiddenException, Get, Patch, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -14,6 +15,7 @@ import { UpdateHolidaysDto } from './dto/update-holidays.dto';
 export class CompaniesController {
   constructor(private readonly service: CompaniesService) {}
 
+  @AnyAuthenticated()
   @Get('me')
   me(@CurrentCompany() companyId: string) {
     return this.service.me(companyId);

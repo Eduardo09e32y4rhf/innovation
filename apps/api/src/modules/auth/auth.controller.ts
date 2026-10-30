@@ -1,3 +1,4 @@
+import { AnyAuthenticated } from '../../common/decorators/any-authenticated.decorator';
 import {
   Body,
   Controller,
@@ -100,6 +101,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @AnyAuthenticated()
   @Post('resend-verification')
   @Throttle({ default: { limit: 3, ttl: 600000 } })
   resendVerification(@CurrentUser() user: JwtUser) {
@@ -107,6 +109,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @AnyAuthenticated()
   @Get('sessions')
   sessions(@CurrentUser() user: JwtUser, @Req() request: any) {
     return this.service.listSessions(user.sub, request.cookies?.[REFRESH_COOKIE]);
@@ -114,18 +117,21 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
+  @AnyAuthenticated()
   @Post('sessions/revoke-others')
   revokeOthers(@CurrentUser() user: JwtUser, @Req() request: any) {
     return this.service.revokeOtherSessions(user.sub, request.cookies?.[REFRESH_COOKIE]);
   }
 
   @UseGuards(JwtAuthGuard)
+  @AnyAuthenticated()
   @Delete('sessions/:id')
   revokeSession(@CurrentUser() user: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.revokeSession(user.sub, id);
   }
 
   @UseGuards(JwtAuthGuard)
+  @AnyAuthenticated()
   @Get('mfa/status')
   mfaStatus(@CurrentUser() user: JwtUser) {
     return this.mfa.status(user.sub);
@@ -133,6 +139,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 10, ttl: 600000 } })
+  @AnyAuthenticated()
   @Post('mfa/setup')
   mfaSetup(@CurrentUser() user: JwtUser) {
     return this.mfa.setup(user.sub);
@@ -140,6 +147,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 10, ttl: 600000 } })
+  @AnyAuthenticated()
   @Post('mfa/enable')
   async mfaEnable(@CurrentUser() user: JwtUser, @Body() dto: MfaCodeDto, @Req() request: any, @Res({ passthrough: true }) reply: any) {
     return withRefreshCookie(reply, await this.service.mfaEnable(user, dto.code, getRequestMeta(request), request.cookies?.[REFRESH_COOKIE]));
@@ -147,6 +155,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { limit: 5, ttl: 600000 } })
+  @AnyAuthenticated()
   @Post('mfa/disable')
   async mfaDisable(@CurrentUser() user: JwtUser, @Body() dto: MfaDisableDto) {
     await this.mfa.disable(user.sub, dto);
@@ -178,6 +187,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @AnyAuthenticated()
   @Post('change-password')
   async changePassword(@CurrentUser() user: JwtUser, @Body() dto: ChangePasswordDto, @Req() request: any, @Res({ passthrough: true }) reply: any) {
     return withRefreshCookie(reply, await this.service.changePassword(user, dto, getRequestMeta(request), request.cookies?.[REFRESH_COOKIE]));
@@ -221,6 +231,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @AnyAuthenticated()
   @Get('me')
   me(@CurrentUser() user: JwtUser) {
     return this.service.me(user);
