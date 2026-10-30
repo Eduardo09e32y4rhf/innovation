@@ -1,5 +1,5 @@
 import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
-import { BadRequestException, Body, Controller, Get, Header, Param, ParseUUIDPipe, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Header, Param, ParseUUIDPipe, Patch, Post, Req, Res, UseGuards, HttpCode } from '@nestjs/common';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -54,6 +54,7 @@ export class CeoOnboardingController {
     return this.service.uploadSigned(actor, contractId, file);
   }
 
+  @HttpCode(200)
   @Post('contract/:contractId/confirm') @Roles('DEV')
   confirm(@CurrentUser() actor: JwtUser, @Param('contractId', ParseUUIDPipe) contractId: string, @Body() dto: ConfirmCeoContractDto) {
     return this.service.confirm(actor, contractId, dto);

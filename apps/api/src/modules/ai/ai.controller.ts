@@ -1,6 +1,6 @@
 import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
 import { ClassifyTicketDto, PlatformAssistantDto } from './dto/ai.dto';
-import { Body, Controller, Post, Param, UseGuards, Req, ForbiddenException, Get, NotFoundException, ParseUUIDPipe } from '@nestjs/common';
+import { Body, Controller, Post, Param, UseGuards, Req, ForbiddenException, Get, NotFoundException, ParseUUIDPipe, HttpCode } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -31,6 +31,7 @@ export class AiController {
     return this.usageService.getUsageSummary();
   }
 
+  @HttpCode(200)
   @Post('platform/company/:id/summary')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV', 'COMERCIAL')
@@ -58,6 +59,7 @@ export class AiController {
     );
   }
 
+  @HttpCode(200)
   @Post('platform/company/:id/risk')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV', 'COMERCIAL')
@@ -79,6 +81,7 @@ export class AiController {
     return this.platformAi.analyzeOperationalRisk(company, invoices, tickets, actor.sub);
   }
 
+  @HttpCode(200)
   @Post('platform/assistant')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV')
@@ -94,6 +97,7 @@ export class AiController {
     return this.platformAi.askPlatformAssistant(body.question || '', summaryContext, actor.sub);
   }
 
+  @HttpCode(200)
   @Post('support/classify')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV', 'COMERCIAL') // perfis de suporte/plataforma (mesmos de /platform/support); gasta credito de IA
@@ -102,6 +106,7 @@ export class AiController {
     return this.supportAi.classifyTicket(body.title || '', body.description || '');
   }
 
+  @HttpCode(200)
   @Post('support/ticket/:id/summarize')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV')
@@ -117,6 +122,7 @@ export class AiController {
     return this.supportAi.summarizeTicket(ticket, messages);
   }
 
+  @HttpCode(200)
   @Post('support/ticket/:id/suggest-reply')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('DEV')

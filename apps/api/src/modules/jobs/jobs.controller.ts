@@ -12,8 +12,7 @@ import {
   Req,
   Res,
   UseGuards,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+  ParseUUIDPipe, HttpCode } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -114,6 +113,7 @@ export class JobsController {
 
   /** Efetivar cria Employee: RH_RS so seleciona/encaminha, nunca contrata. */
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
+  @HttpCode(200)
   @Post('applications/:id/hire')
   hire(
     @CurrentCompany() companyId: string,

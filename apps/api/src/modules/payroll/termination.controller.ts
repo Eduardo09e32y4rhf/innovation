@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Res, UseGuards, HttpCode } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -15,6 +15,7 @@ import { TerminationService } from './termination.service';
 export class TerminationController {
   constructor(private readonly service: TerminationService) {}
 
+  @HttpCode(200)
   @Post('termination/simulate')
   simulate(@CurrentCompany() companyId: string, @Body() dto: SimulateTerminationDto) {
     return this.service.simulate(companyId, dto);

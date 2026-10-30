@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards, HttpCode } from '@nestjs/common';
 import { IsArray, IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
@@ -31,6 +31,7 @@ export class JobWorkflowController {
 
   @Get('pending') pending(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) { return this.workflow.pendingFor(companyId, actor); }
   @Get('jobs/:id/approvals') approvals(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string) { return this.workflow.approvals(companyId, id); }
+  @HttpCode(200)
   @Post('jobs/:id/decide') decide(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: DecideDto) { return this.workflow.decide(companyId, id, actor, dto); }
 
   @Roles('DEV', 'ADMIN', 'RH', 'CEO', 'CONTABIL') @Get('budgets') budgets(@CurrentCompany() companyId: string) { return this.workflow.budgets(companyId); }

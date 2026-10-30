@@ -1,5 +1,5 @@
 import { AdjustClosingDto, GenerateClosingBodyDto, OvertimePolicyDto, ReopenClosingDto } from './dto/closing.dto';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, Res, UseGuards, ParseUUIDPipe, ParseEnumPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, Res, UseGuards, ParseUUIDPipe, ParseEnumPipe, HttpCode } from '@nestjs/common';
 import { $Enums } from '@prisma/client';
 type TimeClosingStatus = $Enums.TimeClosingStatus;
 const TimeClosingStatus = $Enums.TimeClosingStatus;
@@ -70,18 +70,22 @@ export class TimeClosingController {
   @Roles(...rolesWith('closing.write'))
   adjust(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: AdjustClosingDto) { return this.service.adjust(req.user.companyId, req.user, id, body); }
 
+  @HttpCode(200)
   @Post(':id/submit-review')
   @Roles(...rolesWith('closing.write'))
   submitReview(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) { return this.service.submitReview(req.user.companyId, id); }
 
+  @HttpCode(200)
   @Post(':id/approve')
   @Roles(...rolesWith('closing.write'))
   approve(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) { return this.service.approve(req.user.companyId, id); }
 
+  @HttpCode(200)
   @Post(':id/close')
   @Roles(...rolesWith('closing.write'))
   close(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) { return this.service.close(req.user.companyId, req.user, id); }
 
+  @HttpCode(200)
   @Post(':id/reopen')
   @Roles(...rolesWith('closing.write'))
   reopen(@Req() req: any, @Param('id', ParseUUIDPipe) id: string, @Body() body: ReopenClosingDto) { return this.service.reopen(req.user.companyId, req.user, id, body.reason); }

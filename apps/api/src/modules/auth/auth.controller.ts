@@ -9,8 +9,7 @@ import {
   Query,
   Req,
   Res,
-  UseGuards,
-} from '@nestjs/common';
+  UseGuards, HttpCode } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -43,6 +42,7 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @HttpCode(200)
   @Post('public-plans/quote')
   quotePublicPlan(@Body() dto: PublicPlanQuoteDto) {
     return this.service.quotePublicPlan(dto);
@@ -57,6 +57,7 @@ export class AuthController {
 
   @Throttle({ default: { limit: 5, ttl: 900000 } })
   @UseGuards(TurnstileGuard)
+  @HttpCode(200)
   @Post('login')
   async login(@Body() dto: LoginDto, @Req() request: any, @Res({ passthrough: true }) reply: any) {
     return withRefreshCookie(reply, await this.service.login(dto, getRequestMeta(request)));
@@ -64,6 +65,7 @@ export class AuthController {
 
   /** Segunda etapa do login (código do app autenticador ou código de recuperação). */
   @Throttle({ default: { limit: 5, ttl: 300000 } })
+  @HttpCode(200)
   @Post('mfa/verify')
   async verifyMfa(@Body() dto: MfaVerifyDto, @Req() request: any, @Res({ passthrough: true }) reply: any) {
     return withRefreshCookie(reply, await this.service.verifyMfaLogin(dto, getRequestMeta(request)));
@@ -71,6 +73,7 @@ export class AuthController {
 
   /** Troca o refresh token (cookie httpOnly) por um novo access token curto. */
   @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @HttpCode(200)
   @Post('refresh')
   async refresh(@Req() request: any, @Res({ passthrough: true }) reply: any) {
     try {
@@ -81,6 +84,7 @@ export class AuthController {
     }
   }
 
+  @HttpCode(200)
   @Post('logout')
   async logout(@Req() request: any, @Res({ passthrough: true }) reply: any) {
     const result = await this.service.logout(request.cookies?.[REFRESH_COOKIE]);
@@ -89,6 +93,7 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 10, ttl: 600000 } })
+  @HttpCode(200)
   @Post('verify-email')
   verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.service.verifyEmail(dto.token);
@@ -108,6 +113,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @HttpCode(200)
   @Post('sessions/revoke-others')
   revokeOthers(@CurrentUser() user: JwtUser, @Req() request: any) {
     return this.service.revokeOtherSessions(user.sub, request.cookies?.[REFRESH_COOKIE]);
@@ -158,12 +164,14 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 5, ttl: 300000 } })
+  @HttpCode(200)
   @Post('password-reset/validate-code')
   validateResetCode(@Body() dto: ValidateResetCodeDto) {
     return this.service.validateResetCode(dto);
   }
 
   @Throttle({ default: { limit: 5, ttl: 300000 } })
+  @HttpCode(200)
   @Post('password-reset/confirm')
   resetPassword(@Body() dto: ResetPasswordDto, @Req() request: any) {
     return this.service.resetPassword(dto, getRequestMeta(request));

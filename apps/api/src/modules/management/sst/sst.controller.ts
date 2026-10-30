@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards, HttpCode } from '@nestjs/common';
 import { CurrentCompany } from '../../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -31,6 +31,7 @@ export class SstController {
     return this.svc.history(companyId, employeeId);
   }
 
+  @HttpCode(200)
   @Post('aso/:id/complete')
   @Roles('DEV', 'ADMIN', 'RH')
   complete(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: CompleteAsoDto) {

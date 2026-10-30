@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put, Query, Res, UseGuards, HttpCode } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -49,6 +49,7 @@ export class AccountingController {
     return this.periods.viewForAccountant(companyId, month);
   }
 
+  @HttpCode(200)
   @Post('companies/:companyId/periods/:month/calculate')
   async calculatePeriod(@CurrentUser() actor: JwtUser, @Param('companyId', ParseUUIDPipe) companyId: string, @Param('month') month: string, @Body() dto: CalculatePeriodDto) {
     await this.access.assertAccountantCanAccess(actor, companyId);
@@ -85,6 +86,7 @@ export class AccountingController {
     return this.rules.deactivate(actor, id);
   }
 
+  @HttpCode(200)
   @Post('rules/simulate')
   simulate(@Body() dto: SimulateDto) {
     return this.rules.simulate(dto);

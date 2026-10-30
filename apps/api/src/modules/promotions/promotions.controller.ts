@@ -39,6 +39,7 @@ export class PromotionsController {
   @HttpCode(200)
   async applyDueNow(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) { this.assertWriter(actor); return { applied: await this.service.applyDue(companyId) }; }
 
+  @HttpCode(200)
   @Post(':id/cancel')
   cancel(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) { this.assertWriter(actor); return this.service.cancel(companyId, actor, id); }
 }

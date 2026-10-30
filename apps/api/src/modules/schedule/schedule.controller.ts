@@ -1,5 +1,5 @@
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, ParseUUIDPipe, HttpCode } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { AssignScheduleDto } from './dto/assign-schedule.dto';
@@ -83,6 +83,7 @@ export class ScheduleController {
   }
 
   @Roles(...rolesWith('schedule.write'))
+  @HttpCode(200)
   @Post('assign/preview')
   previewAssignment(@CurrentUser() actor: JwtUser, @Body() dto: AssignScheduleDto) {
     return this.service.previewAssignment(actor.companyId, actor, dto);

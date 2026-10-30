@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, UseGuards, HttpCode } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, IsUUID, Max, MaxLength, Min, ValidateNested } from 'class-validator';
@@ -91,6 +91,7 @@ export class CandidateActionsController {
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
+  @HttpCode(200)
   @Post('applications/:id/slot-offers/:offerId/cancel')
   async cancelSlotOffer(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Param('offerId', ParseUUIDPipe) offerId: string) {
     await this.scope.assertApplication(companyId, actor, id);
@@ -125,24 +126,28 @@ export class CandidateActionsController {
   }
 
   @Roles('DEV', 'ADMIN', 'RH')
+  @HttpCode(200)
   @Post('offers/:offerId/approve')
   approveOffer(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('offerId', ParseUUIDPipe) offerId: string) {
     return this.offers.approve(companyId, actor, offerId);
   }
 
   @Roles('DEV', 'ADMIN', 'RH')
+  @HttpCode(200)
   @Post('offers/:offerId/return')
   returnOffer(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('offerId', ParseUUIDPipe) offerId: string, @Body() dto: OfferNoteDto) {
     return this.offers.reject(companyId, actor, offerId, dto.note);
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
+  @HttpCode(200)
   @Post('offers/:offerId/send')
   sendOffer(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('offerId', ParseUUIDPipe) offerId: string) {
     return this.offers.send(companyId, actor, offerId);
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
+  @HttpCode(200)
   @Post('offers/:offerId/cancel')
   cancelOffer(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('offerId', ParseUUIDPipe) offerId: string) {
     return this.offers.cancel(companyId, actor, offerId);
@@ -176,6 +181,7 @@ export class CandidateActionsController {
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
+  @HttpCode(200)
   @Post('applications/:id/assessments/:inviteId/cancel')
   async cancelAssessment(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Param('inviteId', ParseUUIDPipe) inviteId: string) {
     await this.scope.assertApplication(companyId, actor, id);
@@ -220,9 +226,11 @@ export class PublicCandidateActionsController {
   @Get('assessment/:token') @Throttle({ default: { limit: 30, ttl: 60000 } })
   assessment(@Param('token') token: string) { return this.assessments.publicAssessment(token); }
 
+  @HttpCode(200)
   @Post('assessment/:token/start') @Throttle({ default: { limit: 10, ttl: 60000 } })
   start(@Param('token') token: string) { return this.assessments.start(token); }
 
+  @HttpCode(200)
   @Post('assessment/:token/submit') @Throttle({ default: { limit: 10, ttl: 60000 } })
   submit(@Param('token') token: string, @Body() dto: SubmitAssessmentDto) { return this.assessments.submit(token, dto.answers); }
 }
