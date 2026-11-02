@@ -19,7 +19,9 @@ describe('recuperação de senha por e-mail', () => {
     service.resolveRole = () => 'FUNCIONARIO';
     service.canAccessCompany = () => true;
 
-    await service.requestPasswordReset({ email: 'pessoa@empresa.com' }, {});
+    // A resposta e imediata (nao revela por tempo se a conta existe); o trabalho real roda em segundo plano.
+    service.requestPasswordReset({ email: 'pessoa@empresa.com' }, {});
+    await new Promise((resolve) => setTimeout(resolve, 20));
 
     expect(repository.setResetCode).toHaveBeenCalledOnce();
     const code = repository.setResetCode.mock.calls[0][1];

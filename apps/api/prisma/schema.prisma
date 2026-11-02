@@ -434,6 +434,14 @@ model Company {
   recruitmentTags       RecruitmentTag[]
   recruitmentSavedViews RecruitmentSavedView[]
 
+  // Recrutador freelancer: contratos, delegacoes de vaga e faturas de servico de recrutamento entre empresas
+  freelancerEngagements     FreelancerEngagement[] @relation("FreelancerEngagementAsFreelancer")
+  clientEngagements         FreelancerEngagement[] @relation("FreelancerEngagementAsClient")
+  jobDelegationsAsFreelancer JobDelegation[]       @relation("JobDelegationAsFreelancer")
+  jobDelegationsAsClient     JobDelegation[]       @relation("JobDelegationAsClient")
+  recruitmentInvoicesIssued  RecruitmentInvoice[]  @relation("RecruitmentInvoiceAsFreelancer")
+  recruitmentInvoicesReceived RecruitmentInvoice[] @relation("RecruitmentInvoiceAsClient")
+
   @@index([commercialOwnerId])
 }
 
@@ -505,6 +513,7 @@ model User {
   supportTicketEvents        SupportTicketEvent[]
   generatedDocuments         GeneratedDocument[]
   partner                    Partner?
+  jobDelegationGrants        JobDelegationGrant[]
 
   @@index([companyId])
 }
@@ -1355,6 +1364,9 @@ model Job {
   questions    JobQuestion[]
   criteria     JobCriterion[]
   recruiters   JobRecruiter[]
+  /// Delegacao a uma empresa-freelancer (se a vaga foi repassada para recrutamento externo). Opcional e 1:1.
+  delegation      JobDelegation?
+  invoiceItems    RecruitmentInvoiceItem[]
 
   @@index([companyId])
   @@index([companyId, status])
@@ -3997,4 +4009,158 @@ model AccountingPeriod {
 
   @@unique([companyId, month])
   @@index([companyId, status])
+}
+
+// ==========================================
+// RECRUTAMENTO: RECRUTADOR FREELANCER (empresa-a-empresa)
+// ==========================================
+// Tudo aqui e ADITIVO e isolado do isolamento multi-tenant existente (Job/Application continuam filtrados so por
+// companyId). O freelancer NUNCA enxerga uma vaga pelo filtro geral: todo acesso cross-tenant passa, explicitamente,
+// por JobDelegation + JobDelegationGrant. Nao reaproveita Partner/PartnerInvoice (aquilo e contas-a-pagar a
+// fornecedores da PROPRIA empresa; aqui e faturamento de servico entre DUAS empresas, em sentido freelancer->cliente).
+
+enum FreelancerEngagementStatus {
+  NEGOTIATION
+  ACTIVE
+  INACTIVE
+  ENDED
+}
+
+/// Contrato comercial entre uma empresa que presta servico de recrutamento (freelancer) e uma empresa-cliente.
+model FreelancerEngagement {
+  id                  String                     @id @default(uuid()) @db.Uuid
+  freelancerCompanyId String                     @db.Uuid
+  clientCompanyId     String                     @db.Uuid
+  status              FreelancerEngagementStatus @default(NEGOTIATION)
+  scope               String?                    @db.Text
+  contractedPositions Int?
+  /// Valor cobrado por vaga preenchida.
+  positionValue       Decimal?                   @db.Decimal(12, 2)
+  /// Sinal cobrado na assinatura do contrato.
+  signupFee           Decimal?                   @db.Decimal(12, 2)
+  /// Mensalidade (se o contrato cobrar recorrencia alem do valor por vaga).
+  monthlyFee          Decimal?                   @db.Decimal(12, 2)
+  /// Dias de garantia: se o contratado sair antes disso, o freelancer repoe sem custo adicional.
+  warrantyDays        Int                        @default(90)
+  contactName         String?
+  contactEmail        String?
+  contactPhone        String?
+  startedAt           DateTime?
+  endedAt             DateTime?
+  createdById         String                     @db.Uuid
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+
+  freelancerCompany Company               @relation("FreelancerEngagementAsFreelancer", fields: [freelancerCompanyId], references: [id], onDelete: Cascade)
+  clientCompany     Company               @relation("FreelancerEngagementAsClient", fields: [clientCompanyId], references: [id], onDelete: Cascade)
+  delegations       JobDelegation[]
+  invoices          RecruitmentInvoice[]
+
+  @@unique([freelancerCompanyId, clientCompanyId])
+  @@index([freelancerCompanyId, status])
+  @@index([clientCompanyId, status])
+}
+
+enum JobDelegationStatus {
+  ACTIVE
+  PAUSED
+  REVOKED
+}
+
+/// Concede a UMA empresa-freelancer acesso explicito a UMA vaga do cliente. E a unica porta de entrada cross-tenant:
+/// o freelancer so enxerga a vaga, as candidaturas e o pipeline dela atraves desta linha (nunca pelo filtro geral
+/// por companyId usado no resto do modulo de recrutamento).
+model JobDelegation {
+  id                  String               @id @default(uuid()) @db.Uuid
+  engagementId        String               @db.Uuid
+  jobId               String               @unique @db.Uuid
+  clientCompanyId     String               @db.Uuid
+  freelancerCompanyId String               @db.Uuid
+  status              JobDelegationStatus  @default(ACTIVE)
+  warrantyEndsAt      DateTime?
+  delegatedById       String               @db.Uuid
+  revokedAt           DateTime?
+  revokedById         String?              @db.Uuid
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  engagement        FreelancerEngagement  @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  job               Job                   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  clientCompany     Company               @relation("JobDelegationAsClient", fields: [clientCompanyId], references: [id], onDelete: Cascade)
+  freelancerCompany Company               @relation("JobDelegationAsFreelancer", fields: [freelancerCompanyId], references: [id], onDelete: Cascade)
+  grants            JobDelegationGrant[]
+
+  @@index([freelancerCompanyId, status])
+  @@index([clientCompanyId])
+}
+
+/// Granularidade por pessoa: quais usuarios da empresa-freelancer podem atuar nesta vaga delegada especifica.
+model JobDelegationGrant {
+  id           String   @id @default(uuid()) @db.Uuid
+  delegationId String   @db.Uuid
+  userId       String   @db.Uuid
+  createdAt    DateTime @default(now())
+
+  delegation JobDelegation @relation(fields: [delegationId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([delegationId, userId])
+  @@index([userId])
+}
+
+enum RecruitmentInvoiceStatus {
+  DRAFT
+  ISSUED
+  OVERDUE
+  PAID
+  DISPUTED
+  CANCELLED
+}
+
+/// Fatura emitida pela empresa-freelancer a empresa-cliente por servico de recrutamento prestado.
+model RecruitmentInvoice {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  engagementId        String                   @db.Uuid
+  freelancerCompanyId String                   @db.Uuid
+  clientCompanyId     String                   @db.Uuid
+  invoiceNumber       String
+  description         String?                  @db.Text
+  amount              Decimal                  @db.Decimal(12, 2)
+  issueDate           DateTime                 @default(now())
+  dueDate             DateTime
+  status              RecruitmentInvoiceStatus @default(DRAFT)
+  paidAt              DateTime?
+  paymentMethod       String?
+  disputeReason       String?                  @db.Text
+  disputedAt          DateTime?
+  disputedById        String?                  @db.Uuid
+  attachmentUrl       String?
+  createdById         String                   @db.Uuid
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  engagement        FreelancerEngagement     @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  freelancerCompany Company                  @relation("RecruitmentInvoiceAsFreelancer", fields: [freelancerCompanyId], references: [id], onDelete: Cascade)
+  clientCompany     Company                  @relation("RecruitmentInvoiceAsClient", fields: [clientCompanyId], references: [id], onDelete: Cascade)
+  items             RecruitmentInvoiceItem[]
+
+  @@unique([freelancerCompanyId, invoiceNumber])
+  @@index([freelancerCompanyId, status])
+  @@index([clientCompanyId, status])
+}
+
+model RecruitmentInvoiceItem {
+  id          String  @id @default(uuid()) @db.Uuid
+  invoiceId   String  @db.Uuid
+  description String
+  jobId       String? @db.Uuid
+  quantity    Int     @default(1)
+  unitPrice   Decimal @db.Decimal(12, 2)
+  totalPrice  Decimal @db.Decimal(12, 2)
+
+  invoice RecruitmentInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  job     Job?               @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([jobId])
 }

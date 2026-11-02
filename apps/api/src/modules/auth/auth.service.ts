@@ -437,13 +437,12 @@ export class AuthService {
   }
 
 
-  /** Resposta genérica para não revelar se o endereço corresponde a uma conta. Aguarda o envio antes de responder. */
-  async requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
-    try {
-      await this.processPasswordResetRequest(dto, requestMeta);
-    } catch (err) {
+  /** Resposta genérica e imediata para não revelar, nem por tempo de resposta, se o endereço corresponde a uma conta:
+   * o trabalho real (DB + envio de e-mail) roda em segundo plano, nunca é aguardado aqui. */
+  requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
+    this.processPasswordResetRequest(dto, requestMeta).catch((err) => {
       this.logger.error(`Falha ao processar pedido de recuperacao: ${String(err)}`);
-    }
+    });
     return { requested: true };
   }
 
