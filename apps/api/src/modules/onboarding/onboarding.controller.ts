@@ -7,6 +7,7 @@
   Patch,
   Post,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -29,13 +30,13 @@ export class OnboardingController {
   @Get('employee/:employeeId')
   getByEmployee(
     @CurrentCompany() companyId: string,
-    @Param('employeeId') employeeId: string,
+    @Param('employeeId', ParseUUIDPipe) employeeId: string,
   ) {
     return this.svc.getByEmployee(companyId, employeeId);
   }
 
   @Get(':id')
-  get(@CurrentCompany() companyId: string, @Param('id') id: string) {
+  get(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.get(companyId, id);
   }
 
@@ -50,13 +51,13 @@ export class OnboardingController {
   @Patch('tasks/:taskId/complete')
   completeTask(
     @CurrentCompany() companyId: string,
-    @Param('taskId') taskId: string,
+    @Param('taskId', ParseUUIDPipe) taskId: string,
   ) {
     return this.svc.completeTask(companyId, taskId);
   }
 
   @Delete(':id')
-  remove(@CurrentCompany() companyId: string, @Param('id') id: string) {
+  remove(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.svc.delete(companyId, id);
   }
 }

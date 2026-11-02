@@ -1,5 +1,5 @@
 import { PlanPayloadDto } from './dto/plan-payload.dto';
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { PlatformPlansService } from './plans.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -25,14 +25,14 @@ export class PlatformPlansController {
   }
 
   @Get(':id')
-  get(@Param('id') id: string) {
+  get(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.get(id);
   }
 
   @Patch(':id')
   @Roles('DEV', 'CEO', 'CONTABIL')
   @Audited({ action: 'PLAN_UPDATED', entity: 'PlatformPlan' })
-  update(@Param('id') id: string, @Body() body: PlanPayloadDto) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() body: PlanPayloadDto) {
     return this.service.update(id, body);
   }
 
@@ -40,7 +40,7 @@ export class PlatformPlansController {
   @Delete(':id')
   @Roles('DEV', 'CEO')
   @Audited({ action: 'PLAN_DEACTIVATED', entity: 'PlatformPlan' })
-  deactivate(@Param('id') id: string) {
+  deactivate(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.deactivate(id);
   }
 
@@ -48,7 +48,7 @@ export class PlatformPlansController {
   @Delete(':id/permanent')
   @Roles('DEV')
   @Audited({ action: 'PLAN_DELETED_PERMANENTLY', entity: 'PlatformPlan' })
-  deletePermanent(@Param('id') id: string) {
+  deletePermanent(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.deletePermanent(id);
   }
 }

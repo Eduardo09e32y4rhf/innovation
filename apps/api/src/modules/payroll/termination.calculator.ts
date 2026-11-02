@@ -1,3 +1,4 @@
+import { BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { PayrollCalculationService, PayrollTaxContext } from '../time-track/payroll-calculation.service';
 import {
   addDays,
@@ -57,8 +58,8 @@ export function noticeDays(admission: Date, termination: Date): number {
 export function calculateTermination(input: TerminationInput) {
   const admission = parseDay(input.admissionDate);
   const termination = parseDay(input.terminationDate);
-  if (termination.getTime() < admission.getTime()) throw new Error('Data de desligamento anterior à admissão.');
-  if (!(input.salary > 0)) throw new Error('Salário inválido.');
+  if (termination.getTime() < admission.getTime()) throw new UnprocessableEntityException('Data de desligamento anterior à admissão.');
+  if (!(input.salary > 0)) throw new BadRequestException('Salário inválido.');
 
   const type = input.type;
   const salaryCents = toCents(input.salary);
@@ -168,7 +169,7 @@ export function calculateTermination(input: TerminationInput) {
   // Contrato a termo rompido antes do fim (arts. 479/480): metade da remuneração dos dias restantes.
   let fixedTermIndemnityCents = 0;
   if (type === 'ANTECIPADA_EMPREGADOR' || type === 'ANTECIPADA_EMPREGADO') {
-    if (!input.contractEndDate) throw new Error('Informe contractEndDate para rescisão antecipada de contrato a termo.');
+    if (!input.contractEndDate) throw new BadRequestException('Informe contractEndDate para rescisão antecipada de contrato a termo.');
     const remaining = Math.max(0, inclusiveDays(addDays(termination, 1), parseDay(input.contractEndDate)));
     fixedTermIndemnityCents = (dailyCents * remaining) / 2;
     if (type === 'ANTECIPADA_EMPREGADOR') {

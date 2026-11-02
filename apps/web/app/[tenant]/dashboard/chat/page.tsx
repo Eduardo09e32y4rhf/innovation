@@ -1,2 +1,5 @@
 import { redirect } from 'next/navigation';
-export default function ChatPage({ params }: { params: { tenant: string } }) { redirect(`/${params.tenant}/dashboard/whatsapp`); }
+export default async function ChatPage(props: { params: Promise<{ tenant: string }> }) {
+  const params = await props.params;
+  redirect(`/${params.tenant}/dashboard/whatsapp`);
+}

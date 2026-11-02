@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Res, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -21,6 +21,7 @@ import {
   TagDto,
   UpdateApplicationMetaDto,
 } from './dto/recruitment.dto';
+import { JobAuditService } from './job-audit.service';
 import { JobScopeService } from './job-scope.service';
 import { RecruitmentService, type ApplicationFilters } from './recruitment.service';
 
@@ -29,7 +30,7 @@ import { RecruitmentService, type ApplicationFilters } from './recruitment.servi
 @Roles('DEV', 'ADMIN', 'RH', 'RH_RS', 'GESTOR')
 @Controller('jobs')
 export class RecruitmentController {
-  constructor(private readonly service: RecruitmentService, private readonly scope: JobScopeService) {}
+  constructor(private readonly service: RecruitmentService, private readonly scope: JobScopeService, private readonly audit: JobAuditService) {}
 
   @Get('pipeline')
   pipeline(@CurrentCompany() companyId: string) {
@@ -66,7 +67,7 @@ export class RecruitmentController {
 
   @Roles('DEV', 'ADMIN', 'RH')
   @Delete('tags/:id')
-  deleteTag(@CurrentCompany() companyId: string, @Param('id') id: string) {
+  deleteTag(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.deleteTag(companyId, id);
   }
 
@@ -81,18 +82,20 @@ export class RecruitmentController {
   }
 
   @Delete('views/:id')
-  deleteView(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  deleteView(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.deleteView(companyId, actor.sub, id);
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'GESTOR')
   @Post('applications/bulk')
-  bulk(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: BulkApplicationsDto) {
-    return this.service.bulk(companyId, actor.sub, dto);
+  async bulk(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Body() dto: BulkApplicationsDto) {
+    const result = await this.service.bulk(companyId, actor.sub, dto);
+    if (dto.action === 'MOVE') await this.audit.recordBulkMove(companyId, actor.sub, dto.ids, dto.stageId, (result as { moved?: number }).moved ?? 0);
+    return result;
   }
 
   @Get('applications/:id')
-  async application(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  async application(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     await this.scope.assertApplication(companyId, actor, id);
     return this.service.getApplication(companyId, id, actor.sub);
   }
@@ -101,21 +104,23 @@ export class RecruitmentController {
   async move(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: MoveApplicationDto,
   ) {
     await this.scope.assertApplication(companyId, actor, id);
-    return this.service.moveApplication(companyId, actor.sub, id, dto);
+    const result = await this.service.moveApplication(companyId, actor.sub, id, dto);
+    if (result.jobId) await this.audit.record(companyId, actor.sub, 'JOB_STAGE_CHANGED', result.jobId, { applicationId: id, stageId: dto.stageId, status: result.status });
+    return result;
   }
 
   @Patch('applications/:id/favorite')
-  async favorite(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateApplicationMetaDto) {
+  async favorite(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateApplicationMetaDto) {
     await this.scope.assertApplication(companyId, actor, id);
     return this.service.setFavorite(companyId, id, dto.favorite !== false);
   }
 
   @Post('applications/:id/notes')
-  async note(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: NoteDto) {
+  async note(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: NoteDto) {
     await this.scope.assertApplication(companyId, actor, id);
     return this.service.addNote(companyId, actor.sub, id, dto.body);
   }
@@ -124,7 +129,7 @@ export class RecruitmentController {
   async evaluations(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SaveEvaluationsDto,
   ) {
     await this.scope.assertApplication(companyId, actor, id);
@@ -135,7 +140,7 @@ export class RecruitmentController {
   async interview(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: InterviewDto,
   ) {
     await this.scope.assertApplication(companyId, actor, id);
@@ -143,45 +148,45 @@ export class RecruitmentController {
   }
 
   @Get('applications/:id/interview-defaults')
-  async interviewDefaults(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  async interviewDefaults(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     await this.scope.assertApplication(companyId, actor, id);
     return this.service.interviewDefaults(companyId, id);
   }
 
   @Delete('applications/:id/interviews/:interviewId')
-  async removeInterview(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Param('interviewId') interviewId: string) {
+  async removeInterview(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Param('interviewId', ParseUUIDPipe) interviewId: string) {
     await this.scope.assertApplication(companyId, actor, id);
     return this.service.deleteInterview(companyId, id, interviewId);
   }
 
   @Put('applications/:id/tags')
-  async applicationTags(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: SetApplicationTagsDto) {
+  async applicationTags(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: SetApplicationTagsDto) {
     await this.scope.assertApplication(companyId, actor, id);
     return this.service.setApplicationTags(companyId, id, dto.tagIds);
   }
 
   @Get(':jobId/questions')
-  async questions(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string) {
+  async questions(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId', ParseUUIDPipe) jobId: string) {
     await this.scope.assertJob(companyId, actor, jobId);
     return this.service.getQuestions(companyId, jobId);
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Put(':jobId/questions')
-  async saveQuestions(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string, @Body() dto: SaveQuestionsDto) {
+  async saveQuestions(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId', ParseUUIDPipe) jobId: string, @Body() dto: SaveQuestionsDto) {
     await this.scope.assertJob(companyId, actor, jobId);
     return this.service.saveQuestions(companyId, jobId, dto);
   }
 
   @Get(':jobId/criteria')
-  async criteria(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string) {
+  async criteria(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId', ParseUUIDPipe) jobId: string) {
     await this.scope.assertJob(companyId, actor, jobId);
     return this.service.getCriteria(companyId, jobId);
   }
 
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Put(':jobId/criteria')
-  async saveCriteria(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string, @Body() dto: SaveCriteriaDto) {
+  async saveCriteria(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId', ParseUUIDPipe) jobId: string, @Body() dto: SaveCriteriaDto) {
     await this.scope.assertJob(companyId, actor, jobId);
     return this.service.saveCriteria(companyId, jobId, dto);
   }
@@ -190,19 +195,20 @@ export class RecruitmentController {
   async exportCsv(
     @CurrentCompany() companyId: string,
     @CurrentUser() actor: JwtUser,
-    @Param('jobId') jobId: string,
+    @Param('jobId', ParseUUIDPipe) jobId: string,
     @Query() query: ApplicationFilters,
     @Res() reply: any,
   ) {
     await this.scope.assertJob(companyId, actor, jobId);
     const csv = await this.service.exportCsv(companyId, jobId, query);
+    await this.audit.record(companyId, actor.sub, 'JOB_DATA_EXPORTED', jobId, { format: 'csv', filters: Object.keys(query ?? {}).filter((key) => (query as Record<string, unknown>)[key] !== undefined && (query as Record<string, unknown>)[key] !== '') });
     reply.header('Content-Type', 'text/csv; charset=utf-8');
     reply.header('Content-Disposition', 'attachment; filename="candidatos.csv"');
     return reply.send(csv);
   }
 
   @Get(':jobId/applications')
-  async applications(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId') jobId: string, @Query() query: ApplicationFilters) {
+  async applications(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('jobId', ParseUUIDPipe) jobId: string, @Query() query: ApplicationFilters) {
     await this.scope.assertJob(companyId, actor, jobId);
     return this.service.listApplications(companyId, jobId, query);
   }

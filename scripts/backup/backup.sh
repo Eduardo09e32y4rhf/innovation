@@ -3,13 +3,17 @@
 # Variáveis opcionais no .env:
 #   BACKUP_DIR        (padrão: <projeto>/storage/backups)
 #   BACKUP_KEEP_DAYS  (padrão: 14)
-#   BACKUP_REMOTE     destino rclone, ex.: b2:meu-bucket/innovation  (vazio = só local, com aviso)
+#   BACKUP_REMOTE     "s3" = envio CIFRADO para R2/B2 via rclone em container (ver scripts/backup/remote-lib.sh e
+#                     docs/BACKUP-REMOTO.md; exige BACKUP_S3_* e BACKUP_ENCRYPTION_PASSPHRASE).
+#                     Qualquer outro valor = destino rclone instalado no host, ex.: b2:meu-bucket/innovation.
+#                     Vazio = só local, com aviso.
 set -Eeuo pipefail
 
 cd "$(dirname "$0")/../.."
 source scripts/deploy/env-options.sh
 load_deploy_options BACKUP_DIR BACKUP_KEEP_DAYS BACKUP_REMOTE
 COMPOSE="docker compose -f docker-compose.prod.yml"
+. "$PWD/scripts/backup/remote-lib.sh"
 BACKUP_DIR="${BACKUP_DIR:-$PWD/storage/backups}"
 KEEP_DAYS="${BACKUP_KEEP_DAYS:-14}"
 STAMP="$(date +%Y%m%d_%H%M%S)"
@@ -18,6 +22,9 @@ LOG="[backup $(date -Is)]"
 
 mkdir -p "$BACKUP_DIR"
 umask 077
+
+# Falha ANTES de gerar o dump se o remoto S3 estiver ligado sem configuração/passphrase.
+if remote_s3_enabled; then remote_s3_require_config || exit 1; fi
 
 echo "$LOG iniciando -> $FILE"
 $COMPOSE exec -T db sh -c 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --clean --if-exists' | gzip -1 > "$FILE.partial"
@@ -37,7 +44,18 @@ if $COMPOSE exec -T api sh -c 'test -d /data && tar -czf - -C /data .' > "$UPLOA
 else rm -f "$UPLOADS.partial"; fi
 
 # Cópia externa
-if [ -n "${BACKUP_REMOTE:-}" ]; then
+if remote_s3_enabled; then
+  # Só arquivos cifrados (.enc) saem da VPS; o texto claro nunca é enviado.
+  TO_SEND=()
+  for f in "$FILE" "${UPLOADS:-}"; do
+    [ -n "$f" ] && [ -f "$f" ] || continue
+    ENC="$(remote_s3_encrypt "$f")"
+    TO_SEND+=("$ENC" "$ENC.sha256")
+  done
+  remote_s3_upload "${TO_SEND[@]}" || { echo "$LOG FALHA no envio remoto"; exit 1; }
+  remote_s3_prune || echo "$LOG AVISO: retenção remota falhou"
+  echo "$LOG enviado (cifrado) para $(remote_s3_path) — retenção remota ${BACKUP_REMOTE_RETENTION_DAYS:-30} dias"
+elif [ -n "${BACKUP_REMOTE:-}" ]; then
   command -v rclone >/dev/null || { echo "$LOG FALHA: BACKUP_REMOTE definido, mas rclone não está instalado."; exit 1; }
   rclone copy "$FILE" "$BACKUP_REMOTE" && rclone copy "$FILE.sha256" "$BACKUP_REMOTE"
   [ -f "$UPLOADS" ] && rclone copy "$UPLOADS" "$BACKUP_REMOTE"
@@ -47,5 +65,5 @@ else
 fi
 
 # Retenção local
-find "$BACKUP_DIR" -type f \( -name 'innovation_*.sql.gz*' -o -name 'uploads_*.tar.gz' \) -mtime +"$KEEP_DAYS" -delete
+find "$BACKUP_DIR" -type f \( -name 'innovation_*.sql.gz*' -o -name 'uploads_*.tar.gz*' \) -mtime +"$KEEP_DAYS" -delete
 echo "$LOG retenção: ${KEEP_DAYS} dias. Arquivos atuais: $(find "$BACKUP_DIR" -name 'innovation_*.sql.gz' | wc -l)"

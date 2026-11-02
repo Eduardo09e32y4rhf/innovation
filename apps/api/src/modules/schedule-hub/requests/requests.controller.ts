@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards, ParseUUIDPipe, HttpCode } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -18,6 +18,7 @@ export class RequestsController {
   constructor(private readonly service: RequestsService) {}
 
   @Roles(...REQUESTERS)
+  @HttpCode(200)
   @Post('preview')
   preview(@CurrentUser() actor: JwtUser, @Body() dto: CreateRequestDto) {
     return this.service.validate(actor, dto.type, dto.payload, dto.peerEmployeeId).then(({ ok, findings }) => ({ ok, findings }));
@@ -43,25 +44,28 @@ export class RequestsController {
 
   @Roles(...VIEWERS)
   @Get(':id')
-  get(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  get(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.get(actor, id);
   }
 
   @Roles(...APPROVERS)
+  @HttpCode(200)
   @Post(':id/decide')
-  decide(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: DecideRequestDto) {
+  decide(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: DecideRequestDto) {
     return this.service.decide(actor, id, dto);
   }
 
   @Roles(...REQUESTERS)
+  @HttpCode(200)
   @Post(':id/peer')
-  peer(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: PeerResponseDto) {
+  peer(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: PeerResponseDto) {
     return this.service.respondAsPeer(actor, id, dto);
   }
 
   @Roles(...REQUESTERS)
+  @HttpCode(200)
   @Post(':id/cancel')
-  cancel(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  cancel(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.cancel(actor, id);
   }
 }

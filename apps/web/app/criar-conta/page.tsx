@@ -2,11 +2,12 @@ import { redirect } from 'next/navigation';
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-export default function CriarContaPage({
-  searchParams,
-}: {
-  searchParams?: SearchParams;
-}) {
+export default async function CriarContaPage(
+  props: {
+    searchParams?: Promise<SearchParams>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const query = new URLSearchParams();
 
   Object.entries(searchParams ?? {}).forEach(([key, value]) => {

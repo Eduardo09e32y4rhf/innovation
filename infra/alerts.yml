@@ -15,6 +15,9 @@ groups:
         expr: increase(webhook_failures_total[15m]) > 0
         labels: { severity: critical }
         annotations: { summary: "Webhook de pagamento falhou ({{ $labels.provider }})" }
+      # ATENCAO (INF-05): esta metrica so existe se a rotina interna da API estiver ligada (INTERNAL_DB_BACKUP_ENABLED=true),
+      # o que nao e o caso em producao (o backup oficial roda no host). Sem a serie, o alerta nunca dispara: NAO e monitoramento do backup.
+      # Monitore o backup real conferindo o objeto remoto (docs/BACKUP-REMOTO.md).
       - alert: CronParado_Backup
         expr: time() - cron_last_success_timestamp_seconds{job="db_backup"} > 90000
         labels: { severity: critical }

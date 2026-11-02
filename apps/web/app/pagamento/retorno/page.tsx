@@ -28,9 +28,12 @@ export default function PagamentoRetornoPage() {
     started.current = true;
     const startedAt = Date.now();
     let stopped = false;
+    let attempt = 0;
     const tick = async () => {
       if (stopped) return;
       try {
+        // O GET de status so le: a baixa vem do webhook ou da conciliacao. Pede a conciliacao na 1a vez e a cada 4 consultas.
+        if (attempt++ % 4 === 0) await api.companyBilling.syncPayment().catch(() => undefined);
         const status = await api.companyBilling.status();
         if (status.active) {
           setConfirmed(true);

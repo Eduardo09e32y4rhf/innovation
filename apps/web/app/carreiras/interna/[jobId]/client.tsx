@@ -1,5 +1,6 @@
 'use client';
 
+import { TurnstileWidget } from '@/app/_components/turnstile-widget';
 import { Lock } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { QuestionField } from '../../[companyId]/[jobId]/job-details';
@@ -76,6 +77,7 @@ export function InternalJobClient({ jobId }: { jobId: string }) {
                 <label className="block space-y-1 text-sm font-medium">Por que você quer esta vaga? (opcional)<textarea className={`${input} min-h-24 py-2`} maxLength={3000} value={form.coverLetter} onChange={(event) => setForm({ ...form, coverLetter: event.target.value })} /></label>
                 <label className="flex min-h-11 items-start gap-3 text-sm"><input type="checkbox" className="mt-0.5 h-5 w-5 accent-[#7240da]" checked={form.consent} onChange={(event) => setForm({ ...form, consent: event.target.checked })} /> Autorizo o uso dos meus dados do cadastro neste processo seletivo interno.</label>
                 {error && <Notice tone="error">{error}</Notice>}
+                <TurnstileWidget />
                 <button type="submit" className={`${primaryBtn} w-full`} disabled={busy}>{busy ? 'Enviando…' : 'Enviar candidatura'}</button>
               </form>
             )}

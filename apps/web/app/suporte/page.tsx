@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, HeadphonesIcon, CheckCircle2, AlertCircle, Loader2, LifeBuoy, Send, ShieldCheck, Building2 } from 'lucide-react';
 import api from '@/app/lib/api';
 import { BackLink } from '../_components/back-link';
+import { TurnstileWidget } from '../_components/turnstile-widget';
 
 const display = { className: 'font-display' };
 
@@ -220,6 +221,8 @@ export default function SuportePage() {
                 <ShieldCheck size={16} className="text-teal-400 shrink-0" />
                 <span>Atendimento monitorado por SLA e agendador automático.</span>
               </div>
+
+              <TurnstileWidget />
 
               <button
                 type="submit"

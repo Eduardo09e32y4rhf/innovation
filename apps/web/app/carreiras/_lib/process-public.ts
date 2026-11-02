@@ -24,7 +24,7 @@ export interface PublicAssessment {
 
 export const processPublic = {
   interview: (token: string) => fetchPublic(`/public/recruitment/interview/${enc(token)}`) as Promise<PublicInterview>,
-  respondInterview: (token: string, response: 'CONFIRMED' | 'DECLINED', reason?: string) => fetchPublic(`/public/recruitment/interview/${enc(token)}`, json({ response, reason })) as Promise<PublicInterview>,
+  respondInterview: (token: string, response: 'CONFIRMED' | 'DECLINED' | 'RESCHEDULE', reason?: string) => fetchPublic(`/public/recruitment/interview/${enc(token)}`, json({ response, reason })) as Promise<PublicInterview>,
   slots: (token: string) => fetchPublic(`/public/recruitment/slots/${enc(token)}`) as Promise<PublicSlots>,
   book: (token: string, slot: string) => fetchPublic(`/public/recruitment/slots/${enc(token)}`, json({ slot })) as Promise<PublicSlots>,
   offer: (token: string) => fetchPublic(`/public/recruitment/offer/${enc(token)}`) as Promise<PublicOffer>,

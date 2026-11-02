@@ -1,5 +1,6 @@
 'use client';
 
+import { TurnstileWidget } from '@/app/_components/turnstile-widget';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -180,6 +181,7 @@ function CadastroForm() {
           {error && <AuthAlert>{error}</AuthAlert>}
           <div className="flex gap-3">
             <button type="button" onClick={() => { setStep(1); setError(''); }} disabled={loading} className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50">Voltar</button>
+            <TurnstileWidget />
             <button type="submit" disabled={loading || !plan || !accepted} className={authButton}>{loading ? 'Criando conta…' : 'Criar minha empresa'}</button>
           </div>
         </form>

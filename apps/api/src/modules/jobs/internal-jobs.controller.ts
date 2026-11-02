@@ -8,6 +8,7 @@ import { ModuleGuard } from '../../common/guards/module.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { Throttle } from '@nestjs/throttler';
+import { TurnstileGuard } from '../../common/turnstile/turnstile.guard';
 import { InternalApplyDto, InternalJobsService, PublicInternalApplyDto } from './internal-jobs.service';
 
 /** Processo interno: funcionário vê as vagas internas e se candidata pela matrícula; RH/R&S/Gestor também inscrevem por matrícula. */
@@ -38,6 +39,6 @@ export class PublicInternalJobsController {
   job(@Param('jobId', ParseUUIDPipe) jobId: string) { return this.service.publicJob(jobId); }
 
   /** Limite baixo: impede testar matricula/CPF em sequencia. */
-  @Post(':jobId/apply') @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post(':jobId/apply') @UseGuards(TurnstileGuard) @Throttle({ default: { limit: 5, ttl: 60000 } })
   apply(@Param('jobId', ParseUUIDPipe) jobId: string, @Body() dto: PublicInternalApplyDto) { return this.service.applyPublic(jobId, dto); }
 }

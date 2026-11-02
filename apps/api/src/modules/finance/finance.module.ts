@@ -6,6 +6,7 @@ import { FiscalAdjustmentsService } from './fiscal-adjustments.service';
 import { InvoicePdfService } from './invoice-pdf.service';
 import { AsaasWebhookController } from './asaas-webhook.controller';
 import { AsaasWebhookProcessorService, AsaasWebhookWorker } from './asaas-webhook.processor';
+import { AsaasWebhookQueueMonitorService } from './asaas-webhook-queue-monitor.service';
 import { BillingCronService } from './billing-cron.service';
 import { CompanyBillingController } from './company-billing.controller';
 import { FaturasAcoesService } from './faturas-acoes.service';
@@ -19,6 +20,7 @@ import { FinanceController } from './finance.controller';
 import { IntegrationsController } from './integrations.controller';
 import { MercadoPagoService } from './mercadopago.service';
 import { MercadoPagoWebhookController } from './mercadopago-webhook.controller';
+import { MercadoPagoPaymentSyncService } from './mercadopago-payment-sync.service';
 import { PaymentProviderService } from './payment-provider.service';
 import { FinanceNotificationService } from './finance-notification.service';
 import { PlatformFinanceService } from './platform-finance.service';
@@ -48,10 +50,12 @@ import { TimeTrackModule } from '../time-track/time-track.module';
     FiscalAdjustmentsService,
     InvoicePdfService,
     MercadoPagoService,
+    MercadoPagoPaymentSyncService,
     PaymentProviderService,
     AsaasWebhookProcessorService,
     AsaasWebhookWorker,
     BillingCronService,
+    AsaasWebhookQueueMonitorService,
     PlatformFinanceService,
     PlatformRevenueReportService,
     PaymentRefundService,

@@ -1,2 +1,5 @@
 import { redirect } from 'next/navigation';
-export default function FinancePage({ params }: { params: { tenant: string } }) { redirect(`/${params.tenant}/dashboard`); }
+export default async function FinancePage(props: { params: Promise<{ tenant: string }> }) {
+  const params = await props.params;
+  redirect(`/${params.tenant}/dashboard`);
+}

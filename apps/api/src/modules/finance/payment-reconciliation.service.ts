@@ -6,6 +6,8 @@ import { PrismaService } from '../../database/prisma.service';
 import { AsaasRejectedException, AsaasService, type AsaasPayment } from './asaas.service';
 import { AsaasWebhookProcessorService } from './asaas-webhook.processor';
 import { PaymentRefundService } from './payment-refund.service';
+import { MercadoPagoService } from './mercadopago.service';
+import { MercadoPagoPaymentSyncService } from './mercadopago-payment-sync.service';
 
 export type RemoteKind = 'OPEN' | 'PAID' | 'OVERDUE' | 'CANCELED' | 'REFUND' | 'UNKNOWN';
 export type DivergenceReason = 'REMOTA_INEXISTENTE' | 'LOCAL_PAGO_REMOTO_NAO_PAGO' | 'VALOR_DIVERGENTE' | 'SEM_COBRANCA_REMOTA' | 'REPARO_FALHOU' | 'ESTADO_NAO_CONVERGE';
@@ -52,6 +54,8 @@ export class PaymentReconciliationService {
     private readonly processor: AsaasWebhookProcessorService,
     private readonly redis: RedisService,
     private readonly refunds?: PaymentRefundService,
+    private readonly mercadoPago?: MercadoPagoService,
+    private readonly mercadoPagoSync?: MercadoPagoPaymentSyncService,
   ) {}
 
   /** Conciliação diária de faturas do Asaas: o estado remoto manda; divergência que não se resolve sozinha vira ajuste (AuditLog). */
@@ -63,7 +67,47 @@ export class PaymentReconciliationService {
     if (report.openDivergences) this.logger.error(`OPERATIONAL_ALERT ${JSON.stringify({ condition: 'payment_divergence', count: report.openDivergences })}`);
   }
 
+  /** Asaas e Mercado Pago: o estado remoto manda, com as mesmas regras de acesso do webhook. */
   async reconcile(options: { windowDays?: number; limit?: number; companyId?: string } = {}): Promise<ReconciliationReport> {
+    const report = await this.reconcileAsaas(options);
+    const mp = await this.reconcileMercadoPago(options);
+    report.checked += mp.checked; report.ok += mp.ok; report.healed += mp.healed; report.errors += mp.errors;
+    if (mp.checked) report.openDivergences = await this.countOpenDivergences(options.companyId);
+    return report;
+  }
+
+  /**
+   * Mercado Pago: webhook atrasado, perdido ou rejeitado nao pode perder pagamento. Para cada fatura MP aberta/vencida consulta o
+   * gateway (por mpPaymentId ou pela referencia `inv:<id>`) e aplica o estado real pelo mesmo servico do webhook (idempotente).
+   */
+  private async reconcileMercadoPago(options: { windowDays?: number; limit?: number; companyId?: string }) {
+    const report = { checked: 0, ok: 0, healed: 0, errors: 0 };
+    if (!this.mercadoPago?.isConfigured() || !this.mercadoPagoSync) return report;
+    const invoices = await this.prisma.platformInvoice.findMany({
+      where: {
+        deletedAt: null, provider: 'MERCADOPAGO', status: { in: ['OPEN', 'OVERDUE'] },
+        createdAt: { gte: new Date(Date.now() - 90 * 86_400_000) },
+        ...(options.companyId ? { companyId: options.companyId } : {}),
+      },
+      orderBy: { updatedAt: 'asc' },
+      take: options.limit ?? 300,
+    });
+    for (const invoice of invoices) {
+      report.checked += 1;
+      try {
+        const payment = await this.mercadoPago.findPaymentForInvoice(invoice.id, invoice.mpPaymentId);
+        if (!payment || this.mercadoPago.mapStatus(payment.status) === 'OPEN') { report.ok += 1; continue; }
+        const result = await this.mercadoPagoSync.apply(invoice, payment);
+        if (result.duplicate || result.ignored) report.ok += 1; else report.healed += 1;
+      } catch (error) {
+        report.errors += 1;
+        this.logger.warn(`Conciliação do Mercado Pago da fatura ${invoice.id} falhou: ${String(error)}`);
+      }
+    }
+    return report;
+  }
+
+  private async reconcileAsaas(options: { windowDays?: number; limit?: number; companyId?: string }): Promise<ReconciliationReport> {
     const report: ReconciliationReport = { checked: 0, ok: 0, healed: 0, linked: 0, diverged: 0, resolved: 0, errors: 0, openDivergences: 0 };
     if (!this.asaas.isConfigured()) return report;
     const since = new Date(Date.now() - (options.windowDays ?? 7) * 86_400_000);

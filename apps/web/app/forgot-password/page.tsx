@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 type SearchParams = Record<string, string | string[] | undefined>;
 
 // Rota antiga mantida: o fluxo de recuperar acesso vive em /esqueci-senha.
-export default function ForgotPasswordLegacy({ searchParams }: { searchParams?: SearchParams }) {
+export default async function ForgotPasswordLegacy(props: { searchParams?: Promise<SearchParams> }) {
+  const searchParams = await props.searchParams;
   const query = new URLSearchParams();
   Object.entries(searchParams ?? {}).forEach(([key, value]) => {
     if (Array.isArray(value)) value.forEach((item) => query.append(key, item));

@@ -305,7 +305,8 @@ export class AuthRepository {
     return this.prisma.user.updateMany({ where: { id: userId, emailVerifiedAt: null }, data: { emailVerifiedAt: new Date() } });
   }
 
-  setResetCode(userId: string, code: string, expires: Date) {
+  /** `code` e sempre o HMAC do codigo (ou null enquanto o pedido espera o RH emitir). */
+  setResetCode(userId: string, code: string | null, expires: Date) {
     return this.prisma.user.update({
       where: { id: userId },
       data: { resetPasswordCode: code, resetPasswordExpires: expires },
@@ -316,12 +317,6 @@ export class AuthRepository {
     return this.prisma.user.update({
       where: { id: userId },
       data: { resetPasswordCode: null, resetPasswordExpires: null },
-    });
-  }
-
-  findByResetCode(code: string) {
-    return this.prisma.user.findFirst({
-      where: { resetPasswordCode: code, resetPasswordExpires: { gt: new Date() } },
     });
   }
 

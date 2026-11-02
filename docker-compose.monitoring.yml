@@ -1,0 +1,16 @@
+# Monitoramento de disponibilidade (Uptime Kuma). Independente do docker-compose.prod.yml.
+# Subir:  docker compose -f docker-compose.monitoring.yml up -d
+# Painel só em 127.0.0.1:3001; exponha via nginx (infra/nginx-uptime.conf). Guia: docs/UPTIME-KUMA.md
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1.23.16
+    container_name: innovation-uptime-kuma
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    mem_limit: 256m
+    restart: unless-stopped
+
+volumes:
+  uptime_kuma_data:

@@ -1,3 +1,4 @@
+import { AnyAuthenticated } from '../../common/decorators/any-authenticated.decorator';
 import { PlainJsonInterceptor } from '../../common/interceptors/plain-json.interceptor';
 import { Body, Controller, Delete, Get, Param, Put, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ArrayMaxSize, IsArray, IsString } from 'class-validator';
@@ -25,6 +26,7 @@ export class FaturasPermissoesController {
   constructor(private readonly permissions: FaturasPermissionsService) {}
 
   /** Permissões efetivas do próprio usuário (o front usa para mostrar o menu e os botões). */
+  @AnyAuthenticated()
   @Get('minhas')
   async mine(@CurrentUser() actor: JwtUser) {
     return { permissions: await this.permissions.effective(actor) };

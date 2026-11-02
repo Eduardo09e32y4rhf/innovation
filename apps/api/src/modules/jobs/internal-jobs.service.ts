@@ -26,6 +26,7 @@ export class PublicInternalApplyDto extends InternalApplyDto {
   @IsString() @MaxLength(20) cpf!: string;
   @IsOptional() @IsObject() answers?: Record<string, unknown>;
   @IsBoolean() consent!: boolean;
+  @IsOptional() @IsString() @MaxLength(2048) turnstileToken?: string;
 }
 
 /**

@@ -1,0 +1,192 @@
+{
+  "realm": "innovation",
+  "displayName": "Innovation",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "verifyEmail": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "passwordPolicy": "length(12) and notUsername and passwordHistory(3)",
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "smtpServer": {
+    "_comment": "Preencher no console (Realm settings > Email) com o SMTP real; sem segredos aqui."
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "DEV",
+        "description": "Papel DEV do Innovation"
+      },
+      {
+        "name": "CEO",
+        "description": "Papel CEO do Innovation"
+      },
+      {
+        "name": "COMERCIAL",
+        "description": "Papel COMERCIAL do Innovation"
+      },
+      {
+        "name": "CONTABIL",
+        "description": "Papel CONTABIL do Innovation"
+      },
+      {
+        "name": "ADMIN",
+        "description": "Papel ADMIN do Innovation"
+      },
+      {
+        "name": "RH",
+        "description": "Papel RH do Innovation"
+      },
+      {
+        "name": "RH_RS",
+        "description": "Papel RH_RS do Innovation"
+      },
+      {
+        "name": "GESTOR",
+        "description": "Papel GESTOR do Innovation"
+      },
+      {
+        "name": "FUNCIONARIO",
+        "description": "Papel FUNCIONARIO do Innovation"
+      },
+      {
+        "name": "CONSULTA",
+        "description": "Papel CONSULTA do Innovation"
+      },
+      {
+        "name": "CANDIDATO",
+        "description": "Papel CANDIDATO do Innovation"
+      }
+    ]
+  },
+  "defaultRole": {
+    "name": "default-roles-innovation",
+    "description": "Papéis padrão (sem acesso por si só)"
+  },
+  "requiredActions": [
+    {
+      "alias": "VERIFY_EMAIL",
+      "name": "Verify Email",
+      "providerId": "VERIFY_EMAIL",
+      "enabled": true,
+      "defaultAction": true,
+      "priority": 50
+    },
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 10
+    },
+    {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 30
+    }
+  ],
+  "clientScopes": [],
+  "clients": [
+    {
+      "clientId": "innovation-web",
+      "name": "Innovation Web",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "https://innovationia.com.br",
+      "baseUrl": "/",
+      "redirectUris": [
+        "https://innovationia.com.br/*"
+      ],
+      "webOrigins": [
+        "https://innovationia.com.br"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://innovationia.com.br/*"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "profile",
+        "email",
+        "roles"
+      ],
+      "protocolMappers": [
+        {
+          "name": "companyId",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "companyId",
+            "claim.name": "companyId",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "aud innovation-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "innovation-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "innovation-api",
+      "name": "Innovation API (bearer-only)",
+      "enabled": true,
+      "bearerOnly": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    }
+  ]
+}

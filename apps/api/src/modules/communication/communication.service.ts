@@ -1,5 +1,5 @@
 import { ALLOW, inspectFile } from '../../common/utils/file-validation';
-import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { CommunicationGateway } from './realtime/communication.gateway';
 import { CommunicationRepository } from './communication.repository';
 import { SendMessageDto } from './dto/send-message.dto';
@@ -78,7 +78,7 @@ export class CommunicationService implements OnModuleInit {
   constructor(
     private readonly repository: CommunicationRepository,
     private readonly provider: WhatsappProvider,
-    private readonly gateway: CommunicationGateway,
+    @Optional() @Inject(CommunicationGateway) private readonly gateway: CommunicationGateway | undefined,
     private readonly omnius: OmniusAdapterService,
   ) {}
 
@@ -289,7 +289,7 @@ export class CommunicationService implements OnModuleInit {
 
   async updateConversationStatus(companyId: string, id: string, dto: UpdateConversationStatusDto) {
     const conversation = await this.repository.updateConversationStatus(companyId, id, dto.status);
-    this.gateway.emitToCompany(companyId, 'communication.conversation.updated', conversation);
+    this.gateway?.emitToCompany(companyId, 'communication.conversation.updated', conversation);
     return conversation;
   }
 
@@ -325,8 +325,8 @@ export class CommunicationService implements OnModuleInit {
       conversation = fallback.conversation;
       message = fallback.message;
     }
-    this.gateway.emitToCompany(companyId, 'communication.message.created', message);
-    this.gateway.emitToCompany(companyId, 'communication.conversation.updated', conversation);
+    this.gateway?.emitToCompany(companyId, 'communication.message.created', message);
+    this.gateway?.emitToCompany(companyId, 'communication.conversation.updated', conversation);
     return message;
   }
 
@@ -385,8 +385,8 @@ export class CommunicationService implements OnModuleInit {
       conversation = fallback.conversation;
       message = fallback.message;
     }
-    this.gateway.emitToCompany(input.companyId, 'communication.message.created', message);
-    this.gateway.emitToCompany(input.companyId, 'communication.conversation.updated', conversation);
+    this.gateway?.emitToCompany(input.companyId, 'communication.message.created', message);
+    this.gateway?.emitToCompany(input.companyId, 'communication.conversation.updated', conversation);
     return message;
   }
 
@@ -397,7 +397,7 @@ export class CommunicationService implements OnModuleInit {
       this.logger.warn(`Falha ao atualizar QR Code da empresa ${companyId}`, e);
     }
     memoryWhatsapp.set(companyId, { ...(memoryWhatsapp.get(companyId) ?? {}), status: 'QR_CODE', qrCode });
-    this.gateway.emitToCompany(companyId, 'communication.whatsapp.qrcode', { qrCode });
+    this.gateway?.emitToCompany(companyId, 'communication.whatsapp.qrcode', { qrCode });
   }
 
   private async handleStatus(companyId: string, status: WhatsappConnectionStatus) {
@@ -411,7 +411,7 @@ export class CommunicationService implements OnModuleInit {
       status,
       qrCode: status === 'QR_CODE' ? memoryWhatsapp.get(companyId)?.qrCode : null,
     });
-    this.gateway.emitToCompany(companyId, 'communication.whatsapp.status', { status });
+    this.gateway?.emitToCompany(companyId, 'communication.whatsapp.status', { status });
   }
 
   private async getStoredWhatsapp(companyId: string) {

@@ -1,0 +1,59 @@
+# Keycloak (PROVA DE CONCEITO, desligado por padrão: exige --profile identity).
+# Subir:  docker compose -f docker-compose.identity.yml --env-file .env.identity --profile identity up -d
+# Modelo de variáveis: .env.example.identity. Guia: docs/KEYCLOAK.md
+# TAG DE IMAGEM: não foi possível confirmar a última tag estável no ambiente de criação (sem acesso ao quay.io).
+# Antes de subir, confira em https://www.keycloak.org/downloads e ajuste KEYCLOAK_VERSION no .env.identity.
+services:
+  keycloak-db:
+    profiles: ["identity"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?defina KEYCLOAK_DB_PASSWORD}
+      POSTGRES_DB: keycloak
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=30"]
+    mem_limit: 256m
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  keycloak:
+    profiles: ["identity"]
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION:-26.4.0}
+    command: ["start", "--import-realm"]
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:?defina KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?defina KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-auth.innovationia.com.br}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      JAVA_OPTS_KC_HEAP: "-XX:MaxRAMPercentage=65 -XX:InitialRAMPercentage=30"
+    mem_limit: 1536m
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - ./infra/keycloak:/opt/keycloak/data/import:ro
+    healthcheck:
+      # A imagem não tem curl: testa o endpoint de saúde (porta de gestão 9000) via /dev/tcp.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"status\": \"UP\"' <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    restart: unless-stopped
+
+volumes:
+  keycloak_db_data:

@@ -1,3 +1,4 @@
+import { outboundFetch } from '../../common/http/outbound';
 import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { createHash, createHmac } from 'node:crypto';
@@ -56,15 +57,14 @@ export class MailService {
   }
 
   private async viaResend(to: string, content: MailContent) {
-    const response = await fetch('https://api.resend.com/emails', {
+    const response = await outboundFetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: process.env.MAIL_FROM, to: [to], subject: content.subject, html: content.html, text: content.text,
         ...(content.attachments?.length ? { attachments: content.attachments.map((file) => ({ filename: file.filename, content: Buffer.from(file.content, 'utf8').toString('base64'), content_type: file.contentType })) } : {}),
       }),
-      signal: AbortSignal.timeout(10_000),
-    });
+    }, { timeoutMs: 10_000 });
     if (!response.ok) throw new Error(`Resend ${response.status}: ${(await response.text()).slice(0, 200)}`);
   }
 
@@ -110,7 +110,7 @@ export class MailService {
     const signingKey = createHmac('sha256', kService).update('aws4_request').digest();
     const signature = createHmac('sha256', signingKey).update(stringToSign).digest('hex');
     const authorization = `AWS4-HMAC-SHA256 Credential=${process.env.AWS_ACCESS_KEY_ID}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
-    const response = await fetch(`https://${host}${path}`, { method: 'POST', headers: { ...headers, Authorization: authorization }, body, signal: AbortSignal.timeout(10_000) });
+    const response = await outboundFetch(`https://${host}${path}`, { method: 'POST', headers: { ...headers, Authorization: authorization }, body }, { timeoutMs: 10_000 });
     if (!response.ok) throw new Error(`SES ${response.status}: ${(await response.text()).slice(0, 200)}`);
   }
 

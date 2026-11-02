@@ -414,9 +414,8 @@ export class NotificationsService {
 
   async dashboardWidget(companyId: string, actor: JwtUser) {
     try {
-      const unreadCount = await this.unreadCount(companyId, actor);
-      // Apenas notificações endereçadas ao usuário atual
-      const notifications = await this.prisma.notification.findMany({
+      // Contagem e lista sao independentes: em paralelo. Apenas notificações endereçadas ao usuário atual.
+      const [unreadCount, notifications] = await Promise.all([this.unreadCount(companyId, actor), this.prisma.notification.findMany({
         where: {
           companyId,
           recipients: { some: { userId: actor.sub, status: { in: ['UNREAD', 'PENDING_RESPONSE'] } } },
@@ -428,7 +427,7 @@ export class NotificationsService {
         },
         orderBy: { createdAt: 'desc' },
         take: 5,
-      });
+      })]);
       return { unreadCount: unreadCount.count, notifications };
     } catch (err) {
       this.safeLog('dashboardWidget fallback', err);

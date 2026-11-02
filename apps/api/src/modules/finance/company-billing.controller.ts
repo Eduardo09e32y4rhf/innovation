@@ -1,3 +1,4 @@
+import { Throttle } from '@nestjs/throttler';
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -7,6 +8,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { JwtUser } from '../../common/types/auth.types';
 import { PlatformFinanceService } from './platform-finance.service';
+import { PaymentReconciliationService } from './payment-reconciliation.service';
 import { ChangeCompanyPlanDto } from './dto/change-company-plan.dto';
 import { ChangeSeatQuantityDto } from './dto/change-seat-quantity.dto';
 
@@ -15,11 +17,21 @@ import { ChangeSeatQuantityDto } from './dto/change-seat-quantity.dto';
 @SkipSubscriptionCheck()
 @Controller('finance/company')
 export class CompanyBillingController {
-  constructor(private readonly service: PlatformFinanceService) {}
+  constructor(private readonly service: PlatformFinanceService, private readonly reconciliation: PaymentReconciliationService) {}
 
   @Get('status')
   status(@CurrentCompany() companyId: string) {
     return this.service.getCompanyBilling(companyId);
+  }
+
+  /**
+   * Baixa por conciliação (servidor consulta o gateway) das faturas da PRÓPRIA empresa, com as mesmas regras de reativação do webhook.
+   * Substitui a gravação que o GET de status fazia: GET não grava.
+   */
+  @Post('sync-payment')
+  async syncPayment(@CurrentCompany() companyId: string) {
+    const report = await this.reconciliation.reconcile({ companyId });
+    return { checked: report.checked, healed: report.healed, linked: report.linked, errors: report.errors };
   }
 
   @Get('pix')
@@ -32,6 +44,7 @@ export class CompanyBillingController {
     return this.service.listCompanyInvoices(companyId);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('checkout')
   checkout(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
     return this.service.ensureCompanyOnboardingBilling(companyId, actor);

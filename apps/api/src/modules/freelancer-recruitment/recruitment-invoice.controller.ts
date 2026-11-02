@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RequireModule } from '../../common/decorators/require-module.decorator';
@@ -28,27 +28,27 @@ export class RecruitmentInvoiceController {
   }
 
   @Get(':id')
-  get(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
+  get(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser) {
     return this.service.get(id, actor);
   }
 
   @Patch(':id/issue')
-  issue(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
+  issue(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser) {
     return this.service.issue(id, actor);
   }
 
   @Patch(':id/pay')
-  pay(@Param('id') id: string, @CurrentUser() actor: JwtUser, @Body() dto: RegisterPaymentDto) {
+  pay(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser, @Body() dto: RegisterPaymentDto) {
     return this.service.registerPayment(id, actor, dto.paymentMethod);
   }
 
   @Patch(':id/dispute')
-  dispute(@Param('id') id: string, @CurrentUser() actor: JwtUser, @Body() dto: DisputeInvoiceDto) {
+  dispute(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser, @Body() dto: DisputeInvoiceDto) {
     return this.service.dispute(id, actor, dto.reason);
   }
 
   @Patch(':id/cancel')
-  cancel(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser) {
     return this.service.cancel(id, actor);
   }
 }

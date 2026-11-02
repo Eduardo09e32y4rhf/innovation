@@ -17,6 +17,14 @@ export class JobsStorageService {
     return key;
   }
 
+  /** Troca o conteudo de um arquivo existente (grava ao lado e renomeia), para cifrar arquivos antigos sem janela sem arquivo. */
+  async replace(key: string, buffer: Buffer) {
+    const target = this.resolveKey(key);
+    const temp = `${target}.${process.pid}.tmp`;
+    await fs.writeFile(temp, buffer, { flag: 'wx' });
+    await fs.rename(temp, target);
+  }
+
   async read(key: string) {
     return fs.readFile(this.resolveKey(key));
   }

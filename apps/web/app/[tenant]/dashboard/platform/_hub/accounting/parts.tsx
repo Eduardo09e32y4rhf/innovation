@@ -2,7 +2,7 @@
 
 import { CalendarClock } from 'lucide-react';
 import { csvDocument } from '../../_components/csv';
-import { WORKFLOW_STATUS, money } from '../format';
+import { WORKFLOW_STATUS, money, shiftMonth } from '../format';
 import type { AccountingCompany } from '../types';
 
 export const input = 'input-v2 w-full text-base sm:text-sm';
@@ -35,14 +35,22 @@ export function StatusPill({ status }: { status: string }) {
   return <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${STATUS_TONE[status] ?? 'bg-slate-100 text-slate-700'}`}>{WORKFLOW_STATUS[status] ?? status}</span>;
 }
 
-/** Valores calculados nesta competência; as guias oficiais podem ter bases diferentes. */
-export function Obligations({ inss, irrf, fgts }: { inss: number; irrf: number; fgts: number }) {
+/** Guias do mês: vencem no dia 20 do mês seguinte à competência. Valores calculados nesta competência; as guias oficiais podem ter bases diferentes. */
+export function Obligations({ month, inss, irrf, fgts }: { month?: string; inss: number; irrf: number; fgts: number }) {
+  const due = month ? new Date(`${shiftMonth(month, 1)}-20T12:00:00`) : null;
+  const days = due ? Math.ceil((due.getTime() - Date.now()) / 86_400_000) : 0;
+  const late = days < 0;
   const items: Array<[string, string, number]> = [['INSS descontado dos funcionários', 'GPS / eSocial', inss], ['IRRF retido', 'DARF 0561', irrf], ['FGTS do mês', 'Guia do FGTS Digital', fgts]];
   return (
     <section aria-label="Obrigações do mês" className="rounded-2xl border border-border bg-bg p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-bold text-fg"><CalendarClock size={15} aria-hidden="true" /> Obrigações da competência</h2>
         <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">Valores para conferência</span>
+        {due && (
+          <span className={`rounded-full px-3 py-1 text-xs font-bold ${late ? 'bg-rose-100 text-rose-800' : days <= 5 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>
+            Vencimento {due.toLocaleDateString('pt-BR')} · {late ? `${Math.abs(days)} dia(s) atrás` : days === 0 ? 'hoje' : `em ${days} dia(s)`}
+          </span>
+        )}
       </div>
       <ul className="grid gap-3 sm:grid-cols-3">
         {items.map(([label, guide, value]) => (

@@ -16,9 +16,9 @@ export function InterviewClient({ token }: { token: string }) {
 
   useEffect(() => { processPublic.interview(token).then(setData).catch((cause) => setError(errorMessage(cause, 'Convite não encontrado.'))); }, [token]);
 
-  async function respond(response: 'CONFIRMED' | 'DECLINED') {
+  async function respond(response: 'CONFIRMED' | 'DECLINED' | 'RESCHEDULE') {
     setBusy(true); setError('');
-    try { setData(await processPublic.respondInterview(token, response, response === 'DECLINED' ? reason.trim() || undefined : undefined)); setDeclining(false); }
+    try { setData(await processPublic.respondInterview(token, response, response !== 'CONFIRMED' ? reason.trim() || undefined : undefined)); setDeclining(false); }
     catch (cause) { setError(errorMessage(cause, 'Não foi possível registrar sua resposta.')); } finally { setBusy(false); }
   }
 
@@ -67,7 +67,8 @@ export function InterviewClient({ token }: { token: string }) {
               <p className="text-sm text-[#5b5473]">Opcional. Ajuda a empresa a remarcar (ex.: melhores dias e horários para você).</p>
               <textarea aria-label="Motivo e melhores dias e horários (opcional)" className="min-h-[96px] w-full rounded-[12px] border border-[#d9cdee] p-3 text-base outline-none focus:border-[#7240da]" maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Ex.: tenho prova nesse dia, posso na quinta à tarde." />
               <div className="flex flex-wrap gap-2">
-                <button type="button" className={primaryBtn} disabled={busy} onClick={() => respond('DECLINED')}>Avisar a empresa</button>
+                <button type="button" className={primaryBtn} disabled={busy} onClick={() => respond('RESCHEDULE')}>Pedir outro horário</button>
+                <button type="button" className={outlineBtn} disabled={busy} onClick={() => respond('DECLINED')}>Não vou conseguir ir</button>
                 <button type="button" className={outlineBtn} disabled={busy} onClick={() => setDeclining(false)}>Voltar</button>
               </div>
             </section>

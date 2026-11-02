@@ -7,12 +7,14 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
   Max,
   Min,
+  ValidateNested,
 } from 'class-validator';
 
 export const WORK_MODES = ['PRESENCIAL', 'HIBRIDO', 'REMOTO'] as const;
@@ -99,6 +101,14 @@ class JobFieldsDto {
   @MaxLength(300, { each: true })
   interviewGuide?: string[];
 
+  /** Documentos exigidos na admissao desta vaga (vazio = kit do tipo de contrato). */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(80)
+  @ValidateNested({ each: true })
+  @Type(() => RequiredDocumentDto)
+  requiredDocuments?: RequiredDocumentDto[];
+
   @IsOptional()
   @IsBoolean()
   salaryHidden?: boolean;
@@ -120,6 +130,19 @@ class JobFieldsDto {
   @IsOptional()
   @IsBoolean()
   confidential?: boolean;
+
+  /** Vaga afirmativa para pessoas com deficiencia (PCD). */
+  @IsOptional()
+  @IsBoolean()
+  pcd?: boolean;
+
+  /** Custo fixo do recrutamento desta vaga em reais (anuncios, agencia, testes). Base do custo por contratacao. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(10_000_000)
+  costAmount?: number | null;
 }
 
 export class CreateJobDto extends JobFieldsDto {
@@ -132,6 +155,16 @@ export class CreateJobDto extends JobFieldsDto {
   @IsNotEmpty()
   @MaxLength(12000)
   description!: string;
+}
+
+export class RequiredDocumentDto {
+  @IsString()
+  @MaxLength(60)
+  label!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  required?: boolean;
 }
 
 export class UpdateJobDto extends JobFieldsDto {

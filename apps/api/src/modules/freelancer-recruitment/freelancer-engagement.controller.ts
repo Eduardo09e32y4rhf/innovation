@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { CurrentCompany } from '../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -33,39 +33,39 @@ export class FreelancerEngagementController {
 
   @Roles('DEV', 'ADMIN', 'GESTOR')
   @Patch('engagements/:id/accept')
-  accept(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
+  accept(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser) {
     return this.service.accept(id, actor);
   }
 
   @Roles('DEV', 'ADMIN', 'GESTOR')
   @Patch('engagements/:id/end')
-  end(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
+  end(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser) {
     return this.service.end(id, actor);
   }
 
   @Post('engagements/:id/delegations')
-  delegate(@Param('id') id: string, @CurrentUser() actor: JwtUser, @Body() dto: DelegateJobDto) {
+  delegate(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser, @Body() dto: DelegateJobDto) {
     return this.service.delegateJob(id, actor, dto);
   }
 
   @Patch('delegations/:id/revoke')
-  revoke(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
+  revoke(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser) {
     return this.service.revokeDelegation(id, actor);
   }
 
   @Patch('delegations/:id/hired')
-  markHired(@Param('id') id: string, @CurrentUser() actor: JwtUser) {
+  markHired(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser) {
     return this.service.markHired(id, actor);
   }
 
   @Roles('DEV', 'ADMIN', 'GESTOR')
   @Put('delegations/:id/grants')
-  setGrants(@Param('id') id: string, @CurrentUser() actor: JwtUser, @Body() dto: SetDelegationGrantsDto) {
+  setGrants(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtUser, @Body() dto: SetDelegationGrantsDto) {
     return this.service.setDelegationGrants(id, actor, dto.userIds);
   }
 
   @Get('delegations/:id/grants')
-  listGrants(@Param('id') id: string) {
+  listGrants(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.listGrants(id);
   }
 
@@ -76,12 +76,12 @@ export class FreelancerEngagementController {
   }
 
   @Get('jobs/:jobId')
-  getJob(@Param('jobId') jobId: string, @CurrentUser() actor: JwtUser) {
+  getJob(@Param('jobId', ParseUUIDPipe) jobId: string, @CurrentUser() actor: JwtUser) {
     return this.service.getDelegatedJob(actor, jobId);
   }
 
   @Post('applications/:applicationId/notes')
-  addNote(@Param('applicationId') applicationId: string, @CurrentUser() actor: JwtUser, @Body() dto: AddApplicationNoteDto) {
+  addNote(@Param('applicationId', ParseUUIDPipe) applicationId: string, @CurrentUser() actor: JwtUser, @Body() dto: AddApplicationNoteDto) {
     return this.service.addApplicationNote(actor, applicationId, dto.body);
   }
 }

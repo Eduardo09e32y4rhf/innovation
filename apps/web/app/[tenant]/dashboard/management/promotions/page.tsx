@@ -23,7 +23,8 @@ export default function PromotionsPage() {
   const { user } = useAuth();
   const role = resolveUserRole(user);
   const canWrite = roleIn(ROLE_ACCESS.promotionsWrite, role);
-  const list = useQuery(() => api.promotions.list(), []);
+  // Aplica as promocoes agendadas ja vencidas (POST) e so entao lista; quem nao pode aplicar (403) apenas le.
+  const list = useQuery(async () => { await api.promotions.applyDue().catch(() => undefined); return api.promotions.list(); }, []);
   const policy = useQuery(() => api.promotions.policy(), []);
   const people = useQuery(() => api.employees.list(), [], { enabled: canWrite });
 

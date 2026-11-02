@@ -27,7 +27,7 @@ const SEEDS: Seed[] = [
     file: 'apps/api/prisma/seed-admin.cjs',
     kind: 'demo',
     gap: true,
-    note: 'cria "Empresa Demo" (documento 00000000000191), o admin dela e o usuario DEV; em producao so exige variaveis fortes, nao bloqueia a empresa demo. infra/render.yaml o executa a cada subida',
+    note: 'cria "Empresa Demo" (documento 00000000000191), o admin dela e o usuario DEV; em producao so exige variaveis fortes, nao bloqueia a empresa demo. docs/legado/infra/render.yaml (legado) o executava a cada subida',
   },
   { file: 'apps/api/prisma/seed-realistic-demo.ts', kind: 'demo', gap: true, note: 'dezenas de funcionarios e usuarios ficticios (@innovation.com); sem nenhuma guarda de ambiente' },
   { file: 'apps/api/test/e2e-seed.ts', kind: 'demo', gap: true, note: 'usuarios dev@/comercial@innovation.com para E2E; sem guarda de ambiente' },

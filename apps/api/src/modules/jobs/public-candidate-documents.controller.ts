@@ -1,6 +1,7 @@
-import { BadRequestException, Controller, Get, Header, Param, Post, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Header, HttpCode, Param, Post, Req } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { MAX_DOCUMENT_BYTES } from './recruitment-documents.rules';
+import { VerifyCodeDto } from './recruitment-documents.dto';
 import { RecruitmentDocumentsService } from './recruitment-documents.service';
 
 /** Publico: o unico segredo e o token do link (guardado so como hash). Respostas nunca trazem dados pessoais do candidato. */
@@ -14,6 +15,22 @@ export class PublicCandidateDocumentsController {
   @Get(':token')
   view(@Param('token') token: string) {
     return this.service.publicView(token);
+  }
+
+  @Header('Cache-Control', 'no-store')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Post(':token/code')
+  sendCode(@Param('token') token: string) {
+    return this.service.sendVerificationCode(token);
+  }
+
+  @Header('Cache-Control', 'no-store')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post(':token/verify')
+  verify(@Param('token') token: string, @Body() dto: VerifyCodeDto) {
+    return this.service.verifyCode(token, dto.code);
   }
 
   @Header('Cache-Control', 'no-store')

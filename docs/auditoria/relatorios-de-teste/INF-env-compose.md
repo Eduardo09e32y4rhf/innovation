@@ -1,0 +1,16 @@
+# INF-env-compose
+
+**Problema:** `docker-compose.prod.yml` nao repassava a API variaveis lidas pelo codigo (inertes em producao mesmo no `.env`): `FEATURE_*` (8), `TURNSTILE_SECRET_KEY`, `PRIVACY_RSA_PRIVATE_KEY`, `TRIAL_DOCUMENT_HASH_SECRET`, `WHATSAPP_SESSION_PATH`, `TRUST_PROXY`, `ANALYTICS_SALT`, `OPENAI_*`, `REFRESH_TTL_DAYS`, `SESSION_ABSOLUTE_DAYS`, `BILLING_GRACE_DAYS`, `DUNNING_*`, `GEOIP_DB_PATH`, `PLATFORM_WHATSAPP_SESSION_KEY`, `ASAAS_WEBHOOK_SECRET`, `MAIL_REQUIRED`, `MERCADOPAGO_WEBHOOK_TOLERANCE_SECONDS` (lista de docs/auditoria/02, sec. 5.4). No web, `NEXT_PUBLIC_TURNSTILE_SITE_KEY` e `NEXT_PUBLIC_FEATURE_*` nao eram build args.
+
+**Documentacao:**
+- https://docs.docker.com/compose/how-tos/environment-variables/ - NAO VERIFICADO (host fora da rede da sessao). Regra usada: `${VAR:-default}` aplica o default quando VAR esta ausente OU vazia. Confirmado empiricamente com `docker compose config` (docker 29.9.1): sem a variavel -> `FEATURE_AI: "false"`, `BILLING_GRACE_DAYS: "15"`, `TRUST_PROXY: loopback,uniquelocal`; com `TRUST_PROXY=10.0.0.0/8 FEATURE_AI=true NEXT_PUBLIC_FEATURE_AI=true` os valores sao repassados (API e build arg do web).
+- https://docs.nestjs.com/guards: n/a neste item.
+
+**Verificacao de cada leitura (vazio tratado como "nao definida"?):** `||`/trim/parse com fallback: ANALYTICS_SALT, TRIAL_DOCUMENT_HASH_SECRET, WHATSAPP_SESSION_PATH, TURNSTILE_SECRET_KEY (trim), PRIVACY_RSA_PRIVATE_KEY (`if (privateKey)`), OPENAI_* (`||`), REFRESH_TTL_DAYS/SESSION_ABSOLUTE_DAYS (Number('')=0 -> `||` padrao), GEOIP_DB_PATH, PLATFORM_WHATSAPP_SESSION_KEY, ASAAS_WEBHOOK_SECRET, MAIL_REQUIRED (`==='true'`), MERCADOPAGO tolerance (`||300`), DUNNING_* (`n()` ignora vazio), FEATURE_* (`parseFlag('')=false`) -> repassadas com `:-` vazio (FEATURE_* com `:-false`, igual ao padrao). **Excecoes** (vazio mudaria o padrao): `TRUST_PROXY` (`main.ts` usa `??`; vazio desligaria o proxy confiavel) -> `:-loopback,uniquelocal`; `BILLING_GRACE_DAYS` (`?? 15` e Number('')=0 -> carencia 0) -> `:-15`. Nao existe leitura de chave publica RSA no codigo (nada a repassar).
+
+**Arquivos:** `docker-compose.prod.yml` (api: 31 variaveis; web: 9 build args), `apps/web/Dockerfile` (ARG/ENV dos 9 build args; sem isso o build arg e ignorado), `.env.example` (secao nova, sem valores reais), `apps/api/src/config/env.validation.ts` (`COMPOSE_API_PASSTHROUGH_ENV` e `COMPOSE_WEB_BUILD_ARGS`, fonte unica da lista; nada novo obrigatorio, `productionEnvProblems` intocada), novo `tests/contract/compose-env.spec.ts`.
+
+**Antes:** `vitest run tests/contract/compose-env.spec.ts` -> 39 falhas / 39. Teste de sanidade: remover a linha `TURNSTILE_SECRET_KEY` do compose -> 1 falha / 39 (restaurada depois).
+**Depois:** 39 passed. `vitest run management accounting payroll tests/security tests/unit/web` -> 52 arquivos, 597 passed, 3 expected fail; `tsc --noEmit -p apps/api` sem erros; `typecheck:web` ok (nao toquei TS do web neste item). Uma execucao ampla incluindo `apps/api/src/common` teve 2 falhas em arquivos de outros agentes (em andamento); reexecucao de common/config/contract passou.
+
+**Pendencias:** `.github/workflows/images.yml` constroi o web sem esses build args (fora do meu escopo; flags no web em prod so valem se o build recebe os valores). `FEATURE_*` seguem protegendo apenas rotas HTTP (nota 02, sec. 6b).

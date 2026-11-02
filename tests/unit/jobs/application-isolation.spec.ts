@@ -98,10 +98,10 @@ describe('Public application isolation', () => {
       },
     );
 
+    // RS-C-12: sem prova de posse do e-mail, a candidatura nao sobrescreve o nome ja cadastrado.
     expect(candidateUpdate).toEqual({
-      name: 'Nome Atual',
-      phone: '11999999999',
-      linkedinUrl: 'https://linkedin.example/new',
+      phone: '11000000000',
+      linkedinUrl: 'https://linkedin.example/old',
     });
     // O resultado pertence a cada candidatura: reaplicar nao reescreve o estado consolidado do candidato.
     expect(candidateUpdate).not.toHaveProperty('status');

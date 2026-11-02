@@ -1,6 +1,6 @@
 import { request } from '@/app/lib/api';
 
-export interface PendingApproval { id: string; title: string; department: string | null; openings: number; createdAt: string; step: string; stepLabel: string }
+export interface PendingApproval { id: string; title: string; department: string | null; openings: number; createdAt: string; step: string; stepLabel: string; waitingDays?: number; overdue?: boolean; requestedByName?: string | null }
 export interface ApprovalRow { id: string; step: string; label: string; status: 'PENDING' | 'APPROVED' | 'REJECTED'; current: boolean; note: string | null; decidedByName: string | null; decidedAt: string | null }
 export interface BudgetRow { department: string; budget: number | null; used: number }
 export interface TemplateRow { id: string; name: string; createdAt: string }

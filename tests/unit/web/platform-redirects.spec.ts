@@ -3,8 +3,10 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+// O Next e dependencia do workspace apps/web: resolve a partir dele (nem sempre fica hoisted na raiz; no Next 16 nao fica).
 const requireFromRoot = createRequire(join(__dirname, '../../../package.json'));
-const { match, compile } = requireFromRoot('next/dist/compiled/path-to-regexp') as {
+const requireFromWeb = createRequire(join(__dirname, '../../../apps/web/package.json'));
+const { match, compile } = requireFromWeb('next/dist/compiled/path-to-regexp') as {
   match: (path: string, options: { decode: (text: string) => string }) => (url: string) => false | { params: Record<string, string> };
   compile: (path: string) => (params: Record<string, string>) => string;
 };

@@ -4,6 +4,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { FinanceNotificationService } from './finance-notification.service';
 import { MercadoPagoService } from './mercadopago.service';
 import { PaymentRefundService } from './payment-refund.service';
+import { MercadoPagoPaymentSyncService } from './mercadopago-payment-sync.service';
 
 interface MercadoPagoNotification {
   type?: string;
@@ -26,7 +27,12 @@ export class MercadoPagoWebhookController {
     private readonly mercadoPago: MercadoPagoService,
     private readonly notifications: FinanceNotificationService,
     private readonly refunds?: PaymentRefundService,
-  ) {}
+    sync?: MercadoPagoPaymentSyncService,
+  ) {
+    this.sync = sync ?? new MercadoPagoPaymentSyncService(prisma, mercadoPago, notifications, refunds);
+  }
+
+  private readonly sync: MercadoPagoPaymentSyncService;
 
   @Post('mercadopago')
   @HttpCode(200)
@@ -77,42 +83,7 @@ export class MercadoPagoWebhookController {
       return { received: true, ignored: true };
     }
 
-    const status = this.mercadoPago.mapStatus(payment.status);
-    if (payment.status === 'refunded' || Number(payment.transaction_amount_refunded ?? 0) > 0) {
-      if (!this.refunds) throw new Error('Serviço de devoluções indisponível.');
-      await this.refunds.reconcile(invoice.id);
-      if (payment.status === 'refunded') return { received: true, refunded: true };
-    }
-    if (invoice.status === 'PAID' && status === 'PAID') return { received: true, duplicate: true };
-    if (invoice.status === 'PAID' && status === 'OPEN') return { received: true, ignored: true }; // evento antigo chegando depois
-
-    const paidAt = status === 'PAID' ? invoice.paidAt ?? (payment.date_approved ? new Date(payment.date_approved) : new Date()) : invoice.paidAt;
-    const companyData = status === 'PAID'
-      ? { billingStatus: 'ACTIVE' as const, status: 'ACTIVE' as const, isActive: true, suspensionReason: null }
-      : status === 'CANCELED'
-        ? { billingStatus: 'PAST_DUE' as const, status: 'SUSPENDED' as const, isActive: false, suspensionReason: 'pagamento_cancelado_ou_estornado' }
-        : null;
-
-    await this.prisma.$transaction([
-      this.prisma.platformInvoice.update({
-        where: { id: invoice.id },
-        data: { status, paidAt, provider: 'MERCADOPAGO', mpPaymentId: String(payment.id), billingType: payment.payment_type_id === 'bank_transfer' ? 'PIX' : payment.payment_type_id === 'credit_card' ? 'CREDIT_CARD' : invoice.billingType },
-      }),
-      ...(companyData ? [this.prisma.company.update({ where: { id: invoice.companyId }, data: companyData })] : []),
-      this.prisma.auditLog.create({
-        data: { companyId: invoice.companyId, action: `MERCADOPAGO_PAYMENT_${status}`, entity: 'Billing', entityId: invoice.id, metadata: { paymentId: String(payment.id), mpStatus: payment.status, actorEmail: 'system' } },
-      }),
-    ]);
-
-    if (status === 'PAID') {
-      // Conta um ciclo pago do cupom; sem assinatura recorrente no MP, o preço cheio volta na próxima fatura.
-      await this.prisma.companySubscription.updateMany({ where: { companyId: invoice.companyId, couponCyclesLeft: { gt: 0 } }, data: { couponCyclesLeft: { decrement: 1 } } }).catch(() => undefined);
-      await this.prisma.companySubscription.updateMany({ where: { companyId: invoice.companyId, couponCyclesLeft: 0, couponType: { not: null } }, data: { couponType: null, couponValue: null } }).catch(() => undefined);
-      await this.notifications.notify({
-        companyId: invoice.companyId, paymentId: invoice.id, type: 'PAYMENT_CONFIRMED', amount: Number(payment.transaction_amount), paidAt: new Date(), billingType: payment.payment_type_id,
-      }).catch((error) => this.logger.warn(`Notificação de pagamento falhou: ${String(error)}`));
-    }
-    return { received: true, status };
+    return this.sync.apply(invoice, payment);
   }
 
   /** Fatura aberta da assinatura (a do checkout inicial) ou uma nova para a cobrança mensal que acabou de chegar. */

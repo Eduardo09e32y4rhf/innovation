@@ -4,6 +4,7 @@ import { InterviewClient } from './client';
 
 export const metadata: Metadata = { title: 'Sua entrevista', robots: { index: false, follow: false } };
 
-export default function Page({ params }: { params: { token: string } }) {
+export default async function Page(props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   return <Suspense><InterviewClient token={params.token} /></Suspense>;
 }

@@ -55,6 +55,21 @@ async function download(path: string, fallbackName: string) {
   URL.revokeObjectURL(url);
 }
 
+export type CandidateComparison = {
+  job: { id: string; title: string };
+  criteria: { id: string; name: string; weight: number }[];
+  questions: { id: string; label: string; type: string }[];
+  best: Record<string, string[]>;
+  candidates: Array<{
+    applicationId: string; name: string; email: string | null; stage: string | null; status: string; source: string | null; appliedAt: string; knockedOut: boolean;
+    screeningScore: number | null; evaluationScore: number | null; evaluationsHidden: boolean; criteria: Record<string, { average: number | null; count: number }>;
+    feedback: { authorName: string | null; recommendation: string; average: number | null; notes: string | null; interviewAt: string; mine: boolean }[]; feedbackHidden: number;
+    answers: Record<string, string>; documents: { label: string; status: string }[];
+  }>;
+};
+
+export type JobCosts = { costAmount: number | null; sources: { source: string; amount: number }[] };
+
 export type TalentCard = {
   id: string; name: string; age: number | null; profession: string | null; skills: string[]; city: string | null; state: string | null; neighborhood: string | null;
   education: { level: string; status: string; course: string; school: string }[]; highestEducation: string | null;
@@ -74,6 +89,11 @@ export const jobsApi = {
   create: (payload: JobPayload) => request<Job>('/jobs', { method: 'POST', body: payload }),
   update: (id: string, payload: Partial<JobPayload>) => request<Job>(`/jobs/${enc(id)}`, { method: 'PATCH', body: payload }),
   remove: (id: string, mode: 'archive' | 'permanent' = 'archive') => request<{ deleted: boolean; archived?: boolean }>(`/jobs/${enc(id)}?mode=${mode}`, { method: 'DELETE' }),
+  compare: (jobId: string, ids: string[]) => request<CandidateComparison>(`/jobs/${enc(jobId)}/compare?ids=${ids.map(enc).join(',')}`),
+  history: (id: string) => request<{ id: string; action: string; label: string; createdAt: string; userName: string | null; metadata: Record<string, unknown> }[]>(`/jobs/${enc(id)}/history`),
+  costs: (jobId: string) => request<JobCosts>(`/recruitment-metrics/jobs/${enc(jobId)}/costs`),
+  saveCosts: (jobId: string, body: { costAmount?: number | null; sources: { source: string; amount: number }[] }) => request<JobCosts>(`/recruitment-metrics/jobs/${enc(jobId)}/costs`, { method: 'PUT', body }),
+  metricsCsv: (params: { from: string; to: string; jobId?: string }) => download(`/recruitment-metrics/export${query(params as unknown as ApplicationFilters)}`, 'relatorio-recrutamento.csv'),
   duplicate: (id: string) => request<Job>(`/jobs/${enc(id)}/duplicate`, { method: 'POST', body: {} }),
 
   internalJobs: () => request<InternalJob[]>('/internal-jobs'),
@@ -84,7 +104,7 @@ export const jobsApi = {
   talent: (q = '') => request<{ id: string; name: string; email?: string | null; phone?: string | null; status: string; applications: { id: string; jobId: string; status: string; job: { title: string } }[] }[]>(`/jobs/talent${q ? `?q=${enc(q)}` : ''}`),
 
   pipeline: () => request<Pipeline>('/jobs/pipeline'),
-  savePipeline: (stages: Stage[], name?: string) => request<Pipeline>('/jobs/pipeline', { method: 'PUT', body: { name, stages: stages.map(({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel }) => ({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel })) } }),
+  savePipeline: (stages: Stage[], name?: string) => request<Pipeline>('/jobs/pipeline', { method: 'PUT', body: { name, stages: stages.map(({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel, slaDays }) => ({ id, name, color, kind, automation, automationConfig, notifyCandidate, candidateLabel, slaDays: slaDays ?? null })) } }),
 
   questions: (jobId: string) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`),
   saveQuestions: (jobId: string, questions: Question[]) => request<(Question & { id: string })[]>(`/jobs/${enc(jobId)}/questions`, { method: 'PUT', body: { questions: questions.map(questionPayload) } }),
@@ -120,10 +140,12 @@ export const jobsApi = {
   assignRecruiters: (jobId: string, userIds: string[]) => request<{ userId: string }[]>(`/jobs/${enc(jobId)}/recruiters`, { method: 'PUT', body: { userIds } }),
 
   // Documentos do candidato (RH e RH - R&S). O token do link so volta na criacao.
+  documentKit: (applicationId: string) => request<{ configured: boolean; employmentType: string | null; items: Array<{ label: string; required: boolean; docType: string }> }>(`/jobs/applications/${enc(applicationId)}/document-kit`),
   documents: (applicationId: string) => request<DocumentsPayload>(`/jobs/applications/${enc(applicationId)}/documents`),
   createDocumentRequest: (applicationId: string, items: string[], expiresInDays?: number, sendEmail?: boolean) => request<CreatedRequest>(`/jobs/applications/${enc(applicationId)}/document-requests`, { method: 'POST', body: { items, expiresInDays, sendEmail } }),
   revokeDocumentRequest: (requestId: string) => request<{ revoked: boolean }>(`/jobs/document-requests/${enc(requestId)}`, { method: 'DELETE' }),
-  reviewDocument: (documentId: string, decision: 'APPROVED' | 'RETURNED', reason?: string) => request<{ id: string; status: string }>(`/jobs/documents/${enc(documentId)}/review`, { method: 'POST', body: { decision, reason } }),
+  reviewDocument: (documentId: string, decision: 'APPROVED' | 'RETURNED', reason?: string, expiresAt?: string) => request<{ id: string; status: string; emailed?: boolean }>(`/jobs/documents/${enc(documentId)}/review`, { method: 'POST', body: { decision, reason, ...(expiresAt ? { expiresAt } : {}) } }),
+  reissueDocumentRequest: (requestId: string, expiresInDays?: number, sendEmail?: boolean) => request<CreatedRequest>(`/jobs/document-requests/${enc(requestId)}/reissue`, { method: 'POST', body: { expiresInDays, sendEmail } }),
   selectApplication: (applicationId: string) => request<{ selected: boolean }>(`/jobs/applications/${enc(applicationId)}/select`, { method: 'POST', body: {} }),
   forwardApplication: (applicationId: string) => request<{ forwarded: boolean; alreadyForwarded: boolean }>(`/jobs/applications/${enc(applicationId)}/forward`, { method: 'POST', body: {} }),
   downloadDocument: (documentId: string, name = 'documento') => download(`/jobs/documents/${enc(documentId)}/download`, name),

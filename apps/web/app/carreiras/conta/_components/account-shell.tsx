@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { PortalFooter, PortalLogo } from '../../_components/portal-chrome';
+import { VerifyEmailBanner } from './verify-email-banner';
 import { candidateApi, getCandidateToken, isUnauthorized, setCandidateToken, type CandidateProfile } from '../../_lib/candidate-api';
 
 type Session = { profile: CandidateProfile; setProfile: (profile: CandidateProfile) => void; signOut: () => Promise<void> };
@@ -73,6 +74,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
+        {profile && <VerifyEmailBanner profile={profile} onVerified={setProfile} />}
         {children}
         <PortalFooter />
       </div>

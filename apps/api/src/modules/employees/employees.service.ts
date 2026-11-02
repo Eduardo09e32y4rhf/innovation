@@ -378,22 +378,27 @@ export class EmployeesService {
     return results;
   }
 
-  async deletePermanently(companyId: string, actor: JwtUser, id: string) {
-    if (!['ADMIN', 'RH', 'DEV'].includes(actor.role)) throw new ForbiddenException('Seu perfil não pode excluir funcionários.');
+  /** Arquivamento preserva o histórico; exclusão definitiva (force) é irreversível, por isso tem guarda própria. */
+  async delete(companyId: string, actor: JwtUser, id: string, force = false) {
     const employee = await this.get(companyId, actor, id);
-    if (employee?.userId === actor.sub) throw new ForbiddenException('Não é permitido excluir o próprio cadastro.');
-    if (employee?.userId && isOwnerTargetedByOther(actor, { id: employee.userId, email: employee.email ?? '' })) throw new ForbiddenException('O cadastro do proprietário da plataforma está protegido.');
-    if (employee?.user?.role && !canManageRole(actor.role, employee.user.role)) throw new ForbiddenException('Seu perfil não pode excluir um funcionário com este acesso.');
     const deletionImpact = await this.repository.getDeletionImpact(companyId, id);
-    const result = await this.repository.deletePermanently(companyId, id, actor.sub, deletionImpact);
-    if (!result.count) throw new NotFoundException('Funcionário não encontrado.');
-    return { deleted: true, archived: false, employeeId: id, message: 'Funcionário excluído definitivamente.', deletionImpact };
-  }
 
-  /** Arquivamento preserva o histórico; exclusão definitiva tem uma ação própria. */
-  async delete(companyId: string, actor: JwtUser, id: string) {
-    const employee = await this.get(companyId, actor, id);
-    const deletionImpact = await this.repository.getDeletionImpact(companyId, id);
+    if (deletionImpact.total > 0 && force) {
+      if (employee?.userId === actor.sub) throw new ForbiddenException('Não é permitido excluir o próprio cadastro.');
+      if (employee?.userId && isOwnerTargetedByOther(actor, { id: employee.userId, email: employee.email ?? '' })) throw new ForbiddenException('O cadastro do proprietário da plataforma está protegido.');
+      if (employee?.user?.role && !canManageRole(actor.role, employee.user.role)) throw new ForbiddenException('Seu perfil não pode excluir um funcionário com este acesso.');
+      if (employee?.userId) await this.repository.updateUser(companyId, employee.userId, { isActive: false, forcePasswordChange: true });
+      const result = await this.repository.deleteWithHistory(companyId, id);
+      if (!result.count) throw new NotFoundException('Employee not found');
+      await this.repository.createAuditLog({ companyId, userId: actor.sub, action: 'EMPLOYEE_DELETED', entity: 'Employee', entityId: id, metadata: { name: employee?.name, deletionImpact } });
+      return {
+        deleted: true,
+        archived: false,
+        employeeId: id,
+        message: 'Funcionario e todo o historico vinculado foram excluidos definitivamente.',
+        deletionImpact,
+      };
+    }
 
     if (deletionImpact.total > 0) {
       const archived = await this.repository.terminateOnce(companyId, id, {

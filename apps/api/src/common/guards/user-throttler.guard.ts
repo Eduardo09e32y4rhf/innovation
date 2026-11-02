@@ -29,6 +29,7 @@ export class UserThrottlerGuard extends ThrottlerGuard {
     return `ip:${ip}`;
   }
 
+  // O limitador `ip` (throttler.config.ts) usa req.ip; este tracker serve ao limitador por conta.
   protected async shouldSkip(_context: ExecutionContext): Promise<boolean> {
     return false;
   }

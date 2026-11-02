@@ -24,3 +24,12 @@ export function toWholeReais(value: string): number | undefined {
   const number = Number(normalized);
   return Number.isFinite(number) && number >= 0 ? Math.round(number) : undefined;
 }
+
+/** Valor em reais com centavos ("1500", "1.500,50", "1500.5"); vazio ou inválido = não informado. */
+export function toMoney(value: string): number | undefined {
+  const raw = String(value ?? '').trim();
+  if (!raw) return undefined;
+  const normalized = raw.includes(',') ? raw.replace(/\./g, '').replace(',', '.') : raw;
+  const number = Number(normalized);
+  return Number.isFinite(number) && number >= 0 ? Math.round(number * 100) / 100 : undefined;
+}

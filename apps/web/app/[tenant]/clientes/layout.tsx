@@ -4,10 +4,8 @@ import { ProtectedRoute } from '@/app/components/ProtectedRoute';
 
 export default function ClientesLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: { tenant: string };
 }) {
   return (
     <ProtectedRoute>

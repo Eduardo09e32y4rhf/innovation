@@ -20,6 +20,7 @@ export const REJECTION_CODES: Record<string, string> = {
   DISPONIBILIDADE: 'Disponibilidade incompatível',
   COMPORTAMENTAL: 'Perfil comportamental não aderente',
   DESISTENCIA: 'Candidato desistiu',
+  VAGA_PREENCHIDA: 'Vaga preenchida por outro candidato',
   VAGA_CANCELADA: 'Vaga cancelada ou preenchida',
   OUTRO: 'Outro motivo',
 };

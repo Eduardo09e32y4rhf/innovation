@@ -1,3 +1,4 @@
+import { turnstileHeaders } from '@/app/lib/turnstile';
 import { createSingleFlight, mutationFlightKey } from '@/app/lib/single-flight';
 
 export const CAREERS_API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -33,6 +34,7 @@ export type PublicJob = {
   salaryMin?: number | null;
   salaryMax?: number | null;
   salaryHidden: boolean;
+  pcd: boolean;
   deadline?: string | null;
   questions: PublicQuestion[];
   createdAt?: string | null;
@@ -68,6 +70,8 @@ export type JobApplicationInput = {
   gender?: string;
   race?: string;
   pcd?: string;
+  talentPoolOptIn?: boolean;
+  sensitiveConsent?: boolean;
   resume: File;
   answers?: Record<string, string | string[]>;
 };
@@ -186,6 +190,7 @@ function normalizeJob(value: unknown, fallbackCompanyId: string): PublicJob | nu
     salaryMin: typeof record.salaryMin === 'number' ? record.salaryMin : null,
     salaryMax: typeof record.salaryMax === 'number' ? record.salaryMax : null,
     salaryHidden: Boolean(record.salaryHidden),
+    pcd: Boolean(record.pcd),
     deadline: optionalString(record.deadline),
     questions: normalizeQuestions(record.questions),
     createdAt: optionalString(record.createdAt),
@@ -214,6 +219,7 @@ async function fetchPublicOnce(path: string, init?: RequestInit): Promise<unknow
       cache: 'no-store',
       headers: {
         Accept: 'application/json',
+        ...turnstileHeaders(init?.method, path),
         ...init?.headers,
       },
     });
@@ -376,6 +382,8 @@ export async function applyToPublicJob(
     formData.append('website', input.website.trim());
   }
   formData.append('consent', String(Boolean(input.consent)));
+  if (input.talentPoolOptIn) formData.append('talentPoolOptIn', 'true');
+  if (input.sensitiveConsent) formData.append('sensitiveConsent', 'true');
   if (input.source) formData.append('source', input.source);
   for (const key of ['gender', 'race', 'pcd'] as const) { if (input[key]) formData.append(key, input[key] as string); }
   if (input.answers && Object.keys(input.answers).length) {
@@ -511,4 +519,12 @@ export async function getCandidateStatus(token: string): Promise<CandidateStatus
 
 export async function sendPrivacyRequest(input: { email: string; type: 'ACCESS' | 'CORRECTION' | 'DELETION'; message?: string }): Promise<void> {
   await fetchPublic('/public/candidate-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+}
+
+export async function confirmPrivacyRequest(token: string): Promise<{ confirmed: boolean; type: string; deadlineDays: number }> {
+  return (await fetchPublic('/public/candidate-requests/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })) as { confirmed: boolean; type: string; deadlineDays: number };
+}
+
+export async function consentAction(action: 'confirm' | 'revoke', token: string): Promise<{ purpose: string }> {
+  return (await fetchPublic(`/public/consents/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })) as { purpose: string };
 }

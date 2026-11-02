@@ -49,3 +49,16 @@ export function needsApproval(steps: string[], currentStatus: string | null, nex
   if (!steps.length || nextStatus !== 'OPEN') return false;
   return currentStatus === null || currentStatus === 'DRAFT';
 }
+
+/** Dias sem decisão a partir dos quais a etapa da vez recebe lembrete (e a fila marca "atrasada"). */
+export const APPROVAL_STALE_DAYS = 3;
+
+/** Perfis que recebem o aviso da etapa (DEV é perfil técnico: pode decidir, mas não é avisado). */
+export const approverRoles = (step: string): string[] => (STEP_ROLES[step as ApprovalStep] ?? []).filter((role) => role !== 'DEV');
+
+/** Dias (inteiros) que a etapa da vez espera: desde a última decisão anterior ou, na primeira, desde o pedido. */
+export function waitingDays(rows: Array<{ position: number; decidedAt?: Date | null }>, current: { position: number; createdAt: Date }, now: Date): number {
+  const previous = rows.filter((row) => row.position < current.position && row.decidedAt).map((row) => (row.decidedAt as Date).getTime());
+  const since = previous.length ? Math.max(...previous) : current.createdAt.getTime();
+  return Math.max(0, Math.floor((now.getTime() - since) / 86_400_000));
+}

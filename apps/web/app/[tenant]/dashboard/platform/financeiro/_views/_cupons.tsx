@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/app/components/ui';
+import { ConfirmDialog } from '@/app/components/ui/confirm-dialog';
 import { request } from '@/app/lib/api';
 import { useGuard } from '@/app/hooks/use-action';
 
@@ -61,13 +62,25 @@ export function CuponsView({ readOnly = false }: { readOnly?: boolean }) {
     const discount = form.type !== 'TRIAL_DAYS';
     const payload: Record<string, unknown> = {
       description: form.description.trim() || undefined,
-      allowedPlanIds: form.allowedPlanIds, ...(form.minSeats ? { minSeats: Number(form.minSeats) } : {}),
-      ...(form.maxRedemptions ? { maxRedemptions: Number(form.maxRedemptions) } : {}),
-      ...(form.startsAt ? { startsAt: form.startsAt } : {}), ...(form.expiresAt ? { expiresAt: form.expiresAt } : {}),
+      allowedPlanIds: form.allowedPlanIds,
+      // Ao editar, campo esvaziado vai como null (a API remove o limite/data). Sem isso o valor antigo continuava.
+      ...(editing
+        ? {
+          minSeats: form.minSeats ? Number(form.minSeats) : null,
+          maxRedemptions: form.maxRedemptions ? Number(form.maxRedemptions) : null,
+          startsAt: form.startsAt || null,
+          expiresAt: form.expiresAt || null,
+        }
+        : {
+          ...(form.minSeats ? { minSeats: Number(form.minSeats) } : {}),
+          ...(form.maxRedemptions ? { maxRedemptions: Number(form.maxRedemptions) } : {}),
+          ...(form.startsAt ? { startsAt: form.startsAt } : {}), ...(form.expiresAt ? { expiresAt: form.expiresAt } : {}),
+        }),
       ...(discount ? { value: Number(form.value), ...(form.durationCycles ? { durationCycles: Number(form.durationCycles) } : {}) } : { trialDays: Number(form.trialDays) }),
     };
     try {
-      if (editing) await request(`/coupons/${editing.id}`, { method: 'PATCH', body: payload });
+      const code = form.code.trim().toUpperCase();
+      if (editing) await request(`/coupons/${editing.id}`, { method: 'PATCH', body: editing.code !== code && !locked ? { ...payload, code } : payload });
       else await request('/coupons', { method: 'POST', body: { ...payload, code: form.code.trim().toUpperCase(), type: form.type } });
       toast.success(editing ? 'Cupom atualizado.' : 'Cupom criado.');
       reset(); await load();
@@ -80,6 +93,20 @@ export function CuponsView({ readOnly = false }: { readOnly?: boolean }) {
     try { await request(`/coupons/${item.id}/${item.isActive ? 'deactivate' : 'activate'}`, { method: 'PATCH' }); await load(); }
     catch (cause) { toast.error(cause instanceof Error ? cause.message : 'Não foi possível alterar o cupom.'); }
   });
+
+  const [deleting, setDeleting] = useState<Coupon | null>(null);
+  async function confirmDelete() {
+    if (!deleting) return;
+    try {
+      await request(`/coupons/${deleting.id}`, { method: 'DELETE' });
+      toast.success(`Cupom ${deleting.code} excluído.`);
+      if (editing?.id === deleting.id) reset();
+      setDeleting(null); await load();
+    } catch (cause) {
+      toast.error(cause instanceof Error ? cause.message : 'Não foi possível excluir o cupom.');
+      setDeleting(null);
+    }
+  }
 
   const locked = Boolean(editing && editing.redemptionCount > 0);
   const discount = form.type !== 'TRIAL_DAYS';
@@ -145,13 +172,18 @@ export function CuponsView({ readOnly = false }: { readOnly?: boolean }) {
                 <td data-label="Usos" className="px-4 py-3 tabular-nums">{item.redemptionCount}{item.maxRedemptions ? ` / ${item.maxRedemptions}` : ''}</td>
                 <td data-label="Validade" className="px-4 py-3 text-xs text-fg-sub">{date(item.startsAt)} → {date(item.expiresAt)}</td>
                 <td data-label="Situação" className="px-4 py-3"><span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${item.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-zinc-200 bg-zinc-50 text-zinc-600'}`}>{item.isActive ? 'Ativo' : 'Inativo'}</span></td>
-                <td className="px-4 py-3">{!readOnly && <span className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => edit(item)}>Editar</Button><Button variant="outline" size="sm" onClick={() => toggle(item)}>{item.isActive ? 'Desativar' : 'Ativar'}</Button></span>}</td>
+                <td className="px-4 py-3">{!readOnly && <span className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => edit(item)}>Editar</Button><Button variant="outline" size="sm" onClick={() => toggle(item)}>{item.isActive ? 'Desativar' : 'Ativar'}</Button>{item.redemptionCount === 0 && <Button variant="outline" size="sm" className="text-rose-700" onClick={() => setDeleting(item)}>Excluir</Button>}</span>}</td>
               </tr>
             ))}
             {items.length === 0 && !loadError && <tr><td colSpan={6} className="p-8 text-center text-fg-sub">Nenhum cupom cadastrado.</td></tr>}
           </tbody>
         </table>
       </div>
+      <ConfirmDialog
+        isOpen={Boolean(deleting)} onClose={() => setDeleting(null)} onConfirm={confirmDelete} variant="danger" confirmText="Excluir cupom"
+        title={`Excluir o cupom ${deleting?.code ?? ''}?`}
+        description="O cupom será apagado e deixa de existir. Isso não pode ser desfeito. Cupom que já foi usado não pode ser excluído: desative-o para manter o histórico."
+      />
     </div>
   );
 }

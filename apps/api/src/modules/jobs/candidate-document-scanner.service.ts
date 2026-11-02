@@ -53,3 +53,11 @@ export class CandidateDocumentScanner {
     if (result.isInfected) throw new UnprocessableEntityException('O arquivo foi recusado pela verificacao de seguranca.');
   }
 }
+/**
+ * RS-C-03 / RS-D-13: curriculo (candidatura publica e conta) passa pelo ClamAV antes de ser gravado.
+ * Sem scanner disponivel (nao injetado) em producao a operacao e BLOQUEADA (fail-closed); fora dela segue com aviso.
+ */
+export async function assertResumeClean(scanner: Pick<CandidateDocumentScanner, 'assertClean'> | undefined, buffer: Buffer): Promise<void> {
+  if (scanner) return scanner.assertClean(buffer);
+  if (process.env.NODE_ENV === 'production') throw new ServiceUnavailableException('A verificacao de seguranca do arquivo esta indisponivel. Tente novamente em alguns minutos.');
+}

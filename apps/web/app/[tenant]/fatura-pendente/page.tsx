@@ -32,10 +32,14 @@ function FaturaPendentePage() {
     return result?.paymentUrl || result?.invoice?.invoiceUrl || null;
   }
 
+  const statusChecks = useRef(0);
+
   async function loadStatus(manual = false) {
     setChecking(true);
     if (manual) setErrorMessage(null);
     try {
+      // O GET de status so le: pede a conciliacao no clique, na 1a consulta e a cada 4 consultas automaticas (~32 s).
+      if (manual || statusChecks.current++ % 4 === 0) await api.companyBilling.syncPayment().catch(() => undefined);
       const result = await api.companyBilling.status();
       setBilling(result);
       if (result.active) {

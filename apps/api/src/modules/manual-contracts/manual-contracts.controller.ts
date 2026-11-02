@@ -1,5 +1,5 @@
 import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -19,25 +19,25 @@ export class ManualContractsController {
   constructor(private readonly service: ManualContractsService) {}
 
   @Get()
-  list(@CurrentUser() actor: JwtUser, @Query('companyId') companyId?: string) { return this.service.list(companyId, actor); }
+  list(@CurrentUser() actor: JwtUser, @Query('companyId', new ParseUUIDPipe({ optional: true })) companyId?: string) { return this.service.list(companyId, actor); }
 
   @Get(':id/history')
-  history(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  history(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.history(id, actor);
   }
 
   @Get(':id/transitions')
-  transitions(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  transitions(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.availableTransitions(id, actor);
   }
 
   @Get(':id/pdf')
-  async pdf(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Res() res: any) {
+  async pdf(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Res() res: any) {
     return this.service.streamPdf(id, actor.sub || (actor as any).id, res, actor);
   }
 
   @Get(':id')
-  get(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  get(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.get(id, actor);
   }
 
@@ -51,21 +51,21 @@ export class ManualContractsController {
   @Patch(':id')
   @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
   @Audited({ action: 'CONTRACT_UPDATED', entity: 'ManualContract' })
-  update(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: UpdateManualContractDto) {
+  update(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateManualContractDto) {
     return this.service.update(id, dto, actor.sub || (actor as any).id, actor);
   }
 
   @Patch(':id/status')
   @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL')
   @Audited({ action: 'CONTRACT_STATUS_CHANGED', entity: 'ManualContract', reasonField: 'reason' })
-  transition(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: TransitionManualContractDto) {
+  transition(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: TransitionManualContractDto) {
     return this.service.transition(id, dto, actor.sub || (actor as any).id, actor);
   }
 
   @Delete(':id')
   @Roles('DEV', 'CEO')
   @Audited({ action: 'CONTRACT_DELETED', entity: 'ManualContract' })
-  remove(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  remove(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.delete(id, actor.sub || (actor as any).id);
   }
 }

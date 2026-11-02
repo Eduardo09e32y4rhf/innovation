@@ -29,15 +29,19 @@ export interface Job {
   /** Processo interno: só funcionários da empresa se candidatam, pela matrícula. */
   isInternal?: boolean;
   confidential?: boolean;
+  pcd?: boolean;
+  costAmount?: string | number | null;
   interviewGuide?: string[];
   screeningMinScore?: number | null;
   screeningAction?: 'FLAG' | 'REJECT' | null;
+  requiredDocuments?: Array<{ label: string; required: boolean }>;
   lifecycle?: { phase: 'DRAFT' | 'PENDING_APPROVAL' | 'OPEN' | 'PAUSED' | 'CLOSED_RECENT' | 'ARCHIVED'; acceptsApplications: boolean; canReactivate: boolean; reactivatableUntil: string | null; daysLeft: number | null };
   _count?: { applications?: number; questions?: number };
   pipeline?: { new: number; inProgress: number; hired: number; rejected: number };
 }
 
 export interface JobPayload {
+  requiredDocuments?: Array<{ label: string; required: boolean }>;
   title: string;
   description: string;
   location?: string | null;
@@ -57,6 +61,8 @@ export interface JobPayload {
   deadline?: string | null;
   isInternal?: boolean;
   confidential?: boolean;
+  pcd?: boolean;
+  costAmount?: number | null;
   screeningMinScore?: number | null;
   screeningAction?: 'FLAG' | 'REJECT' | null;
 }
@@ -81,6 +87,7 @@ export interface Stage {
   automationConfig?: Record<string, unknown> | null;
   notifyCandidate?: boolean;
   candidateLabel?: string | null;
+  slaDays?: number | null;
 }
 
 export interface WorkflowOutcome { status: 'COMPLETED' | 'WAITING' | 'FAILED'; action: string; emailed?: boolean; requiredAction?: 'SCHEDULE_INTERVIEW' | 'PREPARE_OFFER' | 'REQUEST_DOCUMENTS' | 'COMPLETE_ADMISSION'; message?: string }
@@ -222,6 +229,10 @@ export interface HirePayload {
   contractType: string;
   admissionDate: string;
   salary?: number;
+  skipDocumentCheck?: boolean;
+  skipDocumentReason?: string;
+  skipOfferCheck?: boolean;
+  skipOfferReason?: string;
 }
 
 export const JOB_STATUS_LABEL: Record<JobStatus, string> = {

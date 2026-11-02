@@ -1,5 +1,7 @@
+import { Throttle } from '@nestjs/throttler';
 import { contentDisposition } from '../../common/pdf/pdf-response';
-import { Body, Controller, Get, Post, Req, Res, UseGuards, Param } from '@nestjs/common';
+import { clientIp } from '../../common/http/client-ip';
+import { Body, Controller, Get, Post, Req, Res, UseGuards, Param, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -30,13 +32,14 @@ export class PrivacyController {
     return this.service.document(user);
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('terms/accept')
   accept(@CurrentUser() user: JwtUser, @Req() request: any, @Body() body: AcceptTermsDto) {
     return this.service.accept(user, getRequestMeta(request), body);
   }
 
   @Get('terms/download/:userId')
-  async downloadTerms(@CurrentUser() user: JwtUser, @Param('userId') userId: string, @Res() reply: any) {
+  async downloadTerms(@CurrentUser() user: JwtUser, @Param('userId', ParseUUIDPipe) userId: string, @Res() reply: any) {
     const base64Pdf = await this.service.getTermsPdf(user, userId);
     if (!base64Pdf) return reply.status(404).send({ success: false, message: 'PDF não encontrado' });
     
@@ -48,20 +51,15 @@ export class PrivacyController {
 
 
   @Get('job/:jobId/status')
-  async getJobStatus(@CurrentUser() user: JwtUser, @Param('jobId') jobId: string) {
+  async getJobStatus(@CurrentUser() user: JwtUser, @Param('jobId', ParseUUIDPipe) jobId: string) {
     return this.service.getJobStatus(jobId, user.companyId);
   }
 
 }
 
 function getRequestMeta(request: any) {
-  const forwardedFor = request.headers['x-forwarded-for'];
-  const ipAddress = Array.isArray(forwardedFor)
-    ? forwardedFor[0]
-    : forwardedFor?.split(',')[0]?.trim() || request.ip;
-
   return {
-    ipAddress,
+    ipAddress: clientIp(request),
     userAgent: request.headers['user-agent'],
   };
 }

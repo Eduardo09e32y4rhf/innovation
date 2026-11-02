@@ -83,7 +83,7 @@ describe('consentimento com prazo e retenção (LGPD)', () => {
 
   it('candidatura sem prazo gravado (pós-processamento falhou) também é anonimizada pela data de criação', async () => {
     const findMany = vi.fn(async () => []);
-    const service = new RecruitmentPrivacyService({ application: { findMany }, recruitmentSetting: {} } as any, {} as any, {} as any);
+    const service = new RecruitmentPrivacyService({ application: { findMany }, recruitmentSetting: {}, recruitmentAccessToken: { deleteMany: vi.fn(async () => ({})) } } as any, {} as any, {} as any);
     await service.purgeExpired();
     const where = (findMany.mock.calls[0] as any)[0].where;
     expect(where.anonymizedAt).toBeNull();

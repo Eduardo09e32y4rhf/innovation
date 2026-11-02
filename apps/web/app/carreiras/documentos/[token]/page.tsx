@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   referrer: 'no-referrer',
 };
 
-export default function CandidateDocumentsPage({ params }: { params: { token: string } }) {
+export default async function CandidateDocumentsPage(props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   return <DocumentUpload token={params.token} />;
 }

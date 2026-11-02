@@ -5,6 +5,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { SKIP_SUBSCRIPTION_CHECK_KEY } from '../decorators/skip-subscription-check.decorator';
 import type { JwtUser } from '../types/auth.types';
 import { assertAccessToken } from './access-token';
+import { loadCompanyAccess } from './company-access';
 
 /** Rotas que continuam abertas para a empresa regularizar a situação. */
 const ALWAYS_ALLOWED = ['/auth/', '/health', '/finance/company/', '/faturas/empresa', '/faturas/permissoes/minhas', '/legal/', '/finance/webhook/'];
@@ -34,7 +35,7 @@ export class SubscriptionActiveGuard implements CanActivate {
     const user: JwtUser | null = request.user ?? (await this.readJwt(request.headers?.authorization));
     if (!user?.companyId || user.role === 'DEV') return true;
 
-    const company = await this.prisma.company.findUnique({ where: { id: user.companyId }, select: { billingStatus: true } });
+    const company = await loadCompanyAccess(this.prisma, request, user.companyId);
     if (!company) return true;
 
     if (company.billingStatus === 'CANCELED') this.deny();

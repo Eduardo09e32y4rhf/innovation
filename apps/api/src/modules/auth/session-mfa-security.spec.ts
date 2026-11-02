@@ -238,9 +238,9 @@ describe('AuthService: sem enumeração de contas', () => {
 
   it('5 códigos errados invalidam o código de recuperação', async () => {
     const { service, repository } = build({ ...user });
-    for (let i = 0; i < 4; i += 1) await service.validateResetCode({ email: 'ana@x.com', code: 'ZZZZZZ' } as any).catch(() => undefined);
+    for (let i = 0; i < 4; i += 1) await service.validateResetCode({ email: 'ana@x.com', code: 'ZZZZZZZZ' } as any).catch(() => undefined);
     expect(repository.clearResetCode).not.toHaveBeenCalled();
-    await service.validateResetCode({ email: 'ana@x.com', code: 'ZZZZZZ' } as any).catch(() => undefined);
+    await service.validateResetCode({ email: 'ana@x.com', code: 'ZZZZZZZZ' } as any).catch(() => undefined);
     expect(repository.clearResetCode).toHaveBeenCalledWith('u1');
   });
 });

@@ -1,3 +1,4 @@
+import { asaasUnhandledEvents } from './asaas-webhook-metrics';
 import { webhookFailures } from '../../common/metrics/app-metrics';
 import { Process, Processor } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
@@ -10,6 +11,7 @@ import { planPricingForSubscription, PricingPlanInput } from './pricing';
 import { PaymentRefundService } from './payment-refund.service';
 import { AsaasFiscalService } from './asaas-fiscal.service';
 import { cancelRedundantSignupCharges } from './signup-charges';
+import { companyDataAfterPayment, saoPauloToday } from './payment-access';
 
 type InvoiceStatus = 'OPEN' | 'PAID' | 'OVERDUE' | 'CANCELED';
 
@@ -24,6 +26,8 @@ interface AsaasWebhookPayment {
   description?: string;
   billingType?: string;
   invoiceUrl?: string;
+  /** Estado real da cobranca no Asaas (PENDING, RECEIVED, CONFIRMED, OVERDUE, ...). */
+  status?: string;
 }
 
 interface AsaasWebhookInvoice {
@@ -54,14 +58,15 @@ const PAYMENT_EVENT_MAP: Record<string, FinanceNotificationType | undefined> = {
   PAYMENT_DELETED: 'PAYMENT_CANCELED',
   PAYMENT_CHARGEBACK_REQUESTED: 'PAYMENT_CANCELED',
   PAYMENT_CHARGEBACK_DISPUTE: 'PAYMENT_CANCELED',
-  PAYMENT_REFUNDED: 'PAYMENT_REFUNDED',
-  PAYMENT_REFUND_IN_PROGRESS: 'PAYMENT_REFUNDED',
 };
 
 const INVOICE_EVENT_MAP: Record<string, FinanceNotificationType | undefined> = {
   INVOICE_AUTHORIZED: 'INVOICE_AUTHORIZED',
   INVOICE_CANCELED: 'INVOICE_CANCELED',
 };
+
+// PAYMENT_REFUND_DENIED: "estorno negado" (boleto) - VIA BUSCA, docs.asaas.com/docs/webhook-para-cobrancas; apenas reconcilia o estado da devolucao.
+const REFUND_EVENTS = ['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS', 'PAYMENT_REFUND_DENIED'];
 
 @Injectable()
 export class AsaasWebhookProcessorService {
@@ -92,7 +97,12 @@ export class AsaasWebhookProcessorService {
       if (payload.payment?.id) await this.handlePaymentEvent(event, payload.payment);
       if (payload.invoice?.id) await this.handleInvoiceEvent(event, payload.invoice);
 
-      const recognized = Boolean(this.statusFromEvent(event) || event === 'PAYMENT_PARTIALLY_REFUNDED' || (event.startsWith('INVOICE_') && payload.invoice?.id));
+      const recognized = Boolean(this.statusFromEvent(event) || REFUND_EVENTS.includes(event) || (event.startsWith('INVOICE_') && payload.invoice?.id));
+      if (!recognized) {
+        // PAG-07: evento sem tratamento: log estruturado + metrica, nenhuma mudanca de estado de fatura.
+        this.logger.warn(`ASAAS_EVENT_UNHANDLED ${JSON.stringify({ event, paymentId: payload.payment?.id ?? null, invoiceId: payload.invoice?.id ?? null })}`);
+        asaasUnhandledEvents.inc({ event: String(event).slice(0, 80) });
+      }
       await this.prisma.asaasWebhookEvent.update({
         where: { id: eventId },
         data: {
@@ -112,15 +122,14 @@ export class AsaasWebhookProcessorService {
   }
 
   private async handlePaymentEvent(event: string, payment: AsaasWebhookPayment) {
-    if (['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS'].includes(event)) {
+    if (REFUND_EVENTS.includes(event)) {
       const invoice = await this.prisma.platformInvoice.findUnique({ where: { asaasPaymentId: payment.id } });
       if (!invoice) throw new Error('Devolução sem fatura vinculada: conciliação pendente.');
       if (!this.refunds) throw new Error('Serviço de devoluções indisponível.');
       await this.refunds.reconcile(invoice.id);
       return;
     }
-    const status = this.statusFromEvent(event);
-    if (!status) return;
+    if (!this.statusFromEvent(event)) return;
     const company = await this.resolveCompany(payment);
     if (!company) {
       this.logger.warn(`Pagamento ${payment.id} sem empresa vinculada.`);
@@ -133,6 +142,11 @@ export class AsaasWebhookProcessorService {
     // Cobrança da assinatura ainda não paga pode mudar de valor (desconto, cupom, usuários com updatePendingPayments): aceita o valor novo.
     const subscriptionRepriced = Boolean(existing && payment.subscription && existing.asaasPaymentId === payment.id && existing.status !== 'PAID');
     if (existing && (existing.companyId !== company.id || (Number(existing.amount) !== payment.value && !subscriptionRepriced) || (existing.asaasPaymentId && existing.asaasPaymentId !== payment.id))) throw new Error('Cobrança não corresponde à fatura reservada.');
+    const status = this.resolveStatus(event, payment, existing);
+    if (!status) {
+      this.logger.warn(`Evento ${event} ignorado: ${existing ? `fatura ${existing.id}` : `cobrança ${payment.id}`} não muda de estado (fora de ordem ou removida).`);
+      return;
+    }
     // Evento fora de ordem: uma fatura já paga nunca volta para aberta/vencida (só estorno/cancelamento a altera).
     if (existing?.status === 'PAID' && (status === 'OPEN' || status === 'OVERDUE')) {
       this.logger.warn(`Evento ${event} ignorado: fatura ${existing.id} já está paga (fora de ordem).`);
@@ -152,13 +166,15 @@ export class AsaasWebhookProcessorService {
       billingType: payment.billingType || 'PIX',
       invoiceUrl: payment.invoiceUrl,
       paidAt: status === 'PAID' ? existing?.paidAt ?? new Date() : existing?.paidAt,
-      deletedAt: event === 'PAYMENT_DELETED' ? new Date() : null,
+      // Só PAYMENT_DELETED remove e só PAYMENT_RESTORED restaura; qualquer outro evento preserva o que já existe.
+      deletedAt: event === 'PAYMENT_DELETED' ? new Date() : event === 'PAYMENT_RESTORED' ? null : existing?.deletedAt ?? null,
       // Taxa do gateway: o Asaas informa o liquido no proprio pagamento (so grava quando vier um numero valido).
       ...(status === 'PAID' && Number.isFinite(payment.netValue) && Number(payment.netValue) >= 0 ? { gatewayNetValue: payment.netValue } : {}),
     };
 
     const companyData: any = status === 'PAID'
-      ? { billingStatus: 'ACTIVE', status: 'ACTIVE', isActive: true, suspensionReason: null }
+      // Pagar uma fatura só reativa quando o bloqueio é por falta de pagamento e não resta outra fatura vencida.
+      ? await companyDataAfterPayment(this.prisma, company.id, existing?.id)
       : status === 'OVERDUE'
         ? { billingStatus: 'PAST_DUE' }
         // Só suspende se a cobrança cancelada já estava paga (estorno). Cancelar uma cobrança em aberto (duplicada) não bloqueia a empresa.
@@ -271,10 +287,38 @@ export class AsaasWebhookProcessorService {
     return ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(charge?.status);
   }
 
+  /**
+   * Estado da fatura após o evento. CREATED/UPDATED/RESTORED não dizem o estado pelo nome: valem o `payment.status` do payload
+   * (PAYMENT_UPDATED = "alteração no vencimento ou valor"). Devolve undefined quando o evento não deve mudar nada.
+   */
+  private resolveStatus(event: string, payment: AsaasWebhookPayment, existing: { status: string; dueDate?: Date | null; deletedAt?: Date | null } | null): InvoiceStatus | undefined {
+    if (!['PAYMENT_CREATED', 'PAYMENT_UPDATED', 'PAYMENT_RESTORED'].includes(event)) return this.statusFromEvent(event);
+    const remote = payment.status;
+    let derived: InvoiceStatus | undefined;
+    if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(remote ?? '')) derived = 'PAID';
+    else if (remote === 'OVERDUE') derived = 'OVERDUE';
+    else if (remote === 'DELETED') derived = 'CANCELED';
+    else if (remote === undefined || remote === null || remote === '') derived = existing ? undefined : 'OPEN';
+    else if (/REFUND|CHARGEBACK/.test(remote)) derived = undefined; // estornos têm eventos próprios
+    else derived = 'OPEN'; // PENDING, AWAITING_RISK_ANALYSIS, ...
+    if (!existing) return derived;
+    if (derived === undefined) return undefined;
+    const removed = existing.status === 'CANCELED' || Boolean(existing.deletedAt);
+    if (derived === 'OPEN' || derived === 'OVERDUE') {
+      if (removed && event !== 'PAYMENT_RESTORED') return undefined;
+      // Vencida só reabre com prorrogação real: PENDING e novo vencimento a partir de hoje.
+      if (existing.status === 'OVERDUE' && derived === 'OPEN') {
+        const due = payment.dueDate ? new Date(payment.dueDate) : null;
+        return due && due.getTime() >= saoPauloToday().getTime() ? 'OPEN' : undefined;
+      }
+    }
+    return derived;
+  }
+
   private statusFromEvent(event: string): InvoiceStatus | undefined {
     if (['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED_IN_CASH'].includes(event)) return 'PAID';
     if (event === 'PAYMENT_OVERDUE') return 'OVERDUE';
-    if (['PAYMENT_DELETED', 'PAYMENT_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE'].includes(event)) return 'CANCELED';
+    if (['PAYMENT_DELETED', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE'].includes(event)) return 'CANCELED';
     if (['PAYMENT_CREATED', 'PAYMENT_UPDATED', 'PAYMENT_RESTORED'].includes(event)) return 'OPEN';
     return undefined;
   }

@@ -25,12 +25,14 @@ env:
 
 jobs:
   validate:
+    permissions:
+      contents: read
     name: Lint, tipos e Prisma
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { ref: '${{ inputs.ref || github.sha }}' }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - run: npm run check:workspace
@@ -41,6 +43,8 @@ jobs:
       - run: npm run typecheck:web
 
   secrets-scan:
+    permissions:
+      contents: read
     name: Varredura de segredos (gitleaks)
     runs-on: ubuntu-latest
     env:
@@ -48,7 +52,7 @@ jobs:
       # SHA-256 do gitleaks_8.21.2_linux_x64.tar.gz (conferido com gitleaks_8.21.2_checksums.txt da release oficial)
       GITLEAKS_SHA256: 5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { ref: '${{ inputs.ref || github.sha }}', fetch-depth: 0 } # histórico inteiro
       - name: Instalar gitleaks (versao fixa, checksum verificado)
         run: |
@@ -61,20 +65,24 @@ jobs:
         run: ./gitleaks detect --source . --config .gitleaks.toml --log-opts="--all" --redact --verbose --no-banner
 
   unit:
+    permissions:
+      contents: read
     name: Testes unitarios, seguranca e cobertura
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { ref: '${{ inputs.ref || github.sha }}' }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - run: npm run prisma:generate
       - run: npm run test:coverage # falha abaixo do minimo definido em vitest.config.ts
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: { name: coverage, path: coverage/, retention-days: 7 }
 
   migrations-empty-db:
+    permissions:
+      contents: read
     name: prisma migrate deploy em banco vazio
     runs-on: ubuntu-latest
     services:
@@ -86,9 +94,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_empty?schema=public
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { ref: '${{ inputs.ref || github.sha }}' }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - run: npm run db:deploy
@@ -99,6 +107,8 @@ jobs:
           --to-schema-datamodel apps/api/prisma/schema.prisma --exit-code
 
   integration:
+    permissions:
+      contents: read
     name: Testes de integracao
     needs: [migrations-empty-db]
     runs-on: ubuntu-latest
@@ -115,9 +125,9 @@ jobs:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_test?schema=public
       REDIS_URL: redis://localhost:6379
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { ref: '${{ inputs.ref || github.sha }}' }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - run: npm run prisma:generate
@@ -125,13 +135,15 @@ jobs:
       - run: npm run test:integration
 
   build:
+    permissions:
+      contents: read
     name: Build API e Web
     needs: [validate]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { ref: '${{ inputs.ref || github.sha }}' }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
       - run: npm ci
       - run: npm run prisma:generate
@@ -150,7 +162,36 @@ jobs:
           done
           curl -fsS --max-time 5 http://127.0.0.1:3000/login >/dev/null
 
+  # DEP-05: avisos de vulnerabilidade. NAO bloqueante por enquanto (continue-on-error e fora do ci-ok) ate o baseline
+  # de dependencias (DEP-01..03) ficar limpo; depois remova o continue-on-error e inclua em `needs` do ci-ok.
+  npm-audit:
+    name: npm audit (producao, nao bloqueante)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { ref: '${{ inputs.ref || github.sha }}' }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: '${{ env.NODE_VERSION }}' }
+      - run: npm audit --omit=dev --audit-level=high
+
+  # DEP-05: bloqueia/avisa em PR que introduz dependencia com vulnerabilidade conhecida (so PRs; nao bloqueante no ci-ok).
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with: { fail-on-severity: high }
+
   browser-e2e:
+    permissions:
+      contents: read
     name: Browser E2E
     uses: ./.github/workflows/e2e.yml
     with:
@@ -158,6 +199,7 @@ jobs:
 
   # Job unico a exigir na protecao de branch da main.
   ci-ok:
+    permissions: {}
     name: ci-ok
     if: always()
     needs: [validate, secrets-scan, unit, migrations-empty-db, integration, build, browser-e2e]

@@ -73,11 +73,12 @@ export class CouponsService {
     if (dto.description !== undefined) data.description = dto.description.trim();
     if (dto.trialDays !== undefined) data.trialDays = dto.trialDays;
     if (dto.allowedPlanIds !== undefined) data.allowedPlanIds = dto.allowedPlanIds;
-    if (dto.minSeats !== undefined) data.minSeats = dto.minSeats;
+    if (dto.minSeats !== undefined) data.minSeats = dto.minSeats; // null limpa o minimo
     if (dto.startsAt !== undefined) data.startsAt = dto.startsAt ? new Date(dto.startsAt) : null;
     if (dto.expiresAt !== undefined) data.expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
     if (dto.maxRedemptions !== undefined) {
-      if (dto.maxRedemptions < existing.redemptionCount) throw new BadRequestException('O limite nao pode ser menor que os usos ja registrados.');
+      // null remove o limite (sem limite de usos)
+      if (dto.maxRedemptions !== null && dto.maxRedemptions < existing.redemptionCount) throw new BadRequestException('O limite nao pode ser menor que os usos ja registrados.');
       data.maxRedemptions = dto.maxRedemptions;
     }
 
@@ -86,6 +87,16 @@ export class CouponsService {
     if (startsAt && expiresAt && expiresAt <= startsAt) throw new BadRequestException('A expiracao deve ser posterior ao inicio.');
 
     return this.repository.update(id, data);
+  }
+
+  /** Exclui so cupom que nunca foi usado; usado so pode ser desativado (os usos guardam quem ja gastou o teste gratis). */
+  async remove(id: string) {
+    const existing = await this.repository.findById(id);
+    if (!existing) throw new NotFoundException('Cupom nao encontrado.');
+    const used = existing.redemptionCount > 0 || (await this.repository.countRedemptions(id)) > 0;
+    if (used) throw new ConflictException('Este cupom ja foi usado e nao pode ser excluido. Desative-o para parar de aceitar novos usos e manter o historico.');
+    await this.repository.delete(id);
+    return { deleted: true, id };
   }
 
   async setActive(id: string, isActive: boolean) {

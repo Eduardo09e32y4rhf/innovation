@@ -19,5 +19,10 @@ COPY --from=builder /app/apps/api/package*.json ./apps/api/
 COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+# Volumes gravaveis (api_data em /data, sessoes/uploads em /app/storage) pertencem ao usuario node.
+# Volume nomeado novo herda este dono; volume antigo (root) e corrigido por scripts/deploy/vps-update.sh.
+RUN mkdir -p /data/recruitment /data/support /app/storage && chown -R node:node /data /app/storage
+USER node
 EXPOSE 3333
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=5 CMD wget -qO- http://127.0.0.1:3333/health/live >/dev/null 2>&1 || exit 1
 CMD ["node", "apps/api/dist/main.js"]

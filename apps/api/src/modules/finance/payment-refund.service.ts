@@ -149,11 +149,29 @@ export class PaymentRefundService {
       const pending = await tx.paymentRefund.count({ where: { invoiceId, status: { in: active } } });
       const status = pending ? 'PROCESSING' : confirmedTotal >= cents(invoice.amount) ? 'REFUNDED' : confirmedTotal > 0 ? 'PARTIALLY_REFUNDED' : null;
       await tx.platformInvoice.update({ where: { id: invoiceId }, data: { refundedAmount: confirmedTotal / 100, refundStatus: status } });
+      // Estorno TOTAL confirmado (transição única): a empresa segue a regra de bloqueio por pagamento revertido, como no chargeback.
+      // A fatura continua PAID de propósito: razão contábil e relatório de receita usam status PAID + refundedAmount.
+      if (status === 'REFUNDED' && locked.refundStatus !== 'REFUNDED' && locked.status === 'PAID') await this.suspendAfterFullRefund(tx, locked);
       return { refundedAmount: confirmedTotal / 100, refundStatus: status };
     });
     await this.emitSettled(settled);
     if (this.fiscal) await this.fiscal.handleRefund(invoiceId, result.refundStatus);
     return result;
+  }
+
+  /**
+   * Só suspende empresa ATIVA e quando a fatura estornada é o pagamento mais recente (estornar uma fatura antiga não derruba quem
+   * está em dia). Conta cancelada ou já bloqueada por outro motivo não é tocada.
+   */
+  private async suspendAfterFullRefund(tx: any, invoice: { id: string; companyId: string; paidAt: Date | null }) {
+    const company = await tx.company.findUnique({ where: { id: invoice.companyId }, select: { status: true, isActive: true, billingStatus: true } });
+    if (!company || company.status !== 'ACTIVE' || company.isActive === false || company.billingStatus === 'CANCELED') return;
+    const laterPaid = await tx.platformInvoice.count({
+      where: { companyId: invoice.companyId, id: { not: invoice.id }, deletedAt: null, status: 'PAID', paidAt: { gt: invoice.paidAt ?? new Date(0) }, OR: [{ refundStatus: null }, { refundStatus: { not: 'REFUNDED' } }] },
+    });
+    if (laterPaid > 0) return;
+    await tx.company.update({ where: { id: invoice.companyId }, data: { billingStatus: 'PAST_DUE', status: 'SUSPENDED', isActive: false, suspensionReason: 'pagamento_cancelado_ou_estornado' } });
+    await tx.auditLog.create({ data: { companyId: invoice.companyId, action: 'COMPANY_SUSPENDED_BY_REFUND', entity: 'PlatformInvoice', entityId: invoice.id, metadata: { reason: 'estorno_total_confirmado', actorEmail: 'system' } } });
   }
 
   private async asaasRefunds(paymentId: string) {

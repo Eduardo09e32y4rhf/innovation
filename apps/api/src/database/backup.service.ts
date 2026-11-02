@@ -24,8 +24,14 @@ export class BackupService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   @CronLock('db.backup', 3600)
   async handleDailyBackup() {
+    // INF-05: o container da API nao tem pg_dump e storage/backups nao e volume; a rotina interna so produzia falsa seguranca.
+    // Desligada por padrao. O backup oficial e scripts/backup/backup.sh (cron do servidor, copia remota via BACKUP_REMOTE).
+    if (process.env.INTERNAL_DB_BACKUP_ENABLED !== 'true') {
+      this.logger.log('Backup interno do banco desligado (INTERNAL_DB_BACKUP_ENABLED!=true). O backup oficial e scripts/backup/backup.sh no servidor; veja docs/BACKUP-REMOTO.md.');
+      return;
+    }
     this.logger.log('Starting daily PostgreSQL backup...');
-    
+
     try {
       const backupDir = path.join(process.cwd(), 'storage', 'backups');
       if (!fs.existsSync(backupDir)) {

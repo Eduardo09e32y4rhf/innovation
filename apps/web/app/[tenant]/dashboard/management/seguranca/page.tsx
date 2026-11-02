@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
-export default function SegurancaRedirect({ params }: { params: { tenant: string } }) {
+export default async function SegurancaRedirect(props: { params: Promise<{ tenant: string }> }) {
+  const params = await props.params;
   redirect(`/${params.tenant}/dashboard/management/seguranca/aso`);
 }

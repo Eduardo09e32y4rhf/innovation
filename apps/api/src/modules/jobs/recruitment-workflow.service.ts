@@ -5,7 +5,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { AssessmentsService } from './assessments.service';
 import { candidateStageChangedEmail } from './recruitment-mails';
-import { appBase } from './recruitment-tokens';
+import { issueTrackingToken } from './recruitment-access-tokens';
 
 export type WorkflowOutcome = { status: 'COMPLETED' | 'WAITING' | 'FAILED'; action: string; emailed?: boolean; requiredAction?: 'SCHEDULE_INTERVIEW' | 'PREPARE_OFFER' | 'REQUEST_DOCUMENTS' | 'COMPLETE_ADMISSION'; message?: string };
 
@@ -67,7 +67,7 @@ export class RecruitmentWorkflowService {
     if (action === 'NOTIFY_STAGE_CHANGE') {
       const app = await this.application(applicationId);
       if (!app.candidate.email) return { status: 'COMPLETED', action, emailed: false, message: 'Etapa alterada; candidato sem e-mail.' };
-      const statusUrl = app.trackingToken && appBase() ? `${appBase()}/carreiras/acompanhar/${app.trackingToken}` : null;
+      const statusUrl = (await issueTrackingToken(this.prisma, app.id, app.companyId)).url;
       const sent = await this.mail.send(app.candidate.email, candidateStageChangedEmail({ name: app.candidate.name, jobTitle: app.job.title, company: app.job.company.name, stage: app.stage?.candidateLabel || app.stage?.name || 'Nova etapa', statusUrl }));
       if (!sent.sent) throw new Error(`E-mail da nova etapa não entregue${sent.error ? `: ${sent.error}` : '; nova tentativa agendada.'}`);
       return { status: 'COMPLETED', action, emailed: true, message: 'Candidato avisado por e-mail.' };

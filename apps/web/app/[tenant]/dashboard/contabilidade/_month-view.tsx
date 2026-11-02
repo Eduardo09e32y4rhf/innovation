@@ -9,6 +9,7 @@ import { useMutation, useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { accountantActions, brl, fmtDate, fmtMinutes, mergeRows, periodTotals, type MonthRow } from './_model';
 import { EmployeeDrawer } from './_employee-drawer';
+import { PayrollTools } from './_payroll-tools';
 import { StatusBadge } from './_status-badge';
 
 const TH = 'px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-fg-sub';
@@ -45,8 +46,12 @@ export function MonthView({ companyId, companyName, month, role, onBack }: { com
   const periodQ = useQuery(useCallback(() => api.accounting.period(companyId, month), [companyId, month]), [companyId, month]);
   const sheetsQ = useQuery(useCallback(() => api.accounting.companyTimeSheets(companyId, month), [companyId, month]), [companyId, month]);
 
+  const payrollQ = useQuery(useCallback(() => api.accounting.payrollSheet(companyId, month), [companyId, month]), [companyId, month]);
+  const [version, setVersion] = useState(0);
+  const refresh = () => { periodQ.refetch(); sheetsQ.refetch(); payrollQ.refetch(); setVersion((n) => n + 1); };
+
   const calc = useMutation((discard: boolean) => api.accounting.calculatePeriod(companyId, month, discard), {
-    onSuccess: () => { toast.success('Cálculo concluído.'); periodQ.refetch(); sheetsQ.refetch(); }, onError: (m) => toast.error(m),
+    onSuccess: () => { toast.success('Cálculo concluído.'); refresh(); }, onError: (m) => toast.error(m),
   });
   const publish = useMutation(() => api.accounting.publishPeriod(companyId, month), {
     onSuccess: () => { toast.success('Competência publicada para a empresa.'); periodQ.refetch(); }, onError: (m) => toast.error(m),
@@ -95,6 +100,7 @@ export function MonthView({ companyId, companyName, month, role, onBack }: { com
             {actions.calculate && <button type="button" onClick={onCalculate} disabled={calc.loading} className="btn btn-primary min-h-11"><Calculator size={16} aria-hidden="true" /> {calc.loading ? 'Calculando…' : 'Calcular todos'}</button>}
             {actions.publish && <button type="button" onClick={onPublish} disabled={publish.loading || calc.loading} className="btn btn-primary min-h-11"><Send size={16} aria-hidden="true" /> {publish.loading ? 'Publicando…' : 'Publicar para a empresa'}</button>}
           </div>
+          <PayrollTools companyId={companyId} month={month} sheet={payrollQ.data} version={version} onOpenEmployee={(id) => setOpen(rows.find((r) => r.employeeId === id) ?? null)} />
           {sheetsQ.error && <p role="status" className="text-sm text-amber-800">Não foi possível carregar as horas do ponto; exibindo apenas valores.</p>}
           {rows.length === 0 ? <EmptyState message="Nenhum cálculo neste mês. Use “Calcular todos”." /> : (
             <>
@@ -125,7 +131,7 @@ export function MonthView({ companyId, companyName, month, role, onBack }: { com
           )}
         </>
       )}
-      {open && <EmployeeDrawer companyId={companyId} month={month} row={open} canAdjust={actions.adjust} onClose={() => setOpen(null)} onAdjusted={() => { periodQ.refetch(); sheetsQ.refetch(); }} />}
+      {open && <EmployeeDrawer companyId={companyId} month={month} row={open} canAdjust={actions.adjust} payroll={payrollQ.data?.employees.find((e) => e.employeeId === open.employeeId)} onClose={() => setOpen(null)} onAdjusted={refresh} />}
     </section>
   );
 }

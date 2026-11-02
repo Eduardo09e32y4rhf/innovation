@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type { UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -23,7 +24,7 @@ export class RecruiterNotifierService {
 
   async notify(input: {
     companyId: string; jobId: string; userIds: (string | null | undefined)[]; title: string; lines: string[];
-    priority?: 'LOW' | 'NORMAL' | 'HIGH'; roles?: ('RH' | 'ADMIN')[]; kind: string; cta?: string;
+    priority?: 'LOW' | 'NORMAL' | 'HIGH'; roles?: UserRole[]; kind: string; cta?: string;
   }) {
     try {
       const url = await this.jobUrl(input.companyId, input.jobId);

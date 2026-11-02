@@ -2,6 +2,7 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ServerOptions } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
+import { socketAuthMiddleware } from './socket-auth';
 import { redisConnection } from '../redis/redis-config';
 
 export class RedisIoAdapter extends IoAdapter {
@@ -39,34 +40,34 @@ export class RedisIoAdapter extends IoAdapter {
     }
   }
 
+  /** Limite de conexoes por minuto por IP (antes da autenticacao; o companyId do cliente nao e confiavel). */
+  private readonly rateLimit = async (socket: any, next: (err?: Error) => void) => {
+    try {
+      if (this.pubClient?.status === 'ready') {
+        const key = `ratelimit:ws:connections:ip:${socket.handshake.address || 'unknown-ip'}`;
+        const current = await this.pubClient.incr(key);
+        if (current === 1) await this.pubClient.expire(key, 60);
+        if (current > 50) return next(new Error('Too many connections from this IP'));
+      }
+      next();
+    } catch {
+      next(); // Redis caiu no meio da chamada: o limitador e opcional, nao derruba o login do socket.
+    }
+  };
+
   createIOServer(port: number, options?: ServerOptions): any {
     const server = super.createIOServer(port, options);
     if (this.adapterConstructor) {
       server.adapter(this.adapterConstructor);
     }
 
-    server.use(async (socket: any, next: (err?: Error) => void) => {
-      try {
-        const companyId = socket.handshake.query?.companyId || socket.handshake.auth?.companyId;
-        const ip = socket.handshake.address || 'unknown-ip';
-        const identifier = companyId ? `company:${companyId}` : `ip:${ip}`;
-        
-        if (this.pubClient?.status === 'ready') {
-          const key = `ratelimit:ws:connections:${identifier}`;
-          const current = await this.pubClient.incr(key);
-          if (current === 1) {
-            await this.pubClient.expire(key, 60); // 1 minute window
-          }
-          
-          if (current > 50) { // Limit to 50 connections per minute per company/IP
-            return next(new Error('Too many connections from this company/IP'));
-          }
-        }
-        next();
-      } catch {
-        next(); // Redis caiu no meio da chamada: o limitador e opcional, nao derruba o login do socket.
-      }
-    });
+    // Cada namespace (inclusive 'communication', criado depois) passa pelo limitador por IP e pela autenticacao JWT.
+    const guard = (ns: any) => {
+      ns.use(this.rateLimit);
+      ns.use(socketAuthMiddleware());
+    };
+    guard(server.of('/'));
+    server.on('new_namespace', guard);
 
     return server;
   }

@@ -19,7 +19,7 @@ export class JobTemplatesService {
     const [questions, criteria] = await Promise.all([this.recruitment.getQuestions(companyId, jobId), this.recruitment.getCriteria(companyId, jobId)]);
     const data = {
       title: job.title, description: job.description, location: job.location, employmentType: job.employmentType, salaryRange: job.salaryRange, benefits: job.benefits, requirements: job.requirements,
-      department: job.department, workMode: job.workMode, seniority: job.seniority, openings: job.openings, salaryMin: job.salaryMin, salaryMax: job.salaryMax, salaryHidden: job.salaryHidden,
+      department: job.department, workMode: job.workMode, seniority: job.seniority, openings: job.openings, salaryMin: job.salaryMin, salaryMax: job.salaryMax, salaryHidden: job.salaryHidden, pcd: job.pcd,
       questions: questions.map((q) => ({ label: q.label, type: q.type, required: q.required, options: q.options, knockout: q.knockout, scoreRule: q.scoreRule })),
       criteria: criteria.map((c) => ({ name: c.name, weight: c.weight })),
     };
@@ -33,11 +33,11 @@ export class JobTemplatesService {
   }
 
   /** Cria uma vaga em rascunho a partir do modelo. Publicar passa pelo mesmo caminho de qualquer vaga (limite do plano, orçamento, aprovação). */
-  async use(companyId: string, id: string) {
+  async use(companyId: string, id: string, actorId?: string) {
     const template = await this.prisma.jobTemplate.findFirst({ where: { id, companyId } });
     if (!template) throw new NotFoundException('Modelo não encontrado.');
     const { questions = [], criteria = [], ...fields } = template.data as Record<string, any>;
-    const job = await this.jobs.create(companyId, { ...fields, status: 'DRAFT' } as any);
+    const job = await this.jobs.create(companyId, { ...fields, status: 'DRAFT' } as any, actorId);
     if (questions.length) await this.recruitment.saveQuestions(companyId, job.id, { questions });
     if (criteria.length) await this.recruitment.saveCriteria(companyId, job.id, { criteria });
     return job;

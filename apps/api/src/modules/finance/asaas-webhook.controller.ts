@@ -1,5 +1,5 @@
 import { webhookFailures } from '../../common/metrics/app-metrics';
-import { Body, Controller, ForbiddenException, Headers, HttpCode, Logger, Post } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Headers, HttpCode, Logger, Post, ServiceUnavailableException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Queue } from 'bull';
@@ -47,7 +47,7 @@ export class AsaasWebhookController {
     }
 
     if (!stored) {
-      throw new Error('Não foi possível persistir o evento Asaas.');
+      throw new ServiceUnavailableException('Não foi possível persistir o evento Asaas.');
     }
 
     if (['PENDING', 'PROCESSING', 'PROCESSED', 'IGNORED'].includes(stored.status)) {

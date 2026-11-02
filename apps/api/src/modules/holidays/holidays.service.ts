@@ -1,3 +1,4 @@
+import { outboundFetch, TIMEOUT_PUBLIC_LOOKUP_MS } from '../../common/http/outbound';
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { RedisService } from '../../common/redis/redis.service';
@@ -25,7 +26,7 @@ export class HolidaysService {
 
     try {
       this.logger.log(`[HolidaysService] Fetching national holidays for ${year} from BrasilAPI...`);
-      const res = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`);
+      const res = await outboundFetch(`https://brasilapi.com.br/api/feriados/v1/${year}`, {}, { timeoutMs: TIMEOUT_PUBLIC_LOOKUP_MS });
       if (!res.ok) throw new Error('API Error');
       const data = (await res.json()) as any[];
       
@@ -62,8 +63,9 @@ export class HolidaysService {
       this.logger.log(`[HolidaysService] Successfully synced national holidays for ${year}`);
       return data;
     } catch (error: any) {
-      this.logger.error(`[HolidaysService] Failed to sync national holidays for ${year}`, error.message);
-      throw error;
+      // Consulta opcional: sem BrasilAPI (timeout/queda) mantem os feriados ja gravados no banco, sem derrubar a requisicao.
+      this.logger.warn(`[HolidaysService] Failed to sync national holidays for ${year}: ${error?.message ?? error}`);
+      return [];
     }
   }
 

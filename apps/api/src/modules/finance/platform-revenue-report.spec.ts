@@ -1,9 +1,18 @@
 import 'reflect-metadata';
 import { ForbiddenException } from '@nestjs/common';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ROLES_KEY } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { PlatformLedgerService } from '../accounting/platform-ledger.service';
+import { getQueueToken } from '@nestjs/bull';
+import { PrismaService } from '../../database/prisma.service';
+import { TimeClosingService } from '../time-track/time-closing.service';
+import { FiscalAdjustmentsService } from './fiscal-adjustments.service';
+import { PlatformFinanceService } from './platform-finance.service';
+import { PlatformAuditService } from '../platform-audit/platform-audit.service';
 import { FinanceController } from './finance.controller';
 import { buildMonthlyReport, reportToCsv, taxRatePercent, cycleMonths } from './platform-revenue-report';
 import { PlatformRevenueReportService } from './platform-revenue-report.service';
@@ -173,17 +182,33 @@ describe('relatório mensal da receita da plataforma', () => {
     expect(content).not.toMatch(/\d\.\d\d;/);
   });
 
-  it('CSV do controller sai com cabeçalhos de download', async () => {
+  it('CSV do controller sai com cabeçalhos de download (Nest + Fastify real)', async () => {
     const { service } = make({ invoices: [inv({ id: 'a' })] });
-    const controller = new FinanceController({} as any, {} as any, {} as any, {} as any, service, {} as any);
-    const res: any = { setHeader: vi.fn(), send: vi.fn() };
-    await controller.monthlyReportCsv({ month: '2026-09' }, res);
-    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv; charset=utf-8');
-    expect(res.setHeader).toHaveBeenCalledWith(
-      'Content-Disposition',
-      `attachment; filename="receita-plataforma-2026-09.csv"; filename*=UTF-8''receita-plataforma-2026-09.csv`,
-    );
-    expect(String(res.send.mock.calls[0][0]).startsWith('﻿')).toBe(true);
+    const types = [PlatformFinanceService, PrismaService, TimeClosingService, FiscalAdjustmentsService, PlatformRevenueReportService, Object];
+    Reflect.defineMetadata('design:paramtypes', types, FinanceController);
+    const moduleRef = await Test.createTestingModule({
+      controllers: [FinanceController],
+      providers: [
+        { provide: PlatformFinanceService, useValue: {} }, { provide: PrismaService, useValue: {} }, { provide: TimeClosingService, useValue: {} },
+        { provide: FiscalAdjustmentsService, useValue: {} }, { provide: PlatformRevenueReportService, useValue: service },
+        { provide: getQueueToken('asaas-webhook'), useValue: {} }, { provide: PlatformAuditService, useValue: { record: async () => undefined, log: async () => undefined } },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard).useValue({ canActivate: () => true })
+      .compile();
+    const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    await app.init();
+    await app.getHttpAdapter().getInstance().ready();
+    try {
+      const res = await app.inject({ method: 'GET', url: '/finance/platform/reports/monthly.csv?month=2026-09' });
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toContain('text/csv');
+      expect(res.headers['content-disposition']).toBe(`attachment; filename="receita-plataforma-2026-09.csv"; filename*=UTF-8''receita-plataforma-2026-09.csv`);
+      expect(res.body.startsWith('\ufeff')).toBe(true);
+    } finally {
+      await app.close();
+    }
   });
 });
 

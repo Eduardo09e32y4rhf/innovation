@@ -34,7 +34,7 @@ export function ApprovalsPanel({ base, onChanged }: { base: string; onChanged: (
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">
         {items.map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white px-4 py-3">
-            <span className="min-w-0"><Link href={`${base}/${item.id}`} className="block truncate text-sm font-semibold hover:underline">{item.title}</Link><span className="block text-xs text-fg-sub">{item.department ?? 'Sem área'} · {item.openings} vaga(s) · etapa {item.stepLabel}</span></span>
+            <span className="min-w-0"><Link href={`${base}/${item.id}`} className="block truncate text-sm font-semibold hover:underline">{item.title}</Link><span className="block text-xs text-fg-sub">{item.department ?? 'Sem área'} · {item.openings} vaga(s) · etapa {item.stepLabel}{item.requestedByName ? ` · pedida por ${item.requestedByName}` : ''}</span>{item.overdue && <span className="mt-1 inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">Parada há {item.waitingDays} dia(s)</span>}</span>
             <Button size="sm" onClick={() => { setTarget(item); setNote(''); }}>Decidir</Button>
           </li>
         ))}

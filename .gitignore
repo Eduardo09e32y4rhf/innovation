@@ -225,3 +225,6 @@ apps/api/data/
 apps/api/.iso-dist/
 apps/api/dist-qa*/
 apps/api/.dist-*/
+
+# Envios de candidatos e anexos em tempo de execucao (dado pessoal: nunca versionar)
+apps/api/data/

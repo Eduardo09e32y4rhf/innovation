@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdatePlatformCompanyDto {
   @IsOptional()
@@ -34,6 +34,9 @@ export class UpdatePlatformCompanyDto {
   trialEndsAt?: string;
 
   @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
   activeModules?: string[];
 
   @IsOptional()

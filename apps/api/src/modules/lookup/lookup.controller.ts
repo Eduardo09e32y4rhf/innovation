@@ -1,19 +1,17 @@
+import { Throttle } from '@nestjs/throttler';
+import { outboundFetch } from '../../common/http/outbound';
 import { BadRequestException, Controller, Get, NotFoundException, Param, UseGuards } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 
 async function getJson(url: string, timeoutMs = 6000): Promise<any | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json', 'User-Agent': 'InnovationRH/1.0' } });
+    const res = await outboundFetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'InnovationRH/1.0' } }, { timeoutMs });
     if (!res.ok) return null;
     return await res.json();
   } catch {
     return null;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
@@ -62,11 +60,13 @@ export async function lookupCep(raw: string) {
 @Roles('DEV', 'CEO', 'CONTABIL', 'COMERCIAL', 'ADMIN', 'RH', 'GESTOR')
 @Controller('lookup')
 export class LookupController {
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Get('cep/:cep')
   cep(@Param('cep') raw: string) {
     return lookupCep(raw);
   }
 
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Get('cnpj/:cnpj')
   async cnpj(@Param('cnpj') raw: string) {
     const cnpj = raw.replace(/\D/g, '');

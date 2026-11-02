@@ -1,0 +1,122 @@
+# Zammad (helpdesk completo) para uma SEGUNDA MÁQUINA de 6-8 GB. NÃO suba na VPS pequena do Innovation.
+# Pré-requisito no host:  sudo sysctl -w vm.max_map_count=262144
+#   e persistir:          echo 'vm.max_map_count=262144' | sudo tee /etc/sysctl.d/99-zammad.conf
+# Subir:  docker compose -f docker-compose.helpdesk.yml --env-file .env.helpdesk up -d
+# Interface em http://127.0.0.1:${ZAMMAD_PORT:-8080} (coloque nginx/HTTPS do host na frente). Guia: docs/HELPDESK.md
+# TAG: não foi possível confirmar a última versão estável no ambiente de criação; confira em
+# https://github.com/zammad/zammad/releases e ajuste ZAMMAD_VERSION no .env.helpdesk.
+x-zammad-env: &zammad-env
+  MEMCACHE_SERVERS: zammad-memcached:11211
+  POSTGRESQL_HOST: zammad-postgresql
+  POSTGRESQL_PORT: "5432"
+  POSTGRESQL_USER: zammad
+  POSTGRESQL_PASS: ${ZAMMAD_DB_PASSWORD:?defina ZAMMAD_DB_PASSWORD}
+  POSTGRESQL_DB: zammad_production
+  REDIS_URL: redis://zammad-redis:6379
+  ELASTICSEARCH_HOST: zammad-elasticsearch
+  ELASTICSEARCH_PORT: "9200"
+  ELASTICSEARCH_SCHEMA: http
+  ELASTICSEARCH_NAMESPACE: zammad
+  ELASTICSEARCH_REINDEX: "false"
+  NGINX_SERVER_SCHEME: ${ZAMMAD_SCHEME:-https}
+
+x-zammad-image: &zammad-image ghcr.io/zammad/zammad:${ZAMMAD_VERSION:-6.5.0}
+
+services:
+  zammad-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ES_VERSION:-8.17.0}
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+    mem_limit: 2g
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+    volumes:
+      - zammad_es_data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+
+  zammad-postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: zammad
+      POSTGRES_PASSWORD: ${ZAMMAD_DB_PASSWORD}
+      POSTGRES_DB: zammad_production
+    mem_limit: 768m
+    volumes:
+      - zammad_postgresql_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  zammad-redis:
+    image: redis:7-alpine
+    mem_limit: 256m
+    volumes:
+      - zammad_redis_data:/data
+    restart: unless-stopped
+
+  zammad-memcached:
+    image: memcached:1.6-alpine
+    command: memcached -m 256
+    mem_limit: 320m
+    restart: unless-stopped
+
+  zammad-init:
+    image: *zammad-image
+    command: ["zammad-init"]
+    depends_on: [zammad-postgresql, zammad-elasticsearch]
+    environment: *zammad-env
+    volumes:
+      - zammad_storage:/opt/zammad/storage
+    restart: on-failure
+    user: "0:0"
+
+  zammad-railsserver:
+    image: *zammad-image
+    command: ["zammad-railsserver"]
+    depends_on: [zammad-init, zammad-memcached, zammad-redis]
+    environment: *zammad-env
+    mem_limit: 1536m
+    volumes:
+      - zammad_storage:/opt/zammad/storage
+    restart: unless-stopped
+
+  zammad-scheduler:
+    image: *zammad-image
+    command: ["zammad-scheduler"]
+    depends_on: [zammad-init, zammad-memcached, zammad-redis]
+    environment: *zammad-env
+    mem_limit: 1g
+    volumes:
+      - zammad_storage:/opt/zammad/storage
+    restart: unless-stopped
+
+  zammad-websocket:
+    image: *zammad-image
+    command: ["zammad-websocket"]
+    depends_on: [zammad-init, zammad-memcached, zammad-redis]
+    environment: *zammad-env
+    mem_limit: 512m
+    volumes:
+      - zammad_storage:/opt/zammad/storage
+    restart: unless-stopped
+
+  zammad-nginx:
+    image: *zammad-image
+    command: ["zammad-nginx"]
+    depends_on: [zammad-railsserver, zammad-websocket]
+    environment:
+      <<: *zammad-env
+      ZAMMAD_RAILSSERVER_HOST: zammad-railsserver
+      ZAMMAD_WEBSOCKET_HOST: zammad-websocket
+    ports:
+      - "127.0.0.1:${ZAMMAD_PORT:-8080}:8080"
+    mem_limit: 128m
+    volumes:
+      - zammad_storage:/opt/zammad/storage:ro
+    restart: unless-stopped
+
+volumes:
+  zammad_es_data:
+  zammad_postgresql_data:
+  zammad_redis_data:
+  zammad_storage:

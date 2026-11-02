@@ -1,4 +1,5 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { outboundFetch, TIMEOUT_PUBLIC_LOOKUP_MS } from '../../common/http/outbound';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import type { JwtUser } from '../../common/types/auth.types';
 import { ManualTimeTrackDto } from './dto/manual-time-track.dto';
 import { RegisterTimeDto } from './dto/register-time.dto';
@@ -32,7 +33,7 @@ export interface RegisterContext {
 }
 
 @Injectable()
-export class TimeTrackService {
+export class TimeTrackService implements OnApplicationBootstrap {
   constructor(
     private readonly repository: TimeTrackRepository,
     private readonly redis: RedisService,
@@ -46,11 +47,11 @@ export class TimeTrackService {
 
   private async getStreetName(latitude: number, longitude: number): Promise<string | null> {
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+      const res = await outboundFetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
         headers: {
           'User-Agent': 'InnovationRHConnect/1.0'
         }
-      });
+      }, { timeoutMs: TIMEOUT_PUBLIC_LOOKUP_MS });
       if (res.ok) {
         const data = await res.json() as any;
         const addr = data.address;
@@ -352,6 +353,50 @@ export class TimeTrackService {
     const saved = await this.repository.findById(companyId, id);
     if (saved) await this.syncCalculatedOccurrences(companyId, saved);
     return saved;
+  }
+
+  /**
+   * Correcao unica dos dias gravados com o dia da semana deslocado (segunda tratada como domingo).
+   * Roda em segundo plano depois de subir, uma vez (marcador no Redis), nos ultimos 120 dias; e idempotente.
+   */
+  onApplicationBootstrap() {
+    if (process.env.NODE_ENV === 'test' || process.env.VITEST) return;
+    void this.backfillWeekdayFix();
+  }
+
+  private async backfillWeekdayFix() {
+    const flag = 'fix:time-track-weekday:v1';
+    try {
+      if (await this.redis.get(flag)) return;
+      const to = new Date();
+      const from = new Date(to.getTime() - 120 * 86400000);
+      const companies = await this.prisma.timeTrack.findMany({ where: { date: { gte: from, lte: to } }, distinct: ['companyId'], select: { companyId: true } });
+      let total = 0;
+      for (const { companyId } of companies) total += (await this.recalculateRange(companyId, from, to)).recalculated;
+      await this.redis.set(flag, new Date().toISOString());
+      this.logger.log(`Correcao do dia da semana no ponto: ${total} registros recalculados.`);
+    } catch (error) {
+      this.logger.warn(`Correcao do dia da semana no ponto adiada: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Refaz os totais dos registros do periodo a partir das marcacoes (mesmo calculo do update()).
+   * Corrige dias gravados com calculo antigo. Periodo fechado e ajuste de banco de horas ficam como estao.
+   */
+  async recalculateRange(companyId: string, from: Date, to: Date, employeeId?: string) {
+    const tracks = await this.prisma.timeTrack.findMany({
+      where: { companyId, date: { gte: from, lte: to }, ...(employeeId ? { employeeId } : {}) },
+      select: { id: true, manualReason: true },
+    });
+    const system = { sub: 'system', role: 'ADMIN', companyId } as JwtUser;
+    const bank = new Set(['ajuste_folga_dsr', 'ajuste_abono_folga', 'ajuste_abono_banco_saida_antecipada', 'ajuste_abono_atraso']);
+    let recalculated = 0, skipped = 0;
+    for (const track of tracks) {
+      if (track.manualReason && bank.has(track.manualReason)) { skipped++; continue; }
+      try { await this.update(companyId, system, track.id, {} as UpdateTimeTrackDto); recalculated++; } catch { skipped++; }
+    }
+    return { recalculated, skipped };
   }
 
   async listPending(companyId: string, actor: JwtUser) {

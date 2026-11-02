@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import { CurrentCompany } from '../../../common/decorators/current-company.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -39,13 +39,13 @@ export class PolicyController {
 
   @Roles(...rolesWith('policy.write'))
   @Put('geofences/:id')
-  updateGeofence(@CurrentUser() actor: JwtUser, @Param('id') id: string, @Body() dto: GeofenceDto) {
+  updateGeofence(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: GeofenceDto) {
     return this.service.updateGeofence(actor, id, dto);
   }
 
   @Roles(...rolesWith('policy.write'))
   @Delete('geofences/:id')
-  deleteGeofence(@CurrentUser() actor: JwtUser, @Param('id') id: string) {
+  deleteGeofence(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.deleteGeofence(actor, id);
   }
 }

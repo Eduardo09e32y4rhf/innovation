@@ -1,0 +1,66 @@
+name: Imagens Docker
+
+# Constroi as imagens da API e do Web no GitHub e publica no GHCR.
+# RISCO (INF-11): estas imagens vao para o MESMO namespace do GHCR de onde a producao puxa (innovation-api/-web).
+# Por isso: nunca publicamos "latest" nem tags de producao (SHA da main, main, vX.Y.Z vem do deploy.yml);
+# a tag de branch tem prefixo "branch-" (ex.: branch-claude-fix-x) e o SHA e de um commit de branch de trabalho.
+# vps-update.sh so aceita SHA que pertence a main, entao estas imagens nao sao implantadas por engano.
+# Reforco recomendado (manual): pacote no GHCR com permissao restrita e/ou repositorio separado para branches de trabalho.
+# A VPS so faz "docker compose pull" (sem build local, que derrubava a maquina por falta de memoria).
+on:
+  push:
+    # main: publica a imagem do commit no GHCR para `vps-update.sh main` (deploy manual na VPS, sem compilar la).
+    # O deploy.yml constroi as suas proprias imagens e as envia a VPS; as duas vias convivem.
+    branches: [main, 'claude/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [api, web]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tags
+        id: tags
+        run: |
+          IMG="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/innovation-${{ matrix.app }}"
+          # main publica a tag `main` (o vps-update.sh usa `main` como reserva); branches de trabalho levam o prefixo
+          # `branch-` para nunca colidirem com as tags de producao (SHA da main, main, vX).
+          if [ "$GITHUB_REF_NAME" = main ]; then BR="main"; else BR="branch-${GITHUB_REF_NAME//\//-}"; fi
+          echo "list=$IMG:${GITHUB_SHA},$IMG:$BR" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: true
+          tags: ${{ steps.tags.outputs.list }}
+          # NEXT_PUBLIC_* sao gravadas no bundle do site em tempo de build: vem de Variaveis do repositorio
+          # (Settings > Secrets and variables > Actions > Variables). Ausentes = mesmos padroes do Dockerfile.
+          build-args: |
+            NEXT_PUBLIC_ROBO_QA=${{ vars.NEXT_PUBLIC_ROBO_QA || 'on' }}
+            NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL=${{ vars.NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL || 'false' }}
+            NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
+            NEXT_PUBLIC_FEATURE_AI=${{ vars.NEXT_PUBLIC_FEATURE_AI || 'false' }}
+            NEXT_PUBLIC_FEATURE_PARTNERS=${{ vars.NEXT_PUBLIC_FEATURE_PARTNERS || 'false' }}
+            NEXT_PUBLIC_FEATURE_COMMERCIAL_SALES=${{ vars.NEXT_PUBLIC_FEATURE_COMMERCIAL_SALES || 'false' }}
+            NEXT_PUBLIC_FEATURE_PROPOSALS=${{ vars.NEXT_PUBLIC_FEATURE_PROPOSALS || 'false' }}
+            NEXT_PUBLIC_FEATURE_MANUAL_CONTRACTS=${{ vars.NEXT_PUBLIC_FEATURE_MANUAL_CONTRACTS || 'false' }}
+            NEXT_PUBLIC_FEATURE_CEO_ONBOARDING=${{ vars.NEXT_PUBLIC_FEATURE_CEO_ONBOARDING || 'false' }}
+            NEXT_PUBLIC_FEATURE_COMMUNICATION=${{ vars.NEXT_PUBLIC_FEATURE_COMMUNICATION || 'false' }}
+            NEXT_PUBLIC_FEATURE_PROMOTIONS=${{ vars.NEXT_PUBLIC_FEATURE_PROMOTIONS || 'false' }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}

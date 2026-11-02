@@ -1,5 +1,5 @@
 import { RequiresFeature } from '../../common/decorators/requires-feature.decorator';
-import { BadRequestException, Body, Controller, Get, Header, Param, ParseUUIDPipe, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Header, Param, ParseUUIDPipe, Patch, Post, Req, Res, UseGuards, HttpCode } from '@nestjs/common';
 import { contentDisposition } from '../../common/pdf/pdf-response';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -19,7 +19,7 @@ export class CeoOnboardingController {
   constructor(private readonly service: CeoOnboardingService) {}
   @Get('state') @Roles('CEO') state(@CurrentUser() actor: JwtUser) { return this.service.state(actor); }
   @Patch('profile') @Roles('CEO') profile(@CurrentUser() actor: JwtUser, @Body() dto: UpdateCeoProfileDto) { return this.service.updateProfile(actor, dto); }
-  @Post(':ceoUserId/contract') @Roles('DEV') issue(@CurrentUser() actor: JwtUser, @Param('ceoUserId') ceoUserId: string, @Body() dto: IssueCeoContractDto) { return this.service.issueContract(actor, ceoUserId, dto); }
+  @Post(':ceoUserId/contract') @Roles('DEV') issue(@CurrentUser() actor: JwtUser, @Param('ceoUserId', ParseUUIDPipe) ceoUserId: string, @Body() dto: IssueCeoContractDto) { return this.service.issueContract(actor, ceoUserId, dto); }
 
   // Assinatura pelo gov.br: baixar a minuta, assinar em assinador.iti.br e enviar o PDF assinado.
   @Get('contracts/pending-verification') @Roles('DEV') pending(@CurrentUser() actor: JwtUser) { return this.service.pendingVerification(actor); }
@@ -54,6 +54,7 @@ export class CeoOnboardingController {
     return this.service.uploadSigned(actor, contractId, file);
   }
 
+  @HttpCode(200)
   @Post('contract/:contractId/confirm') @Roles('DEV')
   confirm(@CurrentUser() actor: JwtUser, @Param('contractId', ParseUUIDPipe) contractId: string, @Body() dto: ConfirmCeoContractDto) {
     return this.service.confirm(actor, contractId, dto);

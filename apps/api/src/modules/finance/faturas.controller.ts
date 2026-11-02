@@ -1,3 +1,5 @@
+import { Throttle } from '@nestjs/throttler';
+import type { FastifyReply } from 'fastify';
 import { PlainJsonInterceptor } from '../../common/interceptors/plain-json.interceptor';
 import { Body, Controller, Delete, Get, Headers, Param, ParseUUIDPipe, Post, Query, Res, UseGuards, UseInterceptors } from '@nestjs/common';
 import { requireIdempotencyKey } from './idempotency';
@@ -54,6 +56,7 @@ export class FaturasController {
     return this.service.listCompanyInvoices(companyId);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('empresa/checkout')
   @RequireFaturasPermission('faturas.pagar')
   checkout(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser) {
@@ -82,7 +85,7 @@ export class FaturasController {
   /** PDF da fatura para o cliente baixar (só faturas da própria empresa). */
   @Get('empresa/invoices/:id/pdf')
   @RequireFaturasPermission('faturas.ver')
-  async empresaPdf(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string, @Res() res: import('express').Response) {
+  async empresaPdf(@CurrentCompany() companyId: string, @Param('id', ParseUUIDPipe) id: string, @Res() res: FastifyReply) {
     const { buffer, filename } = await this.pdf.forInvoice(id, companyId);
     return sendPdf(res, buffer, filename);
   }
@@ -161,7 +164,7 @@ export class FaturasController {
 
   @Get('plataforma/invoices/:id/pdf')
   @RequireFaturasPermission('faturas.todas_empresas')
-  async plataformaPdf(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Res() res: import('express').Response) {
+  async plataformaPdf(@CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Res() res: FastifyReply) {
     await this.acoes.assertInvoiceAccess(actor, id); // Comercial só vê a própria carteira
     const { buffer, filename } = await this.pdf.forInvoice(id);
     return sendPdf(res, buffer, filename);
@@ -303,13 +306,13 @@ export class FaturasController {
 
   @Get('plataforma/statements/pdf')
   @RequireFaturasPermission('faturas.todas_empresas')
-  statementPdf(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto, @Res() res: import('express').Response) {
+  statementPdf(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto, @Res() res: FastifyReply) {
     return this.service.statementPdf(query, actor.role === 'COMERCIAL' ? actor.sub : undefined, actor, res);
   }
 
   @Get('plataforma/cost-centers/pdf')
   @RequireFaturasPermission('faturas.todas_empresas')
-  costCentersPdf(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto, @Res() res: import('express').Response) {
+  costCentersPdf(@CurrentUser() actor: JwtUser, @Query() query: ListPlatformInvoicesDto, @Res() res: FastifyReply) {
     return this.service.costCentersPdf(query, actor.role === 'COMERCIAL' ? actor.sub : undefined, actor, res);
   }
 

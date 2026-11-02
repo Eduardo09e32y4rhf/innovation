@@ -10,7 +10,7 @@ const date = (value: string) => new Date(value).toLocaleDateString('pt-BR');
 export function StatusClient({ token }: { token: string }) {
   const [data, setData] = useState<CandidateStatus | null>(null);
   const [error, setError] = useState('');
-  useEffect(() => { getCandidateStatus(token).then(setData).catch(() => setError('Não encontramos esta candidatura. Confira o link do e-mail ou o prazo de guarda dos dados.')); }, [token]);
+  useEffect(() => { getCandidateStatus(token).then(setData).catch((cause: { status?: number }) => setError(cause?.status === 410 ? 'Este link de acompanhamento expirou por segurança. Entre na sua conta para ver suas candidaturas ou peça um novo link à empresa.' : 'Não encontramos esta candidatura. Confira o link do e-mail ou o prazo de guarda dos dados.')); }, [token]);
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl space-y-5 px-4 py-10">

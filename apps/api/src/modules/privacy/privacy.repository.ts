@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { createHash } from 'crypto';
 import { SupportStorageService } from '../support/support-storage.service';
+import { decryptForCompany, sealFile } from '../../common/crypto/file-crypto';
 
 @Injectable()
 export class PrivacyRepository {
@@ -73,10 +74,36 @@ export class PrivacyRepository {
     });
   }
 
+  /** RS-D-14: o PDF do aceite fica no armazenamento privado, cifrado por empresa, e nao mais como base64 na linha do banco. */
+  private async storeConsentPdf(consent: { id: string; companyId: string }, pdf: Buffer): Promise<string> {
+    const sealed = sealFile(pdf, consent.companyId);
+    const pdfKey = `privacy/${consent.companyId}/${consent.id}-${createHash('sha256').update(pdf).digest('hex').slice(0, 12)}.pdf`;
+    await this.storageService.saveFile(pdfKey, sealed.data);
+    return pdfKey;
+  }
+
+  /** Le o PDF do aceite (novo: arquivo cifrado; antigo: base64 na linha, que e movido para o arquivo na primeira leitura). */
+  async readConsentPdf(consent: { id: string; companyId: string; pdfKey?: string | null; pdfBase64?: string | null }): Promise<string | null> {
+    if (consent.pdfKey) {
+      const stream = await this.storageService.getFileStream(consent.pdfKey);
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string));
+      return decryptForCompany(Buffer.concat(chunks), consent.companyId).toString('base64');
+    }
+    if (consent.pdfBase64) {
+      const pdfKey = await this.storeConsentPdf(consent, Buffer.from(consent.pdfBase64, 'base64'));
+      await this.prisma.privacyConsent.update({ where: { id: consent.id }, data: { pdfKey, pdfBase64: null } });
+      return consent.pdfBase64;
+    }
+    return null;
+  }
+
   async updatePdfBase64(id: string, pdfBase64: string) {
+    const current = await this.prisma.privacyConsent.findUniqueOrThrow({ where: { id }, select: { id: true, companyId: true } });
+    const pdfKey = await this.storeConsentPdf(current, Buffer.from(pdfBase64, 'base64'));
     const consent = await this.prisma.privacyConsent.update({
       where: { id },
-      data: { pdfBase64 },
+      data: { pdfKey, pdfBase64: null },
     });
 
     const sha256 = createHash('sha256').update(Buffer.from(pdfBase64, 'base64')).digest('hex');

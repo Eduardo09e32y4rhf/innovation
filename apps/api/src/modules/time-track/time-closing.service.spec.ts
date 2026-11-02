@@ -82,7 +82,7 @@ describe('TimeClosingService', () => {
     }));
   });
 
-  it('gera exatamente uma página por funcionário na folha coletiva de 31 dias', async () => {
+  it('gera a página-resumo da equipe mais uma página por funcionário na folha coletiva de 31 dias', async () => {
     const closings = ['e1', 'e2'].map((id) => ({ id, employeeId: id,
       company: { name: 'Empresa Teste' }, employee: { name: `Pessoa ${id}`, cpf: '12345678909', registration: id },
       periodStart: new Date('2026-10-01T00:00:00Z'), periodEnd: new Date('2026-10-31T00:00:00Z'),
@@ -90,7 +90,8 @@ describe('TimeClosingService', () => {
     const tracks = new Map(closings.map((closing) => [closing.employeeId, Array.from({ length: 31 }, (_, i) => ({ date: new Date(Date.UTC(2026, 9, i + 1)), totalWorked: 480, incidentType: 'atraso_saida_antecipada' }))]));
     const service = new TimeClosingService({} as any, new PayrollCalculationService());
     const buffer = await (service as any).buildCollectivePdf(closings, tracks, new Date(), 'document-1', 'rh-1');
-    expect(buffer.toString('latin1').match(/\/Type \/Page\b/g)?.length ?? 0).toBe(2);
+    // Pagina-resumo da equipe + uma pagina por funcionario (2 funcionarios de 31 dias).
+    expect(buffer.toString('latin1').match(/\/Type \/Page\b/g)?.length ?? 0).toBe(3);
   });
 
   it('publica hash e metadados do PDF coletivo nos headers', async () => {

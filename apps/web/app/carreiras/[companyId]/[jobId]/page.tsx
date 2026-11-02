@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 import { JobDetails } from './job-details';
 
 type JobDetailsPageProps = {
-  params: {
+  params: Promise<{
     companyId: string;
     jobId: string;
-  };
+  }>;
 };
 
 export const metadata: Metadata = {
@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description: 'Confira os detalhes da oportunidade e envie sua candidatura.',
 };
 
-export default function JobDetailsPage({ params }: JobDetailsPageProps) {
+export default async function JobDetailsPage(props: JobDetailsPageProps) {
+  const params = await props.params;
   return <JobDetails companyId={params.companyId} jobId={params.jobId} />;
 }
