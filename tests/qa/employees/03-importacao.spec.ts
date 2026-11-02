@@ -36,8 +36,9 @@ function makeImport() {
     user: { count: vi.fn().mockResolvedValue(0) },
     $transaction: vi.fn(async (fn: (t: typeof tx) => Promise<unknown>) => fn(tx)),
   };
-  const service = new EmployeesImportService(prisma as never, cache as never);
-  return { service, prisma, cache, tx, created, store };
+  const mail = { send: vi.fn().mockResolvedValue({ sent: true, provider: 'smtp' }) };
+  const service = new EmployeesImportService(prisma as never, cache as never, mail as never);
+  return { service, prisma, cache, tx, created, store, mail };
 }
 
 const errorsOf = async (buffer: Buffer, filename?: string) => {
@@ -234,14 +235,17 @@ describe('Importação · confirmar', () => {
   });
 
   it('Criar acesso = SIM cria usuário, credencial temporária e vincula', async () => {
-    const { service, token, tx } = await prepared([row({ acesso: 'SIM', perfil: 'GESTOR' })]);
+    const { service, token, tx, mail } = await prepared([row({ acesso: 'SIM', perfil: 'GESTOR' })]);
     const out = await service.confirm(COMPANY_A, 'u1', token);
     expect(tx.user.create).toHaveBeenCalledWith({ data: expect.objectContaining({ role: 'GESTOR', forcePasswordChange: true }) });
     expect(tx.temporaryCredential.create).toHaveBeenCalled();
     expect(out.results[0]).toMatchObject({ success: true, temporaryPassword: expect.stringMatching(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-HJ-NP-Za-km-z2-9]{6}$/) });
+    expect(out.results[0]).toMatchObject({ emailSent: true });
+    expect(mail.send).toHaveBeenCalledOnce();
+    expect(mail.send.mock.calls[0][1].text).toContain((out.results[0] as { temporaryPassword: string }).temporaryPassword);
   });
 
-  check('e-mail que já tem usuário: NÃO devolve uma senha temporária que não funciona', 'Q-11', async () => {
+  it('e-mail que já tem usuário: NÃO devolve uma senha temporária que não funciona', async () => {
     const { service, token } = await prepared([row({ acesso: 'SIM' })], ({ tx }) => tx.user.findUnique.mockResolvedValue({ id: 'u-antigo', companyId: COMPANY_A }));
     const out = await service.confirm(COMPANY_A, 'u1', token);
     expect((out.results[0] as { temporaryPassword?: string }).temporaryPassword).toBeUndefined();

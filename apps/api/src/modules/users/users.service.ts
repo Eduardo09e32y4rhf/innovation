@@ -9,6 +9,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import type { UserRole } from '../../common/types/auth.types';
 import { UsersRepository } from './users.repository';
+import { MailService } from '../mail/mail.service';
+import { temporaryAccessEmail } from '../mail/mail-templates';
 
 // SEGURANCA: e-mail do DEV proprietario da plataforma — definido via variavel de ambiente
 import { isOwnerTargetedByOther, isPlatformOwner as isOwner } from '../../common/constants/platform-owner';
@@ -72,6 +74,7 @@ export class UsersService {
     private readonly repository: UsersRepository,
     @Optional() private readonly mfa?: MfaService,
     @Optional() private readonly sessions?: SessionService,
+    @Optional() private readonly mail?: MailService,
   ) {}
 
   async list(companyId: string, actor: JwtUser) {
@@ -177,7 +180,8 @@ export class UsersService {
       ...this.metaFields(meta),
     });
 
-    return { ...created, temporaryPassword, temporaryPasswordExpiresAt };
+    const emailSent = (await this.mail?.send(email, temporaryAccessEmail({ name: created.name, email, password: temporaryPassword, expiresAt: temporaryPasswordExpiresAt })))?.sent ?? false;
+    return { ...created, temporaryPassword, temporaryPasswordExpiresAt, emailSent };
   }
 
   private metaFields(meta?: { ip?: string; userAgent?: string }) {
@@ -380,7 +384,8 @@ export class UsersService {
       entityId: id,
       metadata: { targetUserId: id, targetRole: user.role, expiresAt: expiresAt.toISOString() },
     });
-    return { temporaryPassword, expiresAt };
+    const emailSent = (await this.mail?.send(user.email, temporaryAccessEmail({ name: user.name, email: user.email, password: temporaryPassword, expiresAt })))?.sent ?? false;
+    return { temporaryPassword, expiresAt, emailSent };
   }
 
   /** Mantido por compatibilidade: DELETE /users/:id cancela o acesso (definitivo). */

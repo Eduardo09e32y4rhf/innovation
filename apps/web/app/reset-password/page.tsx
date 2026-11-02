@@ -36,7 +36,7 @@ function ResetForm() {
     event.preventDefault();
     return run(async () => {
       const result = await api.auth.validateResetCode(email.trim(), code.trim().toUpperCase(), cpf, registration.trim());
-      if (!result.valid || !result.resetToken) throw new Error('Não foi possível validar os dados. Confira o código com o responsável.');
+      if (!result.valid || !result.resetToken) throw new Error('Não foi possível validar os dados. Confira o código recebido por e-mail.');
       setToken(result.resetToken); setStep('password');
     });
   };

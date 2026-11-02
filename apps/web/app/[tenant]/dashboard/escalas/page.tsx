@@ -6,7 +6,7 @@ import { Suspense, useCallback, useMemo, useState } from 'react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button, PageHeader } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useQuery } from '@/app/hooks/use-data';
+import { refetchAllQueryStates, useQuery } from '@/app/hooks/use-data';
 import { can, visibleViews, type HubView } from '@/app/lib/schedule-access';
 import { ApprovalsView } from './_components/approvals-view';
 import { CalendarView } from './_components/calendar-view';
@@ -58,7 +58,7 @@ function Hub() {
     router.replace(`?${search.toString()}`, { scroll: false });
   }, [params, router]);
 
-  const refresh = useCallback(() => { overview.refetch(); }, [overview]);
+  const refresh = useCallback(() => { refetchAllQueryStates(); }, []);
   const data = overview.data;
 
   if (loading) return <LoadingState label="Carregando Central de Escalas…" />;

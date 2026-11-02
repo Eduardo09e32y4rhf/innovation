@@ -37,9 +37,17 @@ describe('folha de ponto em formato de holerite', () => {
     expect(incidentLabel(null)).toBe('Normal');
   });
 
-  it('gera um PDF valido com mais de uma pagina (holerite + espelho)', async () => {
+  it('gera folha de ponto de 30 dias em uma única página', async () => {
     const pdf = await buildTimeSheetPdf(base);
     expect(pdf.subarray(0, 4).toString()).toBe('%PDF');
-    expect(pdf.toString('latin1').match(/\/Type \/Page\b/g)?.length ?? 0).toBe(2); // holerite + espelho, sem paginas em branco do rodape
+    expect(pdf.toString('latin1').match(/\/Type \/Page\b/g)?.length ?? 0).toBe(1);
+  });
+
+  it('mantém 31 dias, identificação longa e ocorrências na mesma página', async () => {
+    const pdf = await buildTimeSheetPdf({ ...base,
+      employee: { ...base.employee, name: 'Maria Aparecida da Silva Oliveira e Souza', position: 'Assistente de Recursos Humanos', department: 'Administrativo' },
+      tracks: Array.from({ length: 31 }, (_, i) => ({ ...base.tracks[0], date: new Date(Date.UTC(2026, 9, i + 1)), incidentType: 'atraso_saida_antecipada' })),
+    });
+    expect(pdf.toString('latin1').match(/\/Type \/Page\b/g)?.length ?? 0).toBe(1);
   });
 });

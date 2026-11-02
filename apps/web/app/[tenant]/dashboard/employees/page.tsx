@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AlertTriangle, CalendarDays, Clock3, Download, FileText, FolderOpen, HeartPulse, Key, Lock, Unlock, RotateCcw, Search, ShieldCheck, UserMinus, UserPlus, Users } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Clock3, Download, FileText, FolderOpen, HeartPulse, Key, Lock, Unlock, RotateCcw, Search, ShieldCheck, Trash2, UserMinus, UserPlus, Users } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/app/components/data-states';
 import { Button, ConfirmDialog, Drawer, Modal, PageHeader } from '@/app/components/ui';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -97,6 +97,7 @@ export default function EmployeesPage() {
 
     return <div className="flex flex-wrap items-center gap-2">
       <Button type="button" variant="outline" onClick={() => setSelectedEmployeeId(employee.id)} aria-label={`Abrir dossiê de ${normalizeDisplayName(employee.name)}`}><FolderOpen size={18} aria-hidden="true" /> Dossiê</Button>
+      {canEdit && <Button type="button" variant="outline" className="text-rose-700" aria-label={`Excluir funcionário ${normalizeDisplayName(employee.name)}`} disabled={remove.loading} onClick={() => { remove.reset(); setConfirmationName(''); setDeleting(employee); }}><Trash2 size={16} aria-hidden="true" /> Excluir</Button>}
       <RowActionsMenu label={`Ações de ${normalizeDisplayName(employee.name)}`}>
           {canEdit && <>
             <Button type="button" variant="ghost" className="justify-start" onClick={() => setAccessModalEmployee(employee.id)}><Key size={18} aria-hidden="true" /> Criar acesso</Button>
@@ -199,7 +200,7 @@ export default function EmployeesPage() {
         <div className="flex justify-end"><Button type="button" onClick={() => setIssuedPassword(null)}>Entendi</Button></div>
       </div>
     </Modal>
-    <Modal isOpen={!!deleting} onClose={() => !remove.loading && setDeleting(null)} title="Excluir ou arquivar funcionário" maxWidth="max-w-xl">
+    <Modal isOpen={!!deleting} onClose={() => !remove.loading && setDeleting(null)} title="Excluir funcionário definitivamente" maxWidth="max-w-xl">
       <div className="space-y-4">
         <p className="text-sm text-fg-sub">A operação consulta o histórico novamente no servidor. Com vínculos você escolhe entre arquivar e excluir tudo; sem vínculos, exclui definitivamente.</p>
         {deletionQuery.loading && <LoadingState label="Consultando impacto…" />}

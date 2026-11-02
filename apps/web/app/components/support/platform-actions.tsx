@@ -72,7 +72,7 @@ export function PlatformActions({ ticket, userId, onChanged }: { ticket: Support
       {dupOpen && !finished && (
         <form className="flex w-full flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); void markDuplicate(); }}>
           <label className="min-w-0 flex-1 text-[11px] font-semibold text-slate-500">Código do chamado original
-            <input className="input-v2 mt-0.5 block h-9 w-full text-xs" value={dupOf} onChange={(e) => setDupOf(e.target.value)} placeholder="Ex.: SUP-000123" maxLength={40} />
+            <input className="input-v2 mt-0.5 block h-9 w-full text-xs" value={dupOf} onChange={(e) => setDupOf(e.target.value)} placeholder="Ex.: 202610230000" maxLength={40} />
           </label>
           <button type="submit" className={BTN} disabled={run.busy}>Confirmar duplicado</button>
         </form>

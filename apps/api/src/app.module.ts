@@ -60,6 +60,7 @@ import { redisStore } from 'cache-manager-ioredis-yet';
 import { SupportModule } from './modules/support/support.module';
 import { AiModule } from './modules/ai/ai.module';
 import { JobsModule } from './modules/jobs/jobs.module';
+import { FreelancerRecruitmentModule } from './modules/freelancer-recruitment/freelancer-recruitment.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { PromotionsModule } from './modules/promotions/promotions.module';
 import { DocumentTemplatesModule } from './modules/document-templates/document-templates.module';
@@ -123,6 +124,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     SupportModule,
     AiModule,
     JobsModule,
+    FreelancerRecruitmentModule,
     DocumentsModule,
     OnboardingModule,
     CommercialSalesModule,

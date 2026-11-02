@@ -14,7 +14,8 @@ function build(users: Record<string, { id: string; role: string; passwordHash: s
     updateUser: vi.fn(async () => ({ count: 1 })),
     reissueTemporaryPassword: vi.fn(async () => ({ count: 1 })),
   };
-  return { service: new EmployeesService(repo, {} as any), repo };
+  const mail = { send: vi.fn().mockResolvedValue({ sent: true, provider: 'smtp' }) };
+  return { service: new EmployeesService(repo, {} as any, mail as any), repo, mail };
 }
 
 const users = {
@@ -27,12 +28,16 @@ const users = {
 describe('bulkAccess: autorizacao e resultado por item', () => {
   it('RH reseta funcionario com provisoria; nega admin, dono, si mesmo, sem usuario e usuario inexistente', async () => {
     process.env.PLATFORM_OWNER_USER_ID = OWNER;
-    const { service, repo } = build(users);
+    const { service, repo, mail } = build(users);
     const actor: any = { sub: 'actor', role: 'RH', email: 'rh@x.com', companyId: 'c1' };
     const res: any[] = await service.bulkAccess('c1', actor, { employeeIds: ['e1', 'e2', 'e3', 'e4', 'e5', 'e6'], action: 'reset-password' });
     const by = Object.fromEntries(res.map((r) => [r.employeeId, r]));
     expect(by.e1.success).toBe(true);
     expect(by.e1.temporaryPassword).toMatch(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6}$/);
+    expect(by.e1.emailSent).toBe(true);
+    expect(mail.send).toHaveBeenCalledOnce();
+    expect(mail.send.mock.calls[0][0]).toBe('f@x.com');
+    expect(mail.send.mock.calls[0][1].text).toContain(by.e1.temporaryPassword);
     for (const id of ['e2', 'e3', 'e4', 'e5', 'e6']) expect(by[id].success).toBe(false);
     expect(repo.reissueTemporaryPassword).toHaveBeenCalledTimes(1);
     expect(repo.reissueTemporaryPassword.mock.calls[0][1]).toBe('u-func');

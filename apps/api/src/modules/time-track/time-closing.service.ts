@@ -727,8 +727,8 @@ export class TimeClosingService {
     const hours = (value: unknown) => `${Number(value || 0).toFixed(2).replace('.', ',')} h`;
 
     const report = await PdfReport.create({
-      title: 'Folha de ponto coletiva', subtitle: `Competência ${this.formatDate(periodStart)} a ${this.formatDate(periodEnd)}`,
-      brand: timeSheetBrand(company), footerId: documentId, generatedAt, author: company?.name ?? undefined,
+      title: closings.length === 1 ? 'Folha de ponto' : 'Folhas de ponto', subtitle: `Competência ${this.formatDate(periodStart)} a ${this.formatDate(periodEnd)}`,
+      brand: timeSheetBrand(company), footerId: documentId, footerNote: `Emitido por ${issuedBy}`, generatedAt, author: company?.name ?? undefined,
     });
 
     // Página de abertura: a equipe inteira em uma tabela.

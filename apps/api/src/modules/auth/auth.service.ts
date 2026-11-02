@@ -441,9 +441,12 @@ export class AuthService {
   }
 
 
-  /** Resposta e tempo idênticos para e-mail existente ou não: o trabalho real roda em segundo plano (sem enumeração de contas). */
+  /** Resposta genérica e imediata para não revelar, nem por tempo de resposta, se o endereço corresponde a uma conta:
+   * o trabalho real (DB + envio de e-mail) roda em segundo plano, nunca é aguardado aqui. */
   requestPasswordReset(dto: RequestPasswordResetDto, requestMeta: { ipAddress?: string; userAgent?: string }) {
-    void this.processPasswordResetRequest(dto, requestMeta).catch((err) => this.logger.error(`Falha ao processar pedido de recuperacao: ${String(err)}`));
+    this.processPasswordResetRequest(dto, requestMeta).catch((err) => {
+      this.logger.error(`Falha ao processar pedido de recuperacao: ${String(err)}`);
+    });
     return { requested: true };
   }
 

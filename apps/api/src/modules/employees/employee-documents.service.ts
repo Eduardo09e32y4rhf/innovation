@@ -3,6 +3,7 @@ import { PDF, PdfReport } from '../../common/pdf/pdf-report';
 import type { JwtUser } from '../../common/types/auth.types';
 import { DocumentService } from '../documents/document.service';
 import { EmployeesRepository } from './employees.repository';
+import { incidentLabel } from '../time-track/time-sheet-pdf';
 
 type EmployeeDocumentKind = 'POINT_SHEET' | 'OCCURRENCES' | 'EMPLOYEE_RECORD';
 
@@ -36,7 +37,10 @@ export class EmployeeDocumentsService {
       brand: { name: data.company?.legalName || data.company?.name || 'Empresa', document: data.company?.document, logoUrl: data.company?.logoUrl },
       footerNote: `Emitido por ${actor.name || actor.email}`, footerId: DOCUMENT_VERSION,
     });
-    this.drawEmployeeSummary(report, data.employee, data.manager?.name);
+    if (kind === 'POINT_SHEET') {
+      report.paragraph(`${data.employee.name} · Matrícula: ${data.employee.registration || 'N/A'} · CPF: ${data.employee.cpf || 'Não informado'}`, { size: 8.5, bold: true, gap: 4 });
+      report.paragraph([data.employee.position, data.employee.department, data.manager?.name ? `Gestor: ${data.manager.name}` : null].filter(Boolean).join(' · '), { size: 8, gap: 8 });
+    } else this.drawEmployeeSummary(report, data.employee, data.manager?.name);
     if (kind === 'POINT_SHEET') this.drawPointSheet(report, data);
     if (kind === 'OCCURRENCES') this.drawOccurrences(report, data);
     if (kind === 'EMPLOYEE_RECORD') this.drawEmployeeRecord(report, data.employee);
@@ -112,16 +116,13 @@ export class EmployeeDocumentsService {
         return [
           this.date(row.date), this.time(row.entry), `${this.time(row.lunchStart)} / ${this.time(row.lunchReturn)}`, this.time(row.exit), this.minutes(row.totalWorked),
           { text: this.signedMinutes(row.dailyBalance), bold: balance !== 0, color: balance < 0 ? PDF.color.bad : balance > 0 ? PDF.color.ok : PDF.color.mut },
-          { text: this.value(row.incidentType || row.manualReason || row.observation), color: PDF.color.mut },
+          { text: row.incidentType ? incidentLabel(row.incidentType) : row.manualReason ? 'Ajuste manual' : 'Normal', color: PDF.color.mut },
         ];
       }),
-      { fontSize: 8, emptyText: 'Nenhum registro de ponto na competência.' },
+      { fontSize: 7.5, rowPadding: 1.5, emptyText: 'Nenhum registro de ponto na competência.' },
     );
-    report.section('Resumo oficial do período');
-    report.fields([
-      ['Dias com registro', String(data.timeTracks.length)], ['Horas trabalhadas', this.minutes(totalWorked)], ['Saldo do período', this.signedMinutes(totalBalance)], ['Fechamento', data.closing?.status || 'NÃO FECHADO'],
-      ['Hora extra 50%', this.minutes(overtime50)], ['Hora extra 100%', this.minutes(overtime100)], ['Atrasos', this.minutes(late)], ['Saídas antecipadas', this.minutes(earlyLeave)],
-    ]);
+    report.paragraph(`Totais · ${data.timeTracks.length} dias com registro · Trabalhado: ${this.minutes(totalWorked)} · Saldo: ${this.signedMinutes(totalBalance)} · HE 50%: ${this.minutes(overtime50)} · HE 100%: ${this.minutes(overtime100)} · Atrasos: ${this.minutes(late)} · Saídas antecipadas: ${this.minutes(earlyLeave)}`, { size: 8, gap: 4 });
+    report.paragraph(`Fechamento: ${data.closing?.status || 'NÃO FECHADO'}`, { size: 8, gap: 4 });
     report.paragraph(`Regra de cálculo: ${data.closing?.calculationVersion || 'dados de ponto vigentes'}.`, { size: 8, color: PDF.color.mut });
   }
 

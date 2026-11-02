@@ -73,12 +73,12 @@ export function CreateUserModal({ isOpen, onClose, roles, isDev, companies, defa
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="Acesso criado" footer={<Button onClick={onClose}>Concluir</Button>}>
         <div className="space-y-3 text-sm">
-          <p><strong>{created.name}</strong> já pode entrar com <strong>{created.email}</strong> e a senha provisória abaixo. Ela troca a senha no primeiro acesso.</p>
+          <p><strong>{created.name}</strong> já pode entrar com <strong>{created.email}</strong>. {created.emailSent ? 'O e-mail com a senha provisória foi aceito pelo serviço de envio.' : 'O e-mail não foi enviado. Entregue a senha provisória abaixo com segurança.'}</p>
           <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
             <code className="select-all break-all font-mono text-sm font-semibold text-amber-900">{created.temporaryPassword}</code>
             <Button variant="outline" size="sm" onClick={copy}>{copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />} {copied ? 'Copiada' : 'Copiar'}</Button>
           </div>
-          <p className="text-xs text-fg-sub">Válida até {dateTime(created.temporaryPasswordExpiresAt)}. Repasse com segurança — depois você ainda pode gerar outra na aba Segurança.</p>
+          <p className="text-xs text-fg-sub">Válida até {dateTime(created.temporaryPasswordExpiresAt)}. {created.emailSent ? 'A pessoa deve trocá-la no primeiro acesso.' : 'Repasse com segurança — depois você ainda pode gerar outra na aba Segurança.'}</p>
         </div>
       </Modal>
     );

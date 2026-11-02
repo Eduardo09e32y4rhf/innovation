@@ -62,7 +62,7 @@ export class SupportRefundService implements OnModuleInit {
     });
 
     const priority = 'NORMAL' as const;
-    const ticketNumber = await this.repository.generateTicketNumber(new Date().getFullYear());
+    const ticketNumber = await this.repository.generateTicketNumber();
     const ticket = await this.repository.createTicket({
       ticketNumber, companyId: actor.companyId, createdByUserId: actor.sub, requesterName: actor.name, requesterEmail: actor.email,
       source: 'AUTHENTICATED', category: 'REFUND', priority,

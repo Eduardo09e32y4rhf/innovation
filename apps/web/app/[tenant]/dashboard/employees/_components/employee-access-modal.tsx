@@ -36,9 +36,17 @@ export function EmployeeAccessModal({
         name: name.trim() || undefined,
       });
 
-      if (result.temporaryPassword) {
+      if (result.emailSent) {
+        toast.success('Acesso criado. E-mail de primeiro acesso aceito para envio.');
+        onSuccess?.();
+        handleClose();
+      } else if (result.temporaryPassword) {
         setTemporaryPassword(result.temporaryPassword);
-        toast.success('Acesso criado com sucesso!');
+        toast.error('Acesso criado, mas o e-mail não foi enviado. Entregue a senha provisória com segurança.');
+      } else if (result.success) {
+        toast.success('Acesso vinculado ao usuário existente.');
+        onSuccess?.();
+        handleClose();
       }
     } catch (error: any) {
       toast.error(error.message || 'Erro ao criar acesso');

@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, FileDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileDown, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/app/lib/api';
@@ -25,7 +25,9 @@ export function TimesheetView({ overview, month, setMonth, initialEmployeeId, on
   useEffect(() => { if (!employeeId && myId) setEmployeeId(myId); }, [employeeId, myId]);
 
   const picker = useQuery(() => hubApi.calendar(month, read === 'company' ? 'company' : 'team'), [month, read], { enabled: canPick });
-  const sheet = useQuery(() => hubApi.timesheet(month, employeeId), [month, employeeId], { enabled: Boolean(employeeId) });
+  useEffect(() => { if (initialEmployeeId) setEmployeeId(initialEmployeeId); }, [initialEmployeeId]);
+  useEffect(() => { if (!employeeId && picker.data?.employees[0]) setEmployeeId(picker.data.employees[0].id); }, [employeeId, picker.data]);
+  const sheet = useQuery(() => hubApi.timesheet(month, employeeId), [month, employeeId], { enabled: Boolean(employeeId), pollMs: 30000 });
   const [downloading, setDownloading] = useState(false);
   const data = sheet.data;
   const self = employeeId === myId;
@@ -41,7 +43,7 @@ export function TimesheetView({ overview, month, setMonth, initialEmployeeId, on
   const canPunch = overview.capabilities.punch && Boolean(myId); // sem cadastro de funcionario vinculado o servidor responde 403
   return (
     <div className={`grid gap-5 ${canPunch ? 'xl:grid-cols-[380px_minmax(0,1fr)]' : ''}`}>
-      {canPunch && <div className="xl:sticky xl:top-4 xl:self-start"><PunchWidget onPunched={() => { sheet.refetch(); refresh(); }} /></div>}
+      {canPunch && <div className="xl:sticky xl:top-4 xl:self-start"><PunchWidget onPunched={refresh} /></div>}
 
       <div className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -52,6 +54,7 @@ export function TimesheetView({ overview, month, setMonth, initialEmployeeId, on
             {month !== currentMonthKey() && <Button variant="ghost" size="sm" onClick={() => setMonth(currentMonthKey())}>Hoje</Button>}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" disabled={sheet.loading} onClick={refresh}><RefreshCw size={15} aria-hidden="true" /> Atualizar ponto</Button>
             {canPick && (
               <select aria-label="Funcionário" className="input-v2 text-sm" value={employeeId ?? ''} onChange={(event) => setEmployeeId(event.target.value)}>
                 {myId && <option value={myId}>Meu espelho</option>}
