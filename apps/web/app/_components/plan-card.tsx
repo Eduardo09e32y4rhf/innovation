@@ -26,15 +26,16 @@ export function planCardData(plan: PublicPlatformPlan) {
 export type PlanCardTone = 'dark' | 'light';
 
 /** Card de plano usado na landing e no cadastro: mesmo desenho nos dois lugares. */
-export function PlanCard({ plan, tone = 'dark', selected, onSelect, footer }: { plan: PublicPlatformPlan; tone?: PlanCardTone; selected?: boolean; onSelect?: () => void; footer?: ReactNode }) {
+export function PlanCard({ plan, tone = 'dark', selected, onSelect, footer, disabled, disabledLabel = 'Em breve' }: { plan: PublicPlatformPlan; tone?: PlanCardTone; selected?: boolean; onSelect?: () => void; footer?: ReactNode; disabled?: boolean; disabledLabel?: string }) {
   const { price, features, extra } = planCardData(plan);
   const light = tone === 'light' || Boolean(plan.isRecommended);
   const [reais, cents] = price.toFixed(2).split('.');
-  const interactive = Boolean(onSelect);
+  const interactive = Boolean(onSelect) && !disabled;
   const ring = selected ? 'ring-2 ring-[var(--color-brand)]' : '';
   const body = (
     <>
-      {plan.isRecommended && <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-200 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-900">⚡ Mais popular</span>}
+      {disabled && <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-zinc-700 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">{disabledLabel}</span>}
+      {!disabled && plan.isRecommended && <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-200 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-900">⚡ Mais popular</span>}
       <h3 className="text-xl font-bold">{plan.name}</h3>
       {plan.description && <p className={`mt-1 text-xs ${light ? 'text-purple-600' : 'text-purple-200'}`}>{plan.description}</p>}
       <p className="mt-5 flex items-baseline gap-1 font-bold tabular-nums">
@@ -49,7 +50,8 @@ export function PlanCard({ plan, tone = 'dark', selected, onSelect, footer }: { 
       {footer}
     </>
   );
-  const base = `relative flex h-full w-full flex-col rounded-2xl p-6 text-left ${light ? `bg-white text-zinc-900 ${plan.isRecommended ? 'shadow-[0_0_40px_rgba(192,132,252,0.55)]' : 'border border-zinc-200 shadow-sm'}` : 'border border-white/15 bg-white/5 text-white'} ${ring}`;
+  const base = `relative flex h-full w-full flex-col rounded-2xl p-6 text-left ${light ? `bg-white text-zinc-900 ${plan.isRecommended && !disabled ? 'shadow-[0_0_40px_rgba(192,132,252,0.55)]' : 'border border-zinc-200 shadow-sm'}` : 'border border-white/15 bg-white/5 text-white'} ${ring} ${disabled ? 'opacity-60 grayscale' : ''}`;
   if (interactive) return <button type="button" role="radio" aria-checked={Boolean(selected)} onClick={onSelect} className={`${base} transition hover:border-purple-300`}>{body}</button>;
+  if (disabled) return <article className={base} aria-disabled="true">{body}</article>;
   return <article className={base}>{body}</article>;
 }

@@ -186,17 +186,16 @@ export class InternalJobsService {
       const pipelineId = job.pipelineId ?? (await tx.hiringPipeline.findFirst({ where: { companyId: job.companyId, isDefault: true }, select: { id: true } }))?.id ?? null;
       const stages = pipelineId ? await tx.pipelineStage.findMany({ where: { pipelineId }, orderBy: { position: 'asc' } }) : [];
       const first = stages.find((stage) => stage.kind === 'APPLIED') ?? stages[0];
-      const rejected = stages.find((stage) => stage.kind === 'REJECTED');
-      const autoReject = evaluation.knockedOut && evaluation.reject && rejected;
+      // Quem decide se o candidato passa ou nao e sempre o RH, mesmo reprovado numa pergunta eliminatoria: a
+      // candidatura nunca auto-move para "Reprovados" (ver jobs.repository.ts apply() para o mesmo ajuste).
       const application = await tx.application.create({
         data: {
-          companyId: job.companyId, candidateId: candidate.id, jobId, status: autoReject ? 'REJECTED' : 'APPLIED', source: 'INTERNAL', employeeId: employee.id,
-          coverLetter: dto.coverLetter?.trim() || null, consentGiven: true, consentAt: new Date(), stageId: (autoReject ? rejected : first)?.id, stageMovedAt: new Date(),
-          score: evaluation.scored ? evaluation.score : null, knockedOut: evaluation.knockedOut, knockoutReason: evaluation.reason, rejectionReason: autoReject ? evaluation.reason : null,
+          companyId: job.companyId, candidateId: candidate.id, jobId, status: 'APPLIED', source: 'INTERNAL', employeeId: employee.id,
+          coverLetter: dto.coverLetter?.trim() || null, consentGiven: true, consentAt: new Date(), stageId: first?.id, stageMovedAt: new Date(),
+          score: evaluation.scored ? evaluation.score : null, knockedOut: evaluation.knockedOut, knockoutReason: evaluation.reason, rejectionReason: null,
           answers: answers.size ? { create: [...answers].map(([questionId, value]) => ({ questionId, value })) } : undefined,
           events: { create: [
             { type: 'APPLIED', toStage: first?.name ?? null, note: `Candidatura interna pelo link (matrícula ${employee.registration}, CPF conferido)` },
-            ...(autoReject ? [{ type: 'REJECTED', fromStage: first?.name ?? null, toStage: rejected!.name, note: evaluation.reason }] : []),
           ] },
         },
       });

@@ -76,7 +76,7 @@ describe('candidatura: revalida a vaga dentro da transacao', () => {
     expect(tx.job.findFirst.mock.calls[0][0].where).toMatchObject({ id: 'j1', companyId: 'c1', status: 'OPEN' });
   });
 
-  it('rejeicao automatica numa vaga nao reverte candidato ja contratado', async () => {
+  it('pergunta eliminatoria nao reprovado nem move o candidato automaticamente: quem decide e o RH', async () => {
     const tx: any = {
       $executeRaw: vi.fn(async () => 1),
       job: { findFirst: vi.fn(async () => ({ pipelineId: 'p1' })) },
@@ -88,6 +88,11 @@ describe('candidatura: revalida a vaga dentro da transacao', () => {
     const prisma: any = { $transaction: vi.fn(async (fn: any) => fn(tx)) };
     await repoWith(prisma).apply('c1', 'j1', { email: 'a@x.com', name: 'A' }, { key: 'k', name: 'n', type: 'application/pdf', size: 1 }, { answers: [], score: 0, knockedOut: true, knockoutReason: 'x', rejectOnKnockout: true });
     expect(tx.candidate.update.mock.calls[0][0].data.status).toBeUndefined();
-    expect(tx.candidate.updateMany.mock.calls[0][0].where).toEqual({ id: 'cand', status: { not: 'HIRED' } });
+    expect(tx.candidate.updateMany).not.toHaveBeenCalled();
+    const data = tx.application.create.mock.calls[0][0].data;
+    expect(data.status).toBe('APPLIED');
+    expect(data.stageId).toBe('s1');
+    expect(data.knockedOut).toBe(true);
+    expect(data.rejectionReason).toBeNull();
   });
 });

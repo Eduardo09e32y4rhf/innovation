@@ -225,7 +225,7 @@ export function ScreeningEditor({ questions, suggested, minScore, action, onChan
           {(eliminating > 0 || (scored && minScore)) && (
             <Field label="Quem não passar (resposta eliminatória ou abaixo da nota mínima)">
               <select className={inputClass} value={action} onChange={(event) => changeAction(event.target.value as 'FLAG' | 'REJECT')}>
-                <option value="REJECT">Reprovar automaticamente (o candidato recebe um retorno educado 24h depois)</option>
+                <option value="REJECT">Marcar para reprovação (o RH confirma antes de qualquer retorno ao candidato)</option>
                 <option value="FLAG">Só marcar como "fora do critério" (o RH decide)</option>
               </select>
             </Field>

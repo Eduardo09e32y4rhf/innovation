@@ -27,6 +27,15 @@ export function passwordResetCodeEmail(input: { name: string; code: string; minu
   };
 }
 
+/** Acesso novo: nunca mostra senha nenhuma. A pessoa cria a propria senha pelo link (mesmo fluxo de "esqueci a senha"). */
+export function welcomeAccessEmail(input: { name: string; email: string; url: string; minutes: number }): MailContent {
+  return {
+    subject: 'Bem-vindo(a) à Innovation RH Connect',
+    html: layout('Bem-vindo(a)!', `<p>Olá, ${escapeHtml(input.name)}.</p><p>Seu acesso foi criado. Use o e-mail <strong>${escapeHtml(input.email)}</strong> para entrar.</p><p>Clique no botão abaixo para criar sua senha. O link vale por ${input.minutes} minutos e só pode ser usado uma vez.</p>`, { label: 'Criar minha senha', url: input.url }),
+    text: `Olá, ${input.name}.\n\nSeu acesso foi criado. E-mail: ${input.email}\n\nCrie sua senha acessando (válido por ${input.minutes} minutos, uso único):\n${input.url}`,
+  };
+}
+
 export function temporaryAccessEmail(input: { name: string; email: string; password: string; expiresAt: Date }): MailContent {
   const expires = input.expiresAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   const loginUrl = `${(process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '')}/login`;

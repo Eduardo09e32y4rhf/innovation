@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { generateTemporaryPassword, temporaryPasswordExpiry } from '../../common/crypto/temporary-password';
+import { generateTemporaryPassword, temporaryPasswordExpiry, temporaryPasswordTtlMs } from '../../common/crypto/temporary-password';
 import type { JwtUser, UserRole } from '../../common/types/auth.types';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
@@ -9,7 +10,8 @@ import { AsoService } from '../management/aso.service';
 import { assertRoleChangeAllowed, canManageRole } from '../../common/constants/role-hierarchy';
 import { isOwnerTargetedByOther } from '../../common/constants/platform-owner';
 import { MailService } from '../mail/mail.service';
-import { temporaryAccessEmail } from '../mail/mail-templates';
+import { temporaryAccessEmail, welcomeAccessEmail } from '../mail/mail-templates';
+import { PASSWORD_RESET_PURPOSE } from '../auth/auth.service';
 
 const EMPLOYEE_ACCESS_ROLES: UserRole[] = ['FUNCIONARIO', 'GESTOR', 'RH', 'ADMIN', 'CONSULTA'];
 /** Perfis que ocupam licença (igual ao countByCompany do repositório). */
@@ -26,7 +28,29 @@ export function positionKey(value: string): string {
 
 @Injectable()
 export class EmployeesService {
-  constructor(private readonly repository: EmployeesRepository, private readonly asoService: AsoService, @Optional() private readonly mail?: MailService) {}
+  constructor(
+    private readonly repository: EmployeesRepository,
+    private readonly asoService: AsoService,
+    @Optional() private readonly mail?: MailService,
+    @Optional() private readonly jwt?: JwtService,
+  ) {}
+
+  private appBaseUrl() {
+    return (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+  }
+
+  /** Link de "criar senha" (mesmo fluxo de esqueci-a-senha): nunca revela a senha provisoria gerada internamente. */
+  private async sendWelcomeAccessEmail(user: { id: string; name: string; email: string; passwordChangedAt: Date }) {
+    if (!this.mail || !this.jwt) return false;
+    const token = await this.jwt.signAsync(
+      { purpose: PASSWORD_RESET_PURPOSE, sub: user.id, email: user.email, passwordChangedAt: new Date(user.passwordChangedAt).getTime() },
+      { expiresIn: Math.round(temporaryPasswordTtlMs() / 1000) },
+    );
+    const url = `${this.appBaseUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+    const minutes = Math.round(temporaryPasswordTtlMs() / 60000);
+    const result = await this.mail.send(user.email, welcomeAccessEmail({ name: user.name, email: user.email, url, minutes }));
+    return result.sent;
+  }
 
   async list(companyId: string, actor: JwtUser, page: number = 1, pageSize: number = 50, search?: string, status?: string) {
     const skip = Math.max(0, (page - 1) * pageSize);
@@ -208,7 +232,6 @@ export class EmployeesService {
     const existingUser = await this.repository.findUserByEmail(email);
     if (existingUser && existingUser.companyId !== companyId) throw new ConflictException('E-mail already registered in another company');
 
-    let temporaryPassword: string | null = null;
     let emailSent = false;
 
     if (existingUser) {
@@ -227,7 +250,8 @@ export class EmployeesService {
     } else {
       await this.assertSeatAvailable(companyId);
 
-      temporaryPassword = generateTemporaryPassword();
+      // Senha provisoria de uso interno apenas (nunca sai daqui): a pessoa cria a propria senha pelo link do e-mail.
+      const temporaryPassword = generateTemporaryPassword();
       const expiresAt = temporaryPasswordExpiry();
       const user = await this.repository.createUser({
         companyId,
@@ -243,7 +267,7 @@ export class EmployeesService {
         },
       });
       await this.repository.updateUserLink(companyId, employeeId, user.id);
-      emailSent = (await this.mail?.send(email, temporaryAccessEmail({ name: user.name, email, password: temporaryPassword, expiresAt })))?.sent ?? false;
+      emailSent = await this.sendWelcomeAccessEmail(user);
 
       await this.repository.createAuditLog({
         companyId,
@@ -263,7 +287,6 @@ export class EmployeesService {
     return {
       success: true,
       userId: employee.userId || existingUser?.id,
-      temporaryPassword,
       emailSent,
       email,
       role,
@@ -318,7 +341,7 @@ export class EmployeesService {
                 role: dto.role,
                 name: employee.name,
               });
-              results.push({ employeeId, success: true, temporaryPassword: createResult.temporaryPassword, emailSent: createResult.emailSent, role: createResult.role });
+              results.push({ employeeId, success: true, emailSent: createResult.emailSent, role: createResult.role });
             } catch (error: any) {
               results.push({ employeeId, success: false, error: error.message });
             }
@@ -524,7 +547,7 @@ export class EmployeesService {
       },
     });
     await this.repository.updateUserLink(companyId, employee.id, user.id);
-    await this.mail?.send(email, temporaryAccessEmail({ name: user.name, email, password: temporaryPassword, expiresAt }));
+    await this.sendWelcomeAccessEmail(user);
   }
 
   /**

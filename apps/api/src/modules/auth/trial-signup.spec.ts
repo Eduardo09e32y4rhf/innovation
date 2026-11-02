@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AuthService } from './auth.service';
 import { resolveTrialDays, trialDaysDefault } from '../finance/trial-lifecycle';
 
-const plan = (extra: any = {}) => ({ id: 'p1', name: 'Basico', isFree: false, maxUsers: 100, maxEmployees: 50, commitmentMonths: 1, baseMonthlyPrice: 99.99, userMonthlyPrice: 2.5, price: 99.99, includedUnits: 10, discountPercent: 0, pricingVersion: '2026.2', activeModules: [], ...extra });
+const plan = (extra: any = {}) => ({ id: 'p1', code: 'RS', name: 'Basico', isFree: false, maxUsers: 100, maxEmployees: 50, commitmentMonths: 1, baseMonthlyPrice: 99.99, userMonthlyPrice: 2.5, price: 99.99, includedUnits: 10, discountPercent: 0, pricingVersion: '2026.2', activeModules: [], ...extra });
 const coupon = (extra: any = {}) => ({ id: 'k1', code: 'X', type: 'TRIAL_DAYS', value: null, trialDays: 10, durationCycles: null, allowedPlanIds: [], minSeats: null, isActive: true, startsAt: null, expiresAt: null, maxRedemptions: null, redemptionCount: 0, ...extra });
 const END = new Date('2026-11-21T12:00:00Z');
 

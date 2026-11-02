@@ -41,7 +41,8 @@ import { checkCouponEligibility, couponDiscount } from '../coupons/coupon-rules'
 // SEGURANÇA: e-mail do DEV proprietário da plataforma — definido via variável de ambiente
 const LOGIN_DENIED_MESSAGE = 'Não foi possível entrar';
 const PASSWORD_MAX_AGE_DAYS = 30;
-const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
+/** Compartilhado com outros modulos (ex.: employees) que emitem link de "criar senha" pelo mesmo fluxo de reset. */
+export const PASSWORD_RESET_PURPOSE = 'PASSWORD_RESET';
 const RESET_DENIED_MESSAGE = 'Dados de validação incorretos';
 const RESET_MAX_ATTEMPTS = 5;
 const RESET_CODE_LENGTH = 8;
@@ -128,6 +129,11 @@ export class AuthService {
 
     const selectedPlan = await this.repository.findPublicPlan(dto.planId);
     if (!selectedPlan) throw new NotFoundException('O plano selecionado nao esta mais disponivel.');
+    // Cadastro publico liberado so para Recrutamento e Selecao; os demais modulos ficam "em breve".
+    // Trava no backend (nao so no front): um POST direto com outro planId nao pode furar isso.
+    if (selectedPlan.code !== 'RS') {
+      throw new BadRequestException('Este plano ainda nao esta disponivel para cadastro. Em breve!');
+    }
     if (dto.seatQuantity > selectedPlan.maxUsers) {
       throw new BadRequestException(`O plano selecionado permite no maximo ${selectedPlan.maxUsers} usuarios.`);
     }

@@ -453,8 +453,10 @@ export class JobsService {
       }
       await this.privacy.afterApply(result.application.id, dto.sensitiveConsent ? { gender: dto.gender, race: dto.race, pcd: dto.pcd } : {});
       await this.afterApplyProof(result.application.id, job, dto, normalizedEmail, safeName, hash, { size: file.buffer.length, mime: format.mime }, context);
-      void this.notifyNewApplication(job, safeName, evaluation.reject && evaluation.knockedOut);
-      // Reprovado por pergunta eliminatoria: o retorno ao candidato sai 24h depois (InterviewFollowupService.sendDelayedKnockoutFeedback).
+      // RS-xx: quem decide se o candidato passa ou nao e sempre o RH, mesmo quando ele nao atende a uma pergunta
+      // eliminatoria — por isso a candidatura nunca auto-rejeita (ver jobs.repository.ts apply()) e o aviso abaixo
+      // sempre dispara, inclusive para quem seria reprovado automaticamente pela triagem.
+      void this.notifyNewApplication(job, safeName);
       return context.ownerVerified ? { received: true, applicationId: result.application.id } : { received: true };
     } catch (error) {
       if (!(error instanceof ConflictException)) await this.storage.remove(storageKey);
@@ -463,8 +465,8 @@ export class JobsService {
   }
 
   // RS-R-03: quem conduz a vaga sabe na hora que chegou candidatura (e-mail aos responsáveis + sino do RH). Falha não derruba a candidatura.
-  private async notifyNewApplication(job: { id: string; companyId: string; title?: string }, name: string, autoRejected: boolean) {
-    if (autoRejected || !this.notifier) return;
+  private async notifyNewApplication(job: { id: string; companyId: string; title?: string }, name: string) {
+    if (!this.notifier) return;
     try {
       const userIds = await this.repository.jobRecruiterIds(job.companyId, job.id);
       await this.notifier.notify({ companyId: job.companyId, jobId: job.id, userIds, title: `Nova candidatura: ${name}`, lines: [`${name} se candidatou à vaga ${job.title ?? ''}. Abra a vaga para analisar o currículo.`.replace('  ', ' ')], priority: 'LOW', kind: 'APPLICATION_RECEIVED', cta: 'Ver candidatura' });

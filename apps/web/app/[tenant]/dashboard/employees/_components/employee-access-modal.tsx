@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Check } from 'lucide-react';
 import { Button, Modal } from '@/app/components/ui';
 import { api } from '@/app/lib/api';
 import { toast } from 'sonner';
@@ -19,8 +18,7 @@ export function EmployeeAccessModal({
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('FUNCIONARIO');
   const [name, setName] = useState('');
-  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
-  const [copiedPassword, setCopiedPassword] = useState(false);
+  const [emailFailed, setEmailFailed] = useState(false);
 
   const handleCreateAccess = async () => {
     if (!email.trim()) {
@@ -37,16 +35,12 @@ export function EmployeeAccessModal({
       });
 
       if (result.emailSent) {
-        toast.success('Acesso criado. E-mail de primeiro acesso aceito para envio.');
+        toast.success('Acesso criado. A pessoa vai receber um e-mail para criar a própria senha.');
         onSuccess?.();
         handleClose();
-      } else if (result.temporaryPassword) {
-        setTemporaryPassword(result.temporaryPassword);
-        toast.error('Acesso criado, mas o e-mail não foi enviado. Entregue a senha provisória com segurança.');
       } else if (result.success) {
-        toast.success('Acesso vinculado ao usuário existente.');
-        onSuccess?.();
-        handleClose();
+        setEmailFailed(true);
+        toast.error('Acesso criado, mas não foi possível enviar o e-mail de boas-vindas.');
       }
     } catch (error: any) {
       toast.error(error.message || 'Erro ao criar acesso');
@@ -55,28 +49,18 @@ export function EmployeeAccessModal({
     }
   };
 
-  const handleCopyPassword = () => {
-    if (temporaryPassword) {
-      navigator.clipboard.writeText(temporaryPassword);
-      setCopiedPassword(true);
-      setTimeout(() => setCopiedPassword(false), 2000);
-      toast.success('Senha copiada para a área de transferência');
-    }
-  };
-
   const handleClose = () => {
     setEmail('');
     setRole('FUNCIONARIO');
     setName('');
-    setTemporaryPassword(null);
-    setCopiedPassword(false);
+    setEmailFailed(false);
     onClose();
   };
 
   return (
     <Modal isOpen={true} onClose={handleClose} title="Criar Acesso">
       <div className="space-y-4">
-        {!temporaryPassword ? (
+        {!emailFailed ? (
           <>
             <div>
               <label className="text-sm font-medium">Email</label>
@@ -127,37 +111,10 @@ export function EmployeeAccessModal({
           </>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-              <p className="text-sm font-semibold text-emerald-900 mb-2">✓ Acesso criado com sucesso!</p>
-              <p className="text-xs text-emerald-700">
-                Compartilhe a senha provisória abaixo com o funcionário. Ela expira em 24 horas.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Senha Provisória:</label>
-              <div className="flex gap-2 items-center">
-                <code className="flex-1 rounded bg-gray-100 px-3 py-2 text-sm font-mono break-all">
-                  {temporaryPassword}
-                </code>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCopyPassword}
-                  className="shrink-0"
-                >
-                  {copiedPassword ? (
-                    <Check size={16} className="text-emerald-600" />
-                  ) : (
-                    <Copy size={16} />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-semibold text-amber-900 mb-2">Acesso criado, mas o e-mail não foi enviado.</p>
               <p className="text-xs text-amber-700">
-                <strong>⚠ Importante:</strong> A senha será exibida apenas uma vez. Copie-a com segurança.
+                Peça para <strong>{email}</strong> usar &quot;Esqueci minha senha&quot; na tela de login para criar o acesso, ou verifique a configuração de e-mail do sistema.
               </p>
             </div>
 

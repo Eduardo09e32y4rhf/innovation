@@ -284,16 +284,18 @@ export class JobsRepository {
         null;
       const stages = pipelineId ? await tx.pipelineStage.findMany({ where: { pipelineId }, orderBy: { position: 'asc' } }) : [];
       const firstStage = stages.find((stage) => stage.kind === 'APPLIED') ?? stages[0];
-      const rejectedStage = stages.find((stage) => stage.kind === 'REJECTED');
-      const autoReject = extra.knockedOut && extra.rejectOnKnockout && rejectedStage;
-      const stage = autoReject ? rejectedStage : firstStage;
+
+      // Quem decide se o candidato passa ou nao e sempre o RH: mesmo reprovado numa pergunta eliminatoria, a
+      // candidatura entra na etapa normal (nunca auto-move para "Reprovados"). knockedOut/score/knockoutReason
+      // ficam gravados como sinalizacao para o RH avaliar, sem decidir por ele.
+      const stage = firstStage;
 
       const application = await tx.application.create({
         data: {
           companyId,
           candidateId: candidate.id,
           jobId,
-          status: autoReject ? 'REJECTED' : 'APPLIED',
+          status: 'APPLIED',
           source: data.source ?? 'CAREERS_PORTAL',
           linkedinUrl: data.linkedinUrl,
           coverLetter: data.coverLetter,
@@ -308,18 +310,16 @@ export class JobsRepository {
           score: extra.score,
           knockedOut: extra.knockedOut,
           knockoutReason: extra.knockoutReason,
-          rejectionReason: autoReject ? extra.knockoutReason : null,
+          rejectionReason: null,
           answers: extra.answers.length ? { create: extra.answers } : undefined,
           events: {
             create: [
               { type: 'APPLIED', toStage: firstStage?.name ?? null, note: 'Candidatura recebida pelo portal' },
               ...(mismatch ? [{ type: 'DATA_MISMATCH', note: mismatch }] : []),
-              ...(autoReject ? [{ type: 'REJECTED', fromStage: firstStage?.name ?? null, toStage: rejectedStage!.name, note: extra.knockoutReason }] : []),
             ],
           },
         },
       });
-      if (autoReject) await tx.candidate.updateMany({ where: { id: candidate.id, status: { not: 'HIRED' } }, data: { status: 'REJECTED' } });
 
       return { duplicate: false as const, application };
     });

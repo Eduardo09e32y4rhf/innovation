@@ -71,7 +71,8 @@ function CadastroForm() {
       .then((items) => {
         const list = Array.isArray(items) ? items : [];
         setPlans(list);
-        setPlanId((current) => list.some((p) => p.id === current) ? current : (list.find((p) => p.isRecommended) ?? list.find((p) => !p.isFree) ?? list[0])?.id ?? '');
+        // Cadastro publico liberado so para Recrutamento e Selecao (code 'RS'); os demais ficam "Em breve".
+        setPlanId((current) => list.some((p) => p.id === current && p.code === 'RS') ? current : (list.find((p) => p.code === 'RS') ?? list[0])?.id ?? '');
       })
       .catch((cause) => setPlansError(cause instanceof Error ? cause.message : 'Não foi possível carregar os planos.'));
   }, []);
@@ -156,8 +157,9 @@ function CadastroForm() {
           {plans && plans.length > 0 && (
             <fieldset className="space-y-2">
               <legend className="mb-2 text-sm font-medium text-zinc-700">Escolha o plano da sua empresa</legend>
+              <p className="mb-2 text-xs text-zinc-500">Por enquanto, o cadastro é só para o módulo de Recrutamento e Seleção. Os demais módulos chegam em breve.</p>
               <div role="radiogroup" aria-label="Plano" className="grid gap-4 pt-3 md:grid-cols-3">
-                {plans.map((item) => <PlanCard key={item.id} plan={item} tone="light" selected={item.id === planId} onSelect={() => setPlanId(item.id)} />)}
+                {plans.map((item) => <PlanCard key={item.id} plan={item} tone="light" selected={item.id === planId} disabled={item.code !== 'RS'} onSelect={() => setPlanId(item.id)} />)}
               </div>
             </fieldset>
           )}
