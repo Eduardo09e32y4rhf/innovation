@@ -17,7 +17,7 @@ export default defineConfig({
   ],
   webServer: {
     cwd: path.resolve(__dirname, '../apps/web'),
-    command: 'node ../../node_modules/next/dist/bin/next dev --hostname 127.0.0.1 --port 3000',
+    command: 'npm run dev -- --hostname 127.0.0.1 --port 3000',
     url: process.env.E2E_BASE_URL || 'http://127.0.0.1:3000',
     reuseExistingServer: false,
     timeout: 120_000,

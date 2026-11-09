@@ -241,7 +241,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
 
           <section id="application" className="min-w-0 scroll-mt-4 rounded-[15px] border border-[#e3d8f1] bg-white p-5 shadow-[0_14px_36px_#51227708] sm:p-7 lg:sticky lg:top-4" aria-label="Candidatura">
             <h2 className="text-lg font-semibold">Enviar candidatura</h2><p className="mt-2 text-sm text-fg-mut">Campos com * são obrigatórios.</p>
-            {!account && !job.closed && !success && <p className="mt-2 text-sm">Já tem conta? <Link className="font-semibold text-[#7240da] underline" href={`/carreiras/conta/entrar?next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>Entre para reutilizar seus dados</Link>.</p>}
+            {!account && !job.closed && !success && <p className="mt-2 text-sm"><Link className="font-semibold text-[#7240da] underline" href={`/carreiras/conta/entrar?modo=cadastro&next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>Crie sua conta gratuita</Link> para acompanhar o processo. Já tem conta? <Link className="font-semibold text-[#7240da] underline" href={`/carreiras/conta/entrar?next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>Entre para reutilizar seus dados</Link>.</p>}
             {job.closed ? (
               <div role="status" className="mt-5 space-y-3"><p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Esta vaga foi encerrada{job.closedAt ? ` em ${new Date(job.closedAt).toLocaleDateString('pt-BR')}` : ''} e não recebe mais candidaturas.</p><Link className="btn btn-outline" href={companyPath}>Ver outras vagas desta empresa</Link></div>
             ) : success ? (
