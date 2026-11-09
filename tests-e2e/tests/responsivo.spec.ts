@@ -34,7 +34,7 @@ async function checar(page: Page, rota: string, tela: (typeof TELAS)[number], te
 test.describe('rotas públicas em todos os tamanhos de tela', () => {
   test.beforeEach(async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium-desktop', 'o próprio teste percorre os tamanhos de tela');
-    await page.route('**/auth/public-plans', (route) => route.fulfill({ json: [{ id: '33333333-3333-4333-8333-333333333333', name: 'Plano E2E', price: 100, baseMonthlyPrice: 100, userMonthlyPrice: 10, isActive: true, isRecommended: true, isFree: false, maxUsers: 20 }] }));
+    await page.route('**/auth/public-plans', (route) => route.fulfill({ json: [{ id: '33333333-3333-4333-8333-333333333333', name: 'Plano E2E', code: 'RS', signupEnabled: true, trialDays: 30, includedUnits: 1, price: 100, baseMonthlyPrice: 100, userMonthlyPrice: 10, isActive: true, isRecommended: true, isFree: false, maxUsers: 20 }] }));
   });
   for (const rota of ROTAS_PUBLICAS) {
     test(`${rota}`, async ({ page }, testInfo) => {

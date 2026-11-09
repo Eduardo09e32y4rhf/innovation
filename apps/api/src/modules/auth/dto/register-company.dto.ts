@@ -1,8 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsEmail, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength, ValidateIf } from 'class-validator';
+import { IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength, ValidateIf } from 'class-validator';
 import { isCompanyDocumentOptional } from '../../../common/company-document';
 
 export class RegisterCompanyDto {
+  @IsOptional()
+  @IsIn(['EMPLOYER', 'RECRUITER'])
+  recruitmentAccountType?: 'EMPLOYER' | 'RECRUITER';
+
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)

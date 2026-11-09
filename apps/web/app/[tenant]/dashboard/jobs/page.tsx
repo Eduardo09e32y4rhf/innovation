@@ -17,6 +17,7 @@ import { JobShareDialog } from './_components/share-dialog';
 import { workflowApi } from './workflow-api';
 import { EMPLOYMENT_TYPE_LABEL, JOB_STATUS_LABEL, WORK_MODE_LABEL, daysSince, salaryLabel, type Job, type JobStatus } from './types';
 import { ROLE_ACCESS, roleIn } from '@/app/lib/role-access';
+import { RecruitmentStart } from './_components/recruitment-start';
 
 const ALLOWED_ROLES = new Set(ROLE_ACCESS.recruitmentAccess);
 const STATUS_TONE = { OPEN: 'success', DRAFT: 'warning', CLOSED: 'default', PENDING_APPROVAL: 'warning', PAUSED: 'default', FILLED: 'default' } as const;
@@ -80,6 +81,7 @@ export default function JobsPage() {
       />
 
       <ApprovalsPanel base={base} onChanged={() => { jobs.refetch(); stats.refetch(); }} />
+      {role === 'ADMIN' && jobs.data?.length === 0 && <RecruitmentStart company={company} tenant={tenant} />}
 
       <section aria-label="Resumo do recrutamento" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Metric label="Vagas abertas" value={stats.data?.jobs.open ?? counts.OPEN} icon={<Briefcase size={19} />} detail={`${counts.OPEN} oportunidades publicadas`} />

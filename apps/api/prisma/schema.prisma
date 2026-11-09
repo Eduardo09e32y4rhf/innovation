@@ -315,6 +315,8 @@ model Company {
   logoUrl   String? @db.Text
   phone     String?
   email     String?
+  /// EMPLOYER contrata para a propria empresa; RECRUITER presta servicos de recrutamento.
+  recruitmentAccountType String @default("EMPLOYER")
   address   String? // Mantido para migraÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o
 
   // Dados Contratuais e Fiscais
@@ -4237,7 +4239,7 @@ enum FreelancerEngagementStatus {
 
 /// Contrato comercial entre uma empresa que presta servico de recrutamento (freelancer) e uma empresa-cliente.
 model FreelancerEngagement {
-  id                  String                     @id @default(uuid()) @db.Uuid
+  id                  String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   freelancerCompanyId String                     @db.Uuid
   clientCompanyId     String                     @db.Uuid
   status              FreelancerEngagementStatus @default(NEGOTIATION)
@@ -4258,7 +4260,7 @@ model FreelancerEngagement {
   endedAt             DateTime?
   createdById         String                     @db.Uuid
   createdAt           DateTime                   @default(now())
-  updatedAt           DateTime                   @updatedAt
+  updatedAt           DateTime                   @default(now()) @updatedAt
 
   freelancerCompany Company               @relation("FreelancerEngagementAsFreelancer", fields: [freelancerCompanyId], references: [id], onDelete: Cascade)
   clientCompany     Company               @relation("FreelancerEngagementAsClient", fields: [clientCompanyId], references: [id], onDelete: Cascade)
@@ -4280,7 +4282,7 @@ enum JobDelegationStatus {
 /// o freelancer so enxerga a vaga, as candidaturas e o pipeline dela atraves desta linha (nunca pelo filtro geral
 /// por companyId usado no resto do modulo de recrutamento).
 model JobDelegation {
-  id                  String               @id @default(uuid()) @db.Uuid
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   engagementId        String               @db.Uuid
   jobId               String               @unique @db.Uuid
   clientCompanyId     String               @db.Uuid
@@ -4291,7 +4293,7 @@ model JobDelegation {
   revokedAt           DateTime?
   revokedById         String?              @db.Uuid
   createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  updatedAt           DateTime             @default(now()) @updatedAt
 
   engagement        FreelancerEngagement  @relation(fields: [engagementId], references: [id], onDelete: Cascade)
   job               Job                   @relation(fields: [jobId], references: [id], onDelete: Cascade)
@@ -4305,7 +4307,7 @@ model JobDelegation {
 
 /// Granularidade por pessoa: quais usuarios da empresa-freelancer podem atuar nesta vaga delegada especifica.
 model JobDelegationGrant {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   delegationId String   @db.Uuid
   userId       String   @db.Uuid
   createdAt    DateTime @default(now())
@@ -4328,7 +4330,7 @@ enum RecruitmentInvoiceStatus {
 
 /// Fatura emitida pela empresa-freelancer a empresa-cliente por servico de recrutamento prestado.
 model RecruitmentInvoice {
-  id                  String                   @id @default(uuid()) @db.Uuid
+  id                  String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   engagementId        String                   @db.Uuid
   freelancerCompanyId String                   @db.Uuid
   clientCompanyId     String                   @db.Uuid
@@ -4346,7 +4348,7 @@ model RecruitmentInvoice {
   attachmentUrl       String?
   createdById         String                   @db.Uuid
   createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
+  updatedAt           DateTime                 @default(now()) @updatedAt
 
   engagement        FreelancerEngagement     @relation(fields: [engagementId], references: [id], onDelete: Cascade)
   freelancerCompany Company                  @relation("RecruitmentInvoiceAsFreelancer", fields: [freelancerCompanyId], references: [id], onDelete: Cascade)
@@ -4359,7 +4361,7 @@ model RecruitmentInvoice {
 }
 
 model RecruitmentInvoiceItem {
-  id          String  @id @default(uuid()) @db.Uuid
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   invoiceId   String  @db.Uuid
   description String
   jobId       String? @db.Uuid

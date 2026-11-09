@@ -113,7 +113,7 @@ jobs:
       - name: Start web
         run: |
           cd apps/web
-          NEXT_PUBLIC_API_URL=http://localhost:3333 nohup node ../../node_modules/next/dist/bin/next dev --hostname 0.0.0.0 --port 3000 > "$RUNNER_TEMP/web.log" 2>&1 &
+          NEXT_PUBLIC_API_URL=http://localhost:3333 nohup npm run dev -- --hostname 0.0.0.0 --port 3000 > "$RUNNER_TEMP/web.log" 2>&1 &
       - name: Wait for API and web
         run: |
           for i in $(seq 1 60); do curl -fs http://localhost:3333/health > /dev/null && break; sleep 2; done

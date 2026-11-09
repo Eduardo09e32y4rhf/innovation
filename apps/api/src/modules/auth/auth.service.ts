@@ -92,7 +92,7 @@ export class AuthService {
       const units = Math.max(1, plan.includedUnits ?? 0);
       let startingMonthly: number | null = null;
       try { startingMonthly = plan.isFree ? 0 : computePrice({ plan: { ...plan, commitmentMonths: 1 }, units }).cycleTotalCents / 100; } catch { startingMonthly = null; }
-      return { ...plan, price: Number(plan.price), discountPercent: Number(plan.discountPercent), baseMonthlyPrice: Number(plan.baseMonthlyPrice), userMonthlyPrice: Number(plan.userMonthlyPrice), startingMonthlyPrice: startingMonthly, startingUnits: units };
+      return { ...plan, price: Number(plan.price), discountPercent: Number(plan.discountPercent), baseMonthlyPrice: Number(plan.baseMonthlyPrice), userMonthlyPrice: Number(plan.userMonthlyPrice), startingMonthlyPrice: startingMonthly, startingUnits: units, trialDays: plan.isFree ? 0 : trialDaysDefault(), signupEnabled: plan.code === 'RS' };
     });
   }
 
@@ -154,7 +154,7 @@ export class AuthService {
       platformPlanId: selectedPlan?.id,
       maxUsers: dto.seatQuantity,
       maxEmployees: selectedPlan.maxEmployees ?? 50,
-      activeModules: selectedPlan?.activeModules ?? ['employees', 'time-track', 'vacations', 'management', 'recruitment'],
+      activeModules: selectedPlan.activeModules?.includes('recruitment') ? selectedPlan.activeModules : ['recruitment'],
       isFree: selectedPlan?.isFree ?? false,
     });
     const admin = company.users[0];
@@ -220,6 +220,16 @@ export class AuthService {
 
     let checkout: { active: boolean; paymentUrl: string | null | undefined } = { active: Boolean(selectedPlan?.isFree), paymentUrl: null };
     let billingSetupPending = false;
+    if (trial) {
+      try {
+        const account = await this.platformFinance.prepareTrialBillingAccount(company.id);
+        billingSetupPending = account.pending;
+      } catch (error) {
+        // Uma falha no provedor nao pode impedir o empreendedor de usar o teste ja criado.
+        billingSetupPending = true;
+        this.logger.warn(`Conta financeira ${company.id} pendente de integracao: ${String(error)}`);
+      }
+    }
     if (!selectedPlan.isFree && !trial) {
       try {
         checkout = await this.platformFinance.ensureCompanyOnboardingBilling(company.id);
@@ -791,15 +801,17 @@ export class AuthService {
   private async buildAuthResponse(payload: JwtUser, passwordChangeRequired = false, requestMeta?: RequestMeta, existingRefresh?: string) {
     const company = await this.repository.findCompanyAuthContext(payload.companyId);
     if (!company) throw new UnauthorizedException('Company not found');
+    // O inicio do teste altera a empresa depois da criacao do administrador.
+    const currentPayload = { ...payload, companyStatus: company.status, billingStatus: company.billingStatus };
 
     const existingFamily = await this.sessions.familyOf(existingRefresh, payload.sub);
     const created = existingFamily ? null : await this.sessions.create(payload.sub, { ip: requestMeta?.ipAddress, userAgent: requestMeta?.userAgent });
     const refreshToken = existingFamily ? existingRefresh! : created!.token;
     const sessionFamily = existingFamily ?? created!.session.family;
     return {
-      access_token: await this.jwtService.signAsync({ ...payload, purpose: 'access', sessionFamily }),
+      access_token: await this.jwtService.signAsync({ ...currentPayload, purpose: 'access', sessionFamily }),
       refreshToken,
-      user: payload,
+      user: currentPayload,
       company: {
         ...company,
         slug: company.slug || company.id,

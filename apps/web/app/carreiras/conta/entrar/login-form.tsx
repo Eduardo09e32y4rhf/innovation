@@ -22,7 +22,7 @@ export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = safeNext(params.get('next'));
-  const [mode, setMode] = useState<Mode>('login');
+  const [mode, setMode] = useState<Mode>(() => params.get('modo') === 'cadastro' ? 'register' : 'login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -88,7 +88,7 @@ export function LoginForm() {
           <h1 className="text-2xl font-bold tracking-tight">{TITLE[mode]}</h1>
           <p className="text-sm leading-6 text-[#5b5473]">
             {mode === 'login' && 'Área exclusiva de candidatos: acompanhe suas candidaturas e se candidate com os dados já salvos.'}
-            {mode === 'register' && 'Crie sua conta uma vez e use em todas as vagas. Você escolhe a cada vaga se quer reutilizar seus dados.'}
+            {mode === 'register' && 'Sua conta é gratuita, sem plano ou dados de cobrança. Use em todas as vagas e escolha quando reutilizar seus dados.'}
             {mode === 'forgot' && 'Informe seu e-mail e enviamos um código para criar uma nova senha.'}
             {mode === 'reset' && 'Digite o código que enviamos e escolha a nova senha.'}
           </p>

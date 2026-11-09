@@ -26,13 +26,13 @@ export function PricingSection() {
     <div>
       <div className="mx-auto max-w-xl text-center">
         <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Escolha o plano <span className="bg-gradient-to-r from-amber-200 to-pink-300 bg-clip-text text-transparent">da sua empresa</span></h2>
-        <p className="mt-3 text-sm text-white/70">Preço fixo por mês. Pague só pelo que passar do que está incluso. Todo plano pago começa com 30 dias grátis, sem cartão.</p>
+        <p className="mt-3 text-sm text-white/70">Empreendedores e recrutadores podem começar pelo Recrutamento e Seleção com teste grátis, sem cartão. Candidatos criam uma conta gratuita no portal de vagas.</p>
       </div>
 
       <div className={`mx-auto mt-10 grid max-w-5xl items-center gap-5 ${plans.length > 1 ? 'md:grid-cols-2' : 'max-w-md'} ${plans.length > 2 ? 'lg:grid-cols-3' : ''}`}>
         {plans.map((plan) => (
           <div key={plan.id} className={plan.isRecommended ? 'lg:-my-3' : ''}>
-            <PlanCard plan={plan} tone="dark" footer={<Link href={`/cadastro?planId=${plan.id}&seats=${plan.includedUnits || 1}`} className={`mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${plan.isRecommended ? 'bg-gradient-to-r from-purple-400 to-fuchsia-500 text-white hover:opacity-90' : 'border border-white/30 text-white hover:bg-white/10'}`}>Escolher {plan.name}</Link>} />
+            <PlanCard plan={plan} tone="dark" disabled={plan.code !== 'RS' || plan.signupEnabled === false} footer={plan.code === 'RS' && plan.signupEnabled !== false ? <Link href={`/cadastro?perfil=empreendedor&planId=${plan.id}&seats=${plan.includedUnits || 1}`} className={`mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${plan.isRecommended ? 'bg-gradient-to-r from-purple-400 to-fuchsia-500 text-white hover:opacity-90' : 'border border-white/30 text-white hover:bg-white/10'}`}>{plan.isFree ? 'Criar minha conta' : 'Começar teste grátis'}</Link> : undefined} />
           </div>
         ))}
       </div>

@@ -37,6 +37,9 @@ export interface Company {
   status?: string;
   billingStatus?: string;
   isActive?: boolean;
+  recruitmentAccountType?: 'EMPLOYER' | 'RECRUITER';
+  activeModules?: string[];
+  trialEndsAt?: string | null;
 }
 
 interface AuthContextType {
