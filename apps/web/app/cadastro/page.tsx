@@ -154,8 +154,8 @@ function CadastroForm() {
         <form onSubmit={next} className="space-y-4">
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium text-zinc-700">Como você vai usar o Innovation?</legend>
-            <label className="flex min-h-11 items-start gap-3 rounded-xl border border-zinc-200 p-3"><input type="radio" name="account-type" value="EMPLOYER" checked={accountType === 'EMPLOYER'} onChange={() => setAccountType('EMPLOYER')} className="mt-1" /><span><strong className="block text-sm text-zinc-800">Sou empreendedor / pequena empresa</strong><span className="text-xs text-zinc-600">Vou divulgar vagas e contratar para o meu negócio.</span></span></label>
-            <label className="flex min-h-11 items-start gap-3 rounded-xl border border-zinc-200 p-3"><input type="radio" name="account-type" value="RECRUITER" checked={accountType === 'RECRUITER'} onChange={() => setAccountType('RECRUITER')} className="mt-1" /><span><strong className="block text-sm text-zinc-800">Sou recrutador / consultoria</strong><span className="text-xs text-zinc-600">Vou conduzir processos seletivos para meus clientes.</span></span></label>
+            <label className="flex min-h-11 items-start gap-3 rounded-xl border border-zinc-200 p-3"><input type="radio" name="account-type" value="EMPLOYER" checked={accountType === 'EMPLOYER'} onChange={() => setAccountType('EMPLOYER')} className="mt-1 h-6 w-6 shrink-0 accent-purple-600" /><span><strong className="block text-sm text-zinc-800">Sou empreendedor / pequena empresa</strong><span className="text-xs text-zinc-600">Vou divulgar vagas e contratar para o meu negócio.</span></span></label>
+            <label className="flex min-h-11 items-start gap-3 rounded-xl border border-zinc-200 p-3"><input type="radio" name="account-type" value="RECRUITER" checked={accountType === 'RECRUITER'} onChange={() => setAccountType('RECRUITER')} className="mt-1 h-6 w-6 shrink-0 accent-purple-600" /><span><strong className="block text-sm text-zinc-800">Sou recrutador / consultoria</strong><span className="text-xs text-zinc-600">Vou conduzir processos seletivos para meus clientes.</span></span></label>
           </fieldset>
           <p className="text-sm text-zinc-600">Está procurando emprego? <Link href="/carreiras/conta/entrar?modo=cadastro" className={authLink}>Crie sua conta gratuita de candidato</Link>.</p>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -198,7 +198,7 @@ function CadastroForm() {
           {currentQuote && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">Após o teste: <strong>{brl(currentQuote.total)} por {currentQuote.commitmentMonths === 1 ? 'mês' : `ciclo de ${currentQuote.commitmentMonths} meses`}</strong>. {seats} vagas contratadas por mês.{currentQuote.couponApplied ? ' Cupom aplicado conforme as condições da promoção.' : ''} Você acompanha os vencimentos e pode cancelar em Faturas.</p>}
 
           <label className="flex items-start gap-2 text-sm text-zinc-600">
-            <input type="checkbox" className="mt-1" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
+            <input type="checkbox" className="mt-1 h-6 w-6 shrink-0 accent-purple-600" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
             <span>Li e aceito os <Link href="/termos" target="_blank" className={authLink}>Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className={authLink}>Política de Privacidade</Link>.</span>
           </label>
 
