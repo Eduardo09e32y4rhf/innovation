@@ -1,7 +1,7 @@
 /** Quem é a empresa por trás do site (aparece na landing, no cadastro, nos termos e na privacidade). */
 export const GRUPO = {
   nome: 'Prosolution Soluções Empresariais',
-  cnpj: '54.694.364/0001-48',
+  cnpj: '70.033.249/0001-89',
   endereco: 'Av. Paulista, 1106, Sala 01, 16º andar, Bela Vista, São Paulo - SP, CEP 01310-914',
 } as const;
 
