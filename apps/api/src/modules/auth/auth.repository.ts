@@ -31,7 +31,7 @@ export class AuthRepository {
   findCompanyAuthContext(id: string) {
     return this.prisma.company.findUnique({
       where: { id },
-      select: { id: true, name: true, slug: true, status: true, billingStatus: true, isActive: true },
+      select: { id: true, name: true, slug: true, status: true, billingStatus: true, isActive: true, activeModules: true, trialEndsAt: true, recruitmentAccountType: true },
     });
   }
 
@@ -229,6 +229,7 @@ export class AuthRepository {
   }
 
   createCompanyWithAdmin(data: {
+    recruitmentAccountType?: 'EMPLOYER' | 'RECRUITER';
     companyName: string;
     document: string | null;
     name: string;
@@ -244,6 +245,8 @@ export class AuthRepository {
     return this.prisma.company.create({
       data: {
         name: normalizeDisplayName(data.companyName),
+        recruitmentAccountType: data.recruitmentAccountType ?? 'EMPLOYER',
+        email: data.email,
         document: data.document,
         phone: emptyToNull(data.phone),
         status: data.isFree ? 'ACTIVE' : 'SUSPENDED',

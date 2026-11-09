@@ -608,6 +608,26 @@ export type FiscalAdjustmentAction = 'RETRY_CANCEL' | 'REISSUE' | 'MARK_RESOLVED
 export interface UpdatePlatformInvoiceInput {
   description?: string; amount?: number; dueDate?: string; billingType?: PlatformBillingType; status?: PlatformInvoiceStatus;
 }
+export type RecruitmentAccountType = 'EMPLOYER' | 'RECRUITER';
+export interface PublicPlanQuote {
+  total: number;
+  commitmentMonths: number;
+  seatQuantity: number;
+  couponApplied: boolean;
+  trialDays: number;
+}
+export interface RegisterCompanyInput {
+  recruitmentAccountType: RecruitmentAccountType;
+  companyName: string;
+  document?: string;
+  name: string;
+  email: string;
+  phone?: string;
+  password: string;
+  planId: string;
+  seatQuantity: number;
+  couponCode?: string;
+}
 export interface PublicPlatformPlan {
   id: string; name: string; description?: string | null; price: number | string; cycle: string;
   maxUsers: number; maxEmployees: number; activeModules: string[]; isFree: boolean;
@@ -622,6 +642,8 @@ export interface PublicPlatformPlan {
   asaasCycle?: string;
   pricingVersion?: string;
   isRecommended?: boolean;
+  trialDays?: number;
+  signupEnabled?: boolean;
 }
 export interface CompanyBillingResult {
   company?: { id: string; name: string; status: CompanyStatus; billingStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PENDING_PAYMENT'; suspensionReason?: string | null };
@@ -886,8 +908,8 @@ export const api = {
     validateResetCode: (email: string, code: string, cpfStart?: string, registration?: string) => request<{ valid: boolean; resetToken: string }>('/auth/password-reset/validate-code', { method: 'POST', body: { email, code, cpfStart: cpfStart || undefined, registration: registration || undefined } }),
     resetPassword: (token: string, newPassword: string) => request<{ changed: boolean }>('/auth/password-reset/confirm', { method: 'POST', body: { token, newPassword } }),
     publicPlans: () => request<PublicPlatformPlan[]>('/auth/public-plans'),
-    quotePublicPlan: (data: { planId: string; seatQuantity: number; couponCode?: string }) => request<{ total: number; monthlyEquivalent?: number; commitmentMonths: number; seatQuantity: number; couponApplied: boolean; trialDays: number }>('/auth/public-plans/quote', { method: 'POST', body: data }),
-    registerCompany: (data: any) => request<any>('/auth/register-company', { method: 'POST', body: data }),
+    quotePublicPlan: (data: { planId: string; seatQuantity: number; couponCode?: string }) => request<PublicPlanQuote>('/auth/public-plans/quote', { method: 'POST', body: data }),
+    registerCompany: (data: RegisterCompanyInput) => request<any>('/auth/register-company', { method: 'POST', body: data }),
     searchEmployeesForPasswordReset: (search: string) =>
       request<PasswordResetEmployee[]>(
         `/auth/password-reset/employees${makeQuery({ search })}`,

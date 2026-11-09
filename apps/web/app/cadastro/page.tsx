@@ -2,24 +2,19 @@
 
 import { TurnstileWidget } from '@/app/_components/turnstile-widget';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { AuthAlert, AuthShell, authButton, authInput, authLink } from '@/app/_components/auth/auth-shell';
 import { PasswordField, isStrongPassword } from '@/app/_components/auth/password-field';
 import { PlanCard } from '@/app/_components/plan-card';
 import type { Company, User as AuthUser } from '@/app/contexts/AuthContext';
-import { api, type PublicPlatformPlan } from '@/app/lib/api';
+import { api, type PublicPlanQuote, type PublicPlatformPlan, type RecruitmentAccountType } from '@/app/lib/api';
 import { persistAuthSession } from '@/app/lib/auth-session';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Ambiente de teste do robo: CPF/CNPJ pode ficar em branco e nao e validado. Precisa casar com COMPANY_DOCUMENT_OPTIONAL da API. */
 const DOCUMENTO_OPCIONAL = process.env.NEXT_PUBLIC_COMPANY_DOCUMENT_OPTIONAL === 'true';
 const brl = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-function num(value: unknown): number {
-  const n = typeof value === 'number' ? value : Number(String(value ?? '').replace(',', '.'));
-  return Number.isFinite(n) ? n : 0;
-}
 
 function maskDocument(raw: string) {
   const d = raw.replace(/\D/g, '').slice(0, 14);
@@ -52,8 +47,8 @@ function maskPhone(raw: string) {
 }
 
 function CadastroForm() {
-  const router = useRouter();
   const search = useSearchParams();
+  const [accountType, setAccountType] = useState<RecruitmentAccountType>(() => search.get('perfil') === 'recrutador' ? 'RECRUITER' : 'EMPLOYER');
   const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState({ companyName: '', document: '', name: '', email: '', phone: '', password: '', couponCode: '' });
   const [seats, setSeats] = useState(() => Math.max(1, Math.min(10_000, Number(search.get('seats')) || 1)));
@@ -64,6 +59,9 @@ function CadastroForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const pending = useRef(false);
+  const [quote, setQuote] = useState<{ key: string; data: PublicPlanQuote } | null>(null);
+  const [quoteError, setQuoteError] = useState<{ key: string; message: string } | null>(null);
+  const [quoteAttempt, setQuoteAttempt] = useState(0);
 
   const loadPlans = useCallback(() => {
     setPlansError(''); setPlans(null);
@@ -73,12 +71,31 @@ function CadastroForm() {
         setPlans(list);
         // Cadastro publico liberado so para Recrutamento e Selecao (code 'RS'); os demais ficam "Em breve".
         setPlanId((current) => list.some((p) => p.id === current && p.code === 'RS') ? current : (list.find((p) => p.code === 'RS') ?? list[0])?.id ?? '');
+        const rs = list.find((p) => p.code === 'RS');
+        if (rs) setSeats((current) => Math.min(rs.maxUsers, Math.max(current, rs.includedUnits || 1)));
       })
       .catch((cause) => setPlansError(cause instanceof Error ? cause.message : 'Não foi possível carregar os planos.'));
   }, []);
   useEffect(loadPlans, [loadPlans]);
 
   const plan = plans?.find((item) => item.id === planId) ?? null;
+  const couponCode = form.couponCode.trim().toUpperCase();
+  const quoteKey = JSON.stringify([planId, seats, couponCode, quoteAttempt]);
+  const currentQuote = quote?.key === quoteKey ? quote.data : null;
+  const currentQuoteError = quoteError?.key === quoteKey ? quoteError.message : '';
+  const signupEnabled = Boolean(plan?.code === 'RS' && plan.signupEnabled !== false);
+  const trialDays = currentQuote?.trialDays ?? plan?.trialDays;
+
+  useEffect(() => {
+    if (step !== 2 || !plan || !signupEnabled || plan.isFree) return;
+    let active = true;
+    const timeout = window.setTimeout(() => {
+      api.auth.quotePublicPlan({ planId: plan.id, seatQuantity: seats, couponCode: couponCode || undefined })
+        .then((data) => { if (active) { setQuote({ key: quoteKey, data }); setQuoteError(null); } })
+        .catch((cause) => { if (active) { setQuote(null); setQuoteError({ key: quoteKey, message: cause instanceof Error ? cause.message : 'Não foi possível confirmar o preço.' }); } });
+    }, 400);
+    return () => { active = false; window.clearTimeout(timeout); };
+  }, [step, plan, signupEnabled, seats, couponCode, quoteKey]);
   const set = (key: keyof typeof form, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const stepOneError = useMemo(() => {
@@ -99,12 +116,16 @@ function CadastroForm() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (pending.current) return;
+    if (stepOneError) { setStep(1); return setError(stepOneError); }
     if (!plan) return setError('Selecione um plano.');
+    if (!signupEnabled) return setError('Escolha o plano de Recrutamento e Seleção para continuar.');
+    if (!plan.isFree && !currentQuote) return setError(currentQuoteError || 'Aguarde a confirmação do preço do plano.');
     if (plan.maxUsers && seats > plan.maxUsers) return setError(`Este plano permite no máximo ${plan.maxUsers} usuários.`);
     if (!accepted) return setError('Aceite os Termos de Uso e a Política de Privacidade para continuar.');
     pending.current = true; setLoading(true); setError('');
     try {
       const response = await api.auth.registerCompany({
+        recruitmentAccountType: accountType,
         companyName: form.companyName.trim(), document: form.document.replace(/\D/g, '') || undefined, name: form.name.trim(), email: form.email.trim().toLowerCase(),
         phone: form.phone.replace(/\D/g, '') || undefined, password: form.password, planId: plan.id, seatQuantity: seats, couponCode: form.couponCode.trim() || undefined,
       });
@@ -115,19 +136,15 @@ function CadastroForm() {
       persistAuthSession(response.access_token, sessionUser, response.company as Company, Boolean(response.passwordChangeRequired), false);
       const tenant = response.company.slug || response.company.id;
       // Navegação completa: o contexto de login só lê a sessão recém-criada ao carregar (o cookie renova o acesso). Com router.replace a página ficava em branco.
-      window.location.assign(response.trial || plan.isFree ? `/${tenant}/dashboard` : `/${tenant}/fatura-pendente?autoCheckout=1`);
+      window.location.assign(response.trial || plan.isFree ? `/${tenant}/dashboard/jobs` : `/${tenant}/fatura-pendente?autoCheckout=1`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível criar a conta. Tente novamente.');
       pending.current = false; setLoading(false);
     }
   }
 
-  const unitPrice = plan ? num(plan.baseMonthlyPrice) || num(plan.price) : 0;
-  const seatPrice = plan ? num(plan.userMonthlyPrice) : 0;
-  const estimate = unitPrice + Math.max(0, seats - (plan?.includedUnits ?? 0)) * seatPrice;
-
   return (
-    <AuthShell wide full={step === 2} title="Crie sua empresa" subtitle={step === 1 ? 'Etapa 1 de 2 · Dados da empresa e do administrador' : 'Etapa 2 de 2 · Plano e confirmação'}
+    <AuthShell wide full={step === 2} title="Comece a contratar" subtitle={step === 1 ? 'Etapa 1 de 2 · Sua conta de recrutamento' : 'Etapa 2 de 2 · Teste grátis, plano e confirmação'}
       footer={<>Já tem conta? <Link href="/login" className="font-semibold text-white underline">Entrar</Link></>}>
       <div className="mb-5 flex gap-2" aria-hidden="true">
         {[1, 2].map((n) => <span key={n} className={`h-1.5 flex-1 rounded-full ${n <= step ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600' : 'bg-zinc-200'}`} />)}
@@ -135,8 +152,14 @@ function CadastroForm() {
 
       {step === 1 ? (
         <form onSubmit={next} className="space-y-4">
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium text-zinc-700">Como você vai usar o Innovation?</legend>
+            <label className="flex min-h-11 items-start gap-3 rounded-xl border border-zinc-200 p-3"><input type="radio" name="account-type" value="EMPLOYER" checked={accountType === 'EMPLOYER'} onChange={() => setAccountType('EMPLOYER')} className="mt-1" /><span><strong className="block text-sm text-zinc-800">Sou empreendedor / pequena empresa</strong><span className="text-xs text-zinc-600">Vou divulgar vagas e contratar para o meu negócio.</span></span></label>
+            <label className="flex min-h-11 items-start gap-3 rounded-xl border border-zinc-200 p-3"><input type="radio" name="account-type" value="RECRUITER" checked={accountType === 'RECRUITER'} onChange={() => setAccountType('RECRUITER')} className="mt-1" /><span><strong className="block text-sm text-zinc-800">Sou recrutador / consultoria</strong><span className="text-xs text-zinc-600">Vou conduzir processos seletivos para meus clientes.</span></span></label>
+          </fieldset>
+          <p className="text-sm text-zinc-600">Está procurando emprego? <Link href="/carreiras/conta/entrar?modo=cadastro" className={authLink}>Crie sua conta gratuita de candidato</Link>.</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="c-company" label="Nome da empresa"><input id="c-company" required autoComplete="organization" className={authInput} value={form.companyName} onChange={(e) => set('companyName', e.target.value)} /></Field>
+            <Field id="c-company" label={accountType === 'EMPLOYER' ? 'Nome do seu negócio' : 'Nome da consultoria ou nome profissional'}><input id="c-company" required maxLength={120} autoComplete="organization" className={authInput} value={form.companyName} onChange={(e) => set('companyName', e.target.value)} /></Field>
             <Field id="c-doc" label={DOCUMENTO_OPCIONAL ? 'CNPJ ou CPF (opcional em teste)' : 'CNPJ ou CPF'}>
               <input id="c-doc" required={!DOCUMENTO_OPCIONAL} inputMode="numeric" className={authInput} value={form.document} onChange={(e) => set('document', maskDocument(e.target.value))} aria-invalid={!DOCUMENTO_OPCIONAL && form.document.replace(/\D/g, '').length >= 11 && !validDocument(form.document)} />
             </Field>
@@ -166,14 +189,13 @@ function CadastroForm() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field id="c-seats" label={plan?.code === 'RS' ? 'Vagas por mês' : 'Colaboradores'}><input id="c-seats" type="number" min={1} max={plan?.maxUsers || 10000} required className={authInput} value={seats} onChange={(e) => setSeats(Math.max(1, Math.floor(Number(e.target.value)) || 1))} /></Field>
-            <Field id="c-coupon" label="Cupom (opcional, não altera o teste grátis)"><input id="c-coupon" autoComplete="off" className={authInput} value={form.couponCode} onChange={(e) => set('couponCode', e.target.value.trim())} /></Field>
+            <Field id="c-coupon" label="Cupom de desconto ou extensão do teste (opcional)"><input id="c-coupon" autoComplete="off" className={authInput} value={form.couponCode} onChange={(e) => set('couponCode', e.target.value.trim())} /></Field>
           </div>
 
-          {plan && !plan.isFree && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800"><strong>30 dias grátis, sem cartão.</strong> Depois, preço cheio do plano. Um teste grátis por CPF/CNPJ.</p>}
-
-          {plan && !plan.isFree && estimate > 0 && (
-            <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">Estimativa mensal: <strong>{brl(estimate)}</strong> <span className="text-xs text-zinc-500">(plano + {seats} {plan?.code === 'RS' ? 'vaga' : 'colaborador'}{seats > 1 ? (plan?.code === 'RS' ? 's' : 'es') : ''}, o valor final com descontos aparece no checkout)</span></p>
-          )}
+          {plan && !plan.isFree && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800"><strong>{trialDays ? `${trialDays} dias grátis, sem cartão.` : 'Teste grátis, sem cartão.'}</strong> Um teste por CPF/CNPJ. Criamos sua assinatura e seu cadastro de cobrança junto com a conta. Não é necessário abrir conta no provedor de pagamento.</p>}
+          {plan && !plan.isFree && !currentQuote && !currentQuoteError && <p role="status" className="text-sm text-zinc-500">Confirmando preço e período de teste…</p>}
+          {currentQuoteError && <AuthAlert>{currentQuoteError} <button type="button" className="font-semibold underline" onClick={() => setQuoteAttempt((value) => value + 1)}>Tentar novamente</button></AuthAlert>}
+          {currentQuote && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">Após o teste: <strong>{brl(currentQuote.total)} por {currentQuote.commitmentMonths === 1 ? 'mês' : `ciclo de ${currentQuote.commitmentMonths} meses`}</strong>. {seats} vagas contratadas por mês.{currentQuote.couponApplied ? ' Cupom aplicado conforme as condições da promoção.' : ''} Você acompanha os vencimentos e pode cancelar em Faturas.</p>}
 
           <label className="flex items-start gap-2 text-sm text-zinc-600">
             <input type="checkbox" className="mt-1" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
@@ -183,9 +205,9 @@ function CadastroForm() {
           {error && <AuthAlert>{error}</AuthAlert>}
           <div className="flex gap-3">
             <button type="button" onClick={() => { setStep(1); setError(''); }} disabled={loading} className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50">Voltar</button>
-            <TurnstileWidget />
-            <button type="submit" disabled={loading || !plan || !accepted} className={authButton}>{loading ? 'Criando conta…' : 'Criar minha empresa'}</button>
+            <button type="submit" disabled={loading || !signupEnabled || !accepted || Boolean(plan && !plan.isFree && !currentQuote)} className={authButton}>{loading ? 'Criando conta…' : plan?.isFree ? 'Criar minha conta' : 'Criar conta e começar teste grátis'}</button>
           </div>
+          <TurnstileWidget />
         </form>
       )}
     </AuthShell>

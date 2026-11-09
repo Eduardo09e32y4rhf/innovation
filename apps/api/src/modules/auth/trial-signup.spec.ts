@@ -19,7 +19,7 @@ function setup(opts: { plan?: any; coupon?: any; used?: boolean } = {}) {
     redeemDiscountCoupon: vi.fn(async () => ({ applied: true })),
     deleteIncompleteCompany: vi.fn(async () => ({})),
   };
-  const finance: any = { ensureCompanyOnboardingBilling: vi.fn(async () => ({ active: false, paymentUrl: 'https://pay' })) };
+  const finance: any = { prepareTrialBillingAccount: vi.fn(async () => ({ pending: false })), ensureCompanyOnboardingBilling: vi.fn(async () => ({ active: false, paymentUrl: 'https://pay' })) };
   const service: any = new AuthService(repo, {} as any, {} as any, finance, { calculate: vi.fn(() => ({ total: 1 })) } as any, {} as any, {} as any, {} as any, {} as any);
   service.assertValidDocument = () => undefined;
   service.assertStrongPassword = () => undefined;
@@ -37,8 +37,22 @@ describe('cadastro com teste gratis padrao', () => {
     expect(r).toMatchObject({ trial: true, trialEndsAt: END, trialAlreadyUsed: false });
     expect(repo.startDefaultTrial).toHaveBeenCalledWith(expect.objectContaining({ trialDays: 30, documentHash: 'h:11222333000181' }));
     expect(finance.ensureCompanyOnboardingBilling).not.toHaveBeenCalled();
+    expect(finance.prepareTrialBillingAccount).toHaveBeenCalledWith('c1');
     expect(repo.createSubscription).not.toHaveBeenCalled();
     expect(r.paymentUrl).toBeNull();
+  });
+  it.each(['EMPLOYER', 'RECRUITER'])('persiste o tipo %s e garante acesso ao recrutamento', async (recruitmentAccountType) => {
+    const { repo, register } = setup();
+    await register({ recruitmentAccountType });
+    expect(repo.createCompanyWithAdmin).toHaveBeenCalledWith(expect.objectContaining({ recruitmentAccountType, activeModules: ['recruitment'] }));
+  });
+  it('falha no cadastro financeiro nao perde a conta nem o teste e nao cria cobranca', async () => {
+    const { repo, finance, register } = setup();
+    finance.prepareTrialBillingAccount.mockRejectedValueOnce(new Error('gateway indisponivel'));
+    const result = await register();
+    expect(result).toMatchObject({ trial: true, billingSetupPending: true, paymentUrl: null });
+    expect(repo.deleteIncompleteCompany).not.toHaveBeenCalled();
+    expect(finance.ensureCompanyOnboardingBilling).not.toHaveBeenCalled();
   });
   it('2o cadastro com o mesmo documento nao ganha teste: paga na hora, com mensagem', async () => {
     const { repo, finance, register } = setup({ used: true });

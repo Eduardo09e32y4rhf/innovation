@@ -315,6 +315,8 @@ model Company {
   logoUrl   String? @db.Text
   phone     String?
   email     String?
+  /// EMPLOYER contrata para a propria empresa; RECRUITER presta servicos de recrutamento.
+  recruitmentAccountType String @default("EMPLOYER")
   address   String? // Mantido para migraÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o
 
   // Dados Contratuais e Fiscais

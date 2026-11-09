@@ -154,6 +154,30 @@ export class PlatformFinanceService {
     });
   }
 
+  /** Prepara somente o cadastro financeiro do teste. Nao emite fatura nem cria recorrencia. */
+  async prepareTrialBillingAccount(companyId: string): Promise<{ pending: boolean }> {
+    const previous = this.onboardingLocks.get(companyId) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(() => this.prepareTrialBillingAccountLocked(companyId));
+    this.onboardingLocks.set(companyId, run);
+    try { return await run; } finally { if (this.onboardingLocks.get(companyId) === run) this.onboardingLocks.delete(companyId); }
+  }
+
+  private async prepareTrialBillingAccountLocked(companyId: string): Promise<{ pending: boolean }> {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      include: { platformPlan: true, subscription: true, users: { where: { role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, take: 1 } },
+    });
+    if (!company) throw new NotFoundException('Empresa nao encontrada.');
+    if (company.billingStatus !== 'TRIAL' || company.platformPlan?.isFree) return { pending: false };
+    const provider = await this.providers.active();
+    // Mercado Pago identifica o pagador no checkout: nao exige uma conta financeira separada.
+    if (provider === 'MERCADOPAGO') return { pending: !this.mercadoPago.isConfigured() };
+    if (!this.asaas.isConfigured()) return { pending: true };
+    if (!company.document || !company.users[0]) throw new BadRequestException('Complete o documento e o administrador da empresa.');
+    await this.ensureAsaasCustomer(company, company.users[0]);
+    return { pending: false };
+  }
+
   async ensureAsaasCustomer(company: any, admin: any) {
     let customerId = company.subscription?.asaasCustomerId || company.asaasCustomerId;
     if (!customerId) {

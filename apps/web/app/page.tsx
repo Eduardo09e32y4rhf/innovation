@@ -87,7 +87,7 @@ export default function Home() {
           </nav>
           <div className="flex items-center gap-2">
             <Link href="/login" className="hidden min-h-10 items-center rounded-lg px-3 text-sm font-medium text-white/90 hover:bg-white/10 sm:inline-flex">Entrar</Link>
-            <Link href="/cadastro" className="inline-flex min-h-10 items-center rounded-lg bg-white px-4 text-sm font-semibold text-[var(--color-brand-800)] transition hover:bg-purple-50">Criar empresa</Link>
+            <Link href="/cadastro?perfil=empreendedor" className="inline-flex min-h-10 items-center rounded-lg bg-white px-4 text-sm font-semibold text-[var(--color-brand-800)] transition hover:bg-purple-50">Teste grátis</Link>
             <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/10 lg:hidden" aria-expanded={menu} aria-controls="mobile-nav" aria-label={menu ? 'Fechar menu' : 'Abrir menu'} onClick={() => setMenu((v) => !v)}>
               {menu ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
@@ -115,7 +115,7 @@ export default function Home() {
               <Reveal delay={160}><p className="mt-5 max-w-xl text-lg text-white/80">Abra vagas, encontre gente boa e conduza a contratação. Depois cuide da equipe: escalas, ponto, férias e fechamento. Uma plataforma só, do primeiro currículo ao último dia do mês.</p></Reveal>
               <Reveal delay={240}>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link href="/cadastro" className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-300 to-pink-300 px-7 text-sm font-bold text-[#2e1065] shadow-[0_12px_40px_-8px_rgba(251,191,36,.5)] transition hover:-translate-y-0.5">Criar minha empresa <ArrowRight size={16} className="transition group-hover:translate-x-1" aria-hidden="true" /></Link>
+                  <Link href="/cadastro?perfil=empreendedor" className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-300 to-pink-300 px-7 text-sm font-bold text-[#2e1065] shadow-[0_12px_40px_-8px_rgba(251,191,36,.5)] transition hover:-translate-y-0.5">Começar teste grátis <ArrowRight size={16} className="transition group-hover:translate-x-1" aria-hidden="true" /></Link>
                   <Link href="/carreiras" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/30 px-7 text-sm font-semibold hover:bg-white/10">Procurar vagas</Link>
                 </div>
               </Reveal>
@@ -243,7 +243,7 @@ export default function Home() {
             <h2 className="relative mx-auto max-w-2xl text-3xl font-extrabold tracking-tight sm:text-5xl">Sua próxima contratação começa numa vaga aberta 🚀</h2>
             <p className="relative mx-auto mt-4 max-w-xl text-white/90">Crie a empresa, publique a primeira vaga e conduza todo o caminho num lugar só.</p>
             <div className="relative mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link href="/cadastro" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-8 text-sm font-bold text-[var(--color-brand-800)] transition hover:-translate-y-0.5">Criar minha empresa <ArrowRight size={16} aria-hidden="true" /></Link>
+              <Link href="/cadastro?perfil=empreendedor" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-8 text-sm font-bold text-[var(--color-brand-800)] transition hover:-translate-y-0.5">Começar teste grátis <ArrowRight size={16} aria-hidden="true" /></Link>
               <Link href="/login" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/40 px-8 text-sm font-semibold hover:bg-white/10">Já tenho conta</Link>
             </div>
           </Reveal>
@@ -255,7 +255,7 @@ export default function Home() {
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div><Link href="/" className="inline-flex" aria-label="Innovation RH Connect — início"><BrandLogo size={40} /></Link><p className="mt-3 max-w-xs text-sm text-white/60">Vagas, escalas, ponto, férias e fechamento em uma plataforma só.</p></div>
           <nav aria-label="Produto"><p className="text-sm font-semibold">Produto</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/carreiras" className="hover:text-white">Portal de vagas</Link></li><li><a href="#vagas" className="hover:text-white">Recrutamento</a></li><li><a href="#gestao" className="hover:text-white">Gestão</a></li><li><a href="#planos" className="hover:text-white">Planos</a></li></ul></nav>
-          <nav aria-label="Conta"><p className="text-sm font-semibold">Conta</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/login" className="hover:text-white">Entrar</Link></li><li><Link href="/cadastro" className="hover:text-white">Criar empresa</Link></li><li><Link href="/esqueci-senha" className="hover:text-white">Recuperar senha</Link></li></ul></nav>
+          <nav aria-label="Conta"><p className="text-sm font-semibold">Conta</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/login" className="hover:text-white">Entrar</Link></li><li><Link href="/cadastro?perfil=empreendedor" className="hover:text-white">Teste grátis</Link></li><li><Link href="/esqueci-senha" className="hover:text-white">Recuperar senha</Link></li></ul></nav>
           <nav aria-label="Legal"><p className="text-sm font-semibold">Ajuda e legal</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/suporte" className="hover:text-white">Suporte</Link></li><li><Link href="/privacidade" className="hover:text-white">Privacidade</Link></li><li><Link href="/termos" className="hover:text-white">Termos de uso</Link></li><li><button type="button" onClick={openConsentPreferences} className="inline-flex min-h-11 items-center hover:text-white">Preferências de cookies</button></li></ul></nav>
         </div>
         <div className="border-t border-white/10 px-4 py-6 text-center text-xs leading-5">
