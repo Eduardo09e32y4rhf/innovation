@@ -1,23 +1,38 @@
 import { redirect } from 'next/navigation';
 
-type SearchParams = Record<string, string | string[] | undefined>;
+type SearchParamValue = string | string[] | undefined;
+type SearchParams = Record<string, SearchParamValue>;
 
-export default async function CriarContaPage(
-  props: {
-    searchParams?: Promise<SearchParams>;
-  }
-) {
-  const searchParams = await props.searchParams;
+interface CriarContaPageProps {
+  searchParams?: Promise<SearchParams>;
+}
+
+function buildQueryString(searchParams: SearchParams | undefined): string {
+  if (!searchParams) return '';
+
   const query = new URLSearchParams();
 
-  Object.entries(searchParams ?? {}).forEach(([key, value]) => {
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (!key || value === undefined) continue;
+
     if (Array.isArray(value)) {
-      value.forEach((item) => query.append(key, item));
-    } else if (value !== undefined) {
+      for (const item of value) {
+        if (item !== undefined && item !== '') {
+          query.append(key, item);
+        }
+      }
+    } else if (value !== '') {
       query.set(key, value);
     }
-  });
+  }
 
-  const suffix = query.toString();
-  redirect(suffix ? `/cadastro?${suffix}` : '/cadastro');
+  return query.toString();
+}
+
+export default async function CriarContaPage({ searchParams }: CriarContaPageProps) {
+  const resolvedParams = await searchParams;
+  const queryString = buildQueryString(resolvedParams);
+  const destination = queryString ? `/cadastro?${queryString}` : '/cadastro';
+
+  redirect(destination);
 }
