@@ -217,7 +217,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
           </div>
         </section>
 
-        <ShareBar title={job.title} companyName={company.name} />
+        <ShareBar title={job.title} companyName={company.name} location={job.location} salary={salary} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd(job, typeof window === 'undefined' ? '' : window.location.origin + window.location.pathname)).replace(/</g, '\\u003c') }} />
         <div className="flex flex-wrap gap-2">
           {job.pcd && <span className="inline-flex items-center rounded-full bg-[#e8f1fb] px-3 py-1 text-xs font-semibold text-[#1f5a96]" title="Vaga afirmativa para pessoas com deficiência">Vaga PCD</span>}
@@ -345,20 +345,94 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
 }
 
 /** Compartilhar a vaga: cada canal recebe um link com ?src=, e a candidatura fica marcada com a origem. */
-function ShareBar({ title, companyName }: { title: string; companyName: string }) {
+function ShareBar({
+  title,
+  companyName,
+  location,
+  salary,
+}: {
+  title: string;
+  companyName: string;
+  location?: string | null;
+  salary?: string | null;
+}) {
   const [copied, setCopied] = useState(false);
-  const base = () => window.location.origin + window.location.pathname;
-  const open = (channel: string, build: (url: string) => string) => window.open(build(trackedJobUrl(base(), channel)), '_blank', 'noopener,noreferrer');
-  async function copy() {
-    try { await navigator.clipboard.writeText(trackedJobUrl(base(), 'site')); setCopied(true); window.setTimeout(() => setCopied(false), 2000); } catch { /* sem permissão de área de transferência */ }
+
+  const base = () => (typeof window === 'undefined' ? '' : window.location.origin + window.location.pathname);
+
+  const shareMessage = (url: string) => {
+    const details = [location, salary].filter(Boolean).join(' · ');
+    return details
+      ? `Vaga: ${title} na ${companyName} (${details}). Candidate-se: ${url}`
+      : `Vaga: ${title} na ${companyName}. Candidate-se: ${url}`;
+  };
+
+  const open = (channel: string, build: (url: string, msg: string) => string) => {
+    const url = trackedJobUrl(base(), channel);
+    const msg = shareMessage(url);
+    window.open(build(url, msg), '_blank', 'noopener,noreferrer');
+  };
+
+  async function copyOrShare() {
+    const url = trackedJobUrl(base(), 'site');
+    const text = shareMessage(url);
+
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: `${title} · ${companyName}`,
+          text,
+          url,
+        });
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+        return;
+      } catch (err) {
+        if ((err as { name?: string })?.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* sem permissão de área de transferência */
+    }
   }
-  const text = (url: string) => `Vaga: ${title} na ${companyName}. Candidate-se: ${url}`;
+
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm" aria-label="Compartilhar vaga" role="group">
       <span className="text-fg-mut">Compartilhar:</span>
-      <button type="button" className="btn btn-outline" onClick={() => open('whatsapp', (url) => `https://wa.me/?text=${encodeURIComponent(text(url))}`)}>WhatsApp</button>
-      <button type="button" className="btn btn-outline" onClick={() => open('linkedin', (url) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`)}>LinkedIn</button>
-      <button type="button" className="btn btn-outline" onClick={() => void copy()}>{copied ? 'Link copiado' : 'Copiar link'}</button>
+      <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => open('whatsapp', (_url, msg) => `https://wa.me/?text=${encodeURIComponent(msg)}`)}
+      >
+        WhatsApp
+      </button>
+      <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() =>
+          open(
+            'telegram',
+            (url, msg) => `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(msg)}`,
+          )
+        }
+      >
+        Telegram
+      </button>
+      <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => open('linkedin', (url) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`)}
+      >
+        LinkedIn
+      </button>
+      <button type="button" className="btn btn-outline" onClick={() => void copyOrShare()}>
+        {copied ? 'Link copiado' : 'Copiar link'}
+      </button>
     </div>
   );
 }
