@@ -117,8 +117,17 @@ export class UsersService {
     }
 
     const email = dto.email.trim().toLowerCase();
-    const existing = await this.repository.findByEmail(email);
-    if (existing) throw new ConflictException('E-mail ja cadastrado');
+    const existing = (await this.repository.findByEmail(email)) as
+      | { id: string; companyId: string; isActive?: boolean; role?: string }
+      | null;
+
+    if (existing && existing.isActive !== false) {
+      throw new ConflictException(
+        existing.companyId === targetCompanyId
+          ? 'E-mail ja cadastrado nesta empresa.'
+          : 'E-mail ja cadastrado em outra empresa.',
+      );
+    }
 
     const [count, limits] = await Promise.all([
       this.repository.countByCompany(targetCompanyId),
@@ -137,51 +146,90 @@ export class UsersService {
       });
     }
 
-    // Conta criada por terceiros: a provisoria e sempre gerada pelo servidor (dto.password e ignorado).
-    const temporaryPassword = generateTemporaryPassword();
-    const temporaryPasswordExpiresAt = temporaryPasswordExpiry();
     if (dto.employeeId) {
       const employee = await this.repository.findEmployeeForLink(targetCompanyId, dto.employeeId);
       if (!employee) throw new NotFoundException('Funcionario nao encontrado nesta empresa.');
-      if (employee.userId) throw new ConflictException('Este funcionario ja possui um usuario vinculado.');
+      if (employee.userId && employee.userId !== existing?.id) {
+        throw new ConflictException('Este funcionario ja possui um usuario vinculado.');
+      }
     }
 
-    const created = await this.repository.createWithEmployeeSync({
-      companyId: targetCompanyId,
-      name: normalizeDisplayName(dto.name),
-      email,
-      passwordHash: await bcrypt.hash(temporaryPassword, 12),
-      role: dto.role ?? 'FUNCIONARIO',
-      employeeId: dto.employeeId,
-      temporaryPassword: {
-        value: temporaryPassword,
-        expiresAt: temporaryPasswordExpiresAt,
-      },
-      ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
-    });
-    if (!created) {
+    // Conta criada por terceiros: a provisoria e sempre gerada pelo servidor (dto.password e ignorado).
+    const temporaryPassword = generateTemporaryPassword();
+    const temporaryPasswordExpiresAt = temporaryPasswordExpiry();
+    const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+    const normalizedName = normalizeDisplayName(dto.name);
+    const nextRole = (dto.role ?? 'FUNCIONARIO') as UserRole;
+
+    let savedUser: any;
+    let action: 'USER_CREATED' | 'USER_REACTIVATED' = 'USER_CREATED';
+
+    if (existing && existing.isActive === false) {
+      action = 'USER_REACTIVATED';
+      await this.repository.setAccessState(existing.companyId, existing.id, 'UNBLOCK');
+      const updated = await this.repository.updateWithEmployeeSync(targetCompanyId, existing.id, {
+        name: normalizedName,
+        email,
+        role: nextRole,
+        isActive: true,
+        ...(dto.customPermissions !== undefined && dto.customPermissions !== null
+          ? { customPermissions: dto.customPermissions }
+          : {}),
+      } as any);
+      if (dto.employeeId !== undefined) {
+        await this.repository.setEmployeeLink(targetCompanyId, existing.id, dto.employeeId || null);
+      }
+      await this.repository.reissueTemporaryPassword(
+        existing.id,
+        {
+          passwordHash,
+          forcePasswordChange: true,
+          passwordChangedAt: new Date(),
+          failedLoginAttempts: 0,
+        },
+        encryptTemporaryPassword(temporaryPassword),
+        temporaryPasswordExpiresAt,
+      );
+      savedUser = updated.user ?? (await this.repository.findById(existing.id));
+    } else {
+      savedUser = await this.repository.createWithEmployeeSync({
+        companyId: targetCompanyId,
+        name: normalizedName,
+        email,
+        passwordHash,
+        role: nextRole,
+        employeeId: dto.employeeId,
+        temporaryPassword: {
+          value: temporaryPassword,
+          expiresAt: temporaryPasswordExpiresAt,
+        },
+        ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
+      });
+    }
+
+    if (!savedUser) {
       throw new NotFoundException('Usuario nao encontrado');
     }
 
     await this.repository.createAuditLog({
       companyId: targetCompanyId,
-      userId: created.id,
-      action: 'USER_CREATED',
+      userId: savedUser.id,
+      action,
       entity: 'User',
-      entityId: created.id,
+      entityId: savedUser.id,
       metadata: {
-        name: created.name,
-        email: created.email,
-        role: created.role,
-        isActive: created.isActive,
-        employeeLinked: Boolean((created as any).employee?.id),
+        name: savedUser.name,
+        email: savedUser.email,
+        role: savedUser.role,
+        isActive: savedUser.isActive,
+        employeeLinked: Boolean(savedUser.employee?.id || dto.employeeId),
         requestedBy: actor.email,
       },
       ...this.metaFields(meta),
     });
 
-    const emailSent = (await this.mail?.send(email, temporaryAccessEmail({ name: created.name, email, password: temporaryPassword, expiresAt: temporaryPasswordExpiresAt })))?.sent ?? false;
-    return { ...created, temporaryPassword, temporaryPasswordExpiresAt, emailSent };
+    const emailSent = (await this.mail?.send(email, temporaryAccessEmail({ name: savedUser.name, email, password: temporaryPassword, expiresAt: temporaryPasswordExpiresAt })))?.sent ?? false;
+    return { ...savedUser, temporaryPassword, temporaryPasswordExpiresAt, emailSent };
   }
 
   private metaFields(meta?: { ip?: string; userAgent?: string }) {
