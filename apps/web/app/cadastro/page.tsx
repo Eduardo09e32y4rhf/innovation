@@ -38,12 +38,51 @@ function validDocument(raw: string) {
   return calc(12) === digits[12] && calc(13) === digits[13];
 }
 
+function normalizePhoneDigits(raw: string, defaultCountry = '55'): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  let d = trimmed.replace(/\D/g, '');
+  if (!d) return '';
+
+  if (trimmed.startsWith('00')) {
+    d = d.slice(2);
+  } else if (!trimmed.startsWith('+') && d.length <= 11 && !d.startsWith(defaultCountry)) {
+    d = `${defaultCountry}${d}`;
+  }
+
+  return d.slice(0, 15);
+}
+
 function maskPhone(raw: string) {
-  const d = raw.replace(/\D/g, '').slice(0, 11);
-  if (d.length > 10) return d.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
-  if (d.length > 6) return d.replace(/^(\d{2})(\d{4})(\d{1,4}).*/, '($1) $2-$3');
-  if (d.length > 2) return d.replace(/^(\d{2})(\d{1,4})/, '($1) $2');
-  return d;
+  const d = normalizePhoneDigits(raw);
+  if (!d) return '';
+
+  if (d.startsWith('55') && d.length > 2) {
+    const cc = d.slice(0, 2);
+    const area = d.slice(2, 4);
+    const local = d.slice(4);
+    if (!area) return `+${cc}`;
+    if (local.length <= 4) return `+${cc} (${area}) ${local}`.trim();
+    if (local.length <= 8) return `+${cc} (${area}) ${local.slice(0, 4)}-${local.slice(4)}`;
+    return `+${cc} (${area}) ${local.slice(0, 5)}-${local.slice(5)}`;
+  }
+
+  const ccLen = d.length > 11 ? (d.startsWith('1') ? 1 : d.length >= 13 ? 3 : 2) : 1;
+  const cc = d.slice(0, ccLen);
+  const rest = d.slice(ccLen);
+  if (!rest) return `+${cc}`;
+
+  const areaLen = rest.length > 8 ? 2 : 0;
+  const area = areaLen ? rest.slice(0, areaLen) : '';
+  const local = areaLen ? rest.slice(areaLen) : rest;
+  const grouped =
+    local.length > 6
+      ? `${local.slice(0, local.length - 4)}-${local.slice(-4)}`
+      : local.length > 4
+        ? `${local.slice(0, 3)} ${local.slice(3)}`
+        : local;
+
+  return area ? `+${cc} (${area}) ${grouped}` : `+${cc} ${grouped}`;
 }
 
 function CadastroForm() {
@@ -124,10 +163,11 @@ function CadastroForm() {
     if (!accepted) return setError('Aceite os Termos de Uso e a Política de Privacidade para continuar.');
     pending.current = true; setLoading(true); setError('');
     try {
+      const normalizedPhone = normalizePhoneDigits(form.phone);
       const response = await api.auth.registerCompany({
         recruitmentAccountType: accountType,
         companyName: form.companyName.trim(), document: form.document.replace(/\D/g, '') || undefined, name: form.name.trim(), email: form.email.trim().toLowerCase(),
-        phone: form.phone.replace(/\D/g, '') || undefined, password: form.password, planId: plan.id, seatQuantity: seats, couponCode: form.couponCode.trim() || undefined,
+        phone: normalizedPhone ? `+${normalizedPhone}` : undefined, password: form.password, planId: plan.id, seatQuantity: seats, couponCode: form.couponCode.trim() || undefined,
       });
       const sessionUser: AuthUser = {
         id: response.user.sub, name: response.user.name, email: response.user.email, profile: String(response.user.role).toLowerCase(), role: response.user.role,
@@ -164,7 +204,7 @@ function CadastroForm() {
               <input id="c-doc" required={!DOCUMENTO_OPCIONAL} inputMode="numeric" className={authInput} value={form.document} onChange={(e) => set('document', maskDocument(e.target.value))} aria-invalid={!DOCUMENTO_OPCIONAL && form.document.replace(/\D/g, '').length >= 11 && !validDocument(form.document)} />
             </Field>
             <Field id="c-name" label="Seu nome"><input id="c-name" required autoComplete="name" className={authInput} value={form.name} onChange={(e) => set('name', e.target.value)} /></Field>
-            <Field id="c-phone" label="Telefone / WhatsApp (opcional)"><input id="c-phone" type="tel" autoComplete="tel" className={authInput} value={form.phone} onChange={(e) => set('phone', maskPhone(e.target.value))} /></Field>
+            <Field id="c-phone" label="Telefone / WhatsApp (opcional)"><input id="c-phone" type="tel" autoComplete="tel" placeholder="+55 (11) 91234-5678" className={authInput} value={form.phone} onChange={(e) => set('phone', maskPhone(e.target.value))} /></Field>
           </div>
           <Field id="c-email" label="E-mail de acesso"><input id="c-email" required type="email" autoComplete="email" className={authInput} value={form.email} onChange={(e) => set('email', e.target.value)} /></Field>
           <PasswordField label="Senha" value={form.password} onChange={(v) => set('password', v)} autoComplete="new-password" showRules />
@@ -221,4 +261,3 @@ function Field({ id, label, children }: { id: string; label: string; children: R
 export default function CadastroPage() {
   return <Suspense fallback={<p role="status" className="p-6 text-center">Carregando…</p>}><CadastroForm /></Suspense>;
 }
-
