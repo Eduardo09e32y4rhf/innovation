@@ -32,15 +32,36 @@ function isTechnicalChat(id: string) {
 }
 
 function formatWhatsappPhone(value?: string | null) {
-  const digits = String(value || '').replace(/\D/g, '');
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 15);
   if (!digits) return '';
-  if (digits.startsWith('55') && digits.length >= 12) {
+
+  if (digits.startsWith('55') && digits.length >= 10) {
     const ddd = digits.slice(2, 4);
-    const first = digits.length === 13 ? digits.slice(4, 9) : digits.slice(4, 8);
-    const last = digits.length === 13 ? digits.slice(9) : digits.slice(8);
-    return `+55 ${ddd} ${first}-${last}`;
+    const local = digits.slice(4);
+    if (local.length >= 8) {
+      const first = local.slice(0, local.length - 4);
+      const last = local.slice(-4);
+      return `+55 (${ddd}) ${first}-${last}`;
+    }
+    return `+55 (${ddd}) ${local}`.trim();
   }
-  return `+${digits}`;
+
+  const ccLen = digits.length > 11 ? (digits.startsWith('1') ? 1 : digits.length >= 13 ? 3 : 2) : 1;
+  const cc = digits.slice(0, ccLen);
+  const rest = digits.slice(ccLen);
+  if (!rest) return `+${cc}`;
+
+  const areaLen = rest.length > 8 ? 2 : 0;
+  const area = areaLen ? rest.slice(0, areaLen) : '';
+  const local = areaLen ? rest.slice(areaLen) : rest;
+  const grouped =
+    local.length > 6
+      ? `${local.slice(0, local.length - 4)}-${local.slice(-4)}`
+      : local.length > 4
+        ? `${local.slice(0, 3)} ${local.slice(3)}`
+        : local;
+
+  return area ? `+${cc} (${area}) ${grouped}` : `+${cc} ${grouped}`;
 }
 
 function looksLikeRawWhatsappId(value?: string | null) {
