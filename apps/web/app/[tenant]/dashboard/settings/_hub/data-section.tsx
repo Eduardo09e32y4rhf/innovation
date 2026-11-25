@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/app/components/ui';
 import { api } from '@/app/lib/api';
 import { downloadFile } from '@/app/lib/download';
+import { useI18n } from '@/app/contexts/I18nContext';
 
 type Row = Record<string, unknown>;
 type Validation = Awaited<ReturnType<typeof api.employees.validateImport>>;
@@ -38,6 +39,7 @@ function saveCsv(name: string, header: string[], lines: string[][]) {
 }
 
 export function DataSection() {
+  const { t } = useI18n();
   const [busy, setBusy] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [validation, setValidation] = useState<Validation | null>(null);
@@ -46,17 +48,17 @@ export function DataSection() {
     setBusy(item.id);
     try {
       const rows = await item.load();
-      if (!rows.length) return void toast.info('Não há dados para exportar.');
+      if (!rows.length) return void toast.info(t('Não há dados para exportar.'));
       saveCsv(item.id, item.columns.map(([label]) => label), rows.map((row) => item.columns.map(([, get]) => get(row))));
-      toast.success(`${rows.length} registro(s) exportados.`);
-    } catch (cause) { toast.error(cause instanceof Error && cause.message ? cause.message : 'Não foi possível exportar.'); }
+      toast.success(`${rows.length} ${t('registro(s) exportados.')}`);
+    } catch (cause) { toast.error(cause instanceof Error && cause.message ? cause.message : t('Não foi possível exportar.')); }
     finally { setBusy(null); }
   }
 
   async function template() {
     setBusy('template');
     try { await downloadFile('/employees/import/template', 'modelo-funcionarios.xlsx'); }
-    catch (cause) { toast.error(cause instanceof Error ? cause.message : 'Não foi possível baixar o modelo.'); }
+    catch (cause) { toast.error(cause instanceof Error ? cause.message : t('Não foi possível baixar o modelo.')); }
     finally { setBusy(null); }
   }
 
@@ -64,7 +66,7 @@ export function DataSection() {
     if (!file) return;
     setBusy('validate'); setValidation(null);
     try { setValidation(await api.employees.validateImport(file)); }
-    catch (cause) { toast.error(cause instanceof Error ? cause.message : 'Não foi possível validar o arquivo.'); }
+    catch (cause) { toast.error(cause instanceof Error ? cause.message : t('Não foi possível validar o arquivo.')); }
     finally { setBusy(null); }
   }
 
@@ -73,21 +75,21 @@ export function DataSection() {
     setBusy('confirm');
     try {
       const result = await api.employees.confirmImport(validation.importToken);
-      toast.success(`${result.imported} funcionário(s) importados.`);
+      toast.success(`${result.imported} ${t('funcionário(s) importados.')}`);
       setValidation(null); setFile(null);
-    } catch (cause) { toast.error(cause instanceof Error ? cause.message : 'Não foi possível concluir a importação.'); }
+    } catch (cause) { toast.error(cause instanceof Error ? cause.message : t('Não foi possível concluir a importação.')); }
     finally { setBusy(null); }
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <section className="rounded-2xl border border-border bg-bg p-5 shadow-sm space-y-3">
-        <h3 className="text-base font-bold text-fg">Exportar planilhas</h3><p className="text-xs text-fg-sub">Abre no Excel. Contém dados pessoais: guarde com cuidado.</p>
+        <h3 className="text-base font-bold text-fg">{t('Exportar planilhas')}</h3><p className="text-xs text-fg-sub">{t('Abre no Excel. Contém dados pessoais: guarde com cuidado.')}</p>
         <ul className="space-y-2">
           {EXPORTS.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
-              <span><span className="block text-sm font-medium">{item.label}</span><span className="block text-xs text-fg-sub">{item.hint} · CSV</span></span>
-              <Button variant="outline" size="sm" isLoading={busy === item.id} onClick={() => exportData(item)}><Download size={14} aria-hidden="true" /> Baixar</Button>
+              <span><span className="block text-sm font-medium">{t(item.label)}</span><span className="block text-xs text-fg-sub">{t(item.hint)} · CSV</span></span>
+              <Button variant="outline" size="sm" isLoading={busy === item.id} onClick={() => exportData(item)}><Download size={14} aria-hidden="true" /> {t('Baixar')}</Button>
             </li>
           ))}
         </ul>
@@ -95,12 +97,12 @@ export function DataSection() {
 
       <section className="rounded-2xl border border-border bg-bg p-5 shadow-sm space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-base font-bold text-fg">Importar funcionários</h3>
-          <Button variant="ghost" size="sm" isLoading={busy === 'template'} onClick={template}><FileSpreadsheet size={14} aria-hidden="true" /> Modelo XLSX</Button>
+          <h3 className="text-base font-bold text-fg">{t('Importar funcionários')}</h3>
+          <Button variant="ghost" size="sm" isLoading={busy === 'template'} onClick={template}><FileSpreadsheet size={14} aria-hidden="true" /> {t('Modelo XLSX')}</Button>
         </div>
-        <p className="text-xs text-fg-sub">1. Baixe o modelo · 2. Preencha · 3. Envie e valide · 4. Confirme a importação.</p>
-        <input type="file" accept=".xlsx" aria-label="Arquivo XLSX" className="input-v2 w-full text-sm" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setValidation(null); }} />
-        <Button variant="outline" disabled={!file} isLoading={busy === 'validate'} onClick={validate}><Upload size={14} aria-hidden="true" /> Validar arquivo</Button>
+        <p className="text-xs text-fg-sub">{t('1. Baixe o modelo · 2. Preencha · 3. Envie e valide · 4. Confirme a importação.')}</p>
+        <input type="file" accept=".xlsx" aria-label={t('Arquivo XLSX')} className="input-v2 w-full text-sm" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setValidation(null); }} />
+        <Button variant="outline" disabled={!file} isLoading={busy === 'validate'} onClick={validate}><Upload size={14} aria-hidden="true" /> {t('Validar arquivo')}</Button>
 
         {validation && (
           <div className="space-y-2 rounded-lg border border-border p-3 text-sm" role="status">
@@ -112,7 +114,7 @@ export function DataSection() {
             )}
             {validation.importToken && validation.validRows > 0
               ? <Button isLoading={busy === 'confirm'} onClick={confirm}>Importar {validation.validRows} funcionário(s)</Button>
-              : <p className="text-xs text-fg-sub">Corrija o arquivo e valide novamente.</p>}
+              : <p className="text-xs text-fg-sub">{t('Corrija o arquivo e valide novamente.')}</p>}
           </div>
         )}
       </section>

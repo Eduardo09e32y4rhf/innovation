@@ -8,6 +8,7 @@ import { Button } from '@/app/components/ui';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { cardClass, errorText, inputClass } from './types';
+import { useI18n } from '@/app/contexts/I18nContext';
 
 type Scope = 'NATIONAL' | 'STATE' | 'MUNICIPAL';
 type Row = { name: string; date: string; scope: Scope };
@@ -45,6 +46,7 @@ function nationalHolidays(year: number): Row[] {
 const br = (date: string) => date.split('-').reverse().join('/');
 
 export function HolidaysSection() {
+  const { t } = useI18n();
   const holidays = useQuery(() => api.companies.getHolidays(), []);
   const [rows, setRows] = useState<Row[]>([]);
   const [original, setOriginal] = useState('[]');
@@ -70,65 +72,65 @@ export function HolidaysSection() {
   function addNational() {
     const existing = new Set(rows.map((r) => r.date));
     const toAdd = nationalHolidays(year).filter((h) => !existing.has(h.date));
-    if (!toAdd.length) return void toast.info(`Os feriados nacionais de ${year} já estão na lista.`);
+    if (!toAdd.length) return void toast.info(t('Os feriados nacionais deste ano já estão na lista.', { year }));
     setRows((prev) => [...prev, ...toAdd]);
-    toast.success(`${toAdd.length} feriado(s) nacional(is) de ${year} adicionados. Clique em salvar para confirmar.`);
+    toast.success(t('{count} feriado(s) nacional(is) adicionados. Clique em salvar para confirmar.', { count: toAdd.length }));
   }
 
   async function save() {
     setError(null);
     const incomplete = rows.some((row) => !row.name.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(row.date));
-    if (incomplete) return setError('Preencha o nome e a data de todos os feriados.');
+    if (incomplete) return setError(t('Preencha o nome e a data de todos os feriados.'));
     const dup = rows.find((row, i) => rows.findIndex((o) => o.date === row.date && o.name.trim().toLowerCase() === row.name.trim().toLowerCase()) !== i);
-    if (dup) return setError(`"${dup.name}" aparece repetido em ${br(dup.date)}.`);
+    if (dup) return setError(t('O feriado "{name}" aparece repetido em {date}.', { name: dup.name, date: br(dup.date) }));
     setSaving(true);
     try {
       await api.companies.updateHolidays(rows.map((row) => ({ ...row, name: row.name.trim() })));
-      toast.success('Feriados salvos.');
+      toast.success(t('Feriados salvos.'));
       await holidays.refetch();
-    } catch (cause) { setError(errorText(cause, 'Não foi possível salvar os feriados.')); }
+    } catch (cause) { setError(errorText(cause, t('Não foi possível salvar os feriados.'))); }
     finally { setSaving(false); }
   }
 
   if (holidays.error) return <ErrorState message={holidays.error} onRetry={holidays.refetch} />;
-  if (holidays.loading && !holidays.data) return <LoadingState label="Carregando feriados…" />;
+  if (holidays.loading && !holidays.data) return <LoadingState label={t('Carregando feriados…')} />;
 
   return (
     <section className={`${cardClass} space-y-4`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Ano">
+        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label={t('Ano')}>
           {years.map((y) => (
             <button key={y} type="button" role="tab" aria-selected={year === y} onClick={() => setYear(y)}
               className={`min-h-10 rounded-full px-4 text-sm font-semibold ${year === y ? 'bg-purple-600 text-white' : 'border border-border text-fg-sub hover:bg-bg-sub'}`}>{y}</button>
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={addNational}><CalendarPlus size={15} aria-hidden="true" /> Adicionar nacionais de {year}</Button>
-          <Button variant="outline" onClick={() => setRows((prev) => [...prev, { name: '', date: `${year}-01-01`, scope: 'MUNICIPAL' }])}><Plus size={15} aria-hidden="true" /> Novo feriado</Button>
+          <Button variant="outline" onClick={addNational}><CalendarPlus size={15} aria-hidden="true" /> {t('Adicionar feriados nacionais')}</Button>
+          <Button variant="outline" onClick={() => setRows((prev) => [...prev, { name: '', date: `${year}-01-01`, scope: 'MUNICIPAL' }])}><Plus size={15} aria-hidden="true" /> {t('Novo feriado')}</Button>
         </div>
       </div>
-      <p className="text-xs text-fg-sub">Os feriados valem para a escala, o ponto e a folha. Adicione os da sua cidade e estado como Municipal ou Estadual.</p>
+      <p className="text-xs text-fg-sub">{t('Os feriados valem para a escala, o ponto e a folha. Adicione os da sua cidade e estado como Municipal ou Estadual.')}</p>
 
       {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p>}
 
-      {visible.length === 0 ? <p className="py-8 text-center text-sm text-fg-sub">Nenhum feriado em {year}. Use "Adicionar nacionais de {year}" para começar.</p> : (
+      {visible.length === 0 ? <p className="py-8 text-center text-sm text-fg-sub">{t('Nenhum feriado cadastrado para este ano. Use "Adicionar feriados nacionais" para começar.', { year })}</p> : (
         <ul className="space-y-2">
           {visible.map(({ row, index }) => (
             <li key={index} className="grid items-center gap-2 rounded-xl border border-border p-2 sm:grid-cols-[150px_minmax(0,1fr)_130px_auto]">
-              <input type="date" className={inputClass.replace('mt-1 ', '')} aria-label="Data" value={row.date} onChange={(e) => patch(index, { date: e.target.value })} />
-              <input className={inputClass.replace('mt-1 ', '')} aria-label="Nome do feriado" placeholder="Nome do feriado" value={row.name} onChange={(e) => patch(index, { name: e.target.value })} />
-              <select className={`${inputClass.replace('mt-1 ', '')} ${SCOPE_TONE[row.scope]}`} aria-label="Abrangência" value={row.scope} onChange={(e) => patch(index, { scope: e.target.value as Scope })}>
-                {Object.entries(SCOPES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              <input type="date" className={inputClass.replace('mt-1 ', '')} aria-label={t('Data')} value={row.date} onChange={(e) => patch(index, { date: e.target.value })} />
+              <input className={inputClass.replace('mt-1 ', '')} aria-label={t('Nome do feriado')} placeholder={t('Nome do feriado')} value={row.name} onChange={(e) => patch(index, { name: e.target.value })} />
+              <select className={`${inputClass.replace('mt-1 ', '')} ${SCOPE_TONE[row.scope]}`} aria-label={t('Abrangência')} value={row.scope} onChange={(e) => patch(index, { scope: e.target.value as Scope })}>
+                {Object.entries(SCOPES).map(([value, label]) => <option key={value} value={value}>{t(label)}</option>)}
               </select>
-              <Button variant="ghost" size="sm" aria-label="Remover feriado" onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))}><Trash2 size={15} aria-hidden="true" /></Button>
+              <Button variant="ghost" size="sm" aria-label={t('Remover feriado')} onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))}><Trash2 size={15} aria-hidden="true" /></Button>
             </li>
           ))}
         </ul>
       )}
 
       <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
-        <span className="text-sm text-fg-sub">{dirty ? 'Há alterações não salvas.' : `${rows.length} feriado(s) cadastrado(s).`}</span>
-        <Button onClick={save} isLoading={saving} disabled={!dirty}>Salvar feriados</Button>
+        <span className="text-sm text-fg-sub">{dirty ? t('Há alterações não salvas.') : t('{count} feriado(s) cadastrado(s).', { count: rows.length })}</span>
+        <Button onClick={save} isLoading={saving} disabled={!dirty}>{t('Salvar feriados')}</Button>
       </div>
     </section>
   );

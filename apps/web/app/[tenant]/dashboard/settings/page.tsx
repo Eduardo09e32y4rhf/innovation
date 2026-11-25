@@ -17,17 +17,19 @@ import { OvertimeSection } from './_hub/overtime-section';
 import { AccountSection } from './_hub/profile-section';
 import { SecuritySection } from './_hub/security-section';
 import { canEditCompanyFor, cardClass, ROLE_LABELS, SECTION_GROUPS, SECTION_META, sectionsFor, type SettingsSection } from './_hub/types';
+import { useI18n } from '@/app/contexts/I18nContext';
 
 const ALIASES: Record<string, SettingsSection> = { security: 'seguranca', geral: 'conta', rh: 'acessos' };
 
 function Hub() {
   const { user, company } = useAuth();
+  const { t } = useI18n();
   const workspace = useWorkspace();
   const router = useRouter();
   const params = useSearchParams();
   const { tenant = '' } = useParams<{ tenant: string }>();
 
-  if (!user) return <LoadingState label="Carregando configurações…" />;
+  if (!user) return <LoadingState label={t('Carregando configurações…')} />;
   const role = resolveUserRole(user);
   const recruiterOnly = isRecruiterOnlyAccount(workspace.company?.activeModules);
   const allowed = sectionsFor(role, recruiterOnly);
@@ -44,19 +46,19 @@ function Hub() {
       <header className="flex flex-wrap items-center gap-4 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-900 to-purple-800 p-5 text-white shadow-lg sm:p-7">
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-xl font-black">{initials}</span>
         <div className="min-w-0">
-          <h1 className="text-2xl font-black leading-tight">Configurações</h1>
-          <p className="truncate text-sm text-white/80">{user.name} · {ROLE_LABELS[role] ?? role}{company?.name ? ` · ${company.name}` : ''}</p>
+          <h1 className="text-2xl font-black leading-tight">{t('Configurações')}</h1>
+          <p className="truncate text-sm text-white/80">{user.name} · {t(ROLE_LABELS[role] ?? role)}{company?.name ? ` · ${company.name}` : ''}</p>
         </div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
-        <nav aria-label="Seções de configuração" className="space-y-4">
+        <nav aria-label={t('Seções de configuração')} className="space-y-4">
           {SECTION_GROUPS.map((group) => {
             const items = group.items.filter((item) => allowed.includes(item));
             if (!items.length) return null;
             return (
               <div key={group.title}>
-                <p className="mb-1.5 px-2 text-[11px] font-bold uppercase tracking-widest text-fg-mut">{group.title}</p>
+                <p className="mb-1.5 px-2 text-[11px] font-bold uppercase tracking-widest text-fg-mut">{t(group.title)}</p>
                 <ul className="flex gap-1.5 overflow-x-auto lg:flex-col">
                   {items.map((item) => {
                     const Icon = SECTION_META[item].icon;
@@ -65,7 +67,7 @@ function Hub() {
                       <li key={item} className="shrink-0">
                         <button type="button" onClick={() => go(item)} aria-current={on ? 'page' : undefined}
                           className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold transition ${on ? 'bg-purple-600 text-white shadow' : 'text-fg-sub hover:bg-bg-sub hover:text-fg'}`}>
-                          <Icon size={17} aria-hidden="true" /> <span className="whitespace-nowrap">{SECTION_META[item].label}</span>
+                          <Icon size={17} aria-hidden="true" /> <span className="whitespace-nowrap">{t(SECTION_META[item].label)}</span>
                         </button>
                       </li>
                     );
@@ -77,7 +79,7 @@ function Hub() {
         </nav>
 
         <main className="min-w-0 space-y-4">
-          <div><h2 className="text-xl font-bold text-fg">{meta.label}</h2><p className="text-sm text-fg-sub">{meta.hint}</p></div>
+          <div><h2 className="text-xl font-bold text-fg">{t(meta.label)}</h2><p className="text-sm text-fg-sub">{t(meta.hint)}</p></div>
           {active === 'conta' && <AccountSection />}
           {active === 'seguranca' && <SecuritySection />}
           {active === 'empresa' && <CompanySection canEdit={canEditCompany} />}
@@ -86,8 +88,8 @@ function Hub() {
           {active === 'descontos' && <DeductionsSection canEdit={canEditCompany} />}
           {active === 'acessos' && (
             <section className={`${cardClass} space-y-3`}>
-              <p className="text-sm text-fg-sub">Criar acessos, atrelar a funcionários, mudar a visão, bloquear, cancelar ou excluir usuários, gerar senha provisória e ver o histórico de cada pessoa ficam na tela de Usuários.</p>
-              <Link href={`/${tenant}/dashboard/users`} className="btn btn-primary btn-md inline-flex">Abrir Usuários <ArrowUpRight size={14} aria-hidden="true" /></Link>
+              <p className="text-sm text-fg-sub">{t('Criar acessos, atrelar a funcionários, mudar a visão, bloquear, cancelar ou excluir usuários, gerar senha provisória e ver o histórico de cada pessoa ficam na tela de Usuários.')}</p>
+              <Link href={`/${tenant}/dashboard/users`} className="btn btn-primary btn-md inline-flex">{t('Abrir Usuários')} <ArrowUpRight size={14} aria-hidden="true" /></Link>
             </section>
           )}
           {active === 'dados' && <DataSection />}
@@ -98,8 +100,9 @@ function Hub() {
 }
 
 export default function SettingsPage() {
+  const { t } = useI18n();
   return (
-    <Suspense fallback={<LoadingState label="Carregando configurações…" />}>
+    <Suspense fallback={<LoadingState label={t('Carregando configurações…')} />}>
       <Hub />
     </Suspense>
   );

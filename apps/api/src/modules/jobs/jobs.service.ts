@@ -22,6 +22,7 @@ import { RecruitmentService } from './recruitment.service';
 import { jobLifecycle, statusChange } from './job-lifecycle';
 import { normalizeAnswerValue, validateAnswerShape, type RuleQuestion } from './recruitment-rules';
 import { normalizeSource } from './application-source';
+import { normalizeInternationalPhone } from './international-phone';
 import { RecruitmentPrivacyService } from './recruitment-privacy.service';
 import { JobWorkflowService } from './job-workflow.service';
 import { assertResumeClean, CandidateDocumentScanner } from './candidate-document-scanner.service';
@@ -428,7 +429,7 @@ export class JobsService {
       const result = await this.repository.apply(
         job.companyId,
         job.id,
-        { ...dto, source: normalizeSource(dto.source), name: safeName, email: normalizedEmail, ownerVerified: Boolean(context.ownerVerified) },
+        { ...dto, phone: normalizeInternationalPhone(dto.phone), source: normalizeSource(dto.source), name: safeName, email: normalizedEmail, ownerVerified: Boolean(context.ownerVerified) },
         {
           key: storageKey,
           name: this.safeFileName(file.filename, format.extension),

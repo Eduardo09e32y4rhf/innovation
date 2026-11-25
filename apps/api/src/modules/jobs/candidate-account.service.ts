@@ -370,6 +370,7 @@ export class CandidateAccountService {
         email: account.email,
         phone: account.phone as string,
         consent: true,
+        ...(dto.source?.trim() ? { source: dto.source.trim() } : {}),
         ...(dto.coverLetter?.trim() ? { coverLetter: dto.coverLetter.trim() } : {}),
         answers: JSON.stringify(dto.answers ?? {}),
       },

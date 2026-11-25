@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
-import { Equals, IsBoolean, IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Equals, IsBoolean, IsEmail, IsOptional, IsString, MaxLength, ValidateBy } from 'class-validator';
+import { isValidInternationalPhoneInput } from '../international-phone';
 
 export class ApplyJobDto {
   @IsString()
@@ -12,6 +13,13 @@ export class ApplyJobDto {
 
   @IsString()
   @MaxLength(40)
+  @ValidateBy({
+    name: 'isInternationalPhone',
+    validator: {
+      validate: isValidInternationalPhoneInput,
+      defaultMessage: () => 'Informe um telefone com código do país, DDD/área e número válido (8 a 15 dígitos).',
+    },
+  })
   phone!: string;
 
   @IsOptional()

@@ -6,6 +6,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { PortalFooter, PortalLogo } from '../../_components/portal-chrome';
 import { VerifyEmailBanner } from './verify-email-banner';
 import { candidateApi, getCandidateToken, isUnauthorized, setCandidateToken, type CandidateProfile } from '../../_lib/candidate-api';
+import { useI18n } from '@/app/contexts/I18nContext';
+import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 
 type Session = { profile: CandidateProfile; setProfile: (profile: CandidateProfile) => void; signOut: () => Promise<void> };
 const SessionContext = createContext<Session | null>(null);
@@ -24,6 +26,7 @@ const NAV = [
 
 /** Guarda da Área do candidato: sem sessão válida, manda para o login e volta para a mesma página depois. */
 export function AccountShell({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const [profile, setProfile] = useState<CandidateProfile | null>(null);
@@ -50,7 +53,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
   const value = useMemo(() => (profile ? { profile, setProfile, signOut } : null), [profile, signOut]);
 
   if (error) return <main className="mx-auto max-w-xl p-6"><p role="alert" className="rounded-lg bg-rose-50 p-4 text-sm text-rose-800">{error}</p></main>;
-  if (!value) return <main className="mx-auto max-w-xl p-6"><p role="status">Carregando sua conta…</p></main>;
+  if (!value) return <main className="mx-auto max-w-xl p-6"><p role="status">{t('Carregando sua conta…')}</p></main>;
 
   const initials = (profile?.name || profile?.email || '?').trim().slice(0, 2).toUpperCase();
   return (
@@ -63,14 +66,15 @@ export function AccountShell({ children }: { children: ReactNode }) {
               <nav aria-label="Área do candidato" className="flex flex-wrap gap-1.5">
                 {NAV.map((item) => {
                   const active = item.href === '/carreiras' ? false : pathname === item.href;
-                  return <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} className={`inline-flex min-h-11 items-center rounded-[10px] px-4 text-sm font-semibold ${active ? 'bg-[#f0eafa] text-[#5b29be]' : 'hover:bg-[#f1ecfb]'}`}>{item.label}</Link>;
+                  return <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} className={`inline-flex min-h-11 items-center rounded-[10px] px-4 text-sm font-semibold ${active ? 'bg-[#f0eafa] text-[#5b29be]' : 'hover:bg-[#f1ecfb]'}`}>{t(item.label)}</Link>;
                 })}
               </nav>
             </div>
             <div className="flex items-center gap-3">
               <span className="hidden text-sm font-semibold sm:inline">{profile?.name || profile?.email}</span>
+              <LanguageSwitcher />
               <span aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1e1145] text-sm font-bold text-white">{initials}</span>
-              <button type="button" onClick={() => void signOut()} className="min-h-11 rounded-[10px] border border-[#d5cceb] px-4 text-sm font-semibold hover:bg-[#f1ecfb]">Sair</button>
+              <button type="button" onClick={() => void signOut()} className="min-h-11 rounded-[10px] border border-[#d5cceb] px-4 text-sm font-semibold hover:bg-[#f1ecfb]">{t('Sair')}</button>
             </div>
           </div>
         </header>

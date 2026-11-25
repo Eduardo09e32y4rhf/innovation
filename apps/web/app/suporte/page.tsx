@@ -14,6 +14,8 @@ import {
   Check,
 } from 'lucide-react';
 import api from '@/app/lib/api';
+import { useI18n } from '@/app/contexts/I18nContext';
+import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 import { BackLink } from '../_components/back-link';
 import { TurnstileWidget } from '../_components/turnstile-widget';
 
@@ -22,8 +24,10 @@ const display = { className: 'font-display' };
 type TicketCategory = 'ACCESS' | 'BUG' | 'BILLING' | 'OTHER';
 
 export default function SuportePage() {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [category, setCategory] = useState<TicketCategory>('ACCESS');
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
@@ -37,8 +41,8 @@ export default function SuportePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !email.trim() || !subject.trim() || !description.trim()) {
-      setError('Por favor, preencha todos os campos obrigatórios para abrir o chamado.');
+    if (!name.trim() || !email.trim() || !phone.trim() || !subject.trim() || !description.trim()) {
+      setError(t('Por favor, preencha todos os campos obrigatórios para abrir o chamado.'));
       return;
     }
 
@@ -49,6 +53,7 @@ export default function SuportePage() {
       const res = await api.publicSupport.createTicket({
         name: name.trim(),
         email: email.trim(),
+        phone: phone.trim(),
         category,
         subject: subject.trim(),
         description: description.trim(),
@@ -59,13 +64,13 @@ export default function SuportePage() {
       if (res?.success) {
         setSuccessTicket(res.ticketNumber || 'PROT-OK');
       } else {
-        setError('Não foi possível registrar o chamado. Verifique os dados ou tente novamente mais tarde.');
+        setError(t('Não foi possível registrar o chamado. Verifique os dados ou tente novamente mais tarde.'));
       }
     } catch (err: unknown) {
       const message =
         err instanceof Error
           ? err.message
-          : 'Erro de conexão com o servidor ao abrir o chamado.';
+          : t('Erro de conexão com o servidor ao abrir o chamado.');
       setError(message);
     } finally {
       setLoading(false);
@@ -86,6 +91,7 @@ export default function SuportePage() {
   const handleReset = () => {
     setName('');
     setEmail('');
+    setPhone('');
     setCategory('ACCESS');
     setSubject('');
     setDescription('');
@@ -104,7 +110,7 @@ export default function SuportePage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <BackLink
             fallbackHref="/login"
-            fallbackLabel="Voltar para o Login"
+            fallbackLabel={t('Voltar para o Login')}
             className="inline-flex items-center gap-2 min-h-11 text-sm font-bold text-teal-400 hover:text-teal-300 transition-colors"
           />
           <Link
@@ -112,8 +118,9 @@ export default function SuportePage() {
             className="inline-flex items-center gap-2 min-h-11 text-xs font-semibold bg-teal-500/10 text-teal-300 border border-teal-500/20 px-3.5 py-2 rounded-xl hover:bg-teal-500/20 transition-all"
           >
             <LifeBuoy size={14} className="text-teal-400" />
-            Já tem conta? Veja seus chamados no painel
+            {t('Já tem conta? Veja seus chamados no painel')}
           </Link>
+          <LanguageSwitcher />
         </div>
 
         {/* Cabeçalho */}
@@ -123,10 +130,10 @@ export default function SuportePage() {
           </div>
           <div>
             <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight break-words">
-              Central de Atendimento e Chamados
+              {t('Central de Atendimento e Chamados')}
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm mt-1">
-              Abra uma solicitação de suporte diretamente com a equipe técnica da Innovation RH.
+              {t('Abra uma solicitação de suporte diretamente com a equipe técnica da Innovation RH.')}
             </p>
           </div>
         </div>
@@ -140,21 +147,20 @@ export default function SuportePage() {
 
             <div className="space-y-3">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-teal-500/20 text-teal-300 font-mono text-xs font-bold rounded-full border border-teal-500/30">
-                <span>PROTOCOLO: #{successTicket}</span>
+                <span>{t('PROTOCOLO: #')}{successTicket}</span>
                 <button
                   type="button"
                   onClick={handleCopyProtocol}
-                  title="Copiar número do protocolo"
+                  title={t('Copiar número do protocolo')}
                   className="hover:text-white transition-colors ml-1"
                 >
                   {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                 </button>
               </div>
 
-              <h2 className="text-2xl font-black text-white">Chamado aberto com sucesso!</h2>
+              <h2 className="text-2xl font-black text-white">{t('Chamado aberto com sucesso!')}</h2>
               <p className="text-slate-300 text-sm max-w-md mx-auto leading-relaxed">
-                Sua solicitação foi registrada e encaminhada para nossa equipe de suporte. Enviaremos as atualizações
-                para o e-mail <strong>{email}</strong>.
+                {t('Sua solicitação foi registrada e encaminhada para nossa equipe de suporte. Enviaremos as atualizações')} para o e-mail <strong>{email}</strong>.
               </p>
             </div>
 
@@ -164,13 +170,13 @@ export default function SuportePage() {
                 onClick={handleReset}
                 className="w-full sm:w-auto px-6 py-3 bg-white/10 hover:bg-white/15 text-white text-sm font-bold rounded-xl transition-all border border-white/10"
               >
-                Abrir outro chamado
+                {t('Abrir outro chamado')}
               </button>
               <Link
                 href="/login"
                 className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-slate-950 text-sm font-black rounded-xl transition-all shadow-lg shadow-teal-500/20 text-center"
               >
-                Voltar para o login
+                {t('Voltar para o login')}
               </Link>
             </div>
           </div>
@@ -210,7 +216,7 @@ export default function SuportePage() {
                   htmlFor="sup-nome"
                   className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2"
                 >
-                  Seu Nome Completo <span className="text-rose-400">*</span>
+                  {t('Seu Nome Completo')} <span className="text-rose-400">*</span>
                 </label>
                 <input
                   id="sup-nome"
@@ -218,7 +224,7 @@ export default function SuportePage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: João da Silva"
+                  placeholder={t('Ex: João da Silva')}
                   className="w-full min-h-11 bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
                 />
               </div>
@@ -228,7 +234,7 @@ export default function SuportePage() {
                   htmlFor="sup-email"
                   className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2"
                 >
-                  E-mail de Contato / Corporativo <span className="text-rose-400">*</span>
+                  {t('E-mail de Contato / Corporativo')} <span className="text-rose-400">*</span>
                 </label>
                 <input
                   id="sup-email"
@@ -236,10 +242,28 @@ export default function SuportePage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Ex: joao@empresa.com.br"
+                  placeholder={t('Ex: joao@empresa.com.br')}
                   className="w-full min-h-11 bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
                 />
               </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="sup-telefone"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2"
+              >
+                {t('Telefone / WhatsApp')} <span className="text-rose-400">*</span>
+              </label>
+              <input
+                id="sup-telefone"
+                type="tel"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/[^\d+().\s-]/g, '').slice(0, 40))}
+                placeholder={t('Ex: +55 (11) 91234-5678')}
+                className="w-full min-h-11 bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
+              />
             </div>
 
             <div className="grid gap-5 sm:gap-6 sm:grid-cols-2">
@@ -248,7 +272,7 @@ export default function SuportePage() {
                   htmlFor="sup-categoria"
                   className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2"
                 >
-                  Categoria da Solicitação <span className="text-rose-400">*</span>
+                  {t('Categoria da Solicitação')} <span className="text-rose-400">*</span>
                 </label>
                 <select
                   id="sup-categoria"
@@ -257,16 +281,16 @@ export default function SuportePage() {
                   className="w-full min-h-11 bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-base sm:text-sm text-white focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
                 >
                   <option value="ACCESS" className="bg-[#0a1526]">
-                    Problema no login ou senha
+                    {t('Problema no login ou senha')}
                   </option>
                   <option value="BUG" className="bg-[#0a1526]">
-                    Erro técnico ou instabilidade
+                    {t('Erro técnico ou instabilidade')}
                   </option>
                   <option value="BILLING" className="bg-[#0a1526]">
-                    Faturamento, assinatura ou plano
+                    {t('Faturamento, assinatura ou plano')}
                   </option>
                   <option value="OTHER" className="bg-[#0a1526]">
-                    Outras dúvidas ou solicitações
+                    {t('Outras dúvidas ou solicitações')}
                   </option>
                 </select>
               </div>
@@ -276,7 +300,7 @@ export default function SuportePage() {
                   htmlFor="sup-assunto"
                   className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2"
                 >
-                  Assunto Principal <span className="text-rose-400">*</span>
+                  {t('Assunto Principal')} <span className="text-rose-400">*</span>
                 </label>
                 <input
                   id="sup-assunto"
@@ -284,7 +308,7 @@ export default function SuportePage() {
                   required
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Ex: Não consigo acessar o painel de ponto"
+                  placeholder={t('Ex: Não consigo acessar o painel de ponto')}
                   className="w-full min-h-11 bg-black/40 border border-white/15 rounded-xl px-4 py-3 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all"
                 />
               </div>
@@ -296,7 +320,7 @@ export default function SuportePage() {
                   htmlFor="sup-descricao"
                   className="block text-xs font-bold uppercase tracking-wider text-slate-300"
                 >
-                  Descrição Detalhada do Problema <span className="text-rose-400">*</span>
+                  {t('Descrição Detalhada do Problema')} <span className="text-rose-400">*</span>
                 </label>
                 <span className="text-[11px] text-slate-500">{description.length}/2000</span>
               </div>
@@ -307,7 +331,7 @@ export default function SuportePage() {
                 required
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Descreva o que está acontecendo, quais passos executou e o que esperava que acontecesse..."
+                placeholder={t('Descreva o que está acontecendo, quais passos executou e o que esperava que acontecesse...')}
                 className="w-full bg-black/40 border border-white/15 rounded-xl p-4 text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all resize-y"
               />
             </div>
@@ -320,7 +344,7 @@ export default function SuportePage() {
             <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <ShieldCheck size={16} className="text-teal-400 shrink-0" />
-                <span>Atendimento monitorado por SLA e agendador automático.</span>
+                <span>{t('Atendimento monitorado por SLA e agendador automático.')}</span>
               </div>
 
               <button
@@ -331,12 +355,12 @@ export default function SuportePage() {
                 {loading ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    <span>Registrando chamado...</span>
+                    <span>{t('Registrando chamado...')}</span>
                   </>
                 ) : (
                   <>
                     <Send size={18} />
-                    <span>Abrir chamado</span>
+                    <span>{t('Abrir chamado')}</span>
                   </>
                 )}
               </button>

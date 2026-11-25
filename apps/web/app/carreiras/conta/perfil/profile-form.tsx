@@ -16,6 +16,7 @@ import { profileStrength } from '../../_lib/profile-insights';
 import { useCandidateSession } from '../_components/account-shell';
 import { useConfirm } from '@/app/components/ui/confirm-provider';
 import { useGuard } from '@/app/hooks/use-action';
+import { useI18n } from '@/app/contexts/I18nContext';
 
 const digits = (value: string) => value.replace(/\D/g, '');
 
@@ -138,6 +139,7 @@ function Section({
   done?: boolean;
   children: ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <section
       id={id}
@@ -157,7 +159,7 @@ function Section({
               done ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'
             }`}
           >
-            {done ? '✓ Completo' : 'Pendente'}
+            {done ? `✓ ${t('Completo')}` : t('Pendente')}
           </span>
         )}
       </div>
@@ -167,6 +169,7 @@ function Section({
 }
 
 export function ProfileForm() {
+  const { t } = useI18n();
   const { profile, setProfile, signOut } = useCandidateSession();
   const [form, setForm] = useState(() => toForm(profile));
   const [education, setEducation] = useState<EducationItem[]>(profile.education ?? []);
@@ -326,10 +329,10 @@ export function ProfileForm() {
   const removeAccount = guard('removeAccount', async () => {
     if (
       !(await askConfirm({
-        title: 'Excluir minha conta',
+        title: t('Excluir minha conta'),
         description:
-          'Excluir sua conta apaga seu perfil e currículo salvos. Candidaturas já enviadas continuam com as empresas.',
-        confirmText: 'Excluir minha conta',
+          t('Excluir sua conta apaga seu perfil e currículo salvos. Candidaturas já enviadas continuam com as empresas.'),
+        confirmText: t('Excluir minha conta'),
       }))
     ) {
       return;
@@ -432,17 +435,15 @@ export function ProfileForm() {
     <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-[#1e1145]">Meu perfil profissional</h1>
-          <p className="text-sm text-[#5b5473]">
-            Quanto mais completo, mais vagas combinam com você e mais recrutadores te encontram.
-          </p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-[#1e1145]">{t('Meu perfil profissional')}</h1>
+          <p className="text-sm text-[#5b5473]">{t('Quanto mais completo, mais vagas combinam com você e mais recrutadores te encontram.')}</p>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-6 lg:self-start">
           <div className="rounded-[18px] bg-[linear-gradient(135deg,#1e1145,#5b29be)] p-5 text-white">
-            <p className="text-xs uppercase tracking-wider text-white/70">Força do perfil</p>
+            <p className="text-xs uppercase tracking-wider text-white/70">{t('Força do perfil')}</p>
             <p className="mt-1 text-3xl font-extrabold">
               {preview.score}
               <span className="text-base font-semibold text-white/70">/100</span>
@@ -453,21 +454,21 @@ export function ProfileForm() {
             </div>
             {preview.next[0] && (
               <p className="mt-3 text-xs leading-5 text-white/85">
-                Próximo: <strong>{preview.next[0].label}</strong> (+{preview.next[0].points})
+                {t('Próximo:')} <strong>{t(preview.next[0].label)}</strong> (+{preview.next[0].points})
               </p>
             )}
           </div>
-          <nav aria-label="Seções do perfil" className="mt-3 hidden rounded-[18px] border border-[#ebe6f3] bg-white p-2 lg:block">
+          <nav aria-label={t('Seções do perfil')} className="mt-3 hidden rounded-[18px] border border-[#ebe6f3] bg-white p-2 lg:block">
             {nav.map((item) => (
               <a
                 key={item.id}
                 href={`#${item.id}`}
                 className="flex min-h-10 items-center justify-between rounded-[10px] px-3 text-sm font-medium hover:bg-[#f6f2ff]"
               >
-                {item.label}
+                {t(item.label)}
                 {item.done !== undefined && (
                   <span
-                    aria-label={item.done ? 'completo' : 'pendente'}
+                    aria-label={t(item.done ? 'completo' : 'pendente')}
                     className={`h-2.5 w-2.5 rounded-full ${item.done ? 'bg-emerald-500' : 'bg-amber-400'}`}
                   />
                 )}
@@ -492,32 +493,32 @@ export function ProfileForm() {
             <fieldset disabled={busy} className="space-y-5">
               <Section
                 id="resumo"
-                title="Resumo profissional"
-                description="Como você se apresenta para o RH."
+                title={t('Resumo profissional')}
+                description={t('Como você se apresenta para o RH.')}
                 done={doneKeys.has('profession') && doneKeys.has('about')}
               >
                 <div className="space-y-4">
                   <label className="block space-y-1">
-                    <span className={label}>Título profissional</span>
+                    <span className={label}>{t('Título profissional')}</span>
                     <input
                       className={input}
                       maxLength={120}
-                      placeholder="Ex.: Analista contábil · Vendedor · Estudante de Administração"
+                      placeholder={t('Ex.: Analista contábil · Vendedor · Estudante de Administração')}
                       value={form.profession}
                       onChange={(e) => set('profession', e.target.value)}
                     />
                   </label>
                   <label className="block space-y-1">
-                    <span className={label}>Sobre você</span>
+                    <span className={label}>{t('Sobre você')}</span>
                     <textarea
                       className={`${input} min-h-[120px] py-3`}
                       maxLength={1200}
-                      placeholder="Ex.: Tenho 4 anos de experiência em departamento pessoal, com folha, admissões e eSocial. Busco crescer na área contábil."
+                      placeholder={t('Ex.: Tenho 4 anos de experiência em departamento pessoal, com folha, admissões e eSocial. Busco crescer na área contábil.')}
                       value={form.about}
                       onChange={(e) => set('about', e.target.value)}
                     />
                     <span className="flex justify-between text-xs text-[#7a7290]">
-                      <span>{form.about.trim().length < 40 ? 'Escreva pelo menos 2 frases.' : 'Ótimo!'}</span>
+                      <span>{t(form.about.trim().length < 40 ? 'Escreva pelo menos 2 frases.' : 'Ótimo!')}</span>
                       <span>{form.about.length}/1200</span>
                     </span>
                   </label>
@@ -526,31 +527,31 @@ export function ProfileForm() {
 
               <Section
                 id="experiencia"
-                title="Experiência profissional"
-                description="Do emprego mais recente para o mais antigo. Estágio, freelancer e trabalho voluntário também contam."
+                title={t('Experiência profissional')}
+                description={t('Do emprego mais recente para o mais antigo. Estágio, freelancer e trabalho voluntário também contam.')}
                 done={doneKeys.has('experience')}
               >
                 <div className="space-y-3">
                   {experience.length === 0 && (
                     <p className="rounded-[12px] border border-dashed border-[#d5cceb] p-4 text-sm text-[#5b5473]">
-                      Nenhuma experiência ainda. Primeiro emprego? Adicione estágios, cursos práticos ou trabalhos informais.
+                      {t('Nenhuma experiência ainda. Primeiro emprego? Adicione estágios, cursos práticos ou trabalhos informais.')}
                     </p>
                   )}
                   {experience.map((item, index) => (
                     <div key={index} className="space-y-3 rounded-[14px] border border-[#ebe6f3] bg-[#fcfbfe] p-4">
                       <div className="grid gap-3 sm:grid-cols-2">
                         <label className="block space-y-1">
-                          <span className={label}>Cargo *</span>
+                          <span className={label}>{t('Cargo *')}</span>
                           <input
                             className={input}
                             maxLength={120}
-                            placeholder="Ex.: Assistente administrativo"
+                            placeholder={t('Ex.: Assistente administrativo')}
                             value={item.role}
                             onChange={(e) => updateExp(index, { role: e.target.value })}
                           />
                         </label>
                         <label className="block space-y-1">
-                          <span className={label}>Empresa</span>
+                          <span className={label}>{t('Empresa')}</span>
                           <input
                             className={input}
                             maxLength={120}
@@ -559,7 +560,7 @@ export function ProfileForm() {
                           />
                         </label>
                         <label className="block space-y-1">
-                          <span className={label}>Início</span>
+                          <span className={label}>{t('Início')}</span>
                           <input
                             className={input}
                             type="month"
@@ -568,7 +569,7 @@ export function ProfileForm() {
                           />
                         </label>
                         <label className="block space-y-1">
-                          <span className={label}>Fim</span>
+                          <span className={label}>{t('Fim')}</span>
                           <input
                             className={input}
                             type="month"
@@ -587,14 +588,14 @@ export function ProfileForm() {
                             updateExp(index, { current: e.target.checked, end: e.target.checked ? null : item.end })
                           }
                         />
-                        Trabalho aqui atualmente
+                        {t('Trabalho aqui atualmente')}
                       </label>
                       <label className="block space-y-1">
-                        <span className={label}>Principais atividades e resultados</span>
+                        <span className={label}>{t('Principais atividades e resultados')}</span>
                         <textarea
                           className={`${input} min-h-[90px] py-3`}
                           maxLength={600}
-                          placeholder="Ex.: Atendimento a 40 clientes por dia, controle de estoque, emissão de notas fiscais."
+                          placeholder={t('Ex.: Atendimento a 40 clientes por dia, controle de estoque, emissão de notas fiscais.')}
                           value={item.description}
                           onChange={(e) => updateExp(index, { description: e.target.value })}
                         />
@@ -607,7 +608,7 @@ export function ProfileForm() {
                           setDirty(true);
                         }}
                       >
-                        Remover experiência
+                        {t('Remover experiência')}
                       </button>
                     </div>
                   ))}
@@ -623,7 +624,7 @@ export function ProfileForm() {
                         setDirty(true);
                       }}
                     >
-                      + Adicionar experiência
+                      {t('+ Adicionar experiência')}
                     </button>
                   )}
                 </div>
@@ -631,49 +632,49 @@ export function ProfileForm() {
 
               <Section
                 id="formacao"
-                title="Formação"
-                description="Escola, curso técnico, faculdade ou pós. Informe o curso e a instituição."
+                title={t('Formação')}
+                description={t('Escola, curso técnico, faculdade ou pós. Informe o curso e a instituição.')}
                 done={doneKeys.has('education')}
               >
                 <div className="space-y-3">
                   {education.length === 0 && (
                     <p className="rounded-[12px] border border-dashed border-[#d5cceb] p-4 text-sm text-[#5b5473]">
-                      Adicione seu ensino fundamental, médio, técnico, superior ou pós.
+                      {t('Adicione seu ensino fundamental, médio, técnico, superior ou pós.')}
                     </p>
                   )}
                   {education.map((item, index) => (
                     <div key={index} className="grid gap-3 rounded-[14px] border border-[#ebe6f3] bg-[#fcfbfe] p-4 sm:grid-cols-2">
                       <label className="block space-y-1">
-                        <span className={label}>Nível</span>
+                        <span className={label}>{t('Nível')}</span>
                         <select className={input} value={item.level} onChange={(e) => updateEdu(index, { level: e.target.value })}>
                           {EDUCATION_LEVELS.map((level) => (
-                            <option key={level}>{level}</option>
+                            <option key={level} value={level}>{t(level)}</option>
                           ))}
                         </select>
                       </label>
                       <label className="block space-y-1">
-                        <span className={label}>Situação</span>
+                        <span className={label}>{t('Situação')}</span>
                         <select className={input} value={item.status} onChange={(e) => updateEdu(index, { status: e.target.value })}>
                           {EDUCATION_STATUS.map((status) => (
-                            <option key={status}>{status}</option>
+                            <option key={status} value={status}>{t(status)}</option>
                           ))}
                         </select>
                       </label>
                       <label className="block space-y-1">
                         <span className={label}>
-                          {item.level.startsWith('Ensino') ? 'Curso / ênfase (opcional)' : 'Nome do curso'}
+                          {t(item.level.startsWith('Ensino') ? 'Curso / ênfase (opcional)' : 'Nome do curso')}
                         </span>
                         <input
                           className={input}
                           maxLength={120}
-                          placeholder={item.level === 'Superior' ? 'Ex.: Ciências Contábeis' : ''}
+                          placeholder={item.level === 'Superior' ? t('Ex.: Ciências Contábeis') : ''}
                           value={item.course}
                           onChange={(e) => updateEdu(index, { course: e.target.value })}
                         />
                       </label>
                       <label className="block space-y-1">
                         <span className={label}>
-                          {item.level.startsWith('Ensino') ? 'Nome da escola' : 'Faculdade / instituição'}
+                          {t(item.level.startsWith('Ensino') ? 'Nome da escola' : 'Faculdade / instituição')}
                         </span>
                         <input
                           className={input}
@@ -690,7 +691,7 @@ export function ProfileForm() {
                           setDirty(true);
                         }}
                       >
-                        Remover formação
+                        {t('Remover formação')}
                       </button>
                     </div>
                   ))}
@@ -703,7 +704,7 @@ export function ProfileForm() {
                         setDirty(true);
                       }}
                     >
-                      + Adicionar formação
+                      {t('+ Adicionar formação')}
                     </button>
                   )}
                 </div>
@@ -711,8 +712,8 @@ export function ProfileForm() {
 
               <Section
                 id="competencias"
-                title="Competências e habilitação"
-                description="Usamos suas competências para recomendar vagas. Digite e aperte Enter."
+                title={t('Competências e habilitação')}
+                description={t('Usamos suas competências para recomendar vagas. Digite e aperte Enter.')}
                 done={doneKeys.has('skills')}
               >
                 <div className="space-y-4">
@@ -738,9 +739,9 @@ export function ProfileForm() {
                     ))}
                     {skills.length < MAX_SKILLS && (
                       <input
-                        aria-label="Nova competência"
+                        aria-label={t('Nova competência')}
                         className="min-w-[160px] flex-1 border-0 bg-transparent px-2 text-base outline-none sm:text-sm"
-                        placeholder={skills.length ? 'Adicionar…' : 'Ex.: Excel, SPED, Atendimento'}
+                        placeholder={t(skills.length ? 'Adicionar…' : 'Ex.: Excel, SPED, Atendimento')}
                         value={skillDraft}
                         maxLength={40}
                         onChange={(e) => setSkillDraft(e.target.value)}
@@ -750,7 +751,7 @@ export function ProfileForm() {
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    <span className="text-xs text-[#7a7290]">Sugestões:</span>
+                    <span className="text-xs text-[#7a7290]">{t('Sugestões:')}</span>
                     {SKILL_IDEAS.filter((idea) => !skills.some((s) => s.toLowerCase() === idea.toLowerCase()))
                       .slice(0, 6)
                       .map((idea) => (
@@ -760,32 +761,32 @@ export function ProfileForm() {
                           onClick={() => addSkill(idea)}
                           className="rounded-full border border-[#e4dcf3] px-2.5 py-0.5 text-xs hover:bg-[#f6f2ff]"
                         >
-                          + {idea}
+                          + {t(idea)}
                         </button>
                       ))}
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <label className="block space-y-1">
-                      <span className={label}>Possui habilitação (CNH)?</span>
+                      <span className={label}>{t('Possui habilitação (CNH)?')}</span>
                       <select
                         className={input}
                         value={form.hasDriverLicense}
                         onChange={(e) => set('hasDriverLicense', e.target.value)}
                       >
-                        <option value="">Prefiro não informar</option>
-                        <option value="sim">Sim</option>
-                        <option value="nao">Não</option>
+                        <option value="">{t('Prefiro não informar')}</option>
+                        <option value="sim">{t('Sim')}</option>
+                        <option value="nao">{t('Não')}</option>
                       </select>
                     </label>
                     {form.hasDriverLicense === 'sim' && (
                       <label className="block space-y-1">
-                        <span className={label}>Categoria</span>
+                        <span className={label}>{t('Categoria')}</span>
                         <select
                           className={input}
                           value={form.driverLicenseCategory}
                           onChange={(e) => set('driverLicenseCategory', e.target.value)}
                         >
-                          <option value="">Selecione</option>
+                          <option value="">{t('Selecione')}</option>
                           {LICENSE_CATEGORIES.map((category) => (
                             <option key={category}>{category}</option>
                           ))}
@@ -801,8 +802,8 @@ export function ProfileForm() {
 
           <Section
             id="curriculo"
-            title="Currículo"
-            description="Enviado junto com suas candidaturas. PDF ou DOCX até 5 MB."
+            title={t('Currículo')}
+            description={t('Enviado junto com suas candidaturas. PDF ou DOCX até 5 MB.')}
             done={doneKeys.has('resume')}
           >
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-[#ebe6f3] bg-[#fcfbfe] p-4">
@@ -822,12 +823,12 @@ export function ProfileForm() {
                       ) : null}
                     </>
                   ) : (
-                    <p className="text-sm text-[#5b5473]">Nenhum currículo salvo.</p>
+                    <p className="text-sm text-[#5b5473]">{t('Nenhum currículo salvo.')}</p>
                   )}
                 </div>
               </div>
               <label className="inline-flex min-h-11 cursor-pointer items-center rounded-[10px] bg-[#7240da] px-4 text-sm font-semibold text-white hover:bg-[#5b29be]">
-                {resumeBusy ? 'Enviando…' : profile.resume?.name ? 'Trocar currículo' : 'Enviar currículo'}
+                {resumeBusy ? t('Enviando…') : profile.resume?.name ? t('Trocar currículo') : t('Enviar currículo')}
                 <input
                   ref={fileInput}
                   type="file"
@@ -843,13 +844,13 @@ export function ProfileForm() {
           <fieldset form="profile-form" disabled={busy} className="space-y-5">
             <Section
               id="dados"
-              title="Dados pessoais"
-              description="Usados só quando você se candidata. Nunca aparecem no banco de talentos."
+              title={t('Dados pessoais')}
+              description={t('Usados só quando você se candidata. Nunca aparecem no banco de talentos.')}
               done={doneKeys.has('contact')}
             >
               <div className="space-y-4">
                 <label className="block space-y-1">
-                  <span className={label}>Nome completo</span>
+                  <span className={label}>{t('Nome completo')}</span>
                   <input
                     form="profile-form"
                     className={input}
@@ -862,7 +863,7 @@ export function ProfileForm() {
                 </label>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block space-y-1">
-                    <span className={label}>CPF</span>
+                    <span className={label}>{t('CPF')}</span>
                     <input
                       form="profile-form"
                       className={input}
@@ -874,7 +875,7 @@ export function ProfileForm() {
                     {err('cpf')}
                   </label>
                   <label className="block space-y-1">
-                    <span className={label}>Telefone / WhatsApp</span>
+                    <span className={label}>{t('Telefone / WhatsApp')}</span>
                     <input
                       form="profile-form"
                       className={input}
@@ -888,7 +889,7 @@ export function ProfileForm() {
                     {err('phone')}
                   </label>
                   <label className="block space-y-1">
-                    <span className={label}>Data de nascimento</span>
+                    <span className={label}>{t('Data de nascimento')}</span>
                     <input
                       form="profile-form"
                       className={input}
@@ -901,7 +902,7 @@ export function ProfileForm() {
                     {err('birthDate')}
                   </label>
                   <label className="block space-y-1">
-                    <span className={label}>E-mail (seu usuário)</span>
+                    <span className={label}>{t('E-mail (seu usuário)')}</span>
                     <input className={`${input} bg-[#fbfafc]`} value={profile.email} readOnly aria-readonly="true" />
                   </label>
                 </div>
@@ -910,14 +911,14 @@ export function ProfileForm() {
 
             <Section
               id="endereco"
-              title="Endereço"
-              description="Com sua cidade, priorizamos vagas perto de você."
+              title={t('Endereço')}
+              description={t('Com sua cidade, priorizamos vagas perto de você.')}
               done={doneKeys.has('address')}
             >
               <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-[160px_1fr]">
                   <label className="block space-y-1">
-                    <span className={label}>CEP</span>
+                    <span className={label}>{t('CEP')}</span>
                     <input
                       form="profile-form"
                       className={input}
@@ -932,16 +933,16 @@ export function ProfileForm() {
                       role="status"
                     >
                       {cepState === 'loading'
-                        ? 'Buscando endereço…'
+                        ? t('Buscando endereço…')
                         : cepState === 'ok'
-                          ? '✓ Endereço preenchido'
+                          ? t('✓ Endereço preenchido')
                           : cepState === 'notfound'
-                            ? 'CEP não encontrado. Preencha à mão.'
-                            : 'Digite o CEP e preenchemos o resto.'}
+                            ? t('CEP não encontrado. Preencha à mão.')
+                            : t('Digite o CEP e preenchemos o resto.')}
                     </span>
                   </label>
                   <label className="block space-y-1">
-                    <span className={label}>Rua</span>
+                    <span className={label}>{t('Rua')}</span>
                     <input
                       form="profile-form"
                       className={input}
@@ -954,7 +955,7 @@ export function ProfileForm() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <label className="block space-y-1">
-                    <span className={label}>Número</span>
+                    <span className={label}>{t('Número')}</span>
                     <input
                       ref={numberInput}
                       form="profile-form"
@@ -965,7 +966,7 @@ export function ProfileForm() {
                     />
                   </label>
                   <label className="block space-y-1 sm:col-span-2">
-                    <span className={label}>Complemento</span>
+                    <span className={label}>{t('Complemento')}</span>
                     <input
                       form="profile-form"
                       className={input}
@@ -977,7 +978,7 @@ export function ProfileForm() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-[1fr_1fr_90px]">
                   <label className="block space-y-1">
-                    <span className={label}>Bairro</span>
+                    <span className={label}>{t('Bairro')}</span>
                     <input
                       form="profile-form"
                       className={input}
@@ -987,7 +988,7 @@ export function ProfileForm() {
                     />
                   </label>
                   <label className="block space-y-1">
-                    <span className={label}>Cidade</span>
+                    <span className={label}>{t('Cidade')}</span>
                     <input
                       form="profile-form"
                       className={input}
@@ -997,7 +998,7 @@ export function ProfileForm() {
                     />
                   </label>
                   <label className="block space-y-1">
-                    <span className={label}>UF</span>
+                    <span className={label}>{t('UF')}</span>
                     <input
                       form="profile-form"
                       className={input}
@@ -1011,7 +1012,7 @@ export function ProfileForm() {
               </div>
             </Section>
 
-            <Section id="autorizacoes" title="Privacidade e visibilidade">
+            <Section id="autorizacoes" title={t('Privacidade e visibilidade')}>
               <div className="space-y-3">
                 <label className="flex min-h-11 items-start gap-3 rounded-[12px] border border-[#d9ccf7] bg-[#faf7ff] p-3">
                   <input
@@ -1022,9 +1023,7 @@ export function ProfileForm() {
                     onChange={(e) => set('talentPoolConsent', e.target.checked)}
                   />
                   <span className="text-sm leading-6">
-                    <strong>Quero ser encontrado por recrutadores (banco de talentos).</strong> O RH de empresas parceiras
-                    vê nome, título, cidade, formação, experiências e currículo e pode te convidar para vagas. E-mail,
-                    telefone e CPF não são compartilhados.
+                    <strong>{t('Quero ser encontrado por recrutadores (banco de talentos).')}</strong> {t('O RH de empresas parceiras vê nome, título, cidade, formação, experiências e currículo e pode te convidar para vagas. E-mail, telefone e CPF não são compartilhados.')}
                   </span>
                 </label>
                 <label className="flex min-h-11 items-start gap-3">
@@ -1036,8 +1035,7 @@ export function ProfileForm() {
                     onChange={(e) => set('consent', e.target.checked)}
                   />
                   <span className="text-sm leading-6">
-                    Autorizo guardar estes dados para me candidatar mais rápido. Posso corrigir ou excluir a qualquer
-                    momento.
+                    {t('Autorizo guardar estes dados para me candidatar mais rápido. Posso corrigir ou excluir a qualquer momento.')}
                   </span>
                 </label>
                 <label className="flex min-h-11 items-start gap-3">
@@ -1049,8 +1047,7 @@ export function ProfileForm() {
                     onChange={(e) => set('admissionShareConsent', e.target.checked)}
                   />
                   <span className="text-sm leading-6">
-                    Se eu for contratado, autorizo a empresa a aproveitar estes dados no meu cadastro de funcionário
-                    (opcional).
+                    {t('Se eu for contratado, autorizo a empresa a aproveitar estes dados no meu cadastro de funcionário (opcional).')}
                   </span>
                 </label>
               </div>
@@ -1058,16 +1055,16 @@ export function ProfileForm() {
           </fieldset>
 
           <section className="rounded-[18px] border border-rose-200 bg-white p-5">
-            <h2 className="text-sm font-bold">Excluir minha conta</h2>
+            <h2 className="text-sm font-bold">{t('Excluir minha conta')}</h2>
             <p className="mt-1 text-sm text-[#5b5473]">
-              Apaga perfil, currículo salvo e acessos. Candidaturas já enviadas permanecem com as empresas.
+              {t('Apaga perfil, currículo salvo e acessos. Candidaturas já enviadas permanecem com as empresas.')}
             </p>
             <button
               type="button"
               className="mt-3 min-h-11 rounded-[10px] border border-rose-300 px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50"
               onClick={() => void removeAccount()}
             >
-              Excluir conta
+              {t('Excluir conta')}
             </button>
           </section>
           <div className="h-16" aria-hidden="true" />
@@ -1079,10 +1076,10 @@ export function ProfileForm() {
           <p className="text-sm text-[#5b5473]">
             {dirty ? (
               <>
-                <strong className="text-[#1e1145]">Alterações não salvas</strong> · força prevista {preview.score}/100
+                <strong className="text-[#1e1145]">{t('Alterações não salvas')}</strong> · {t('força prevista')} {preview.score}/100
               </>
             ) : (
-              'Tudo salvo.'
+              t('Tudo salvo.')
             )}
           </p>
           <Button
@@ -1092,7 +1089,7 @@ export function ProfileForm() {
             disabled={!dirty && !busy}
             className="!bg-[#7240da] hover:!bg-[#5b29be]"
           >
-            Salvar perfil
+            {t('Salvar perfil')}
           </Button>
         </div>
       </div>

@@ -121,6 +121,10 @@ export class UsersService {
       | { id: string; companyId: string; isActive?: boolean; role?: string }
       | null;
 
+    if (existing && existing.companyId !== targetCompanyId) {
+      throw new ConflictException('E-mail ja cadastrado em outra empresa. A reativacao deve ser feita pela empresa original.');
+    }
+
     if (existing && existing.isActive !== false) {
       throw new ConflictException(
         existing.companyId === targetCompanyId

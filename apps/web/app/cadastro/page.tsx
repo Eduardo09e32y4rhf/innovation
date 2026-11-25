@@ -10,6 +10,7 @@ import { PlanCard } from '@/app/_components/plan-card';
 import type { Company, User as AuthUser } from '@/app/contexts/AuthContext';
 import { api, type PublicPlanQuote, type PublicPlatformPlan, type RecruitmentAccountType } from '@/app/lib/api';
 import { persistAuthSession } from '@/app/lib/auth-session';
+import { useI18n } from '@/app/contexts/I18nContext';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Ambiente de teste do robo: CPF/CNPJ pode ficar em branco e nao e validado. Precisa casar com COMPANY_DOCUMENT_OPTIONAL da API. */
@@ -86,6 +87,7 @@ function maskPhone(raw: string) {
 }
 
 function CadastroForm() {
+  const { t } = useI18n();
   const search = useSearchParams();
   const [accountType, setAccountType] = useState<RecruitmentAccountType>(() => search.get('perfil') === 'recrutador' ? 'RECRUITER' : 'EMPLOYER');
   const [step, setStep] = useState<1 | 2>(1);
@@ -184,8 +186,8 @@ function CadastroForm() {
   }
 
   return (
-    <AuthShell wide full={step === 2} title="Comece a contratar" subtitle={step === 1 ? 'Etapa 1 de 2 · Sua conta de recrutamento' : 'Etapa 2 de 2 · Teste grátis, plano e confirmação'}
-      footer={<>Já tem conta? <Link href="/login" className="font-semibold text-white underline">Entrar</Link></>}>
+    <AuthShell wide full={step === 2} title={t('Comece a contratar')} subtitle={step === 1 ? t('Etapa 1 de 2 · Sua conta de recrutamento') : t('Etapa 2 de 2 · Teste grátis, plano e confirmação')}
+      footer={<>{t('Já tem conta?')} <Link href="/login" className="font-semibold text-white underline">{t('Entrar')}</Link></>}>
       <div className="mb-5 flex gap-2" aria-hidden="true">
         {[1, 2].map((n) => <span key={n} className={`h-1.5 flex-1 rounded-full ${n <= step ? 'bg-gradient-to-r from-fuchsia-500 to-purple-600' : 'bg-zinc-200'}`} />)}
       </div>
@@ -193,34 +195,34 @@ function CadastroForm() {
       {step === 1 ? (
         <form onSubmit={next} className="space-y-4">
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-zinc-700">Como você vai usar o Innovation?</legend>
-            <label className="flex min-h-11 items-start gap-3 rounded-xl border border-zinc-200 p-3"><input type="radio" name="account-type" value="EMPLOYER" checked={accountType === 'EMPLOYER'} onChange={() => setAccountType('EMPLOYER')} className="mt-1 h-6 w-6 shrink-0 accent-purple-600" /><span><strong className="block text-sm text-zinc-800">Sou empreendedor / pequena empresa</strong><span className="text-xs text-zinc-600">Vou divulgar vagas e contratar para o meu negócio.</span></span></label>
-            <label className="flex min-h-11 items-start gap-3 rounded-xl border border-zinc-200 p-3"><input type="radio" name="account-type" value="RECRUITER" checked={accountType === 'RECRUITER'} onChange={() => setAccountType('RECRUITER')} className="mt-1 h-6 w-6 shrink-0 accent-purple-600" /><span><strong className="block text-sm text-zinc-800">Sou recrutador / consultoria</strong><span className="text-xs text-zinc-600">Vou conduzir processos seletivos para meus clientes.</span></span></label>
+            <legend className="text-sm font-medium text-zinc-700">{t('Como você vai usar o Innovation?')}</legend>
+            <label className="flex min-h-11 items-start gap-3 rounded-xl border border-zinc-200 p-3"><input type="radio" name="account-type" value="EMPLOYER" checked={accountType === 'EMPLOYER'} onChange={() => setAccountType('EMPLOYER')} className="mt-1 h-6 w-6 shrink-0 accent-purple-600" /><span><strong className="block text-sm text-zinc-800">{t('Sou empreendedor / pequena empresa')}</strong><span className="text-xs text-zinc-600">{t('Vou divulgar vagas e contratar para o meu negócio.')}</span></span></label>
+            <label className="flex min-h-11 items-start gap-3 rounded-xl border border-zinc-200 p-3"><input type="radio" name="account-type" value="RECRUITER" checked={accountType === 'RECRUITER'} onChange={() => setAccountType('RECRUITER')} className="mt-1 h-6 w-6 shrink-0 accent-purple-600" /><span><strong className="block text-sm text-zinc-800">{t('Sou recrutador / consultoria')}</strong><span className="text-xs text-zinc-600">{t('Vou conduzir processos seletivos para meus clientes.')}</span></span></label>
           </fieldset>
-          <p className="text-sm text-zinc-600">Está procurando emprego? <Link href="/carreiras/conta/entrar?modo=cadastro" className={authLink}>Crie sua conta gratuita de candidato</Link>.</p>
+          <p className="text-sm text-zinc-600">{t('Está procurando emprego?')} <Link href="/carreiras/conta/entrar?modo=cadastro" className={authLink}>{t('Crie sua conta gratuita de candidato')}</Link>.</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="c-company" label={accountType === 'EMPLOYER' ? 'Nome do seu negócio' : 'Nome da consultoria ou nome profissional'}><input id="c-company" required maxLength={120} autoComplete="organization" className={authInput} value={form.companyName} onChange={(e) => set('companyName', e.target.value)} /></Field>
-            <Field id="c-doc" label={DOCUMENTO_OPCIONAL ? 'CNPJ ou CPF (opcional em teste)' : 'CNPJ ou CPF'}>
+            <Field id="c-company" label={t(accountType === 'EMPLOYER' ? 'Nome do seu negócio' : 'Nome da consultoria ou nome profissional')}><input id="c-company" required maxLength={120} autoComplete="organization" className={authInput} value={form.companyName} onChange={(e) => set('companyName', e.target.value)} /></Field>
+            <Field id="c-doc" label={t(DOCUMENTO_OPCIONAL ? 'CNPJ ou CPF (opcional em teste)' : 'CNPJ ou CPF')}>
               <input id="c-doc" required={!DOCUMENTO_OPCIONAL} inputMode="numeric" className={authInput} value={form.document} onChange={(e) => set('document', maskDocument(e.target.value))} aria-invalid={!DOCUMENTO_OPCIONAL && form.document.replace(/\D/g, '').length >= 11 && !validDocument(form.document)} />
             </Field>
-            <Field id="c-name" label="Seu nome"><input id="c-name" required autoComplete="name" className={authInput} value={form.name} onChange={(e) => set('name', e.target.value)} /></Field>
-            <Field id="c-phone" label="Telefone / WhatsApp (opcional)"><input id="c-phone" type="tel" autoComplete="tel" placeholder="+55 (11) 91234-5678" className={authInput} value={form.phone} onChange={(e) => set('phone', maskPhone(e.target.value))} /></Field>
+            <Field id="c-name" label={t('Seu nome')}><input id="c-name" required autoComplete="name" className={authInput} value={form.name} onChange={(e) => set('name', e.target.value)} /></Field>
+            <Field id="c-phone" label={t('Telefone / WhatsApp (opcional)')}><input id="c-phone" type="tel" autoComplete="tel" placeholder={t('+55 (11) 91234-5678')} className={authInput} value={form.phone} onChange={(e) => set('phone', maskPhone(e.target.value))} /></Field>
           </div>
-          <Field id="c-email" label="E-mail de acesso"><input id="c-email" required type="email" autoComplete="email" className={authInput} value={form.email} onChange={(e) => set('email', e.target.value)} /></Field>
-          <PasswordField label="Senha" value={form.password} onChange={(v) => set('password', v)} autoComplete="new-password" showRules />
+          <Field id="c-email" label={t('E-mail de acesso')}><input id="c-email" required type="email" autoComplete="email" className={authInput} value={form.email} onChange={(e) => set('email', e.target.value)} /></Field>
+          <PasswordField label={t('Senha')} value={form.password} onChange={(v) => set('password', v)} autoComplete="new-password" showRules />
           {error && <AuthAlert>{error}</AuthAlert>}
-          <button type="submit" className={authButton}>Continuar</button>
+          <button type="submit" className={authButton}>{t('Continuar')}</button>
         </form>
       ) : (
         <form onSubmit={submit} className="space-y-4">
           {plansError && <AuthAlert>{plansError} <button type="button" className="font-semibold underline" onClick={loadPlans}>Tentar de novo</button></AuthAlert>}
-          {!plansError && plans === null && <p role="status" className="text-sm text-zinc-500">Carregando planos…</p>}
-          {plans && plans.length === 0 && <AuthAlert kind="info">Nenhum plano disponível no momento. <Link href="/suporte" className="font-semibold underline">Fale com o suporte</Link>.</AuthAlert>}
+          {!plansError && plans === null && <p role="status" className="text-sm text-zinc-500">{t('Carregando planos…')}</p>}
+          {plans && plans.length === 0 && <AuthAlert kind="info">Nenhum plano disponível no momento. <Link href="/suporte" className="font-semibold underline">{t('Fale com o suporte')}</Link>.</AuthAlert>}
 
           {plans && plans.length > 0 && (
             <fieldset className="space-y-2">
-              <legend className="mb-2 text-sm font-medium text-zinc-700">Escolha o plano da sua empresa</legend>
-              <p className="mb-2 text-xs text-zinc-500">Por enquanto, o cadastro é só para o módulo de Recrutamento e Seleção. Os demais módulos chegam em breve.</p>
+              <legend className="mb-2 text-sm font-medium text-zinc-700">{t('Escolha o plano da sua empresa')}</legend>
+              <p className="mb-2 text-xs text-zinc-500">{t('Por enquanto, o cadastro é só para o módulo de Recrutamento e Seleção. Os demais módulos chegam em breve.')}</p>
               <div role="radiogroup" aria-label="Plano" className="grid gap-4 pt-3 md:grid-cols-3">
                 {plans.map((item) => <PlanCard key={item.id} plan={item} tone="light" selected={item.id === planId} disabled={item.code !== 'RS'} onSelect={() => setPlanId(item.id)} />)}
               </div>
@@ -228,8 +230,8 @@ function CadastroForm() {
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="c-seats" label={plan?.code === 'RS' ? 'Vagas por mês' : 'Colaboradores'}><input id="c-seats" type="number" min={1} max={plan?.maxUsers || 10000} required className={authInput} value={seats} onChange={(e) => setSeats(Math.max(1, Math.floor(Number(e.target.value)) || 1))} /></Field>
-            <Field id="c-coupon" label="Cupom de desconto ou extensão do teste (opcional)"><input id="c-coupon" autoComplete="off" className={authInput} value={form.couponCode} onChange={(e) => set('couponCode', e.target.value.trim())} /></Field>
+            <Field id="c-seats" label={t(plan?.code === 'RS' ? 'Vagas por mês' : 'Colaboradores')}><input id="c-seats" type="number" min={1} max={plan?.maxUsers || 10000} required className={authInput} value={seats} onChange={(e) => setSeats(Math.max(1, Math.floor(Number(e.target.value)) || 1))} /></Field>
+            <Field id="c-coupon" label={t('Cupom de desconto ou extensão do teste (opcional)')}><input id="c-coupon" autoComplete="off" className={authInput} value={form.couponCode} onChange={(e) => set('couponCode', e.target.value.trim())} /></Field>
           </div>
 
           {plan && !plan.isFree && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800"><strong>{trialDays ? `${trialDays} dias grátis, sem cartão.` : 'Teste grátis, sem cartão.'}</strong> Um teste por CPF/CNPJ. Criamos sua assinatura e seu cadastro de cobrança junto com a conta. Não é necessário abrir conta no provedor de pagamento.</p>}
@@ -239,13 +241,13 @@ function CadastroForm() {
 
           <label className="flex items-start gap-2 text-sm text-zinc-600">
             <input type="checkbox" className="mt-1 h-6 w-6 shrink-0 accent-purple-600" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
-            <span>Li e aceito os <Link href="/termos" target="_blank" className={authLink}>Termos de Uso</Link> e a <Link href="/privacidade" target="_blank" className={authLink}>Política de Privacidade</Link>.</span>
+            <span>{t('Li e aceito os')} <Link href="/termos" target="_blank" className={authLink}>{t('Termos de Uso')}</Link> e a <Link href="/privacidade" target="_blank" className={authLink}>{t('Política de Privacidade')}</Link>.</span>
           </label>
 
           {error && <AuthAlert>{error}</AuthAlert>}
           <div className="flex gap-3">
-            <button type="button" onClick={() => { setStep(1); setError(''); }} disabled={loading} className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50">Voltar</button>
-            <button type="submit" disabled={loading || !signupEnabled || !accepted || Boolean(plan && !plan.isFree && !currentQuote)} className={authButton}>{loading ? 'Criando conta…' : plan?.isFree ? 'Criar minha conta' : 'Criar conta e começar teste grátis'}</button>
+            <button type="button" onClick={() => { setStep(1); setError(''); }} disabled={loading} className="min-h-11 rounded-lg border border-zinc-300 px-4 text-sm font-medium text-zinc-700 hover:bg-zinc-50">{t('Voltar')}</button>
+            <button type="submit" disabled={loading || !signupEnabled || !accepted || Boolean(plan && !plan.isFree && !currentQuote)} className={authButton}>{loading ? t('Criando conta…') : plan?.isFree ? t('Criar minha conta') : t('Criar conta e começar teste grátis')}</button>
           </div>
           <TurnstileWidget />
         </form>

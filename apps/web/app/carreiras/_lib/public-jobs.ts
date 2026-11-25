@@ -76,6 +76,31 @@ export type JobApplicationInput = {
   answers?: Record<string, string | string[]>;
 };
 
+export function normalizeInternationalPhone(value: string): string {
+  const trimmed = value.trim();
+  let digits = trimmed.replace(/\D/g, '');
+
+  if (trimmed.startsWith('00')) {
+    digits = digits.slice(2);
+  } else if (!trimmed.startsWith('+') && digits.length >= 10 && digits.length <= 11) {
+    digits = `55${digits}`;
+  }
+
+  return digits;
+}
+
+export function isValidInternationalPhoneInput(value: string): boolean {
+  const trimmed = value.trim();
+  if (value.length > 40 || !/^\+?[\d\s().-]+$/.test(trimmed)) return false;
+  const rawDigits = trimmed.replace(/\D/g, '');
+  const hasCountryCodeWithoutPrefix = rawDigits.startsWith('55') && [12, 13].includes(rawDigits.length);
+  if (!trimmed.startsWith('+') && !trimmed.startsWith('00') && !hasCountryCodeWithoutPrefix && ![10, 11].includes(rawDigits.length)) {
+    return false;
+  }
+  const digits = normalizeInternationalPhone(value);
+  return digits.length >= 8 && digits.length <= 15;
+}
+
 export class CareersApiError extends Error {
   status: number;
   fields: Record<string, string>;
@@ -371,7 +396,7 @@ export async function applyToPublicJob(
   const formData = new FormData();
   formData.append('name', input.name.trim());
   formData.append('email', input.email.trim().toLowerCase());
-  formData.append('phone', input.phone.replace(/\D/g, ''));
+  formData.append('phone', `+${normalizeInternationalPhone(input.phone)}`);
   if (input.linkedinUrl?.trim()) {
     formData.append('linkedinUrl', input.linkedinUrl.trim());
   }

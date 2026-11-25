@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { UsersService } from './users.service';
@@ -113,5 +113,34 @@ describe('UsersService internal platform role protection', () => {
     })).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(repository.findByEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe('UsersService cross-company account reactivation', () => {
+  it('does not reactivate an inactive user that belongs to another company', async () => {
+    const actor = { sub: 'admin-1', role: 'ADMIN', email: 'admin@company.com' } as any;
+    const repository = makeRepository({
+      findByEmail: vi.fn().mockResolvedValue({
+        id: 'user-from-company-2',
+        companyId: 'company-2',
+        isActive: false,
+        role: 'FUNCIONARIO',
+      }),
+      setAccessState: vi.fn(),
+      updateWithEmployeeSync: vi.fn(),
+      createWithEmployeeSync: vi.fn(),
+    });
+    const service = new UsersService(repository);
+
+    await expect(service.create('company-1', actor, {
+      name: 'Pessoa',
+      email: 'person@example.com',
+      role: 'FUNCIONARIO',
+    } as any)).rejects.toBeInstanceOf(ConflictException);
+
+    expect(repository.countByCompany).not.toHaveBeenCalled();
+    expect(repository.setAccessState).not.toHaveBeenCalled();
+    expect(repository.updateWithEmployeeSync).not.toHaveBeenCalled();
+    expect(repository.createWithEmployeeSync).not.toHaveBeenCalled();
   });
 });

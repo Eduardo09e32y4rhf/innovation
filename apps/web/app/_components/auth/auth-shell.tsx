@@ -3,6 +3,8 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import '../../landing.css';
 import { BrandLogo } from '../brand-logo';
+import { useI18n } from '@/app/contexts/I18nContext';
+import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 
 const HIGHLIGHTS = [
   { icon: Briefcase, text: 'Vagas, portal de carreiras e funil de candidatos' },
@@ -14,9 +16,11 @@ const HIGHLIGHTS = [
 export function AuthShell({ title, subtitle, children, footer, wide = false, full = false }: {
   title: string; subtitle?: string; children: ReactNode; footer?: ReactNode; wide?: boolean; full?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <main className="relative min-h-[100svh] overflow-x-hidden"
       style={{ background: 'linear-gradient(170deg, var(--auth-bg-start) 0%, var(--auth-bg-mid) 45%, var(--auth-bg-end) 100%)' }}>
+      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6"><LanguageSwitcher /></div>
       <div aria-hidden="true" className="lp-grid-bg absolute inset-0" />
       <div aria-hidden="true" className="lp-glow pointer-events-none absolute -left-32 top-10 h-96 w-96 rounded-full bg-fuchsia-600/30 blur-[110px]" />
       <div aria-hidden="true" className="lp-glow pointer-events-none absolute -right-24 bottom-10 h-96 w-96 rounded-full bg-amber-400/20 blur-[110px]" />
@@ -27,18 +31,18 @@ export function AuthShell({ title, subtitle, children, footer, wide = false, ful
           <Link href="/" className="inline-flex items-center gap-3" aria-label="Innovation RH Connect — página inicial">
             <BrandLogo size={48} />
           </Link>
-          <h2 className="mt-10 text-5xl font-extrabold leading-[1.08] tracking-tight text-white">Contrate bem.<span className="lp-text-warm block">Cuide melhor.</span></h2>
-          <p className="mt-5 max-w-md text-lg text-white/75">Da vaga aberta ao mês fechado, tudo no mesmo lugar.</p>
+          <h2 className="mt-10 text-5xl font-extrabold leading-[1.08] tracking-tight text-white">{t('Contrate bem.')}<span className="lp-text-warm block">{t('Cuide melhor.')}</span></h2>
+          <p className="mt-5 max-w-md text-lg text-white/75">{t('Da vaga aberta ao mês fechado, tudo no mesmo lugar.')}</p>
           <ul className="mt-8 space-y-3">
             {HIGHLIGHTS.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-3 text-white/85">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-amber-400 shadow-lg shadow-fuchsia-900/40"><Icon size={18} aria-hidden="true" /></span>{text}
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-amber-400 shadow-lg shadow-fuchsia-900/40"><Icon size={18} aria-hidden="true" /></span>{t(text)}
               </li>
             ))}
           </ul>
           <div className="lp-float-slow mt-10 inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-[#120a2e]/80 px-4 py-3 text-sm text-white shadow-xl backdrop-blur">
             <span className="lp-wiggle text-2xl" aria-hidden="true">🎉</span>
-            <span><span className="block font-semibold">Contratação fechada</span><span className="flex items-center gap-1 text-xs text-white/60"><CheckCircle2 size={12} className="text-emerald-300" aria-hidden="true" /> documentos recebidos por link</span></span>
+            <span><span className="block font-semibold">{t('Contratação fechada')}</span><span className="flex items-center gap-1 text-xs text-white/60"><CheckCircle2 size={12} className="text-emerald-300" aria-hidden="true" /> {t('documentos recebidos por link')}</span></span>
           </div>
         </aside>
 

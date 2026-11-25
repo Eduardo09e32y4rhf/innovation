@@ -1,5 +1,5 @@
 import { MaxLength } from 'class-validator';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsEmail } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsEmail, Matches } from 'class-validator';
 import { IsIn } from 'class-validator';
 
 
@@ -11,6 +11,11 @@ export class CreatePublicSupportTicketDto {
   @IsEmail({}, { message: 'E-mail inválido' })
   @IsNotEmpty({ message: 'E-mail é obrigatório' })
   email: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\+?[1-9]\d{1,14}$/, { message: 'Informe um telefone válido no formato internacional (ex.: +5511999999999).' })
+  phone?: string;
 
   @IsOptional()
   @IsIn(['BUG', 'CORRECTION', 'ADJUSTMENT', 'MAINTENANCE', 'FEATURE_REQUEST', 'PASSWORD_RESET', 'ACCESS', 'BILLING', 'PERFORMANCE', 'SECURITY', 'INTEGRATION', 'OTHER'], { message: 'Categoria inválida' })

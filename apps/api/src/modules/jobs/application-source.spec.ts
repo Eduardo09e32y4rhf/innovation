@@ -5,6 +5,7 @@ describe('origem da candidatura', () => {
   it('reconhece canais conhecidos e apelidos', () => {
     expect(normalizeSource('linkedin')).toBe('LINKEDIN');
     expect(normalizeSource('WhatsApp')).toBe('WHATSAPP');
+    expect(normalizeSource('telegram')).toBe('TELEGRAM');
     expect(normalizeSource('indicação')).toBe('INDICACAO');
   });
   it('sem origem usa o portal; origem desconhecida vira OUTRO', () => {

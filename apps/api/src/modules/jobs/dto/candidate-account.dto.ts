@@ -108,6 +108,11 @@ export class CandidateApplyDto {
   @MaxLength(5000)
   coverLetter?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  source?: string;
+
   @Transform(({ value }) => value === true || value === 'true')
   @IsBoolean()
   consent!: boolean;

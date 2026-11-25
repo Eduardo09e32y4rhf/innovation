@@ -8,6 +8,7 @@ import { Button } from '@/app/components/ui';
 import { useQuery } from '@/app/hooks/use-data';
 import { api } from '@/app/lib/api';
 import { cardClass, errorText, inputClass } from './types';
+import { useI18n } from '@/app/contexts/I18nContext';
 
 type Mask = 'cnpj' | 'cpf' | 'cep' | 'phone' | 'uf';
 type Field = { key: string; label: string; span?: boolean; type?: string; placeholder?: string; mask?: Mask };
@@ -91,6 +92,7 @@ function maskPhone(value: string) {
 }
 
 export function CompanySection({ canEdit }: { canEdit: boolean }) {
+  const { t } = useI18n();
   const company = useQuery(() => api.companies.me(), []);
   const [form, setForm] = useState<Record<string, string>>({});
   const [logo, setLogo] = useState('');
@@ -123,23 +125,23 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
     const comparableSource = key === 'phone' || key === 'legalRepresentativePhone' ? maskPhone(sourceValue) : sourceValue;
     return (form[key] ?? '') !== comparableSource;
   }) || logo !== (source.logoUrl ?? ''), [form, logo, source]);
-  const logoError = logo && !SAFE_LOGO.test(logo) ? 'Use uma URL https de imagem (PNG, JPG ou WebP) ou envie um arquivo.' : null;
+  const logoError = logo && !SAFE_LOGO.test(logo) ? t('Use uma URL https de imagem (PNG, JPG ou WebP) ou envie um arquivo.') : null;
   const patch = (change: Record<string, string>) => setForm((prev) => ({ ...prev, ...change }));
 
   async function lookupCep(digits: string) {
     const id = ++lookupId.current.cep;
-    setHint((h) => ({ ...h, zipCode: 'Buscando endereço…' }));
+    setHint((h) => ({ ...h, zipCode: t('Buscando endereço…') }));
     try {
       const data = await api.lookup.cep(digits);
       if (id !== lookupId.current.cep) return;
       patch({ street: data.street || '', neighborhood: data.neighborhood || '', city: data.city || '', state: data.state || '' });
-      setHint((h) => ({ ...h, zipCode: 'Endereço preenchido. Confira número e complemento.' }));
-    } catch (cause) { if (id === lookupId.current.cep) setHint((h) => ({ ...h, zipCode: errorText(cause, 'Não foi possível buscar o CEP. Preencha à mão.') })); }
+      setHint((h) => ({ ...h, zipCode: t('Endereço preenchido. Confira número e complemento.') }));
+    } catch (cause) { if (id === lookupId.current.cep) setHint((h) => ({ ...h, zipCode: errorText(cause, t('Não foi possível buscar o CEP. Preencha à mão.')) })); }
   }
 
   async function lookupCnpj(digits: string) {
     const id = ++lookupId.current.cnpj;
-    setHint((h) => ({ ...h, document: 'Consultando CNPJ…' }));
+    setHint((h) => ({ ...h, document: t('Consultando CNPJ…') }));
     try {
       const data = await api.lookup.cnpj(digits);
       if (id !== lookupId.current.cnpj) return;
@@ -151,8 +153,8 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
         addressComplement: data.addressComplement || prev.addressComplement, neighborhood: data.neighborhood || prev.neighborhood, city: data.city || prev.city, state: data.state || prev.state,
         phone: data.phone ? applyMask('phone', data.phone) : prev.phone, email: data.email || prev.email,
       }));
-      setHint((h) => ({ ...h, document: 'Dados da Receita preenchidos. Confira antes de salvar.' }));
-    } catch (cause) { if (id === lookupId.current.cnpj) setHint((h) => ({ ...h, document: errorText(cause, 'Não foi possível consultar o CNPJ. Preencha à mão.') })); }
+      setHint((h) => ({ ...h, document: t('Dados da Receita preenchidos. Confira antes de salvar.') }));
+    } catch (cause) { if (id === lookupId.current.cnpj) setHint((h) => ({ ...h, document: errorText(cause, t('Não foi possível consultar o CNPJ. Preencha à mão.')) })); }
   }
 
   function change(field: Field, raw: string) {
@@ -165,8 +167,8 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
 
   function pickFile(file: File | undefined) {
     if (!file) return;
-    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return void toast.error('Formato inválido. Use PNG, JPG ou WebP.');
-    if (file.size > MAX_LOGO_BYTES) return void toast.error('A imagem deve ter até 1 MB.');
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return void toast.error(t('Formato inválido. Use PNG, JPG ou WebP.'));
+    if (file.size > MAX_LOGO_BYTES) return void toast.error(t('A imagem deve ter até 1 MB.'));
     const reader = new FileReader();
     reader.onload = () => {
       const result = String(reader.result ?? '');
@@ -178,10 +180,10 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
         canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
         canvas.getContext('2d')?.drawImage(image, 0, 0);
         const png = canvas.toDataURL('image/png');
-        if (png.length > MAX_LOGO_BYTES * 1.4) return void toast.error('A imagem convertida ficou grande demais. Use PNG ou JPG de até 1 MB.');
+        if (png.length > MAX_LOGO_BYTES * 1.4) return void toast.error(t('A imagem convertida ficou grande demais. Use PNG ou JPG de até 1 MB.'));
         setLogo(png);
       };
-      image.onerror = () => toast.error('Não foi possível ler a imagem WebP. Use PNG ou JPG.');
+      image.onerror = () => toast.error(t('Não foi possível ler a imagem WebP. Use PNG ou JPG.'));
       image.src = result;
     };
     reader.readAsDataURL(file);
@@ -195,40 +197,40 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
       const value = (form[key] ?? '').trim();
       payload[key] = key === 'phone' || key === 'legalRepresentativePhone' ? normalizePhoneDigits(value) : value;
     }
-    if (!payload.name || payload.name.length < 2) return setError('Informe o nome fantasia da empresa.');
-    if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) return setError('O e-mail da empresa não é válido.');
+    if (!payload.name || payload.name.length < 2) return setError(t('Informe o nome fantasia da empresa.'));
+    if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) return setError(t('O e-mail da empresa não é válido.'));
     setSaving(true);
     try {
       payload.logoUrl = logo.trim() || null;
       await api.companies.update(payload as never);
-      toast.success('Dados da empresa salvos.');
+      toast.success(t('Dados da empresa salvos.'));
       await company.refetch();
       window.dispatchEvent(new Event('company-updated'));
-    } catch (cause) { setError(errorText(cause, 'Não foi possível salvar os dados da empresa.')); }
+    } catch (cause) { setError(errorText(cause, t('Não foi possível salvar os dados da empresa.'))); }
     finally { setSaving(false); }
   }
 
   if (company.error) return <ErrorState message={company.error} onRetry={company.refetch} />;
-  if (company.loading && !company.data) return <LoadingState label="Carregando empresa…" />;
+  if (company.loading && !company.data) return <LoadingState label={t('Carregando empresa…')} />;
 
   return (
     <div className="space-y-5">
       {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p>}
-      {!canEdit && <p className="rounded-xl bg-bg-sub px-3 py-2 text-sm text-fg-sub">Somente o RH ou o administrador podem alterar os dados da empresa.</p>}
+      {!canEdit && <p className="rounded-xl bg-bg-sub px-3 py-2 text-sm text-fg-sub">{t('Somente o RH ou o administrador podem alterar os dados da empresa.')}</p>}
 
       <section className={`${cardClass} flex flex-wrap items-center gap-5`}>
         <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-bg-sub">
-          {logo && !logoError ? <img src={logo} alt="Logo da empresa" className="h-full w-full object-contain p-2" /> : <ImageIcon size={32} className="text-fg-mut" aria-hidden="true" />}
+          {logo && !logoError ? <img src={logo} alt={t('Logo da empresa')} className="h-full w-full object-contain p-2" /> : <ImageIcon size={32} className="text-fg-mut" aria-hidden="true" />}
         </div>
         <div className="min-w-0 flex-1 space-y-2">
-          <h3 className="text-base font-bold text-fg">Logo da empresa</h3>
-          <p className="text-xs text-fg-sub">Aparece nos documentos e PDFs. PNG, JPG ou WebP, até 1 MB.</p>
+          <h3 className="text-base font-bold text-fg">{t('Logo da empresa')}</h3>
+          <p className="text-xs text-fg-sub">{t('Aparece nos documentos e PDFs. PNG, JPG ou WebP, até 1 MB.')}</p>
           {canEdit && (
             <div className="flex flex-wrap items-center gap-2">
-              <label className="btn btn-outline btn-md cursor-pointer">Enviar imagem
+              <label className="btn btn-outline btn-md cursor-pointer">{t('Enviar imagem')}
                 <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ''; }} />
               </label>
-              {logo && <Button variant="ghost" size="sm" onClick={() => setLogo('')}><X size={14} aria-hidden="true" /> Remover</Button>}
+              {logo && <Button variant="ghost" size="sm" onClick={() => setLogo('')}><X size={14} aria-hidden="true" /> {t('Remover')}</Button>}
             </div>
           )}
           {logoError && <p className="text-xs font-semibold text-amber-700">{logoError}</p>}
@@ -237,11 +239,11 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
 
       {GROUPS.map((group) => (
         <section key={group.title} className={cardClass}>
-          <h3 className="text-base font-bold text-fg">{group.title}</h3>
-          {group.hint && <p className="mb-3 flex items-center gap-1.5 text-xs text-fg-sub"><Search size={12} aria-hidden="true" /> {group.hint}</p>}
+          <h3 className="text-base font-bold text-fg">{t(group.title)}</h3>
+          {group.hint && <p className="mb-3 flex items-center gap-1.5 text-xs text-fg-sub"><Search size={12} aria-hidden="true" /> {t(group.hint)}</p>}
           <div className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-3 ${group.hint ? '' : 'mt-3'}`}>
             {group.fields.map((field) => (
-              <label key={field.key} className={`text-xs font-semibold text-fg-sub ${field.span ? 'sm:col-span-2' : ''}`}>{field.label}
+              <label key={field.key} className={`text-xs font-semibold text-fg-sub ${field.span ? 'sm:col-span-2' : ''}`}>{t(field.label)}
                 <input type={field.mask === 'phone' ? 'tel' : field.type ?? 'text'} className={inputClass} disabled={!canEdit} placeholder={field.mask === 'phone' ? '+55 (11) 91234-5678' : field.placeholder} inputMode={field.mask === 'phone' ? 'tel' : field.mask && field.mask !== 'uf' ? 'numeric' : undefined}
                   value={form[field.key] ?? ''} onChange={(e) => change(field, e.target.value)} />
                 {hint[field.key] && <span className="mt-1 block text-[11px] font-medium text-purple-700" role="status">{hint[field.key]}</span>}
@@ -253,8 +255,8 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
 
       {canEdit && (
         <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-2xl border border-border bg-bg px-4 py-3 shadow-lg">
-          <span className="text-sm text-fg-sub">{dirty ? 'Há alterações não salvas.' : 'Tudo salvo.'}</span>
-          <Button onClick={save} isLoading={saving} disabled={!dirty || Boolean(logoError)}>Salvar alterações</Button>
+          <span className="text-sm text-fg-sub">{dirty ? t('Há alterações não salvas.') : t('Tudo salvo.')}</span>
+          <Button onClick={save} isLoading={saving} disabled={!dirty || Boolean(logoError)}>{t('Salvar alterações')}</Button>
         </div>
       )}
     </div>

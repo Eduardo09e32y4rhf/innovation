@@ -198,12 +198,12 @@ describe('candidatura reaproveitando o perfil', () => {
   });
   it('envia nome, e-mail, telefone e o currículo salvo; sem perguntas vai direto', async () => {
     const { svc, jobs, prisma } = build();
-    const result = await svc.applyWithProfile(full, 'j1', { consent: true });
+    const result = await svc.applyWithProfile(full, 'j1', { consent: true, source: 'telegram' });
     expect(prisma.candidateInvite.updateMany).toHaveBeenCalledWith({ where: { accountId: 'acc-1', jobId: 'j1', status: 'SENT' }, data: { status: 'APPLIED' } });
     expect(result).toEqual({ received: true, applicationId: 'app-1' });
     const [jobId, fields, file] = jobs.apply.mock.calls[0];
     expect(jobId).toBe('j1');
-    expect(fields).toMatchObject({ name: 'Camila', email: 'c@x.com', phone: '(11) 91234-5678', consent: true, answers: '{}' });
+    expect(fields).toMatchObject({ name: 'Camila', email: 'c@x.com', phone: '(11) 91234-5678', consent: true, answers: '{}', source: 'telegram' });
     expect(file.filename).toBe('cv.pdf');
     expect(Buffer.isBuffer(file.buffer)).toBe(true);
   });
