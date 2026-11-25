@@ -88,11 +88,11 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
     <a className="sr-only focus:not-sr-only focus:block focus:p-4" href="#career-content">{t('Ir para as oportunidades')}</a>
     <div className="mx-auto max-w-[1200px] px-5 sm:px-9">
       <header className="flex min-h-[64px] flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[#e9e5f0] py-3 sm:min-h-[88px]">
-        <Link href={companyId ? '/carreiras/' + encodeURIComponent(companyId) : '/carreiras'} className="flex items-center gap-3" aria-label="Portal de vagas Innovation RH">
+        <Link href={companyId ? '/carreiras/' + encodeURIComponent(companyId) : '/carreiras'} className="flex items-center gap-3" aria-label={t('Portal de vagas Innovation RH')}>
           <span className="grid h-9 w-9 -rotate-[8deg] place-items-center rounded-xl bg-[#7240da] text-2xl font-bold text-white" aria-hidden="true">i</span>
           <span className="text-lg font-extrabold tracking-tight sm:text-xl">{companyId ? company.name : <>innovation<span className="text-[#7240da]">.</span></>}          <small className="mt-0.5 block text-[10px] font-medium tracking-[2.4px] text-[#736d80]">{companyId ? t('PORTAL DE CARREIRAS') : t('RH · CARREIRAS')}</small></span>
         </Link>
-        <nav aria-label="Navegação" className="flex items-center gap-4 text-[13px] sm:gap-7">
+        <nav aria-label={t('Navegação')} className="flex items-center gap-4 text-[13px] sm:gap-7">
           <a href="#career-content" className="hidden text-[#7240da] sm:inline">{t('Explorar vagas')}</a>
           {companyId && <Link href="/carreiras" className="hidden sm:inline">{t('Todas as empresas')}</Link>}
           <Link href="/carreiras/conta" className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 font-semibold text-white hover:bg-[#5b29be]">{t('Login')}</Link>
@@ -132,11 +132,11 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
             {contractOptions.length > 0 && <div className="mb-5 border-b border-[#e9e5f0] pb-4"><h3 className="text-xs font-semibold">{t('Tipo de contratação')}</h3>{contractOptions.map(value => check(t(employmentTypeLabel(value)), contracts.includes(value), count(job => job.employmentType, value), () => setContracts(current => toggleIn(current, value))))}</div>}
             {jobs.some(job => job.pcd) && <div className="mb-5 border-b border-[#e9e5f0] pb-4"><h3 className="text-xs font-semibold">{t('Inclusão')}</h3>{check(t('Vagas para pessoas com deficiência (PCD)'), onlyPcd, jobs.filter(job => job.pcd).length, () => setOnlyPcd(value => !value))}</div>}
             {levelOptions.length > 0 && <div className="mb-5 border-b border-[#e9e5f0] pb-4"><h3 className="text-xs font-semibold">{t('Nível de experiência')}</h3>{levelOptions.map(value => check(t(value), levels.includes(value), count(job => job.seniority, value), () => setLevels(current => toggleIn(current, value))))}</div>}
-            {!companyId && companyFilter && (() => { const item = companies.find(entry => entry.id === companyFilter); return item ? <div className="hidden rounded-xl bg-[#f0eafa] p-5 md:block"><CareersLogo company={item} /><h3 className="mt-3 text-sm font-semibold leading-snug">{item.name}</h3>{item.description && <p className="mb-3 mt-2 text-[11px] leading-relaxed text-[#736d80]">{item.description}</p>}<Link href={'/carreiras/' + encodeURIComponent(item.id)} className="text-[11px] font-semibold text-[#7240da]">Ver empresa ↗</Link></div> : null; })()}
+            {!companyId && companyFilter && (() => { const item = companies.find(entry => entry.id === companyFilter); return item ? <div className="hidden rounded-xl bg-[#f0eafa] p-5 md:block"><CareersLogo company={item} /><h3 className="mt-3 text-sm font-semibold leading-snug">{item.name}</h3>{item.description && <p className="mb-3 mt-2 text-[11px] leading-relaxed text-[#736d80]">{item.description}</p>}<Link href={'/carreiras/' + encodeURIComponent(item.id)} className="text-[11px] font-semibold text-[#7240da]">{t('Ver empresa ↗')}</Link></div> : null; })()}
           </aside>
         </div>
 
-        <section aria-label="Vagas encontradas">
+        <section aria-label={t('Vagas encontradas')}>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0"><h2 className="text-[22px] font-semibold tracking-tight">{t('Encontre seu lugar')} <span className="ml-1 rounded-md bg-[#eee5fc] px-2 py-1 align-middle text-[13px] text-[#7240da]">{filtered.length}</span></h2><p role="status" aria-live="polite" className="mt-1.5 text-xs text-[#736d80]">{loading ? t('Carregando oportunidades...') : `${filtered.length} ${t(filtered.length === 1 ? 'oportunidade encontrada' : 'oportunidades encontradas')}`}</p></div>
             <button type="button" aria-pressed={onlySaved} onClick={() => setOnlySaved(value => !value)} className={'min-h-11 shrink-0 rounded-lg border bg-white px-3 text-[12px] ' + (onlySaved ? 'border-[#7240da] text-[#7240da]' : 'border-[#e9e5f0] text-[#736d80]')}>{t('Vagas salvas')} {saved.length}</button>
@@ -155,7 +155,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
                 </div>
                 <h3 className="mb-2.5 mt-4 max-w-[610px] break-words text-[19px] font-semibold leading-snug tracking-tight"><Link href={href} className="hover:text-[#7240da]">{job.title}</Link></h3>
                 <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#736d80]"><span className="inline-flex items-center gap-1"><MapPin size={13} aria-hidden="true" />{job.location || t('Local não informado')}</span><span className="inline-flex items-center gap-1"><Briefcase size={13} aria-hidden="true" />{t(employmentTypeLabel(job.employmentType))}</span></p>
-                <div className="my-4 flex flex-wrap gap-2">{mode && <span className={'rounded-md px-2 py-1 text-[11px] ' + (job.workMode === 'REMOTO' ? 'bg-[#eaf4ee] text-[#327450]' : 'bg-[#f0e8fd] text-[#7650ac]')}>{mode}</span>}{job.pcd && <span className="rounded-md bg-[#e8f1fb] px-2 py-1 text-[11px] font-semibold text-[#1f5a96]">Vaga PCD</span>}{job.seniority && <span className={tag}>{job.seniority}</span>}{job.department && <span className={tag}>{job.department}</span>}</div>
+                <div className="my-4 flex flex-wrap gap-2">{mode && <span className={'rounded-md px-2 py-1 text-[11px] ' + (job.workMode === 'REMOTO' ? 'bg-[#eaf4ee] text-[#327450]' : 'bg-[#f0e8fd] text-[#7650ac]')}>{mode}</span>}{job.pcd && <span className="rounded-md bg-[#e8f1fb] px-2 py-1 text-[11px] font-semibold text-[#1f5a96]">{t('Vaga PCD')}</span>}{job.seniority && <span className={tag}>{t(job.seniority)}</span>}{job.department && <span className={tag}>{t(job.department)}</span>}</div>
                 <p className="line-clamp-3 max-w-[620px] text-xs leading-[1.7] text-[#736d80]">{job.description}</p>
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0edf5] pt-4">
                   <div className="text-[17px] font-bold">{salary || t('A combinar')}<small className="mt-1 block text-[10px] font-normal text-[#736d80]">{t('Remuneração informada na vaga')}</small></div>
