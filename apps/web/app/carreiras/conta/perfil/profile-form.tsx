@@ -19,6 +19,21 @@ import { useGuard } from '@/app/hooks/use-action';
 
 const digits = (value: string) => value.replace(/\D/g, '');
 
+function normalizePhoneDigits(value: string, defaultCountry = '55'): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  let d = digits(trimmed);
+  if (!d) return '';
+
+  if (trimmed.startsWith('00')) {
+    d = d.slice(2);
+  } else if (!trimmed.startsWith('+') && d.length <= 11 && !d.startsWith(defaultCountry)) {
+    d = `${defaultCountry}${d}`;
+  }
+
+  return d.slice(0, 15);
+}
+
 function maskCpf(value: string) {
   const d = digits(value).slice(0, 11);
   return d
@@ -28,11 +43,35 @@ function maskCpf(value: string) {
 }
 
 function maskPhone(value: string) {
-  const d = digits(value).slice(0, 11);
-  if (d.length <= 2) return d;
-  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  const d = normalizePhoneDigits(value);
+  if (!d) return '';
+
+  if (d.startsWith('55') && d.length > 2) {
+    const cc = d.slice(0, 2);
+    const area = d.slice(2, 4);
+    const local = d.slice(4);
+    if (!area) return `+${cc}`;
+    if (local.length <= 4) return `+${cc} (${area}) ${local}`.trim();
+    if (local.length <= 8) return `+${cc} (${area}) ${local.slice(0, 4)}-${local.slice(4)}`;
+    return `+${cc} (${area}) ${local.slice(0, 5)}-${local.slice(5)}`;
+  }
+
+  const ccLen = d.length > 11 ? (d.startsWith('1') ? 1 : d.length >= 13 ? 3 : 2) : 1;
+  const cc = d.slice(0, ccLen);
+  const rest = d.slice(ccLen);
+  if (!rest) return `+${cc}`;
+
+  const areaLen = rest.length > 8 ? 2 : 0;
+  const area = areaLen ? rest.slice(0, areaLen) : '';
+  const local = areaLen ? rest.slice(areaLen) : rest;
+  const grouped =
+    local.length > 6
+      ? `${local.slice(0, local.length - 4)}-${local.slice(-4)}`
+      : local.length > 4
+        ? `${local.slice(0, 3)} ${local.slice(3)}`
+        : local;
+
+  return area ? `+${cc} (${area}) ${grouped}` : `+${cc} ${grouped}`;
 }
 
 const maskCep = (value: string) => digits(value).slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
@@ -146,7 +185,6 @@ export function ProfileForm() {
   const numberInput = useRef<HTMLInputElement>(null);
   const [cepState, setCepState] = useState<'idle' | 'loading' | 'ok' | 'notfound'>('idle');
 
-  // Sincroniza dados quando o perfil carrega ou muda no contexto, sem sobrescrever edições em andamento.
   useEffect(() => {
     if (!profile) return;
     if (!dirty || lastSyncedId.current !== profile.id) {
@@ -167,14 +205,13 @@ export function ProfileForm() {
   const input = 'input-v2 min-h-11 text-base sm:text-sm';
   const label = 'text-sm font-medium text-[#3b2f5c]';
 
-  // Prévia ao vivo da força do perfil enquanto a pessoa digita.
   const preview = useMemo(
     () =>
       profileStrength({
         ...profile,
         ...form,
         cpf: digits(form.cpf),
-        phone: digits(form.phone),
+        phone: normalizePhoneDigits(form.phone),
         cep: digits(form.cep),
         skills,
         education,
@@ -197,7 +234,7 @@ export function ProfileForm() {
       const rawUpdated = await candidateApi.update({
         name: form.name.trim(),
         cpf: digits(form.cpf),
-        phone: digits(form.phone),
+        phone: normalizePhoneDigits(form.phone),
         cep: digits(form.cep),
         street: form.street.trim(),
         streetNumber: form.streetNumber.trim(),
@@ -844,6 +881,7 @@ export function ProfileForm() {
                       type="tel"
                       autoComplete="tel"
                       inputMode="tel"
+                      placeholder="+55 (11) 91234-5678"
                       value={form.phone}
                       onChange={(e) => set('phone', maskPhone(e.target.value))}
                     />
