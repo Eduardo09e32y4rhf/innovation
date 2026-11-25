@@ -11,7 +11,59 @@ import {
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { LanguageSwitcher, useLanguage } from '@/app/contexts/LanguageContext';
 import { cn } from '@/app/lib/cn';
+
+type Locale = 'pt-BR' | 'en-US' | 'es-ES';
+
+const TOPBAR_COPY: Record<
+  Locale,
+  {
+    openMenu: string;
+    searchLabel: string;
+    searchPlaceholder: string;
+    notifications: string;
+    openProfile: string;
+    closeMenu: string;
+    defaultUser: string;
+    settings: string;
+    logout: string;
+  }
+> = {
+  'pt-BR': {
+    openMenu: 'Abrir menu',
+    searchLabel: 'Buscar',
+    searchPlaceholder: 'Buscar pessoas, escalas, férias...',
+    notifications: 'Notificações',
+    openProfile: 'Abrir perfil',
+    closeMenu: 'Fechar menu',
+    defaultUser: 'Usuário',
+    settings: 'Configurações',
+    logout: 'Sair',
+  },
+  'en-US': {
+    openMenu: 'Open menu',
+    searchLabel: 'Search',
+    searchPlaceholder: 'Search people, schedules, time off...',
+    notifications: 'Notifications',
+    openProfile: 'Open profile',
+    closeMenu: 'Close menu',
+    defaultUser: 'User',
+    settings: 'Settings',
+    logout: 'Sign out',
+  },
+  'es-ES': {
+    openMenu: 'Abrir menú',
+    searchLabel: 'Buscar',
+    searchPlaceholder: 'Buscar personas, turnos, vacaciones...',
+    notifications: 'Notificaciones',
+    openProfile: 'Abrir perfil',
+    closeMenu: 'Cerrar menú',
+    defaultUser: 'Usuario',
+    settings: 'Configuración',
+    logout: 'Cerrar sesión',
+  },
+};
 
 export function DashboardTopbar({
   onMenu,
@@ -21,8 +73,13 @@ export function DashboardTopbar({
   const router = useRouter();
   const params = useParams();
   const { user, company, logout } = useAuth();
+  const { locale } = useLanguage();
 
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const activeLocale: Locale =
+    locale === 'en-US' || locale === 'es-ES' ? locale : 'pt-BR';
+  const copy = TOPBAR_COPY[activeLocale];
 
   const tenant = String(
     params?.tenant ||
@@ -54,7 +111,7 @@ export function DashboardTopbar({
         {/* Botão mobile */}
         <button
           type="button"
-          aria-label="Abrir menu"
+          aria-label={copy.openMenu}
           onClick={onMenu}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-v2-md border border-border bg-bg-elev text-fg-mut transition hover:border-brand-300 hover:text-brand-600 lg:hidden"
         >
@@ -71,18 +128,21 @@ export function DashboardTopbar({
 
           <input
             type="search"
-            aria-label="Buscar"
-            placeholder="Buscar pessoas, escalas, férias..."
+            aria-label={copy.searchLabel}
+            placeholder={copy.searchPlaceholder}
             className="input-v2 h-10 !pl-10 !text-[12px] !font-semibold !bg-bg-sub/60 focus:!bg-bg-elev"
           />
         </div>
 
         {/* Ações da direita */}
         <div className="ml-auto flex items-center gap-2">
+          {/* Seletor de idioma */}
+          <LanguageSwitcher />
+
           {/* Notificações */}
           <button
             type="button"
-            aria-label="Notificações"
+            aria-label={copy.notifications}
             onClick={() => goTo('/dashboard/notifications')}
             className="relative flex h-10 w-10 items-center justify-center rounded-v2-md border border-border bg-bg-elev text-fg-mut transition hover:border-brand-300 hover:text-brand-600"
           >
@@ -93,7 +153,7 @@ export function DashboardTopbar({
           <div className="relative">
             <button
               type="button"
-              aria-label="Abrir perfil"
+              aria-label={copy.openProfile}
               aria-haspopup="menu"
               aria-expanded={profileOpen}
               onClick={() => setProfileOpen((v) => !v)}
@@ -116,7 +176,7 @@ export function DashboardTopbar({
               <>
                 <button
                   type="button"
-                  aria-label="Fechar menu"
+                  aria-label={copy.closeMenu}
                   className="fixed inset-0 z-40 h-full w-full cursor-default"
                   onClick={() => setProfileOpen(false)}
                 />
@@ -131,7 +191,7 @@ export function DashboardTopbar({
                 >
                   <div className="border-b border-border/60 px-3 py-3">
                     <p className="truncate text-sm font-black text-fg">
-                      {user?.name || 'Usuário'}
+                      {user?.name || copy.defaultUser}
                     </p>
                     <p className="truncate text-xs text-fg-mut">
                       {user?.email}
@@ -145,7 +205,7 @@ export function DashboardTopbar({
                     className="flex w-full items-center gap-2 rounded-v2-md px-3 py-2.5 text-left text-[13px] font-bold text-fg-mut transition hover:bg-brand-500/8 hover:text-brand-700"
                   >
                     <Settings2 size={16} />
-                    Configurações
+                    {copy.settings}
                   </button>
 
                   <button
@@ -155,7 +215,7 @@ export function DashboardTopbar({
                     className="flex w-full items-center gap-2 rounded-v2-md px-3 py-2.5 text-left text-[13px] font-bold text-danger transition hover:bg-danger/10"
                   >
                     <LogOut size={16} />
-                    Sair
+                    {copy.logout}
                   </button>
                 </div>
               </>
