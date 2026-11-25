@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { LanguageSwitcher, useLanguage } from '@/app/contexts/LanguageContext';
+import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
+import { useLanguage } from '@/app/contexts/LanguageContext';
 import { cn } from '@/app/lib/cn';
 
 type Locale = 'pt-BR' | 'en-US' | 'es-ES';
@@ -73,12 +74,12 @@ export function DashboardTopbar({
   const router = useRouter();
   const params = useParams();
   const { user, company, logout } = useAuth();
-  const { locale } = useLanguage();
+  const { language } = useLanguage();
 
   const [profileOpen, setProfileOpen] = useState(false);
 
   const activeLocale: Locale =
-    locale === 'en-US' || locale === 'es-ES' ? locale : 'pt-BR';
+    language === 'en-US' || language === 'es-ES' ? language : 'pt-BR';
   const copy = TOPBAR_COPY[activeLocale];
 
   const tenant = String(

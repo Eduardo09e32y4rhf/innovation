@@ -28,7 +28,6 @@ export default function SuportePage() {
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [website, setWebsite] = useState(''); // Honeypot anti-spam
-  const [turnstileToken, setTurnstileToken] = useState<string>('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +54,6 @@ export default function SuportePage() {
         description: description.trim(),
         pageUrl: typeof window !== 'undefined' ? window.location.href : '',
         website,
-        ...(turnstileToken ? { turnstileToken } : {}),
       });
 
       if (res?.success) {
@@ -92,7 +90,6 @@ export default function SuportePage() {
     setSubject('');
     setDescription('');
     setWebsite('');
-    setTurnstileToken('');
     setSuccessTicket(null);
     setError(null);
     setCopied(false);
@@ -317,7 +314,7 @@ export default function SuportePage() {
 
             {/* Captcha / Turnstile em linha própria para não quebrar o layout no mobile */}
             <div className="flex justify-start">
-              <TurnstileWidget onVerify={setTurnstileToken} />
+              <TurnstileWidget />
             </div>
 
             <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">

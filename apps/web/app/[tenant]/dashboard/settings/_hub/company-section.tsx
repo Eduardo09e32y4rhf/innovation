@@ -37,10 +37,57 @@ function applyMask(mask: Mask | undefined, value: string) {
     case 'cnpj': return d.slice(0, 14).replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2');
     case 'cpf': return d.slice(0, 11).replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
     case 'cep': return d.slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2');
-    case 'phone': return d.slice(0, 11).replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{4,5})(\d{4})$/, '$1-$2');
+    case 'phone': return maskPhone(value);
     case 'uf': return value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase();
     default: return value;
   }
+}
+
+function normalizePhoneDigits(value: string, defaultCountry = '55') {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  let digits = trimmed.replace(/\D/g, '');
+  if (!digits) return '';
+
+  if (trimmed.startsWith('00')) {
+    digits = digits.slice(2);
+  } else if (!trimmed.startsWith('+') && digits.length <= 11 && !digits.startsWith(defaultCountry)) {
+    digits = `${defaultCountry}${digits}`;
+  }
+
+  return digits.slice(0, 15);
+}
+
+function maskPhone(value: string) {
+  const digits = normalizePhoneDigits(value);
+  if (!digits) return '';
+
+  if (digits.startsWith('55') && digits.length > 2) {
+    const country = digits.slice(0, 2);
+    const area = digits.slice(2, 4);
+    const local = digits.slice(4);
+    if (!area) return `+${country}`;
+    if (local.length <= 4) return `+${country} (${area}) ${local}`.trim();
+    if (local.length <= 8) return `+${country} (${area}) ${local.slice(0, 4)}-${local.slice(4)}`;
+    return `+${country} (${area}) ${local.slice(0, 5)}-${local.slice(5)}`;
+  }
+
+  const countryLength = digits.length > 11 ? (digits.startsWith('1') ? 1 : digits.length >= 13 ? 3 : 2) : 1;
+  const country = digits.slice(0, countryLength);
+  const rest = digits.slice(countryLength);
+  if (!rest) return `+${country}`;
+
+  const areaLength = rest.length > 8 ? 2 : 0;
+  const area = areaLength ? rest.slice(0, areaLength) : '';
+  const local = areaLength ? rest.slice(areaLength) : rest;
+  const grouped =
+    local.length > 6
+      ? `${local.slice(0, local.length - 4)}-${local.slice(-4)}`
+      : local.length > 4
+        ? `${local.slice(0, 3)} ${local.slice(3)}`
+        : local;
+
+  return area ? `+${country} (${area}) ${grouped}` : `+${country} ${grouped}`;
 }
 
 export function CompanySection({ canEdit }: { canEdit: boolean }) {
@@ -55,7 +102,10 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
   useEffect(() => {
     if (!company.data) return;
     const source = company.data as unknown as Record<string, string | null | undefined>;
-    setForm(Object.fromEntries(KEYS.map((key) => [key, source[key] ?? source[key === 'zipCode' ? 'cep' : key === 'document' ? 'cnpj' : key] ?? ''])));
+    setForm(Object.fromEntries(KEYS.map((key) => {
+      const value = source[key] ?? source[key === 'zipCode' ? 'cep' : key === 'document' ? 'cnpj' : key] ?? '';
+      return [key, key === 'phone' || key === 'legalRepresentativePhone' ? maskPhone(value) : value];
+    })));
     setLogo(source.logoUrl ?? '');
     // Empresa com CNPJ mas sem razão social: busca na Receita sozinho, sem esperar digitar.
     const digits = String(source.document ?? source.cnpj ?? '').replace(/\D/g, '');
@@ -64,8 +114,15 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [company.data]);
 
-  const source = (company.data ?? {}) as unknown as Record<string, string | null | undefined>;
-  const dirty = useMemo(() => KEYS.some((key) => (form[key] ?? '') !== (source[key] ?? '')) || logo !== (source.logoUrl ?? ''), [form, logo, source]);
+  const source = useMemo(
+    () => (company.data ?? {}) as unknown as Record<string, string | null | undefined>,
+    [company.data],
+  );
+  const dirty = useMemo(() => KEYS.some((key) => {
+    const sourceValue = source[key] ?? source[key === 'zipCode' ? 'cep' : key === 'document' ? 'cnpj' : key] ?? '';
+    const comparableSource = key === 'phone' || key === 'legalRepresentativePhone' ? maskPhone(sourceValue) : sourceValue;
+    return (form[key] ?? '') !== comparableSource;
+  }) || logo !== (source.logoUrl ?? ''), [form, logo, source]);
   const logoError = logo && !SAFE_LOGO.test(logo) ? 'Use uma URL https de imagem (PNG, JPG ou WebP) ou envie um arquivo.' : null;
   const patch = (change: Record<string, string>) => setForm((prev) => ({ ...prev, ...change }));
 
@@ -134,7 +191,10 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
     if (logoError) return;
     setError(null);
     const payload: Record<string, string | null> = {};
-    for (const key of KEYS) payload[key] = (form[key] ?? '').trim();
+    for (const key of KEYS) {
+      const value = (form[key] ?? '').trim();
+      payload[key] = key === 'phone' || key === 'legalRepresentativePhone' ? normalizePhoneDigits(value) : value;
+    }
     if (!payload.name || payload.name.length < 2) return setError('Informe o nome fantasia da empresa.');
     if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) return setError('O e-mail da empresa não é válido.');
     setSaving(true);
@@ -182,7 +242,7 @@ export function CompanySection({ canEdit }: { canEdit: boolean }) {
           <div className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-3 ${group.hint ? '' : 'mt-3'}`}>
             {group.fields.map((field) => (
               <label key={field.key} className={`text-xs font-semibold text-fg-sub ${field.span ? 'sm:col-span-2' : ''}`}>{field.label}
-                <input type={field.type ?? 'text'} className={inputClass} disabled={!canEdit} placeholder={field.placeholder} inputMode={field.mask && field.mask !== 'uf' ? 'numeric' : undefined}
+                <input type={field.mask === 'phone' ? 'tel' : field.type ?? 'text'} className={inputClass} disabled={!canEdit} placeholder={field.mask === 'phone' ? '+55 (11) 91234-5678' : field.placeholder} inputMode={field.mask === 'phone' ? 'tel' : field.mask && field.mask !== 'uf' ? 'numeric' : undefined}
                   value={form[field.key] ?? ''} onChange={(e) => change(field, e.target.value)} />
                 {hint[field.key] && <span className="mt-1 block text-[11px] font-medium text-purple-700" role="status">{hint[field.key]}</span>}
               </label>

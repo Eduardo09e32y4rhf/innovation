@@ -180,20 +180,20 @@ export function ProfileForm() {
   const [resumeBusy, setResumeBusy] = useState(false);
 
   const fileInput = useRef<HTMLInputElement>(null);
-  const lastSyncedId = useRef<string | undefined>(profile?.id);
+  const lastSyncedEmail = useRef(profile.email);
   const lastCep = useRef(digits(profile?.cep ?? ''));
   const numberInput = useRef<HTMLInputElement>(null);
   const [cepState, setCepState] = useState<'idle' | 'loading' | 'ok' | 'notfound'>('idle');
 
   useEffect(() => {
     if (!profile) return;
-    if (!dirty || lastSyncedId.current !== profile.id) {
+    if (!dirty || lastSyncedEmail.current !== profile.email) {
       setForm(toForm(profile));
       setEducation(profile.education ?? []);
       setExperience(profile.experience ?? []);
       setSkills(profile.skills ?? []);
       lastCep.current = digits(profile.cep ?? '');
-      lastSyncedId.current = profile.id;
+      lastSyncedEmail.current = profile.email;
     }
   }, [profile, dirty]);
 
@@ -302,7 +302,7 @@ export function ProfileForm() {
         ...profile,
         resume:
           (uploaded as { resume?: CandidateProfile['resume'] })?.resume ??
-          profile.resume ?? { name: file.name, size: file.size },
+          profile.resume ?? { name: file.name, type: file.type, size: file.size },
       });
       setProfile(updated);
       setMessage({ kind: 'ok', text: `Currículo "${file.name}" enviado e salvo com sucesso.` });
