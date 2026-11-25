@@ -113,8 +113,8 @@ export class PlatformService {
     const result: any = { ...company, usersCount: company._count.users, employeesCount: company._count.employees };
     if (actor && actor.role !== 'DEV') {
       result.internalNotes = undefined;
-      result.asaasCustomerId = result.asaasCustomerId ? '�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢' : null;
-      result.asaasSubscriptionId = result.asaasSubscriptionId ? '�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢�¢��a¬�¢' : null;
+      result.asaasCustomerId = result.asaasCustomerId ? '•••' : null;
+      result.asaasSubscriptionId = result.asaasSubscriptionId ? '•••' : null;
     }
     return result;
   }
@@ -342,11 +342,20 @@ export class PlatformService {
 
     const company = await this.getCompany(companyId);
     const email = dto.email.trim().toLowerCase();
-    const existing = await this.repository.findUserByEmail(email);
-    if (existing) throw new ConflictException('E-mail ja cadastrado');
+    const existing = (await this.repository.findUserByEmail(email)) as
+      | { id: string; companyId: string; isActive?: boolean; role?: string }
+      | null;
+
+    if (existing && existing.isActive !== false) {
+      throw new ConflictException(
+        existing.companyId === companyId
+          ? 'E-mail ja cadastrado nesta empresa.'
+          : 'E-mail ja cadastrado em outra empresa.',
+      );
+    }
 
     const count = await this.repository.countUsers(companyId);
-    const limit = company.subscription?.seatQuantity ?? 1;
+    const limit = company.subscription?.seatQuantity ?? company.maxUsers ?? 1;
     if (count >= limit) {
       throw new ConflictException({ code: 'SEAT_LIMIT_REACHED', message: 'A empresa utiliza todas as licencas contratadas.', used: count, limit });
     }
@@ -354,24 +363,48 @@ export class PlatformService {
     // Conta criada por terceiros: provisoria gerada pelo servidor (dto.password e ignorado) e devolvida uma unica vez.
     const temporaryPassword = generateTemporaryPassword();
     const temporaryPasswordExpiresAt = temporaryPasswordExpiry();
-    const created = await this.repository.createWithEmployeeSync({
-      companyId,
-      name: normalizeDisplayName(dto.name),
-      email,
-      passwordHash: await bcrypt.hash(temporaryPassword, 12),
-      role: dto.role ?? 'FUNCIONARIO',
-      temporaryPassword: {
-        value: temporaryPassword,
-        expiresAt: temporaryPasswordExpiresAt,
-      },
-      ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
-    });
+    const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+    const normalizedName = normalizeDisplayName(dto.name);
+    const nextRole = (dto.role ?? 'FUNCIONARIO') as any;
+
+    let created: any;
+    let action: 'COMPANY_USER_CREATED' | 'COMPANY_USER_REACTIVATED' = 'COMPANY_USER_CREATED';
+
+    if (existing && existing.isActive === false) {
+      action = 'COMPANY_USER_REACTIVATED';
+      const updated = await this.repository.updateWithEmployeeSync(companyId, existing.id, {
+        name: normalizedName,
+        email,
+        role: nextRole,
+        isActive: true,
+        passwordHash,
+        forcePasswordChange: true,
+        passwordChangedAt: new Date(),
+        failedLoginAttempts: 0,
+        ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
+      } as any);
+      created = updated.user ?? (await this.repository.findCompanyUser(companyId, existing.id));
+    } else {
+      created = await this.repository.createWithEmployeeSync({
+        companyId,
+        name: normalizedName,
+        email,
+        passwordHash,
+        role: nextRole,
+        temporaryPassword: {
+          value: temporaryPassword,
+          expiresAt: temporaryPasswordExpiresAt,
+        },
+        ...(dto.customPermissions !== undefined && dto.customPermissions !== null ? { customPermissions: dto.customPermissions } : {}),
+      });
+    }
+
     if (!created) throw new NotFoundException('Usuario nao encontrado');
 
     await this.repository.createAuditLog({
       companyId,
       userId: actor.sub,
-      action: 'COMPANY_USER_CREATED',
+      action,
       entity: 'User',
       entityId: created.id,
       actor: actor.email,
@@ -379,6 +412,7 @@ export class PlatformService {
         name: created.name,
         email: created.email,
         role: created.role,
+        isActive: created.isActive,
         employeeLinked: Boolean((created as any)?.employee?.id),
       },
     });
