@@ -186,7 +186,12 @@ describe('minhas candidaturas', () => {
 });
 
 describe('candidatura reaproveitando o perfil', () => {
-  const full: any = { id: 'acc-1', email: 'c@x.com', name: 'Camila', phone: '(11) 91234-5678', resumeKey: 'candidates/acc-1/x.pdf', resumeName: 'cv.pdf', resumeType: 'application/pdf', verifiedAt: new Date() };
+  const full: any = {
+    id: 'acc-1', email: 'c@x.com', name: 'Camila', cpf: '52998224725', phone: '(11) 91234-5678',
+    cep: '01001000', street: 'Praça da Sé', streetNumber: '1', neighborhood: 'Sé', city: 'São Paulo', state: 'SP',
+    education: [{ level: 'Superior', status: 'Completo', course: 'Administração', school: 'Universidade' }],
+    resumeKey: 'candidates/acc-1/x.pdf', resumeName: 'cv.pdf', resumeType: 'application/pdf', verifiedAt: new Date(),
+  };
   it('exige consentimento', async () => {
     const { svc } = build();
     await expect(svc.applyWithProfile(full, 'j1', { consent: false } as any)).rejects.toThrow('Consentimento');
@@ -194,6 +199,11 @@ describe('candidatura reaproveitando o perfil', () => {
   it('perfil sem currículo não envia', async () => {
     const { svc, jobs } = build();
     await expect(svc.applyWithProfile({ ...full, resumeKey: null }, 'j1', { consent: true })).rejects.toThrow('faltam Currículo');
+    expect(jobs.apply).not.toHaveBeenCalled();
+  });
+  it('exige o perfil mínimo completo antes de reutilizar os dados', async () => {
+    const { svc, jobs } = build();
+    await expect(svc.applyWithProfile({ ...full, cpf: null, street: null, education: [] }, 'j1', { consent: true })).rejects.toThrow('faltam CPF, Endereço, Formação');
     expect(jobs.apply).not.toHaveBeenCalled();
   });
   it('envia nome, e-mail, telefone e o currículo salvo; sem perguntas vai direto', async () => {

@@ -441,14 +441,7 @@ export function validateResume(file: File | null): string | null {
     return 'O currículo deve ter no máximo 5 MB.';
   }
 
-  const acceptedMimeTypes = [
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  ];
-  if (file.type && !acceptedMimeTypes.includes(file.type)) {
-    return 'O conteúdo do arquivo não corresponde a um PDF ou DOCX válido.';
-  }
-
+  // Browser MIME values vary by OS; the API verifies the actual file signature.
   return null;
 }
 

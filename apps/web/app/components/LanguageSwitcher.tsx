@@ -1,16 +1,18 @@
 'use client';
 import React from 'react';
 import { useLanguage, Language } from '@/app/contexts/LanguageContext';
+import { useI18n } from '@/app/contexts/I18nContext';
 import { Globe } from 'lucide-react';
 
-const languages: { code: Language; name: string; flag: string }[] = [
-  { code: 'pt-BR', name: 'Português', flag: '🇧🇷' },
-  { code: 'en-US', name: 'English', flag: '🇺🇸' },
-  { code: 'es-ES', name: 'Español', flag: '🇪🇸' },
+const languages: { code: Language; name: string; label: string; flag: string }[] = [
+  { code: 'pt-BR', name: 'Português', label: 'Português (Brasil)', flag: '🇧🇷' },
+  { code: 'en-US', name: 'English', label: 'Inglês', flag: '🇺🇸' },
+  { code: 'es-ES', name: 'Español', label: 'Espanhol', flag: '🇪🇸' },
 ];
 
-export const LanguageSwitcher: React.FC = () => {
+export const LanguageSwitcher: React.FC<{ variant?: 'light' | 'dark' }> = ({ variant = 'light' }) => {
   const { language, setLanguage } = useLanguage();
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = React.useState(false);
 
   const handleLanguageChange = (lang: Language) => {
@@ -23,11 +25,16 @@ export const LanguageSwitcher: React.FC = () => {
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-sm focus-visible:ring-2 focus-visible:outline-none"
+        className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 ${
+          variant === 'dark'
+            ? 'border-white/10 bg-white/5 text-white hover:bg-white/10'
+            : 'border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50'
+        }`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        aria-label={`Select Language, currently ${currentLanguage?.name}`}
+        aria-label={t('Selecionar idioma: {language}', { language: currentLanguage?.name ?? '' })}
       >
         <Globe size={16} />
         <span>{currentLanguage?.flag} {currentLanguage?.name}</span>
@@ -35,21 +42,30 @@ export const LanguageSwitcher: React.FC = () => {
 
       {isOpen && (
         <div
-          className="absolute top-full right-0 mt-2 bg-[#1a1a2e] border border-white/20 rounded-lg overflow-hidden z-50 shadow-xl"
+          className={`absolute right-0 top-full z-50 mt-2 min-w-48 overflow-hidden rounded-lg border shadow-xl ${
+            variant === 'dark'
+              ? 'border-white/15 bg-[#171329] text-white'
+              : 'border-zinc-200 bg-white text-zinc-900'
+          }`}
           role="listbox"
+          aria-label={t('Idiomas disponíveis')}
         >
           {languages.map((lang) => (
             <button
               key={lang.code}
+              type="button"
               onClick={() => handleLanguageChange(lang.code)}
-              className={`w-full px-4 py-3 text-left text-sm flex items-center gap-2 hover:bg-white/10 transition-all focus-visible:ring-2 focus-visible:outline-none ${
-                language === lang.code ? 'bg-purple-500/20 border-l-2 border-purple-500' : ''
+              className={`flex w-full items-center gap-2 border-l-2 px-4 py-3 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-purple-500 ${
+                variant === 'dark'
+                  ? `text-white hover:bg-white/10 ${language === lang.code ? 'border-purple-400 bg-purple-500/20' : 'border-transparent'}`
+                  : `text-zinc-900 hover:bg-purple-50 ${language === lang.code ? 'border-purple-600 bg-purple-50 font-semibold' : 'border-transparent'}`
               }`}
               role="option"
               aria-selected={language === lang.code}
             >
               <span>{lang.flag}</span>
               <span>{lang.name}</span>
+              <span className={`ml-auto text-xs ${variant === 'dark' ? 'text-white/65' : 'text-zinc-500'}`}>{t(lang.label)}</span>
             </button>
           ))}
         </div>

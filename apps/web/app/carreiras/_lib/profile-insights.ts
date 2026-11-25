@@ -70,8 +70,8 @@ export function matchJobs(profile: CandidateProfile, jobs: PublicJob[], limit = 
     .map(({ job, raw, reasons }) => ({ job, percent: keywords.length ? Math.min(98, 40 + raw) : 0, reasons }));
 }
 
-export function monthLabel(value: string | null) {
+export function monthLabel(value: string | null, locale = 'pt-BR') {
   if (!value) return '';
   const [year, month] = value.split('-');
-  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
+  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(locale, { month: 'short', year: 'numeric' }).replace('.', '');
 }

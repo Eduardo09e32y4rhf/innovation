@@ -17,6 +17,15 @@ A escolha de uso e salva em `Company.recruitmentAccountType`. Nao e um novo pape
 5. Uma indisponibilidade financeira devolve `billingSetupPending=true`, mantendo o acesso ao teste. A rotina existente de conciliacao pode reparar a integracao depois. Nenhuma fatura ou recorrencia e criada pela nova preparacao do cadastro financeiro.
 6. Abrir diretamente Vagas e recrutamento, com orientacao para conferir o cadastro, criar uma vaga, publicar e compartilhar seu link. A conta do candidato pode ser reutilizada entre empresas, mantendo as candidaturas isoladas. A pagina da vaga oferece cadastro gratuito com retorno a mesma vaga.
 
+## Candidatura no portal publico
+
+1. `/carreiras` lista as vagas publicas de todas as empresas; cada vaga tem pagina propria e acao para candidatura.
+2. Para enviar, o candidato entra ou cria uma conta gratuita. O perfil minimo deve estar completo (nome, CPF, telefone, endereco, formacao e curriculo) e o e-mail confirmado.
+3. Com o perfil pronto, o portal pergunta em cada vaga se os dados salvos devem ser reutilizados. Essa escolha nunca e presumida.
+4. Ao reutilizar, o candidato responde somente perguntas configuradas para aquela vaga; sem perguntas, a candidatura e enviada diretamente. Ao recusar, os dados sao preenchidos manualmente e o e-mail precisa corresponder ao da conta para aparecer na area do candidato.
+5. O candidato acompanha suas proprias candidaturas, etapas e estimativas agregadas do funil. Contagens abaixo de cinco aparecem como "menos de 5"; vagas confidenciais nao exibem o funil.
+6. Avisos ao candidato usam e-mail e o portal. Compartilhar um link de vaga por WhatsApp e uma acao manual do usuario, nao um canal de notificacoes.
+
 ## Final do teste
 
 As regras ja existentes de avisos, cancelamento, primeira fatura, recorrencia e liberacao apos pagamento continuam no financeiro. O teste nao solicita cartao no cadastro. Uma assinatura que ja usou o teste vai para pagamento, com mensagem explicita, em vez de receber outro periodo gratuito.

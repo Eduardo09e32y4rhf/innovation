@@ -355,7 +355,7 @@ export class CandidateAccountService {
   async applyWithProfile(account: Account, jobId: string, dto: CandidateApplyDto, ctx: { ip?: string; userAgent?: string } = {}) {
     if (!dto.consent) throw new BadRequestException({ message: 'Consentimento obrigatório para enviar a candidatura.', fields: { consent: 'Obrigatório' } });
     if (!account.verifiedAt) throw new BadRequestException({ message: 'Confirme seu e-mail para reutilizar os dados do perfil. Enviamos um código de 6 dígitos para você.', fields: { email: 'E-mail não confirmado' } });
-    const missing = profileChecklist(account).filter((item) => ['name', 'phone', 'resume'].includes(item.key) && !item.done).map((item) => item.label);
+    const missing = profileChecklist(account).filter((item) => !item.done).map((item) => item.label);
     if (missing.length) throw new BadRequestException({ message: `Complete seu perfil antes de reutilizar os dados: faltam ${missing.join(', ')}.`, fields: { profile: missing.join(', ') } });
     let buffer: Buffer;
     try {

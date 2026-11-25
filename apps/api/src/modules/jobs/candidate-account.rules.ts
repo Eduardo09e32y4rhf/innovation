@@ -86,7 +86,7 @@ export function profileChecklist(profile: ProfileLike): { key: string; label: st
   return [
     { key: 'name', label: 'Nome completo', done: has(profile.name) },
     { key: 'cpf', label: 'CPF', done: isValidCpf(profile.cpf) },
-    { key: 'phone', label: 'Telefone / WhatsApp', done: onlyDigits(profile.phone).length >= 10 },
+    { key: 'phone', label: 'Telefone para contato', done: onlyDigits(profile.phone).length >= 10 },
     { key: 'address', label: 'Endereço', done: [profile.cep, profile.street, profile.streetNumber, profile.neighborhood, profile.city, profile.state].every(has) },
     { key: 'education', label: 'Formação', done: sanitizeEducation(profile.education).length > 0 },
     { key: 'resume', label: 'Currículo', done: has(profile.resumeKey) },

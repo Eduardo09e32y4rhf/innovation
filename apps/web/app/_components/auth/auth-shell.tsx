@@ -20,7 +20,7 @@ export function AuthShell({ title, subtitle, children, footer, wide = false, ful
   return (
     <main className="relative min-h-[100svh] overflow-x-hidden"
       style={{ background: 'linear-gradient(170deg, var(--auth-bg-start) 0%, var(--auth-bg-mid) 45%, var(--auth-bg-end) 100%)' }}>
-      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6"><LanguageSwitcher /></div>
+      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6"><LanguageSwitcher variant="dark" /></div>
       <div aria-hidden="true" className="lp-grid-bg absolute inset-0" />
       <div aria-hidden="true" className="lp-glow pointer-events-none absolute -left-32 top-10 h-96 w-96 rounded-full bg-fuchsia-600/30 blur-[110px]" />
       <div aria-hidden="true" className="lp-glow pointer-events-none absolute -right-24 bottom-10 h-96 w-96 rounded-full bg-amber-400/20 blur-[110px]" />

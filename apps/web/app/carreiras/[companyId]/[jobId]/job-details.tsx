@@ -94,6 +94,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
   const [submitting, setSubmitting] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [account, setAccount] = useState<CandidateProfile | null>(null);
+  const [accountLoading, setAccountLoading] = useState(true);
   const [reuse, setReuse] = useState<'ask' | 'yes' | 'no'>('ask');
   const [reuseConsent, setReuseConsent] = useState(false);
   const pending = useRef(false);
@@ -112,9 +113,9 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
     return () => { active = false; };
   }, [companyId, jobId, reload]);
   useEffect(() => {
-    if (!getCandidateToken()) return;
+    if (!getCandidateToken()) { setAccountLoading(false); return; }
     let active = true;
-    candidateApi.me().then((result) => { if (active) setAccount(result); }).catch(() => { /* sem sessão válida: segue como visitante */ });
+    candidateApi.me().then((result) => { if (active) setAccount(result); }).catch(() => { /* sessão inválida: oferece entrar novamente */ }).finally(() => { if (active) setAccountLoading(false); });
     return () => { active = false; };
   }, []);
   useEffect(() => { setReuse('ask'); setReuseConsent(false); }, [companyId, jobId]);
@@ -142,6 +143,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
     const errors: Record<string, string> = {};
     if (form.name.trim().length < 3) errors.name = 'Informe seu nome completo.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = 'Informe um e-mail válido.';
+    else if (account && form.email.trim().toLowerCase() !== account.email.toLowerCase()) errors.email = 'Use o mesmo e-mail da sua conta para acompanhar esta candidatura.';
     if (!isValidInternationalPhoneInput(form.phone)) errors.phone = 'Informe o telefone com código do país, DDD/área e número (8 a 15 dígitos).';
     for (const question of job.questions) {
       const value = answers[question.id];
@@ -211,7 +213,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
     </div></main>
   );
 
-  const reuseReady = Boolean(account?.name && account.phone && account.resume?.name);
+  const reuseReady = Boolean(account?.completeness.complete);
   const salary = publicSalaryLabel(job);
   const fieldError = (name: string) => fieldErrors[name];
   const input = 'input-v2 min-h-11 text-base sm:text-sm';
@@ -259,7 +261,6 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
 
           <section id="application" className="min-w-0 scroll-mt-4 rounded-[15px] border border-[#e3d8f1] bg-white p-5 shadow-[0_14px_36px_#51227708] sm:p-7 lg:sticky lg:top-4" aria-label={t('Candidatura')}>
             <h2 className="text-lg font-semibold">{t('Enviar candidatura')}</h2><p className="mt-2 text-sm text-fg-mut">{t('Campos com * são obrigatórios.')}</p>
-            {!account && !job.closed && !success && <p className="mt-2 text-sm"><Link className="font-semibold text-[#7240da] underline" href={`/carreiras/conta/entrar?modo=cadastro&next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>{t('Crie sua conta gratuita')}</Link> {t('para acompanhar o processo. Já tem conta?')} <Link className="font-semibold text-[#7240da] underline" href={`/carreiras/conta/entrar?next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>{t('Entre para reutilizar seus dados')}</Link>.</p>}
             {job.closed ? (
               <div role="status" className="mt-5 space-y-3"><p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{t('Esta vaga foi encerrada')}{job.closedAt ? ` ${t('em')} ${new Date(job.closedAt).toLocaleDateString()}` : ''} {t('e não recebe mais candidaturas.')}</p><Link className="btn btn-outline" href={companyPath}>{t('Ver outras vagas desta empresa')}</Link></div>
             ) : success ? (
@@ -268,6 +269,30 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
                 <p className="text-sm">{t(success)}</p>
                 <p className="text-sm text-fg-mut">{t('O RH analisará seu perfil e entrará em contato se houver aderência.')}</p>
                 <Link className="btn btn-outline" href={companyPath}>{t('Ver outras vagas desta empresa')}</Link>{' '}<Link className="btn btn-ghost" href="/carreiras">{t('Ver outras empresas')}</Link>{' '}<Link className="btn btn-ghost" href="/carreiras/conta">{t('Minhas candidaturas')}</Link>
+              </div>
+            ) : accountLoading ? (
+              <p role="status" className="mt-5 rounded-xl bg-[#f7f4fb] p-4 text-sm">{t('Verificando sua conta…')}</p>
+            ) : !account ? (
+              <div className="mt-5 space-y-4 rounded-xl bg-[#f7f4fb] p-4">
+                <p className="text-sm leading-6">{t('Para se candidatar e acompanhar o processo, crie sua conta gratuita ou entre na sua conta. Seu perfil poderá ser usado em outras vagas quando você autorizar.')}</p>
+                <div className="flex flex-wrap gap-3">
+                  <Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 text-sm font-semibold text-white hover:bg-[#5b29be]" href={`/carreiras/conta/entrar?modo=cadastro&next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>{t('Criar conta gratuita')}</Link>
+                  <Link className="inline-flex min-h-11 items-center rounded-lg border border-[#d5cceb] px-4 text-sm font-semibold text-[#5b29be] hover:bg-white" href={`/carreiras/conta/entrar?next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>{t('Já tenho conta')}</Link>
+                </div>
+              </div>
+            ) : !account.completeness.complete ? (
+              <div className="mt-5 space-y-4 rounded-xl bg-amber-50 p-4">
+                <p className="text-sm font-semibold text-amber-900">{t('Complete seu perfil antes de se candidatar.')}</p>
+                <p className="text-sm text-amber-900">{t('Precisamos dos dados mínimos para candidatura: nome, CPF, endereço, formação e currículo.')}</p>
+                <ul className="list-disc space-y-1 pl-5 text-sm text-amber-900">
+                  {account.checklist.filter((item) => !item.done).map((item) => <li key={item.key}>{t(item.label)}</li>)}
+                </ul>
+                <Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 text-sm font-semibold text-white hover:bg-[#5b29be]" href="/carreiras/conta/perfil">{t('Completar meu perfil')}</Link>
+              </div>
+            ) : !account.emailVerified ? (
+              <div className="mt-5 space-y-3 rounded-xl bg-amber-50 p-4">
+                <p className="text-sm text-amber-900">{t('Confirme seu e-mail para enviar a candidatura. Você pode solicitar um código na sua área do candidato.')}</p>
+                <Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 text-sm font-semibold text-white hover:bg-[#5b29be]" href="/carreiras/conta">{t('Confirmar meu e-mail')}</Link>
               </div>
             ) : reuseReady && reuse === 'ask' ? (
               <div className="mt-5 space-y-4" role="group" aria-labelledby="reuse-title">

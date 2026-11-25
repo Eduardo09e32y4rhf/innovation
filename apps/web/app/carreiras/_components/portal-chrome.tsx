@@ -48,7 +48,7 @@ export function PortalFooter() {
         </nav>
         <nav aria-label={t('Informações')} className="flex flex-col">
           <span className="mb-1 text-[11px] font-bold uppercase tracking-[2px] text-[#a998d8]">{t('Informações')}</span>
-          <Link href="/carreiras/privacidade" className={link}>{t('Privacidade e seus dados')}</Link>
+          <Link href="/privacidade?de=carreiras" className={link}>{t('Privacidade e seus dados')}</Link>
           <Link href="/termos?de=carreiras" className={link}>{t('Termos de uso')}</Link>
           <Link href="/suporte?de=carreiras" className={link}>{t('Suporte')}</Link>
         </nav>
