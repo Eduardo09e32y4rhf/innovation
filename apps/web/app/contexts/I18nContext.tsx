@@ -7,13 +7,13 @@ export type Locale = 'pt' | 'en' | 'es';
 
 const LITERAL_MESSAGES = {
   en: {
-    'Entrar': 'Sign in', 'Acesse sua conta Innovation RH Connect.': 'Access your Innovation RH Connect account.',
-    'Ainda não tem conta?': "Don't have an account?", 'Criar minha empresa': 'Create my company',
+     'Acesse sua conta Innovation RH Connect.': 'Access your Innovation RH Connect account.',
+    'Ainda não tem conta?': "Don't have an account?",
     'Abra seu aplicativo autenticador e informe o código de 6 dígitos.': 'Open your authenticator app and enter the 6-digit code.',
     'Ou use um código de recuperação': 'Or use a recovery code', 'Validando…': 'Validating…', 'Continuar': 'Continue',
-    'Voltar': 'Back', 'Sessão ativa de': 'Active session for', 'Continuar sessão': 'Continue session',
+     'Sessão ativa de': 'Active session for', 'Continuar sessão': 'Continue session',
     'Entrar com outra conta': 'Sign in with another account', 'E-mail': 'Email', 'Senha': 'Password',
-    'Entrando…': 'Signing in…', 'Entrar': 'Sign in', 'Esqueci minha senha': 'Forgot my password',
+    'Entrando…': 'Signing in…',
     'Criar minha empresa': 'Create my company', 'Contrate bem.': 'Hire well.', 'Cuide melhor.': 'Care better.',
     'Da vaga aberta ao mês fechado, tudo no mesmo lugar.': 'From open roles to month-end, everything in one place.',
     'Vagas, portal de carreiras e funil de candidatos': 'Jobs, careers portal, and candidate pipeline',
@@ -34,7 +34,7 @@ const LITERAL_MESSAGES = {
     'Escolha o plano da sua empresa': 'Choose your company plan',
     'Por enquanto, o cadastro é só para o módulo de Recrutamento e Seleção. Os demais módulos chegam em breve.': 'Registration is currently available for the Recruiting module only. Other modules are coming soon.',
     'Vagas por mês': 'Jobs per month', 'Colaboradores': 'Employees', 'Cupom de desconto ou extensão do teste (opcional)': 'Discount or trial extension code (optional)',
-    'Voltar': 'Back', 'Criando conta…': 'Creating account…', 'Criar minha conta': 'Create my account',
+    'Voltar': 'Back', 'Criando conta…': 'Creating account…',
     'Criar conta e começar teste grátis': 'Create account and start free trial', 'Tentar de novo': 'Try again',
     'Carregando planos…': 'Loading plans…', 'Fale com o suporte': 'Contact support',
     'Li e aceito os': 'I have read and accept the', 'Termos de Uso': 'Terms of Use', 'Política de Privacidade': 'Privacy Policy',
@@ -48,82 +48,82 @@ const LITERAL_MESSAGES = {
     'Sua conta é gratuita, sem plano ou dados de cobrança. Use em todas as vagas e escolha quando reutilizar seus dados.': 'Your account is free, with no plan or billing details. Use it for every job and choose when to reuse your details.',
     'Informe seu e-mail e enviamos um código para criar uma nova senha.': 'Enter your email and we will send a code to create a new password.',
     'Digite o código que enviamos e escolha a nova senha.': 'Enter the code we sent and choose a new password.',
-    'Nome completo': 'Full name', 'E-mail (seu usuário)': 'Email (your username)', 'Código recebido': 'Code received',
+    'Nome completo': 'Full name',  'Código recebido': 'Code received',
     'Nova senha': 'New password', 'Sua senha': 'Your password', 'Mostrar senha': 'Show password',
     'Ocultar senha': 'Hide password', 'Acessar': 'Sign in', 'Entrando...': 'Signing in...',
     'Criar conta': 'Create account', 'Enviando código…': 'Sending code…', 'Enviar código': 'Send code',
     'Salvar nova senha…': 'Saving new password…', 'Salvar nova senha': 'Save new password',
-    'Voltar para o login': 'Back to sign in', 'Vagas': 'Jobs', 'Minha conta': 'My account',
-    'Vagas abertas': 'Open jobs', 'Meu perfil': 'My profile', 'Painel': 'Dashboard', 'Sair': 'Sign out',
+    'Voltar para o login': 'Back to sign in',
+    'Vagas abertas': 'Open jobs',  'Painel': 'Dashboard', 'Sair': 'Sign out',
     'Meu perfil profissional': 'My professional profile',
     'Quanto mais completo, mais vagas combinam com você e mais recrutadores te encontram.': 'The more complete your profile, the better jobs match you and the more recruiters can find you.',
-    'Força do perfil': 'Profile strength', 'Próximo:': 'Next:', 'Resumo profissional': 'Professional summary',
-    'Experiência': 'Experience', 'Formação': 'Education', 'Competências': 'Skills', 'Currículo': 'Resume',
-    'Dados pessoais': 'Personal details', 'Endereço': 'Address', 'Privacidade': 'Privacy',
+    'Força do perfil': 'Profile strength', 'Próximo:': 'Next:',
+    'Experiência': 'Experience',  'Competências': 'Skills',
+     'Endereço': 'Address', 'Privacidade': 'Privacy',
     'Completo': 'Complete', 'Pendente': 'Pending', 'Resumo profissional': 'Professional summary',
-    'Como você se apresenta para o RH.': 'How you present yourself to recruiters.',
+
     'Título profissional': 'Professional title', 'Sobre você': 'About you',
     'Escreva pelo menos 2 frases.': 'Write at least 2 sentences.', 'Ótimo!': 'Great!',
-    'Experiência profissional': 'Work experience', 'Do emprego mais recente para o mais antigo. Estágio, freelancer e trabalho voluntário também contam.': 'List from most recent to oldest. Internships, freelance, and volunteer work count too.',
+    'Experiência profissional': 'Work experience',
     'Nenhuma experiência ainda. Primeiro emprego? Adicione estágios, cursos práticos ou trabalhos informais.': 'No experience yet. First job? Add internships, practical courses, or informal work.',
-    'Cargo *': 'Job title *', 'Empresa': 'Company', 'Adicionar experiência': 'Add experience', 'Remover experiência': 'Remove experience',
-    'Formação e educação': 'Education and training', 'Adicione seu ensino fundamental, médio, técnico, superior ou pós.': 'Add your primary, secondary, technical, undergraduate, or graduate education.',
-    'Nível': 'Level', 'Situação': 'Status', 'Nome do curso': 'Course name', 'Curso / ênfase (opcional)': 'Course / focus (optional)',
+    'Cargo *': 'Job title *',  'Adicionar experiência': 'Add experience', 'Remover experiência': 'Remove experience',
+    'Formação e educação': 'Education and training',
+    'Nível': 'Level',  'Nome do curso': 'Course name', 'Curso / ênfase (opcional)': 'Course / focus (optional)',
     'Nome da escola': 'School name', 'Faculdade / instituição': 'College / institution', 'Remover formação': 'Remove education', '+ Adicionar formação': '+ Add education',
-    'Competências e habilitação': 'Skills and license', 'Usamos suas competências para recomendar vagas. Digite e aperte Enter.': 'We use your skills to recommend jobs. Type and press Enter.',
-    'Adicionar…': 'Add…', 'Sugestões:': 'Suggestions:', 'Possui habilitação (CNH)?': 'Do you have a driver’s license?', 'Categoria': 'Category',
+
+    'Adicionar…': 'Add…', 'Sugestões:': 'Suggestions:',  'Categoria': 'Category',
     'Prefiro não informar': 'Prefer not to say', 'Sim': 'Yes', 'Não': 'No', 'Selecione': 'Select',
-    'Currículo': 'Resume', 'Enviado junto com suas candidaturas. PDF ou DOCX até 5 MB.': 'Submitted with your applications. PDF or DOCX up to 5 MB.',
-    'Nenhum currículo salvo.': 'No resume saved.', 'Enviando…': 'Uploading…', 'Trocar currículo': 'Replace resume', 'Enviar currículo': 'Upload resume',
-    'Dados pessoais': 'Personal details', 'Usados só quando você se candidata. Nunca aparecem no banco de talentos.': 'Used only when you apply. Never shown in the talent pool.',
+    'Currículo': 'Resume',
+    'Nenhum currículo salvo.': 'No resume saved.', 'Enviando…': 'Uploading…',  'Enviar currículo': 'Upload resume',
+    'Dados pessoais': 'Personal details',
     'CPF': 'Tax ID', 'Telefone / WhatsApp': 'Phone / WhatsApp', 'Data de nascimento': 'Date of birth',
-    'E-mail (seu usuário)': 'Email (your username)', 'CEP': 'Postal code', 'Buscando endereço…': 'Looking up address…',
+    'E-mail (seu usuário)': 'Email (your username)', 'CEP': 'Postal code',
     '✓ Endereço preenchido': '✓ Address filled in', 'CEP não encontrado. Preencha à mão.': 'Postal code not found. Enter the address manually.',
     'Digite o CEP e preenchemos o resto.': 'Enter your postal code and we will fill in the rest.',
-    'Rua': 'Street', 'Número': 'Number', 'Complemento': 'Address line 2', 'Bairro': 'District', 'Cidade': 'City', 'UF': 'State',
-    'Privacidade e visibilidade': 'Privacy and visibility',
-    'Quero ser encontrado por recrutadores (banco de talentos).': 'I want recruiters to find me (talent pool).',
-    'Salvar perfil': 'Save profile', 'Salvando…': 'Saving…', 'Excluir minha conta': 'Delete my account',
-    'Central de Atendimento e Chamados': 'Support and ticket center',
-    'Abra uma solicitação de suporte diretamente com a equipe técnica da Innovation RH.': 'Send a support request directly to the Innovation RH technical team.',
-    'Voltar para o Login': 'Back to sign in', 'Já tem conta? Veja seus chamados no painel': 'Already have an account? View your tickets in the dashboard',
-    'Seu Nome Completo': 'Full name', 'E-mail de Contato / Corporativo': 'Contact / business email',
-    'Categoria da Solicitação': 'Request category', 'Problema no login ou senha': 'Sign-in or password issue',
-    'Erro técnico ou instabilidade': 'Technical issue or service instability', 'Faturamento, assinatura ou plano': 'Billing, subscription, or plan',
-    'Outras dúvidas ou solicitações': 'Other questions or requests', 'Assunto Principal': 'Subject',
-    'Descrição Detalhada do Problema': 'Detailed description', 'Atendimento monitorado por SLA e agendador automático.': 'Support is monitored by an SLA and automated scheduler.',
-    'Abrir chamado': 'Submit ticket', 'Registrando chamado...': 'Submitting ticket...',
-    'Chamado aberto com sucesso!': 'Ticket submitted successfully!',
-    'Sua solicitação foi registrada e encaminhada para nossa equipe de suporte. Enviaremos as atualizações': 'Your request has been recorded and forwarded to our support team. Updates will be sent',
-    'Abrir outro chamado': 'Submit another ticket', 'PROTOCOLO: #': 'TICKET: #',
-    'Meu perfil': 'My profile', 'Segurança': 'Security', 'Dados da empresa': 'Company details',
-    'Feriados': 'Holidays', 'Hora extra e banco': 'Overtime and time bank', 'Descontos e benefícios': 'Deductions and benefits',
-    'Usuários e acessos': 'Users and access', 'Importar e exportar': 'Import and export', 'Pessoal': 'Personal', 'Empresa': 'Company',
-    'Seus dados e senha': 'Your details and password', 'Verificação em duas etapas e sessões': 'Two-step verification and sessions',
-    'Cadastro, endereço e logo': 'Registration, address, and logo', 'Calendário usado no ponto e na folha': 'Calendar used for time tracking and payroll',
-    'Pagar na folha ou usar banco de horas': 'Pay through payroll or use a time bank',
-    'Vale-transporte, plano de saúde e outros descontos da folha': 'Transit pass, health plan, and other payroll deductions',
-    'Quem entra no sistema': 'Who can access the system', 'Planilhas de funcionários e férias': 'Employee and leave spreadsheets',
-    'Configurações': 'Settings', 'Seções de configuração': 'Settings sections',
-    'Criar acessos, atrelar a funcionários, mudar a visão, bloquear, cancelar ou excluir usuários, gerar senha provisória e ver o histórico de cada pessoa ficam na tela de Usuários.': 'Create accounts, link them to employees, change roles, block, cancel or delete users, issue temporary passwords, and view each person’s history on the Users page.',
-    'Abrir Usuários': 'Open Users',
-    'Explorar vagas': 'Explore jobs', 'Todas as empresas': 'All companies', 'NOVOS CAMINHOS COMEÇAM AQUI': 'NEW PATHS START HERE',
-    'Seu talento merece': 'Your talent deserves', 'novo capítulo.': 'a new chapter.',
+    'Rua': 'Street',
+
+
+    'Salvar perfil': 'Save profile', 'Salvando…': 'Saving…',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       'Empresa': 'Company',
+    'Seus dados e senha': 'Your details and password',
+
+
+
+
+
+
+
+    'Explorar vagas': 'Explore jobs',  'NOVOS CAMINHOS COMEÇAM AQUI': 'NEW PATHS START HERE',
+     'novo capítulo.': 'a new chapter.',
     'Encontre oportunidades que combinam com você. O próximo passo da sua carreira começa aqui.': 'Find opportunities that fit you. The next step in your career starts here.',
     'oportunidade': 'opportunity', 'oportunidades': 'opportunities', 'para explorar. Qual será a sua?': 'to explore. Which one is yours?',
     'Buscar vagas': 'Search jobs', 'Cargo, área ou palavra-chave': 'Role, field, or keyword',
     'Qual oportunidade você procura?': 'What opportunity are you looking for?', 'Localização': 'Location',
-    'Todas as localizações': 'All locations', 'Encontrar vagas ↗': 'Find jobs ↗', 'Explore por área:': 'Explore by field:',
-    'Todas as vagas ↗': 'All jobs ↗', 'Fechar filtros −': 'Close filters −', 'Filtros de busca +': 'Search filters +',
-    'Refine sua busca': 'Refine your search', 'Limpar tudo': 'Clear all', 'Filtrar por empresa': 'Filter by company',
-    'Todas as empresas': 'All companies', 'Modelo de trabalho': 'Work arrangement', 'Tipo de contratação': 'Employment type',
-    'Inclusão': 'Inclusion', 'Vagas para pessoas com deficiência (PCD)': 'Jobs for people with disabilities',
+    'Todas as localizações': 'All locations', 'Encontrar vagas ↗': 'Find jobs ↗',
+
+
+
+
     'Ir para as oportunidades': 'Skip to opportunities', 'Ver detalhes e candidatar-se': 'View details and apply',
     'Salvar vaga': 'Save job', 'Remover vaga salva': 'Remove saved job',
     'Login': 'Sign in', 'Venha trabalhar na': 'Come work at', 'Seu talento merece': 'Your talent deserves',
     'um ': 'a ', 'PORTAL DE CARREIRAS': 'CAREERS PORTAL', 'RH · CARREIRAS': 'HR · CAREERS',
     'Conectando pessoas a novas possibilidades. Encontre sua próxima oportunidade e acompanhe cada etapa.': 'Connecting people to new possibilities. Find your next opportunity and track every stage.',
-    'Candidatos': 'Candidates', 'Minhas candidaturas': 'My applications', 'Informações': 'Information',
+    'Candidatos': 'Candidates',  'Informações': 'Information',
     'Privacidade e seus dados': 'Privacy and your data', 'Termos de uso': 'Terms of use', 'Suporte': 'Support',
     'Encontre seu lugar': 'Find your place', 'Carregando oportunidades...': 'Loading opportunities...',
     'oportunidade encontrada': 'opportunity found', 'oportunidades encontradas': 'opportunities found',
@@ -230,9 +230,9 @@ const LITERAL_MESSAGES = {
     ' e enviamos direto, sem formulário': ' and submit it directly without a form',
     'Sim, reutilizar': 'Yes, reuse them', 'Não, preencher manualmente': 'No, fill in manually',
     'Enviando como': 'Applying as', ' com o currículo ': ' with the resume ',
-    'Preencher manualmente': 'Fill in manually', 'Sobre você e a vaga': 'About you and the job',
+    'Preencher manualmente': 'Fill in manually',
     'Autorizo o tratamento dos dados do meu perfil para avaliação desta candidatura.': 'I authorize the use of my profile data to evaluate this application.',
-    'Seus dados': 'Your details', 'E-mail *': 'Email *', 'Telefone / WhatsApp *': 'Phone / WhatsApp *',
+    'Seus dados': 'Your details', 'E-mail *': 'Email *',
     'Currículo (PDF ou DOCX)': 'Resume (PDF or DOCX)', 'Anexar currículo': 'Attach resume',
     'Selecionar arquivo': 'Choose file', 'Nenhum arquivo selecionado': 'No file selected',
     'Copiar link': 'Copy link', 'Compartilhar': 'Share',
@@ -248,7 +248,7 @@ const LITERAL_MESSAGES = {
     'Currículo e apresentação': 'Resume and introduction', 'Apresentação (opcional)': 'Introduction (optional)',
     'Trocar currículo': 'Replace resume', 'Currículo *': 'Resume *',
     'Arraste o arquivo aqui ou clique para escolher · PDF ou DOCX até 5 MB': 'Drop a file here or click to choose · PDF or DOCX up to 5 MB',
-    'Anexar currículo em PDF ou DOCX': 'Attach a PDF or DOCX resume', 'Remover': 'Remove',
+    'Anexar currículo em PDF ou DOCX': 'Attach a PDF or DOCX resume',
     'Diversidade (opcional)': 'Diversity (optional)',
     'Estas informações são voluntárias, ficam separadas da sua candidatura e não entram na avaliação. Servem só para relatórios anônimos de diversidade.': 'This information is optional, kept separate from your application, and not used in the evaluation. It is only used for anonymous diversity reports.',
     'Gênero': 'Gender', 'Cor ou raça': 'Ethnicity', 'Mulher': 'Woman', 'Homem': 'Man',
@@ -328,7 +328,7 @@ const LITERAL_MESSAGES = {
     'Portal de carreiras': 'Careers portal',
     'Vaga indisponível': 'Job unavailable', 'Esta vaga não está recebendo candidaturas.': 'This job is not accepting applications.',
     'Ver outras vagas': 'View other jobs', 'Carregando oportunidade...': 'Loading job...',
-    'Ir para a candidatura': 'Skip to application', 'Vagas': 'Jobs', 'Minha conta': 'My account',
+    'Ir para a candidatura': 'Skip to application', 'Vagas': 'Jobs',
     'Carreiras': 'Careers', 'Candidatar-me ↗': 'Apply ↗',
     'Vaga: {title} na {company} ({details}). Candidate-se: {url}{image}': 'Job: {title} at {company} ({details}). Apply: {url}{image}',
     'Vaga: {title} na {company}. Candidate-se: {url}{image}': 'Job: {title} at {company}. Apply: {url}{image}',
@@ -389,7 +389,7 @@ const LITERAL_MESSAGES = {
     'Digite o CEP e o endereço é preenchido sozinho.': 'Enter the postal code to fill in the address automatically.',
     'Rua / avenida': 'Street / avenue', 'Complemento': 'Additional address details',
     'Bairro': 'District', 'Cidade': 'City', 'Representante legal': 'Legal representative',
-    'Número': 'Number', 'UF': 'State',
+     'UF': 'State',
     'Senha alterada com sucesso.': 'Password changed successfully.',
     'Não foi possível alterar a senha. Confira a senha atual.': 'Could not change the password. Check your current password.',
     'Alterar senha': 'Change password', 'senhas': 'passwords', 'Senha atual': 'Current password',
@@ -461,76 +461,76 @@ const LITERAL_MESSAGES = {
     'Ocultar senha': 'Ocultar contraseña', 'Acessar': 'Acceder', 'Entrando...': 'Iniciando sesión...',
     'Criar conta': 'Crear cuenta', 'Enviando código…': 'Enviando código…', 'Enviar código': 'Enviar código',
     'Salvar nova senha…': 'Guardando nueva contraseña…', 'Salvar nova senha': 'Guardar nueva contraseña',
-    'Voltar para o login': 'Volver al inicio de sesión', 'Vagas': 'Empleos', 'Minha conta': 'Mi cuenta',
-    'Vagas abertas': 'Vacantes abiertas', 'Meu perfil': 'Mi perfil', 'Painel': 'Panel', 'Sair': 'Salir',
+    'Voltar para o login': 'Volver al inicio de sesión',
+    'Vagas abertas': 'Vacantes abiertas',  'Painel': 'Panel', 'Sair': 'Salir',
     'Meu perfil profissional': 'Mi perfil profesional',
     'Quanto mais completo, mais vagas combinam com você e mais recrutadores te encontram.': 'Cuanto más completo esté tu perfil, más vacantes coincidirán contigo y más reclutadores podrán encontrarte.',
     'Força do perfil': 'Fortaleza del perfil', 'Próximo:': 'Siguiente:', 'Resumo profissional': 'Resumen profesional',
-    'Experiência': 'Experiencia', 'Formação': 'Formación', 'Competências': 'Competencias', 'Currículo': 'Currículum',
+    'Experiência': 'Experiencia',  'Competências': 'Competencias', 'Currículo': 'Currículum',
     'Dados pessoais': 'Datos personales', 'Endereço': 'Dirección', 'Privacidade': 'Privacidad',
-    'Completo': 'Completo', 'Pendente': 'Pendiente', 'Como você se apresenta para o RH.': 'Cómo te presentas al equipo de selección.',
+    'Completo': 'Completo', 'Pendente': 'Pendiente',
     'Título profissional': 'Título profesional', 'Sobre você': 'Sobre ti',
     'Escreva pelo menos 2 frases.': 'Escribe al menos 2 frases.', 'Ótimo!': '¡Genial!',
-    'Experiência profissional': 'Experiencia laboral', 'Do emprego mais recente para o mais antigo. Estágio, freelancer e trabalho voluntário também contam.': 'Del empleo más reciente al más antiguo. También cuentan prácticas, trabajos independientes y voluntariado.',
+    'Experiência profissional': 'Experiencia laboral',
     'Nenhuma experiência ainda. Primeiro emprego? Adicione estágios, cursos práticos ou trabalhos informais.': 'Aún no tienes experiencia. ¿Es tu primer empleo? Añade prácticas, cursos o trabajos informales.',
-    'Cargo *': 'Puesto *', 'Empresa': 'Empresa', 'Adicionar experiência': 'Añadir experiencia', 'Remover experiência': 'Eliminar experiencia',
-    'Formação e educação': 'Formación académica', 'Adicione seu ensino fundamental, médio, técnico, superior ou pós.': 'Añade tus estudios primarios, secundarios, técnicos, universitarios o de posgrado.',
-    'Nível': 'Nivel', 'Situação': 'Estado', 'Nome do curso': 'Nombre del curso', 'Curso / ênfase (opcional)': 'Curso / especialidad (opcional)',
+    'Cargo *': 'Puesto *',  'Adicionar experiência': 'Añadir experiencia', 'Remover experiência': 'Eliminar experiencia',
+    'Formação e educação': 'Formación académica',
+    'Nível': 'Nivel',  'Nome do curso': 'Nombre del curso', 'Curso / ênfase (opcional)': 'Curso / especialidad (opcional)',
     'Nome da escola': 'Nombre del centro', 'Faculdade / instituição': 'Universidad / institución', 'Remover formação': 'Eliminar formación', '+ Adicionar formação': '+ Añadir formación',
-    'Competências e habilitação': 'Competencias y licencia', 'Usamos suas competências para recomendar vagas. Digite e aperte Enter.': 'Usamos tus competencias para recomendar vacantes. Escribe y pulsa Enter.',
-    'Adicionar…': 'Añadir…', 'Sugestões:': 'Sugerencias:', 'Possui habilitação (CNH)?': '¿Tienes permiso de conducir?', 'Categoria': 'Categoría',
+
+    'Adicionar…': 'Añadir…', 'Sugestões:': 'Sugerencias:',  'Categoria': 'Categoría',
     'Prefiro não informar': 'Prefiero no decirlo', 'Sim': 'Sí', 'Não': 'No', 'Selecione': 'Selecciona',
-    'Enviado junto com suas candidaturas. PDF ou DOCX até 5 MB.': 'Se envía con tus candidaturas. PDF o DOCX hasta 5 MB.',
-    'Nenhum currículo salvo.': 'No hay currículum guardado.', 'Enviando…': 'Subiendo…', 'Trocar currículo': 'Cambiar currículum', 'Enviar currículo': 'Subir currículum',
-    'Usados só quando você se candidata. Nunca aparecem no banco de talentos.': 'Solo se usan cuando te inscribes. Nunca aparecen en la bolsa de talento.',
+
+    'Nenhum currículo salvo.': 'No hay currículum guardado.', 'Enviando…': 'Subiendo…',  'Enviar currículo': 'Subir currículum',
+
     'CPF': 'Documento de identidad', 'Telefone / WhatsApp': 'Teléfono / WhatsApp', 'Data de nascimento': 'Fecha de nacimiento',
-    'CEP': 'Código postal', 'Buscando endereço…': 'Buscando dirección…', '✓ Endereço preenchido': '✓ Dirección completada',
+    'CEP': 'Código postal',  '✓ Endereço preenchido': '✓ Dirección completada',
     'CEP não encontrado. Preencha à mão.': 'Código postal no encontrado. Completa la dirección manualmente.',
     'Digite o CEP e preenchemos o resto.': 'Introduce el código postal y completaremos el resto.',
-    'Rua': 'Calle', 'Número': 'Número', 'Complemento': 'Complemento', 'Bairro': 'Barrio', 'Cidade': 'Ciudad', 'UF': 'Provincia',
-    'Privacidade e visibilidade': 'Privacidad y visibilidad', 'Salvar perfil': 'Guardar perfil', 'Salvando…': 'Guardando…',
-    'Excluir minha conta': 'Eliminar mi cuenta',
-    'Central de Atendimento e Chamados': 'Centro de soporte y solicitudes',
-    'Abra uma solicitação de suporte diretamente com a equipe técnica da Innovation RH.': 'Envía una solicitud directamente al equipo técnico de Innovation RH.',
-    'Voltar para o Login': 'Volver al inicio de sesión', 'Já tem conta? Veja seus chamados no painel': '¿Ya tienes cuenta? Consulta tus solicitudes en el panel',
-    'Seu Nome Completo': 'Nombre completo', 'E-mail de Contato / Corporativo': 'Correo de contacto / corporativo',
-    'Categoria da Solicitação': 'Categoría de la solicitud', 'Problema no login ou senha': 'Problema de acceso o contraseña',
-    'Erro técnico ou instabilidade': 'Error técnico o inestabilidad', 'Faturamento, assinatura ou plano': 'Facturación, suscripción o plan',
-    'Outras dúvidas ou solicitações': 'Otras dudas o solicitudes', 'Assunto Principal': 'Asunto principal',
-    'Descrição Detalhada do Problema': 'Descripción detallada del problema', 'Atendimento monitorado por SLA e agendador automático.': 'Atención supervisada por SLA y programación automática.',
-    'Abrir chamado': 'Enviar solicitud', 'Registrando chamado...': 'Registrando solicitud...',
-    'Chamado aberto com sucesso!': '¡Solicitud enviada correctamente!',
-    'Abrir outro chamado': 'Enviar otra solicitud', 'PROTOCOLO: #': 'REFERENCIA: #',
-    'Segurança': 'Seguridad', 'Dados da empresa': 'Datos de la empresa', 'Feriados': 'Festivos',
-    'Hora extra e banco': 'Horas extra y banco de horas', 'Descontos e benefícios': 'Descuentos y beneficios',
-    'Usuários e acessos': 'Usuarios y accesos', 'Importar e exportar': 'Importar y exportar',
-    'Pessoal': 'Personal', 'Empresa': 'Empresa', 'Seus dados e senha': 'Tus datos y contraseña',
-    'Verificação em duas etapas e sessões': 'Verificación en dos pasos y sesiones',
-    'Cadastro, endereço e logo': 'Registro, dirección y logotipo', 'Calendário usado no ponto e na folha': 'Calendario para control horario y nómina',
-    'Pagar na folha ou usar banco de horas': 'Pagar en nómina o usar banco de horas',
-    'Vale-transporte, plano de saúde e outros descontos da folha': 'Transporte, seguro médico y otros descuentos de nómina',
-    'Quem entra no sistema': 'Quién accede al sistema', 'Planilhas de funcionários e férias': 'Hojas de empleados y vacaciones',
-    'Configurações': 'Configuración', 'Seções de configuração': 'Secciones de configuración',
-    'Criar acessos, atrelar a funcionários, mudar a visão, bloquear, cancelar ou excluir usuários, gerar senha provisória e ver o histórico de cada pessoa ficam na tela de Usuários.': 'Crea accesos, vincúlalos a empleados, cambia roles, bloquea, cancela o elimina usuarios, genera contraseñas temporales y consulta el historial en la página de Usuarios.',
-    'Abrir Usuários': 'Abrir Usuarios',
-    'Explorar vagas': 'Explorar empleos', 'Todas as empresas': 'Todas las empresas', 'NOVOS CAMINHOS COMEÇAM AQUI': 'NUEVOS CAMINOS EMPIEZAN AQUÍ',
-    'Seu talento merece': 'Tu talento merece', 'novo capítulo.': 'un nuevo capítulo.',
+    'Rua': 'Calle',
+     'Salvar perfil': 'Guardar perfil', 'Salvando…': 'Guardando…',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     'Empresa': 'Empresa',
+
+
+
+
+
+
+
+
+    'Explorar vagas': 'Explorar empleos',  'NOVOS CAMINHOS COMEÇAM AQUI': 'NUEVOS CAMINOS EMPIEZAN AQUÍ',
+     'novo capítulo.': 'un nuevo capítulo.',
     'Encontre oportunidades que combinam com você. O próximo passo da sua carreira começa aqui.': 'Encuentra oportunidades para ti. El siguiente paso de tu carrera empieza aquí.',
     'oportunidade': 'oportunidad', 'oportunidades': 'oportunidades', 'para explorar. Qual será a sua?': 'para explorar. ¿Cuál será la tuya?',
     'Buscar vagas': 'Buscar empleos', 'Cargo, área ou palavra-chave': 'Puesto, área o palabra clave',
     'Qual oportunidade você procura?': '¿Qué oportunidad buscas?', 'Localização': 'Ubicación',
     'Todas as localizações': 'Todas las ubicaciones', 'Encontrar vagas ↗': 'Encontrar empleos ↗',
-    'Explore por área:': 'Explora por área:', 'Todas as vagas ↗': 'Todos los empleos ↗',
-    'Fechar filtros −': 'Cerrar filtros −', 'Filtros de busca +': 'Filtros de búsqueda +',
-    'Refine sua busca': 'Refina tu búsqueda', 'Limpar tudo': 'Borrar todo', 'Filtrar por empresa': 'Filtrar por empresa',
-    'Modelo de trabalho': 'Modalidad de trabajo', 'Tipo de contratação': 'Tipo de contrato',
-    'Inclusão': 'Inclusión', 'Vagas para pessoas com deficiência (PCD)': 'Empleos para personas con discapacidad',
+
+
+
+
+
     'Ir para as oportunidades': 'Ir a las oportunidades', 'Ver detalhes e candidatar-se': 'Ver detalles e inscribirse',
     'Salvar vaga': 'Guardar empleo', 'Remover vaga salva': 'Quitar empleo guardado',
     'Login': 'Iniciar sesión', 'Venha trabalhar na': 'Ven a trabajar en', 'Seu talento merece': 'Tu talento merece',
     'um ': 'un ', 'PORTAL DE CARREIRAS': 'PORTAL DE CARRERAS', 'RH · CARREIRAS': 'RR. HH. · CARRERAS',
     'Conectando pessoas a novas possibilidades. Encontre sua próxima oportunidade e acompanhe cada etapa.': 'Conectamos personas con nuevas posibilidades. Encuentra tu próxima oportunidad y sigue cada etapa.',
-    'Candidatos': 'Candidatos', 'Minhas candidaturas': 'Mis candidaturas', 'Informações': 'Información',
+    'Candidatos': 'Candidatos',  'Informações': 'Información',
     'Privacidade e seus dados': 'Privacidad y tus datos', 'Termos de uso': 'Términos de uso', 'Suporte': 'Soporte',
     'Encontre seu lugar': 'Encuentra tu lugar', 'Carregando oportunidades...': 'Cargando oportunidades...',
     'oportunidade encontrada': 'oportunidad encontrada', 'oportunidades encontradas': 'oportunidades encontradas',
@@ -654,7 +654,7 @@ const LITERAL_MESSAGES = {
     'Currículo e apresentação': 'Currículum y presentación', 'Apresentação (opcional)': 'Presentación (opcional)',
     'Trocar currículo': 'Cambiar currículum', 'Currículo *': 'Currículum *',
     'Arraste o arquivo aqui ou clique para escolher · PDF ou DOCX até 5 MB': 'Arrastra el archivo aquí o haz clic para elegir · PDF o DOCX hasta 5 MB',
-    'Anexar currículo em PDF ou DOCX': 'Adjuntar currículum en PDF o DOCX', 'Remover': 'Eliminar',
+    'Anexar currículo em PDF ou DOCX': 'Adjuntar currículum en PDF o DOCX',
     'Diversidade (opcional)': 'Diversidad (opcional)',
     'Estas informações são voluntárias, ficam separadas da sua candidatura e não entram na avaliação. Servem só para relatórios anônimos de diversidade.': 'Esta información es voluntaria, se mantiene separada de tu candidatura y no se usa en la evaluación. Solo sirve para informes anónimos de diversidad.',
     'Gênero': 'Género', 'Cor ou raça': 'Etnia', 'Mulher': 'Mujer', 'Homem': 'Hombre',
@@ -734,7 +734,7 @@ const LITERAL_MESSAGES = {
     'Portal de carreiras': 'Portal de carreras',
     'Vaga indisponível': 'Vacante no disponible', 'Esta vaga não está recebendo candidaturas.': 'Esta vacante no está aceptando candidaturas.',
     'Ver outras vagas': 'Ver otros empleos', 'Carregando oportunidade...': 'Cargando empleo...',
-    'Ir para a candidatura': 'Ir a la candidatura', 'Vagas': 'Empleos', 'Minha conta': 'Mi cuenta',
+    'Ir para a candidatura': 'Ir a la candidatura', 'Vagas': 'Empleos',
     'Carreiras': 'Carreras', 'Candidatar-me ↗': 'Inscribirme ↗',
     'Vaga: {title} na {company} ({details}). Candidate-se: {url}{image}': 'Empleo: {title} en {company} ({details}). Inscríbete: {url}{image}',
     'Vaga: {title} na {company}. Candidate-se: {url}{image}': 'Empleo: {title} en {company}. Inscríbete: {url}{image}',
@@ -795,7 +795,7 @@ const LITERAL_MESSAGES = {
     'Digite o CEP e o endereço é preenchido sozinho.': 'Introduce el código postal para completar la dirección automáticamente.',
     'Rua / avenida': 'Calle / avenida', 'Complemento': 'Detalles adicionales',
     'Bairro': 'Barrio', 'Cidade': 'Ciudad', 'Representante legal': 'Representante legal',
-    'Número': 'Número', 'UF': 'Estado',
+     'UF': 'Estado',
     'Senha alterada com sucesso.': 'Contraseña cambiada correctamente.',
     'Não foi possível alterar a senha. Confira a senha atual.': 'No se pudo cambiar la contraseña. Comprueba la contraseña actual.',
     'Alterar senha': 'Cambiar contraseña', 'senhas': 'contraseñas', 'Senha atual': 'Contraseña actual',
@@ -826,38 +826,36 @@ const LITERAL_MESSAGES = {
 
 const MESSAGES = {
   pt: {
-    'nav.jobs': 'Vagas',
-    'nav.account': 'Minha conta',
-    'nav.login': 'Entrar',
-    'share.label': 'Compartilhar:',
-    'share.copied': 'Link copiado',
-    'share.copy': 'Copiar link',
-    'apply.title': 'Enviar candidatura',
-    'apply.requiredHint': 'Campos com * são obrigatórios.',
-    'apply.phonePlaceholder': '+55 (11) 91234-5678',
-    'apply.submit': 'Enviar candidatura',
-    'profile.save': 'Salvar perfil',
-    'profile.saved': 'Tudo salvo.',
-    'profile.unsaved': 'Alterações não salvas',
-    'user.seatLimit':
-      'A empresa usou todas as licenças contratadas. Aumente as licenças em Plano e cobrança para liberar novos acessos.',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   },
   en: {
-    'nav.jobs': 'Jobs',
-    'nav.account': 'My account',
-    'nav.login': 'Sign in',
-    'share.label': 'Share:',
-    'share.copied': 'Link copied',
-    'share.copy': 'Copy link',
-    'apply.title': 'Submit application',
-    'apply.requiredHint': 'Fields marked with * are required.',
-    'apply.phonePlaceholder': '+1 (555) 123-4567',
-    'apply.submit': 'Submit application',
-    'profile.save': 'Save profile',
-    'profile.saved': 'All changes saved.',
-    'profile.unsaved': 'Unsaved changes',
-    'user.seatLimit':
-      'The company has used all contracted seats. Upgrade seats in Plan & Billing to enable new users.',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   },
   es: {
     'nav.jobs': 'Empleos',

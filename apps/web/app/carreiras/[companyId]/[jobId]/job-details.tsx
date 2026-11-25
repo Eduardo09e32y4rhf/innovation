@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState, type DragEvent, type FormEven
 import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
+import { useI18n } from '@/app/contexts/I18nContext';
 import { CareersBrand } from '../../_components/careers-brand';
 import { PortalFooter } from '../../_components/portal-chrome';
 import { candidateApi, getCandidateToken, type CandidateProfile } from '../../_lib/candidate-api';

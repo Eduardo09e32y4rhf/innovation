@@ -875,7 +875,7 @@ export function ProfileForm() {
                     {err('cpf')}
                   </label>
                   <label className="block space-y-1">
-                    <span className={label}>{t('Telefone / WhatsApp')}</span>
+                    <span className={label}>{t('Telefone')}</span>
                     <input
                       form="profile-form"
                       className={input}
