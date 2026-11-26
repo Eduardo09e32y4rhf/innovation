@@ -448,7 +448,7 @@ export function ProfileForm() {
               {preview.score}
               <span className="text-base font-semibold text-white/70">/100</span>
             </p>
-            <p className="text-sm font-semibold">{preview.level.name}</p>
+            <p className="text-sm font-semibold">{t(preview.level.name)}</p>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
               <div className="h-full rounded-full bg-white transition-all" style={{ width: `${preview.score}%` }} />
             </div>
@@ -1071,28 +1071,25 @@ export function ProfileForm() {
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#ebe6f3] bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <p className="text-sm text-[#5b5473]">
-            {dirty ? (
-              <>
-                <strong className="text-[#1e1145]">{t('Alterações não salvas')}</strong> · {t('força prevista')} {preview.score}/100
-              </>
-            ) : (
-              t('Tudo salvo.')
-            )}
-          </p>
-          <Button
-            type="submit"
-            form="profile-form"
-            isLoading={busy}
-            disabled={!dirty && !busy}
-            className="!bg-[#7240da] hover:!bg-[#5b29be]"
-          >
-            {t('Salvar perfil')}
-          </Button>
+      {(dirty || busy) && (
+        <div className="sticky bottom-0 z-30 -mx-4 border-t border-[#ebe6f3] bg-white/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-8px_24px_rgba(30,17,69,0.08)] backdrop-blur sm:-mx-6 sm:px-6">
+          <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-3">
+            <p role="status" aria-live="polite" className="min-w-0 text-xs text-[#5b5473] sm:text-sm">
+              <strong className="text-[#1e1145]">{t('Alterações não salvas')}</strong>
+              <span className="hidden sm:inline"> · {t('força prevista')} {preview.score}/100</span>
+            </p>
+            <Button
+              type="submit"
+              form="profile-form"
+              isLoading={busy}
+              disabled={!dirty || busy}
+              className="!min-h-11 !shrink-0 !bg-[#7240da] px-4 hover:!bg-[#5b29be] sm:px-6"
+            >
+              {t('Salvar perfil')}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </main>
   );
 }

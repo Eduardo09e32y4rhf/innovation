@@ -35,7 +35,7 @@ export function PortalFooter() {
   const link = 'inline-flex min-h-11 items-center text-[13px] text-[#d9d0ee] hover:text-white';
   return (
     <footer className="mt-12 bg-[#1e1145] text-white">
-      <div className="mx-auto grid max-w-[1200px] gap-8 px-4 pb-28 pt-10 sm:grid-cols-[1.4fr_1fr_1fr] sm:px-9 sm:pb-10">
+      <div className="mx-auto grid max-w-[1200px] gap-8 px-4 pb-10 pt-10 sm:grid-cols-[1.4fr_1fr_1fr] sm:px-9">
         <div className="space-y-3">
           <PortalLogo light />
           <p className="max-w-[320px] text-[13px] leading-relaxed text-[#c9bfe0]">{t('Conectando pessoas a novas possibilidades. Encontre sua próxima oportunidade e acompanhe cada etapa.')}</p>

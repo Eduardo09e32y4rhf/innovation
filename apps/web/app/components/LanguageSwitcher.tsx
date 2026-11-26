@@ -10,7 +10,7 @@ const languages: { code: Language; name: string; label: string; flag: string }[]
   { code: 'es-ES', name: 'Español', label: 'Espanhol', flag: '🇪🇸' },
 ];
 
-export const LanguageSwitcher: React.FC<{ variant?: 'light' | 'dark' }> = ({ variant = 'light' }) => {
+export const LanguageSwitcher: React.FC<{ variant?: 'light' | 'dark'; compactOnMobile?: boolean }> = ({ variant = 'light', compactOnMobile = false }) => {
   const { language, setLanguage } = useLanguage();
   const { t } = useI18n();
   const [isOpen, setIsOpen] = React.useState(false);
@@ -27,7 +27,7 @@ export const LanguageSwitcher: React.FC<{ variant?: 'light' | 'dark' }> = ({ var
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 ${
+        className={`flex min-h-11 items-center justify-center gap-2 rounded-lg border px-3 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 sm:px-4 ${
           variant === 'dark'
             ? 'border-white/10 bg-white/5 text-white hover:bg-white/10'
             : 'border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50'
@@ -37,7 +37,8 @@ export const LanguageSwitcher: React.FC<{ variant?: 'light' | 'dark' }> = ({ var
         aria-label={t('Selecionar idioma: {language}', { language: currentLanguage?.name ?? '' })}
       >
         <Globe size={16} />
-        <span>{currentLanguage?.flag} {currentLanguage?.name}</span>
+        <span className={compactOnMobile ? 'hidden sm:inline' : ''}>{currentLanguage?.flag} {currentLanguage?.name}</span>
+        {compactOnMobile && <span className="text-xs font-bold sm:hidden">{language.slice(0, 2).toUpperCase()}</span>}
       </button>
 
       {isOpen && (
