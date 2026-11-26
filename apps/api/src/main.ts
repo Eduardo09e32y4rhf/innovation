@@ -47,7 +47,7 @@ async function bootstrap() {
 
   const fastifyAdapter = new FastifyAdapter({ logger: true, bodyLimit: DEFAULT_BODY_LIMIT, trustProxy: process.env.TRUST_PROXY ?? 'loopback,uniquelocal' });
   applyRouteBodyLimits(fastifyAdapter.getInstance());
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, fastifyAdapter);
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, fastifyAdapter, { rawBody: true });
   app.useLogger(logger);
 
   const reflector = app.get(Reflector);

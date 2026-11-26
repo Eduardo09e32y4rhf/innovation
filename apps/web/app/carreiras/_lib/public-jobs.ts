@@ -1,5 +1,6 @@
 import { turnstileHeaders } from '@/app/lib/turnstile';
 import { createSingleFlight, mutationFlightKey } from '@/app/lib/single-flight';
+import { normalizeJobTranslations, normalizeQuestionTranslations, type JobTranslations, type QuestionTranslations } from './job-translations';
 
 export const CAREERS_API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 export const MAX_RESUME_SIZE = 5 * 1024 * 1024;
@@ -37,6 +38,7 @@ export type PublicJob = {
   pcd: boolean;
   deadline?: string | null;
   questions: PublicQuestion[];
+  translations?: JobTranslations | null;
   createdAt?: string | null;
   updatedAt?: string | null;
   company?: PublicCompany | null;
@@ -51,6 +53,7 @@ export type PublicQuestion = {
   type: 'TEXT' | 'LONG' | 'SELECT' | 'MULTI' | 'YESNO' | 'NUMBER';
   required: boolean;
   options: string[];
+  translations?: QuestionTranslations | null;
 };
 
 export type PublicJobsResult = {
@@ -179,6 +182,7 @@ function normalizeQuestions(value: unknown): PublicQuestion[] {
       type: (types.includes(String(item.type)) ? item.type : 'TEXT') as PublicQuestion['type'],
       required: Boolean(item.required),
       options: Array.isArray(item.options) ? item.options.filter((option): option is string => typeof option === 'string') : [],
+      translations: normalizeQuestionTranslations(item.translations),
     }))
     .filter((item) => item.id && item.label);
 }
@@ -218,6 +222,7 @@ function normalizeJob(value: unknown, fallbackCompanyId: string): PublicJob | nu
     pcd: Boolean(record.pcd),
     deadline: optionalString(record.deadline),
     questions: normalizeQuestions(record.questions),
+    translations: normalizeJobTranslations(record.translations),
     createdAt: optionalString(record.createdAt),
     updatedAt: optionalString(record.updatedAt),
     company: companyRecord ? normalizeCompany(companyRecord, companyId) : null,

@@ -1,0 +1,5 @@
+ALTER TABLE "Job"
+ADD COLUMN "translations" JSONB NOT NULL DEFAULT '{}';
+
+ALTER TABLE "JobQuestion"
+ADD COLUMN "translations" JSONB NOT NULL DEFAULT '{}';

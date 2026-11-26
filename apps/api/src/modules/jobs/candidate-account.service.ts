@@ -292,7 +292,7 @@ export class CandidateAccountService {
       orderBy: { createdAt: 'desc' },
       take: 100,
       include: {
-        job: { select: { id: true, title: true, confidential: true, company: { select: { name: true } } } },
+        job: { select: { id: true, title: true, translations: true, confidential: true, company: { select: { name: true } } } },
         stage: { select: { name: true } },
         events: { where: { type: { in: ['APPLIED', 'STAGE_CHANGED', 'REJECTED'] } }, orderBy: { createdAt: 'asc' }, select: { type: true, toStage: true, createdAt: true } },
         // So a entrevista que o candidato ja recebeu por e-mail (agendamento interno nao aparece).
@@ -311,6 +311,7 @@ export class CandidateAccountService {
         id: app.id,
         jobId: app.jobId,
         job: app.job.title,
+        translations: app.job.translations,
         company: app.job.company.name,
         appliedAt: app.createdAt,
         status: app.status,
@@ -336,11 +337,11 @@ export class CandidateAccountService {
   // ---------- convites do banco de talentos ----------
   async invites(account: Account) {
     const rows = await this.prisma.candidateInvite.findMany({ where: { accountId: account.id }, orderBy: { createdAt: 'desc' }, take: 50 });
-    const jobs = rows.length ? await this.prisma.job.findMany({ where: { id: { in: rows.map((row) => row.jobId) } }, select: { id: true, title: true, status: true, companyId: true, company: { select: { name: true } } } }) : [];
-    const byId = new Map<string, { title: string; status: string; company: { name: string } }>(jobs.map((job) => [job.id, job]));
+    const jobs = rows.length ? await this.prisma.job.findMany({ where: { id: { in: rows.map((row) => row.jobId) } }, select: { id: true, title: true, translations: true, status: true, companyId: true, company: { select: { name: true } } } }) : [];
+    const byId = new Map<string, { title: string; translations: unknown; status: string; company: { name: string } }>(jobs.map((job) => [job.id, job]));
     return rows.map((row) => {
       const job = byId.get(row.jobId);
-      return { id: row.id, status: row.status, message: row.message, createdAt: row.createdAt, jobId: row.jobId, companyId: row.companyId, job: job?.title ?? 'Vaga', company: job?.company.name ?? 'Empresa', open: job?.status === 'OPEN' };
+      return { id: row.id, status: row.status, message: row.message, createdAt: row.createdAt, jobId: row.jobId, companyId: row.companyId, job: job?.title ?? 'Vaga', translations: job?.translations ?? null, company: job?.company.name ?? 'Empresa', open: job?.status === 'OPEN' };
     });
   }
 

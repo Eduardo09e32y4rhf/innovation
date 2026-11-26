@@ -1,3 +1,5 @@
+import type { JobTranslations, QuestionTranslations } from '@/app/carreiras/_lib/job-translations';
+
 export type JobStatus = 'OPEN' | 'CLOSED' | 'DRAFT' | 'PENDING_APPROVAL' | 'PAUSED' | 'FILLED';
 export type StageKind = 'APPLIED' | 'SCREENING' | 'INTERVIEW' | 'OFFER' | 'HIRED' | 'REJECTED';
 export type StageAutomation = 'NONE' | 'SEND_BEHAVIORAL_ASSESSMENT' | 'SEND_TECHNICAL_ASSESSMENT' | 'SCHEDULE_INTERVIEW' | 'PREPARE_OFFER' | 'REQUEST_DOCUMENTS' | 'COMPLETE_ADMISSION';
@@ -8,6 +10,7 @@ export interface Job {
   companyId: string;
   title: string;
   description: string;
+  translations?: JobTranslations | null;
   location?: string | null;
   employmentType?: string | null;
   salaryRange?: string | null;
@@ -44,6 +47,7 @@ export interface JobPayload {
   requiredDocuments?: Array<{ label: string; required: boolean }>;
   title: string;
   description: string;
+  translations?: JobTranslations;
   location?: string | null;
   employmentType?: string | null;
   salaryRange?: string | null;
@@ -121,6 +125,7 @@ export interface Question {
   type: QuestionType;
   required: boolean;
   options: string[];
+  translations?: QuestionTranslations;
   knockout?: KnockoutRule | null;
   scoreRule?: ScoreRule | null;
 }

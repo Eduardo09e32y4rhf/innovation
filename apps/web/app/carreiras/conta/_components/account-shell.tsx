@@ -71,7 +71,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
             <PortalLogo />
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
               <LanguageSwitcher compactOnMobile />
-              <span aria-label={t('Perfil do candidato')} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1e1145] text-xs font-bold text-white sm:h-10 sm:w-10 sm:text-sm">{initials}</span>
+              <span aria-label={t('Meu perfil')} className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1e1145] text-xs font-bold text-white sm:h-10 sm:w-10 sm:text-sm">{initials}</span>
               <button type="button" onClick={() => void signOut()} className="inline-flex min-h-11 w-11 items-center justify-center rounded-[10px] border border-[#d5cceb] hover:bg-[#f1ecfb] sm:w-auto sm:gap-2 sm:px-4 sm:text-sm sm:font-semibold" aria-label={t('Sair')} title={t('Sair')}>
                 <LogOut aria-hidden="true" size={17} />
                 <span className="sr-only sm:not-sr-only">{t('Sair')}</span>

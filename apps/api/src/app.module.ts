@@ -68,6 +68,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { CommercialSalesModule } from './modules/commercial-sales/commercial-sales.module';
 import { CeoOnboardingModule } from './modules/ceo-onboarding/ceo-onboarding.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { CommercialEmailModule } from './modules/commercial-email/commercial-email.module';
 
 @Module({
   imports: [
@@ -128,6 +129,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     DocumentsModule,
     OnboardingModule,
     CommercialSalesModule,
+    CommercialEmailModule,
     CeoOnboardingModule,
     AnalyticsModule,
     PayrollModule,

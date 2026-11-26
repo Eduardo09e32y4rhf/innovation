@@ -3,12 +3,14 @@
 import { TurnstileWidget } from '@/app/_components/turnstile-widget';
 import { CONSENT_TEXTS } from '../../_lib/consent-texts';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 import { useI18n } from '@/app/contexts/I18nContext';
 import { CareersBrand } from '../../_components/careers-brand';
+import { useLanguage } from '@/app/contexts/LanguageContext';
+import { hasUntranslatedJobContent, hasUntranslatedQuestionContent, translatedJob, translatedQuestion } from '../../_lib/job-translations';
 import { PortalFooter } from '../../_components/portal-chrome';
 import { candidateApi, getCandidateToken, type CandidateProfile } from '../../_lib/candidate-api';
 import {
@@ -39,8 +41,10 @@ function Chip({ children }: { children: React.ReactNode }) {
 
 export function QuestionField({ question, value, error, onChange }: { question: PublicQuestion; value: string | string[] | undefined; error?: string; onChange: (next: string | string[]) => void }) {
   const { t } = useI18n();
+  const { language } = useLanguage();
+  const translated = translatedQuestion(question, language);
   const id = `q-${question.id}`;
-  const label = <span className="text-sm font-medium">{question.label}{question.required && ' *'}</span>;
+  const label = <span className="text-sm font-medium">{translated.label}{question.required && ' *'}</span>;
   const common = { id, 'aria-invalid': Boolean(error), 'aria-describedby': error ? `${id}-error` : undefined };
   const text = typeof value === 'string' ? value : '';
   const chosen = Array.isArray(value) ? value : [];
@@ -50,7 +54,7 @@ export function QuestionField({ question, value, error, onChange }: { question: 
   else if (question.type === 'NUMBER') control = <input {...common} type="number" inputMode="decimal" className="input-v2 min-h-11 text-base sm:text-sm" value={text} onChange={(event) => onChange(event.target.value)} />;
   else if (question.type === 'SELECT') control = (
     <select {...common} className="input-v2 min-h-11 text-base sm:text-sm" value={text} onChange={(event) => onChange(event.target.value)}>
-      <option value="">{t('Selecione…')}</option>{question.options.map((option) => <option key={option} value={option}>{t(option)}</option>)}
+      <option value="">{t('Selecione…')}</option>{question.options.map((option, index) => <option key={option} value={option}>{translated.options[index] === option ? t(option) : translated.options[index]}</option>)}
     </select>
   );
   else if (question.type === 'YESNO' || question.type === 'MULTI') {
@@ -59,10 +63,12 @@ export function QuestionField({ question, value, error, onChange }: { question: 
       <div role={question.type === 'YESNO' ? 'radiogroup' : 'group'} aria-labelledby={`${id}-label`} className="flex flex-wrap gap-2">
         {options.map((option) => {
           const active = question.type === 'YESNO' ? text === option : chosen.includes(option);
+          const translatedOption = translated.options[question.options.indexOf(option)];
+          const optionLabel = translatedOption !== option ? translatedOption : t(option);
           return (
             <button key={option} type="button" role={question.type === 'YESNO' ? 'radio' : 'checkbox'} aria-checked={active}
               onClick={() => onChange(question.type === 'YESNO' ? option : active ? chosen.filter((item) => item !== option) : [...chosen, option])}
-              className={`min-h-11 rounded-lg border px-4 text-sm font-medium transition ${active ? 'border-purple-600 bg-purple-600 text-white' : 'border-border hover:bg-bg-sub'}`}>{t(option)}</button>
+              className={`min-h-11 rounded-lg border px-4 text-sm font-medium transition ${active ? 'border-purple-600 bg-purple-600 text-white' : 'border-border hover:bg-bg-sub'}`}>{optionLabel}</button>
           );
         })}
       </div>
@@ -80,6 +86,7 @@ export function QuestionField({ question, value, error, onChange }: { question: 
 
 export function JobDetails({ companyId, jobId }: { companyId: string; jobId: string }) {
   const { t } = useI18n();
+  const { language } = useLanguage();
   const [job, setJob] = useState<PublicJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -101,6 +108,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
   const fileInput = useRef<HTMLInputElement>(null);
   const successRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
+  const displayJob = useMemo(() => job ? translatedJob(job, language) : null, [job, language]);
 
   // NAO pré-preenche o formulário automaticamente: a reutilização só acontece quando o usuario clica em "Sim, reutilizar".
   // Isso garante que os dados nunca são preenchidos sem consentimento explícito.
@@ -231,14 +239,17 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
           <span aria-hidden="true" className="pointer-events-none absolute -top-6 right-2 text-[120px] leading-none text-[#e4d7f6] sm:-top-10 sm:right-4 sm:text-[220px]">↗</span>
           <div className="relative">
             <p className="text-xs text-[#736d80]">{company.name} · {t('Carreiras')}</p>
-            <h1 className="my-4 max-w-[850px] break-words text-[26px] font-semibold leading-tight tracking-tight sm:text-4xl">{job.title}</h1>
+            <h1 className="my-4 max-w-[850px] break-words text-[26px] font-semibold leading-tight tracking-tight sm:text-4xl">{displayJob?.title}</h1>
+            {((displayJob && hasUntranslatedJobContent(job, language)) || job.questions.some((question) => hasUntranslatedQuestionContent(question, language))) && (
+              <p role="status" className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{t('A empresa ainda não cadastrou todas as versões desta vaga. Partes do conteúdo aparecem em português.')}</p>
+            )}
             <p className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[#6b5b80]"><span>{job.location || t('Local não informado')}</span><span>{t(employmentTypeLabel(job.employmentType))}</span>{workModeLabel(job.workMode) && <span>{t(workModeLabel(job.workMode)!)}</span>}{job.seniority && <span>{t(job.seniority)}</span>}{salary && <span><b>{salary}</b></span>}</p>
             <div className="mt-6"><a className="inline-flex min-h-12 w-full items-center justify-center rounded-[9px] bg-[#7240da] px-6 text-[13px] sm:w-auto font-semibold text-white transition hover:bg-[#5b29be]" href="#application">{t('Candidatar-me ↗')}</a></div>
           </div>
         </section>
 
-        <ShareBar title={job.title} companyName={company.name} location={job.location} salary={salary} imageUrl={company.logoUrl ?? null} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd(job, typeof window === 'undefined' ? '' : window.location.origin + window.location.pathname)).replace(/</g, '\\u003c') }} />
+        <ShareBar title={displayJob?.title ?? job.title} companyName={company.name} location={job.location} salary={salary} imageUrl={company.logoUrl ?? null} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd(displayJob ?? job, typeof window === 'undefined' ? '' : window.location.origin + window.location.pathname)).replace(/</g, '\\u003c') }} />
         <div className="flex flex-wrap gap-2">
           {job.pcd && <span className="inline-flex items-center rounded-full bg-[#e8f1fb] px-3 py-1 text-xs font-semibold text-[#1f5a96]" title={t('Vaga afirmativa para pessoas com deficiência')}>{t('Vaga PCD')}</span>}
           {job.department && <Chip>{job.department}</Chip>}
@@ -251,9 +262,9 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
 
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
           <article className="min-w-0 space-y-6 rounded-[14px] border border-[#e9e5f0] bg-white p-5 sm:p-7">
-            <section><h2 className="text-lg font-semibold">{t('Sobre a vaga')}</h2><p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7">{job.description || t('Descrição não informada.')}</p></section>
-            {!!job.requirements.length && <section><h2 className="font-semibold">{t('Requisitos')}</h2><ul className="mt-3 list-disc space-y-2 pl-5 text-sm">{job.requirements.map((item, index) => <li key={index}>{item}</li>)}</ul></section>}
-            {!!job.benefits.length && <section><h2 className="font-semibold">{t('Benefícios')}</h2><ul className="mt-3 flex flex-wrap gap-2">{job.benefits.map((benefit, index) => <li key={index}><Chip>{benefit}</Chip></li>)}</ul></section>}
+            <section><h2 className="text-lg font-semibold">{t('Sobre a vaga')}</h2><p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7">{displayJob?.description || t('Descrição não informada.')}</p></section>
+            {!!displayJob?.requirements.length && <section><h2 className="font-semibold">{t('Requisitos')}</h2><ul className="mt-3 list-disc space-y-2 pl-5 text-sm">{displayJob.requirements.map((item, index) => <li key={index}>{item}</li>)}</ul></section>}
+            {!!displayJob?.benefits.length && <section><h2 className="font-semibold">{t('Benefícios')}</h2><ul className="mt-3 flex flex-wrap gap-2">{displayJob.benefits.map((benefit, index) => <li key={index}><Chip>{benefit}</Chip></li>)}</ul></section>}
             <section className="border-t border-border pt-4"><h2 className="font-semibold">{t('Como funciona')}</h2>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-fg-mut"><li>{t('Envie seus dados e currículo.')}</li><li>{t('O RH analisa as candidaturas.')}</li><li>{t('Se houver aderência, você será contatado para as próximas etapas.')}</li></ol>
             </section>

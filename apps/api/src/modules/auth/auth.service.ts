@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { randomInt, timingSafeEqual } from 'node:crypto';
+import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 import { loginFailures } from '../../common/metrics/app-metrics';
 import { isCompanyDocumentOptional, normalizeCompanyDocument } from '../../common/company-document';
 import { createHmac } from 'node:crypto';
@@ -115,6 +115,9 @@ export class AuthService {
   }
   async registerCompany(dto: RegisterCompanyDto, requestMeta?: RequestMeta) {
     const email = dto.email.trim().toLowerCase();
+    const inviteHash = dto.trialInviteToken ? createHash('sha256').update(dto.trialInviteToken).digest('hex') : undefined;
+    const trialInvite = inviteHash ? await this.repository.findValidTrialInvite(email, inviteHash) : null;
+    if (dto.trialInviteToken && !trialInvite) throw new BadRequestException('O convite não corresponde a este e-mail, expirou ou já foi utilizado.');
     const document = normalizeCompanyDocument(dto.document);
     // Padrao: CPF/CNPJ obrigatorio e valido. Ambiente de teste do robo (COMPANY_DOCUMENT_OPTIONAL=true): pode faltar e nao valida os digitos.
     if (!isCompanyDocumentOptional()) this.assertValidDocument(document ?? '');
@@ -181,7 +184,11 @@ export class AuthService {
           throw new ConflictException({ code: redemption.reason, message: redemption.reason === 'COUPON_ALREADY_USED' ? 'Este documento ja utilizou este cupom.' : 'Cupom indisponivel.' });
         }
       };
-      if (selectedPlan.isFree) {
+      if (trialInvite) {
+        const started = await this.repository.startInvitedTrial(subscriptionData, 30);
+        trial = true;
+        trialEndsAt = started.trialEndsAt;
+      } else if (selectedPlan.isFree) {
         // Plano gratis: ACTIVE, sem teste.
         if (discountCoupon) await redeemDiscount();
         else await this.repository.createSubscription(subscriptionData);
@@ -237,6 +244,11 @@ export class AuthService {
         billingSetupPending = true;
         this.logger.error(`Cadastro ${company.id} criado, mas checkout Asaas ficou pendente: ${String(error)}`);
       }
+    }
+
+    if (trialInvite && inviteHash && !(await this.repository.consumeTrialInvite(trialInvite.id, inviteHash))) {
+      await this.repository.deleteIncompleteCompany(company.id).catch(() => undefined);
+      throw new ConflictException('Este convite já foi utilizado por outro cadastro.');
     }
 
     void this.sendVerificationEmail({ id: admin.id, email: admin.email, name: admin.name });

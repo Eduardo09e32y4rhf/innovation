@@ -627,6 +627,7 @@ export interface RegisterCompanyInput {
   planId: string;
   seatQuantity: number;
   couponCode?: string;
+  trialInviteToken?: string;
 }
 export interface PublicPlatformPlan {
   id: string; name: string; description?: string | null; price: number | string; cycle: string;

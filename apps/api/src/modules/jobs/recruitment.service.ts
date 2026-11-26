@@ -190,6 +190,7 @@ export class RecruitmentService {
         const options = this.validateQuestion(question);
         const data = {
           label: question.label.trim(),
+          ...(question.translations !== undefined ? { translations: question.translations as Prisma.InputJsonValue } : {}),
           type: question.type,
           required: Boolean(question.required),
           options,

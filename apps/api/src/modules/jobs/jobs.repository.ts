@@ -8,6 +8,7 @@ const PUBLIC_JOB_SELECT = {
   id: true,
   title: true,
   description: true,
+  translations: true,
   location: true,
   employmentType: true,
   salaryRange: true,
@@ -47,7 +48,7 @@ const availablePublicJob = () => ({ ...openJob(), isInternal: false, company: PU
 /** Vaga encerrada ha menos de 30 dias: continua visivel por link (sem aceitar candidatos) e no painel da empresa. */
 const recentlyClosedJob = () => ({ status: { in: ['CLOSED', 'FILLED'] as Array<'CLOSED' | 'FILLED'> }, confidential: false, isInternal: false, closedAt: { gte: new Date(Date.now() - 30 * 86_400_000) }, company: PUBLIC_JOB_COMPANY });
 
-const PUBLIC_QUESTION_SELECT = { id: true, label: true, type: true, required: true, options: true } satisfies Prisma.JobQuestionSelect;
+const PUBLIC_QUESTION_SELECT = { id: true, label: true, type: true, required: true, options: true, translations: true } satisfies Prisma.JobQuestionSelect;
 
 @Injectable()
 export class JobsRepository {
@@ -492,4 +493,3 @@ export class JobsRepository {
     }
   }
 }
-

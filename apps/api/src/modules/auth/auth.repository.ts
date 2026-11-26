@@ -8,6 +8,33 @@ import { emptyToNull, normalizeDisplayName } from '../../common/utils/text-norma
 export class AuthRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async findValidTrialInvite(email: string, tokenHash: string) {
+    const recipient = await this.prisma.emailRecipient.findUnique({ where: { tokenHash } });
+    if (!recipient || recipient.email !== email || recipient.status !== 'SENT' || recipient.activatedAt || !recipient.tokenExpiresAt || recipient.tokenExpiresAt < new Date()) return null;
+    return recipient;
+  }
+
+  async consumeTrialInvite(recipientId: string, tokenHash: string) {
+    const now = new Date();
+    return this.prisma.$transaction(async tx => {
+      const claimed = await tx.emailRecipient.updateMany({ where: { id: recipientId, tokenHash, status: 'SENT', activatedAt: null, tokenExpiresAt: { gt: now } }, data: { status: 'ACTIVATED', activatedAt: now, tokenHash: null } });
+      if (!claimed.count) return false;
+      const recipient = await tx.emailRecipient.findUnique({ where: { id: recipientId }, select: { email: true } });
+      if (!recipient) return false;
+      await tx.trialInvite.upsert({ where: { email: recipient.email }, update: { activatedAt: now }, create: { email: recipient.email, activatedAt: now } });
+      return true;
+    });
+  }
+
+  startInvitedTrial(data: { companyId: string; planId: string; seatQuantity: number; pricingVersion?: string | null; baseMonthlyPrice?: unknown; userMonthlyPrice?: unknown; discountPercent?: unknown }, days = 30) {
+    return this.prisma.$transaction(async tx => {
+      const now = new Date(); const trialEndsAt = new Date(now.getTime() + days * 86_400_000);
+      await tx.company.update({ where: { id: data.companyId }, data: { status: 'ACTIVE', isActive: true, billingStatus: 'TRIAL', trialEndsAt, suspensionReason: null } });
+      await tx.companySubscription.upsert({ where: { companyId: data.companyId }, create: { ...data, status: 'TRIAL', trialStartedAt: now, trialEndsAt } as any, update: { ...data, status: 'TRIAL', trialStartedAt: now, trialEndsAt } as any });
+      return { applied: true as const, trialEndsAt };
+    }, { isolationLevel: 'Serializable' });
+  }
+
   findUserByEmail(email: string) {
     return this.prisma.user.findUnique({ where: { email: email.trim().toLowerCase() }, include: { company: true } });
   }

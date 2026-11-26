@@ -1,4 +1,5 @@
 import { fetchPublic } from './public-jobs';
+import type { JobTranslations } from './job-translations';
 
 /** Cliente da Área do candidato (/candidate-portal). A sessão é separada do login de empresa. */
 const TOKEN_KEY = 'ir_candidate_token';
@@ -30,10 +31,10 @@ export type CandidateProfile = {
 
 export const LICENSE_CATEGORIES = ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE'] as const;
 
-export type CandidateInvite = { id: string; status: 'SENT' | 'APPLIED' | 'DECLINED'; message: string | null; createdAt: string; jobId: string; companyId: string; job: string; company: string; open: boolean };
+export type CandidateInvite = { id: string; status: 'SENT' | 'APPLIED' | 'DECLINED'; message: string | null; createdAt: string; jobId: string; companyId: string; job: string; translations?: JobTranslations | null; company: string; open: boolean };
 
 export type CandidateApplication = {
-  id: string; jobId: string; job: string; company: string; appliedAt: string; status: string; statusLabel: string; stage: string | null; closed: boolean;
+  id: string; jobId: string; job: string; translations?: JobTranslations | null; company: string; appliedAt: string; status: string; statusLabel: string; stage: string | null; closed: boolean;
   timeline: { at: string; label: string }[];
   funnel: { status: string; stage: string; count: number | null; label: string }[] | null;
   /** Proxima entrevista ja enviada por e-mail ao candidato. */

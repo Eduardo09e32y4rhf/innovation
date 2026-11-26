@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, CalendarRange, CalendarDays, ShieldCheck,
+  LayoutDashboard, Users, CalendarRange, CalendarDays, ShieldCheck, Mail,
   UserRoundCog, Settings2, HelpCircle, Briefcase, Building2, Calculator, Receipt, type LucideIcon,
 } from 'lucide-react';
 import type { User } from '../../../../contexts/AuthContext';
@@ -40,6 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'support', label: 'Suporte', href: '/dashboard/support', icon: HelpCircle, group: 'Administração', roles: ALL_ROLES },
   { id: 'platform', label: 'Plataforma', href: '/dashboard/platform', icon: Building2, group: 'Operação global', roles: ['DEV', 'CEO', 'COMERCIAL', 'CONTABIL'], anyPermission: ['platform.manage', 'platform.view_finance'] },
   { id: 'accounting', label: 'Contabilidade', href: '/dashboard/contabilidade', icon: Calculator, group: 'Operação global', roles: ['DEV', 'CEO', 'CONTABIL'] },
+  { id: 'commercial-email', label: 'Email', href: '/dashboard/comercial/email', icon: Mail, group: 'Operação global', roles: ['COMERCIAL'] },
 ];
 
 export function getVisibleNavItems(user: User | null, activeModules: readonly string[] = []): NavItem[] {

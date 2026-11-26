@@ -91,7 +91,7 @@ function CadastroForm() {
   const search = useSearchParams();
   const [accountType, setAccountType] = useState<RecruitmentAccountType>(() => search.get('perfil') === 'recrutador' ? 'RECRUITER' : 'EMPLOYER');
   const [step, setStep] = useState<1 | 2>(1);
-  const [form, setForm] = useState({ companyName: '', document: '', name: '', email: '', phone: '', password: '', couponCode: '' });
+  const [form, setForm] = useState({ companyName: '', document: '', name: '', email: search.get('email') ?? '', phone: '', password: '', couponCode: '' });
   const [seats, setSeats] = useState(() => Math.max(1, Math.min(10_000, Number(search.get('seats')) || 1)));
   const [planId, setPlanId] = useState(() => { const id = search.get('planId') ?? ''; return UUID.test(id) ? id : ''; });
   const [accepted, setAccepted] = useState(false);
@@ -170,6 +170,7 @@ function CadastroForm() {
         recruitmentAccountType: accountType,
         companyName: form.companyName.trim(), document: form.document.replace(/\D/g, '') || undefined, name: form.name.trim(), email: form.email.trim().toLowerCase(),
         phone: normalizedPhone ? `+${normalizedPhone}` : undefined, password: form.password, planId: plan.id, seatQuantity: seats, couponCode: form.couponCode.trim() || undefined,
+        trialInviteToken: search.get('trialInviteToken') || undefined,
       });
       const sessionUser: AuthUser = {
         id: response.user.sub, name: response.user.name, email: response.user.email, profile: String(response.user.role).toLowerCase(), role: response.user.role,
@@ -208,7 +209,7 @@ function CadastroForm() {
             <Field id="c-name" label={t('Seu nome')}><input id="c-name" required autoComplete="name" className={authInput} value={form.name} onChange={(e) => set('name', e.target.value)} /></Field>
             <Field id="c-phone" label={t('Telefone / WhatsApp (opcional)')}><input id="c-phone" type="tel" autoComplete="tel" placeholder={t('+55 (11) 91234-5678')} className={authInput} value={form.phone} onChange={(e) => set('phone', maskPhone(e.target.value))} /></Field>
           </div>
-          <Field id="c-email" label={t('E-mail de acesso')}><input id="c-email" required type="email" autoComplete="email" className={authInput} value={form.email} onChange={(e) => set('email', e.target.value)} /></Field>
+          <Field id="c-email" label={t('E-mail de acesso')}><input id="c-email" required type="email" autoComplete="email" className={authInput} value={form.email} readOnly={search.get('trialInviteActivated') === '1'} onChange={(e) => set('email', e.target.value)} />{search.get('trialInviteActivated') === '1' && <span className="mt-1 block text-xs text-slate-500">Este é o e-mail vinculado ao convite.</span>}</Field>
           <PasswordField label={t('Senha')} value={form.password} onChange={(v) => set('password', v)} autoComplete="new-password" showRules />
           {error && <AuthAlert>{error}</AuthAlert>}
           <button type="submit" className={authButton}>{t('Continuar')}</button>

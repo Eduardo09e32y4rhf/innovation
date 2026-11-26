@@ -3,6 +3,9 @@ import { IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Matches
 import { isCompanyDocumentOptional } from '../../../common/company-document';
 
 export class RegisterCompanyDto {
+  @IsOptional() @IsString() @Matches(/^[a-f0-9]{64}$/i, { message: 'Convite de teste inválido.' })
+  trialInviteToken?: string;
+
   @IsOptional()
   @IsIn(['EMPLOYER', 'RECRUITER'])
   recruitmentAccountType?: 'EMPLOYER' | 'RECRUITER';

@@ -20,6 +20,7 @@ import { resolveUserRole } from '@/app/lib/user-role';
 import { ceoOnboardingPending } from '../../ceo-onboarding/steps';
 import { readParsedAuthSession } from '@/app/lib/auth-session';
 import { api } from '@/app/lib/api';
+import { PlatformNoticesBanner } from './_components/platform-notices-banner';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -100,6 +101,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <ProposalGate>
                     <GuidedTour />
                     <main id="workspace-content" className="workspace-content flex-1" tabIndex={-1}>
+                      <PlatformNoticesBanner />
                       <WorkspaceRouteGate>{children}</WorkspaceRouteGate>
                     </main>
                   </ProposalGate>

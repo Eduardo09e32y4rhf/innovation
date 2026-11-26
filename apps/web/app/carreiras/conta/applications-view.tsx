@@ -8,6 +8,7 @@ import { employmentTypeLabel, getPublicJobsCatalog, workModeLabel } from '../_li
 import { useCandidateSession } from './_components/account-shell';
 import { useI18n } from '@/app/contexts/I18nContext';
 import { useLanguage } from '@/app/contexts/LanguageContext';
+import { hasUntranslatedJobContent, translatedJob, translatedJobTitle } from '../_lib/job-translations';
 
 const STEPS = ['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED'] as const;
 const STEP_LABEL: Record<string, string> = { APPLIED: 'Recebida', SCREENING: 'Em análise', INTERVIEW: 'Entrevista', OFFER: 'Proposta', HIRED: 'Contratação' };
@@ -99,17 +100,20 @@ function Stat({ label, value, hint }: { label: string; value: number | string; h
 
 function JobCard({ match, applied }: { match: JobMatch; applied: boolean }) {
   const { t } = useI18n();
+  const { language } = useLanguage();
   const { job } = match;
+  const displayJob = translatedJob(job, language);
   const meta = [job.location, workModeLabel(job.workMode), employmentTypeLabel(job.employmentType)].filter(Boolean).map((value) => value ? t(value) : value).join(' · ');
   return (
     <Link href={`/carreiras/${job.companyId}/${job.id}`} className={`${card} group flex flex-col gap-3 p-4 transition hover:-translate-y-0.5 hover:border-[#cbb9f2] hover:shadow-[0_8px_24px_rgba(114,64,218,0.12)]`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="break-words font-bold leading-snug text-[#1e1145] group-hover:text-[#5b29be]">{job.title}</p>
+          <p className="break-words font-bold leading-snug text-[#1e1145] group-hover:text-[#5b29be]">{displayJob.title}</p>
           <p className="truncate text-sm text-[#5b5473]">{job.company?.name ?? 'Empresa'}</p>
         </div>
         {match.percent > 0 && <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">{match.percent}%</span>}
       </div>
+      {hasUntranslatedJobContent(job, language) && <span className="w-fit rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">{t('Tradução pendente')}</span>}
       {meta && <p className="text-xs text-[#7a7290]">{meta}</p>}
       <div className="mt-auto flex flex-wrap gap-1.5">
         {applied && <span className="rounded-full bg-[#f0eafa] px-2 py-0.5 text-[11px] font-semibold text-[#5b29be]">{t('Você já se candidatou')}</span>}
@@ -214,7 +218,7 @@ export function ApplicationsView() {
               <h2 className="text-base font-bold">{t('Convites para vagas ({count})', { count: pendingInvites.length })}</h2>
               {pendingInvites.map((invite) => (
                 <div key={invite.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[#ebe6f3] bg-white p-3">
-                  <div className="min-w-0"><p className="break-words font-semibold">{invite.job}</p><p className="text-sm text-[#5b5473]">{invite.company}{invite.message ? ` · “${invite.message}”` : ''}</p></div>
+                  <div className="min-w-0"><p className="break-words font-semibold">{translatedJobTitle(invite.job, invite.translations, language)}</p><p className="text-sm text-[#5b5473]">{invite.company}{invite.message ? ` · “${invite.message}”` : ''}</p></div>
                   <div className="flex gap-2">
                     {invite.open && <Link href={`/carreiras/${invite.companyId}/${invite.jobId}`} className="inline-flex min-h-11 items-center rounded-[10px] bg-[#7240da] px-4 text-sm font-semibold text-white hover:bg-[#5b29be]">{t('Ver vaga')}</Link>}
                     <button type="button" onClick={() => void decline(invite.id)} className="min-h-11 rounded-[10px] border border-[#d5cceb] px-4 text-sm font-semibold hover:bg-[#f1ecfb]">{t('Agora não')}</button>
@@ -254,7 +258,7 @@ export function ApplicationsView() {
             {items?.map((item) => (
               <article key={item.id} className={`${card} space-y-4 p-5`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0"><h3 className="break-words text-base font-bold">{item.job}</h3><p className="text-sm text-[#5b5473]">{item.company} · {t('enviada em')} {new Date(item.appliedAt).toLocaleDateString(language)}</p></div>
+                  <div className="min-w-0"><h3 className="break-words text-base font-bold">{translatedJobTitle(item.job, item.translations, language)}</h3><p className="text-sm text-[#5b5473]">{item.company} · {t('enviada em')} {new Date(item.appliedAt).toLocaleDateString(language)}</p></div>
                   <span className={`rounded-full px-3 py-1 text-xs font-bold ${item.status === 'REJECTED' ? 'bg-rose-50 text-rose-800' : item.status === 'HIRED' ? 'bg-emerald-50 text-emerald-800' : 'bg-[#f0eafa] text-[#5b29be]'}`}>{t(item.statusLabel)}{item.stage && item.stage !== item.statusLabel ? ` · ${t(item.stage)}` : ''}</span>
                 </div>
                 <Stepper status={item.status} />

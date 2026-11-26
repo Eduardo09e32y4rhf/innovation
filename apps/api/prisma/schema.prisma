@@ -50,6 +50,27 @@ enum BillingStatus {
   CANCELED
 }
 
+enum EmailCampaignType {
+  INFO
+  TRIAL_INVITE
+}
+
+enum EmailRecipientStatus {
+  QUEUED
+  SENT
+  FAILED
+  BOUNCED
+  SKIPPED_COOLDOWN
+  SKIPPED_ALREADY_ACTIVATED
+  SKIPPED_UNSUBSCRIBED
+  ACTIVATED
+}
+
+enum PlatformNoticeType {
+  FEATURE
+  TERMS
+}
+
 enum WhatsappStatus {
   DISCONNECTED
   CONNECTING
@@ -1261,6 +1282,70 @@ model AuditLog {
   @@index([entity, entityId, createdAt])
 }
 
+/// Campaigns of prospect invitation messages sent by the commercial team.
+model EmailCampaign {
+  id          String                @id @default(uuid()) @db.Uuid
+  createdById String                @db.Uuid
+  subject     String
+  bodyText    String                @db.Text
+  type        EmailCampaignType     @default(TRIAL_INVITE)
+  createdAt   DateTime              @default(now())
+  recipients  EmailRecipient[]
+
+  @@index([createdById])
+}
+
+model EmailRecipient {
+  id             String               @id @default(uuid()) @db.Uuid
+  campaignId     String               @db.Uuid
+  campaign       EmailCampaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  email          String
+  name           String?
+  status         EmailRecipientStatus @default(QUEUED)
+  resendEmailId  String?              @unique
+  tokenHash      String?              @unique
+  tokenExpiresAt DateTime?
+  sentAt         DateTime?
+  activatedAt    DateTime?
+  error          String?
+
+  @@index([campaignId])
+  @@index([email])
+}
+
+model TrialInvite {
+  id               String    @id @default(uuid()) @db.Uuid
+  email            String    @unique
+  lastInviteSentAt DateTime?
+  activatedAt      DateTime?
+  unsubscribedAt   DateTime?
+  bouncedAt        DateTime?
+  updatedAt        DateTime  @updatedAt
+}
+
+model PlatformNotice {
+  id          String             @id @default(uuid()) @db.Uuid
+  title       String
+  body        String             @db.Text
+  type        PlatformNoticeType @default(FEATURE)
+  createdById String             @db.Uuid
+  publishedAt DateTime           @default(now())
+  reads       PlatformNoticeRead[]
+}
+
+model PlatformNoticeRead {
+  id         String         @id @default(uuid()) @db.Uuid
+  noticeId   String         @db.Uuid
+  notice     PlatformNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  tenantId   String         @db.Uuid
+  userId     String         @db.Uuid
+  acceptedAt DateTime       @default(now())
+  ipAddress  String?
+
+  @@unique([noticeId, userId])
+  @@index([tenantId, userId])
+}
+
 model WhatsappInstance {
   id        String         @id @default(uuid()) @db.Uuid
   companyId String         @db.Uuid
@@ -1339,6 +1424,7 @@ model Job {
   companyId      String    @db.Uuid
   title          String
   description    String
+  translations   Json      @default("{}")
   location       String?
   employmentType String?
   salaryRange    String?
@@ -1469,6 +1555,7 @@ model JobQuestion {
   id        String   @id @default(uuid()) @db.Uuid
   jobId     String   @db.Uuid
   label     String
+  translations Json  @default("{}")
   type      String   @default("TEXT")
   required  Boolean  @default(false)
   options   String[] @default([])

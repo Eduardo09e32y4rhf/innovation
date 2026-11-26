@@ -19,6 +19,7 @@ import { Field, Pill, SectionCard, inputClass } from './bits';
 import { DocumentPicker } from './document-picker';
 import { ScreeningEditor } from './screening-editor';
 import { JobSharePanel } from './share-dialog';
+import type { JobLocale } from '@/app/carreiras/_lib/job-translations';
 
 const STEPS = ['Tipo e cargo', 'Detalhes da vaga', 'Triagem', 'Etapas e avaliação', 'Publicar'] as const;
 const EMPLOYMENT_OPTIONS = ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO', 'JOVEM_APRENDIZ'];
@@ -28,6 +29,7 @@ type Kind = 'EXTERNAL' | 'INTERNAL' | 'CONFIDENTIAL';
 interface Draft {
   kind: Kind; title: string; department: string; location: string; workMode: string; employmentType: string; seniority: string; openings: number;
   description: string; requirementsText: string; benefitsText: string; interviewGuideText: string;
+  translations: Record<JobLocale, { title: string; description: string; requirementsText: string; benefitsText: string }>;
   salaryMin: string; salaryMax: string; salaryHidden: boolean; pcd: boolean; costAmount: string; deadline: string; status: JobStatus;
   questions: Question[]; criteria: Criterion[]; screeningMinScore: number | null; screeningAction: 'FLAG' | 'REJECT';
   requiredDocuments: string[];
@@ -36,6 +38,10 @@ interface Draft {
 const EMPTY: Draft = {
   kind: 'EXTERNAL', title: '', department: '', location: '', workMode: '', employmentType: 'CLT', seniority: '', openings: 1,
   description: '', requirementsText: '', benefitsText: '', interviewGuideText: '',
+  translations: {
+    en: { title: '', description: '', requirementsText: '', benefitsText: '' },
+    es: { title: '', description: '', requirementsText: '', benefitsText: '' },
+  },
   salaryMin: '', salaryMax: '', salaryHidden: false, pcd: false, costAmount: '', deadline: '', status: 'DRAFT',
   questions: [], criteria: [], screeningMinScore: null, screeningAction: 'REJECT', requiredDocuments: [],
 };
@@ -106,10 +112,24 @@ export function JobWizard({ jobId }: { jobId?: string }) {
           description: job.description, requirementsText: (job.requirements ?? []).join('\n'), benefitsText: (job.benefits ?? []).join('\n'), interviewGuideText: (job.interviewGuide ?? []).join('\n'),
           salaryMin: job.salaryMin != null ? String(job.salaryMin) : '', salaryMax: job.salaryMax != null ? String(job.salaryMax) : '',
           salaryHidden: job.salaryHidden, pcd: Boolean(job.pcd), costAmount: job.costAmount != null ? String(job.costAmount).replace('.', ',') : '', deadline: job.deadline ? job.deadline.slice(0, 10) : '', status: job.status,
-          questions: questions.map(({ id, label, type, required, options, knockout, scoreRule }) => ({ id, label, type, required, options: options ?? [], knockout: knockout ?? null, scoreRule: scoreRule ?? null })),
+          questions: questions.map(({ id, label, type, required, options, knockout, scoreRule, translations }) => ({ id, label, type, required, options: options ?? [], knockout: knockout ?? null, scoreRule: scoreRule ?? null, translations: translations ?? {} })),
           criteria: criteria.map(({ id, name, weight }) => ({ id, name, weight })),
           screeningMinScore: job.screeningMinScore ?? null, screeningAction: job.screeningAction ?? 'REJECT',
           requiredDocuments: (job.requiredDocuments ?? []).map((item) => item.label),
+          translations: {
+            en: {
+              title: job.translations?.en?.title ?? '',
+              description: job.translations?.en?.description ?? '',
+              requirementsText: job.translations?.en?.requirements?.join('\n') ?? '',
+              benefitsText: job.translations?.en?.benefits?.join('\n') ?? '',
+            },
+            es: {
+              title: job.translations?.es?.title ?? '',
+              description: job.translations?.es?.description ?? '',
+              requirementsText: job.translations?.es?.requirements?.join('\n') ?? '',
+              benefitsText: job.translations?.es?.benefits?.join('\n') ?? '',
+            },
+          },
         };
         setDraft(loaded); baseline.current = JSON.stringify(loaded);
       })
@@ -162,6 +182,15 @@ export function JobWizard({ jobId }: { jobId?: string }) {
     try {
       const payload = {
         title: draft.title.trim(), description: draft.description.trim(),
+        translations: Object.fromEntries((['en', 'es'] as const).map((locale) => {
+          const value = draft.translations[locale];
+          return [locale, {
+            title: value.title.trim(),
+            description: value.description.trim(),
+            requirements: lines(value.requirementsText),
+            benefits: lines(value.benefitsText),
+          }];
+        })),
         department: draft.department.trim() || null, location: draft.location.trim() || null,
         workMode: draft.workMode || null, employmentType: draft.employmentType || null, seniority: draft.seniority || null,
         openings: Math.max(1, Number(draft.openings) || 1),
@@ -314,6 +343,29 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                 })}</div>
                 <textarea aria-label="Benefícios da vaga, um por linha" className={`${inputClass} min-h-24`} value={draft.benefitsText} onChange={(event) => set('benefitsText', event.target.value)} />
               </Field>
+              <details className="rounded-xl border border-border bg-bg-sub/40 p-4">
+                <summary className="min-h-10 cursor-pointer content-center font-semibold">Versões em inglês e espanhol (opcional)</summary>
+                <p className="mb-4 text-sm text-fg-sub">As traduções são informadas pela empresa e exibidas quando o candidato selecionar esse idioma. Campos sem tradução aparecem no idioma original.</p>
+                {(['en', 'es'] as const).map((locale) => {
+                  const labels = locale === 'en'
+                    ? { title: 'Título em inglês', description: 'Descrição em inglês', requirements: 'Requisitos em inglês', benefits: 'Benefícios em inglês' }
+                    : { title: 'Título em espanhol', description: 'Descrição em espanhol', requirements: 'Requisitos em espanhol', benefits: 'Benefícios em espanhol' };
+                  const value = draft.translations[locale];
+                  const update = (key: keyof typeof value, next: string) => set('translations', {
+                    ...draft.translations,
+                    [locale]: { ...value, [key]: next },
+                  });
+                  return (
+                    <fieldset key={locale} className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+                      <legend className="px-1 text-sm font-bold">{locale === 'en' ? 'English' : 'Español'}</legend>
+                      <Field label={labels.title}><input className={inputClass} maxLength={160} value={value.title} onChange={(event) => update('title', event.target.value)} /></Field>
+                      <Field label={labels.description} className="sm:col-span-2"><textarea className={`${inputClass} min-h-32`} maxLength={12000} value={value.description} onChange={(event) => update('description', event.target.value)} /></Field>
+                      <Field label={labels.requirements} hint="Um por linha."><textarea className={`${inputClass} min-h-24`} value={value.requirementsText} onChange={(event) => update('requirementsText', event.target.value)} /></Field>
+                      <Field label={labels.benefits} hint="Um por linha."><textarea className={`${inputClass} min-h-24`} value={value.benefitsText} onChange={(event) => update('benefitsText', event.target.value)} /></Field>
+                    </fieldset>
+                  );
+                })}
+              </details>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Salário de (R$)"><input inputMode="decimal" className={inputClass} placeholder="2.000" value={draft.salaryMin} onChange={(event) => set('salaryMin', event.target.value)} /></Field>
                 <Field label="até (R$)"><input inputMode="decimal" className={inputClass} placeholder="2.500" value={draft.salaryMax} onChange={(event) => set('salaryMax', event.target.value)} /></Field>
@@ -329,6 +381,32 @@ export function JobWizard({ jobId }: { jobId?: string }) {
             <SectionCard title="Triagem automática" description="Perguntas que o candidato responde ao se candidatar. O sistema dá uma nota de 0 a 100% e separa quem não atende.">
               <ScreeningEditor questions={draft.questions} suggested={template?.questions ?? []} minScore={draft.screeningMinScore} action={draft.screeningAction}
                 onChange={(next) => set('questions', next)} onMinScore={(value) => set('screeningMinScore', value)} onAction={(value) => set('screeningAction', value)} />
+              {draft.questions.length > 0 && (
+                <details className="rounded-xl border border-border bg-bg-sub/40 p-4">
+                  <summary className="min-h-10 cursor-pointer content-center font-semibold">Traduções das perguntas para candidatos</summary>
+                  <p className="mb-4 text-sm text-fg-sub">Preencha as versões em inglês e espanhol. As respostas continuam vinculadas às opções originais da triagem.</p>
+                  {draft.questions.map((question, index) => (
+                    <section key={question.id ?? index} className="space-y-3 border-t border-border py-4">
+                      <p className="text-sm font-semibold">{index + 1}. {question.label || 'Pergunta sem texto'}</p>
+                      {(['en', 'es'] as const).map((locale) => {
+                        const translation = question.translations?.[locale] ?? {};
+                        const update = (patch: { label?: string; options?: string[] }) => set('questions', draft.questions.map((item, itemIndex) => (
+                          itemIndex === index
+                            ? { ...item, translations: { ...item.translations, [locale]: { ...translation, ...patch } } }
+                            : item
+                        )));
+                        return (
+                          <fieldset key={locale} className="grid gap-3 sm:grid-cols-2">
+                            <legend className="text-xs font-bold">{locale === 'en' ? 'English' : 'Español'}</legend>
+                            <Field label="Pergunta"><input className={inputClass} maxLength={300} value={translation.label ?? ''} onChange={(event) => update({ label: event.target.value })} /></Field>
+                            {question.options.length > 0 && <Field label="Opções, na mesma ordem" hint="Uma opção por linha."><textarea className={`${inputClass} min-h-20`} value={translation.options?.join('\n') ?? ''} onChange={(event) => update({ options: event.target.value.split('\n').map((option) => option.trim()) })} /></Field>}
+                          </fieldset>
+                        );
+                      })}
+                    </section>
+                  ))}
+                </details>
+              )}
             </SectionCard>
           )}
 

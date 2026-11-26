@@ -8,6 +8,8 @@ import { PortalFooter } from './portal-chrome';
 import { getAllPublicJobs, getPublicJobs, employmentTypeLabel, publicSalaryLabel, workModeLabel, type PublicCompany, type PublicJob } from '../_lib/public-jobs';
 import { useI18n } from '@/app/contexts/I18nContext';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
+import { useLanguage } from '@/app/contexts/LanguageContext';
+import { hasUntranslatedJobContent, translatedJob } from '../_lib/job-translations';
 
 const SAVED_KEY = 'innovation-careers-saved';
 const tag = 'rounded-md bg-[#f5f3f8] px-2 py-1 text-[11px] text-[#71667e]';
@@ -17,6 +19,7 @@ function toggleIn(list: string[], value: string) { return list.includes(value) ?
 /** Portal de vagas: papel claro, roxo Innovation, busca em destaque, filtros à esquerda e cartões de vaga. */
 export function CareersCatalog({ companyId }: { companyId?: string }) {
   const { t } = useI18n();
+  const { language } = useLanguage();
   const [company, setCompany] = useState<PublicCompany>({ id: companyId || '', name: companyId ? 'Portal de carreiras' : 'Innovation RH' });
   const [companies, setCompanies] = useState<PublicCompany[]>([]);
   const [jobs, setJobs] = useState<PublicJob[]>([]);
@@ -76,7 +79,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
   const filtered = useMemo(() => jobs.filter(job => (!location || job.location === location) && (!companyFilter || job.companyId === companyFilter)
     && (!modes.length || (job.workMode && modes.includes(job.workMode))) && (!contracts.length || (job.employmentType && contracts.includes(job.employmentType)))
     && (!levels.length || (job.seniority && levels.includes(job.seniority))) && (!onlySaved || saved.includes(job.id)) && (!onlyPcd || job.pcd)
-    && (!query || [job.title, job.description, job.location, job.department, job.employmentType, job.workMode, job.company?.name].filter(Boolean).join(' ').normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('pt-BR').includes(query))),
+    && (!query || [job.title, job.description, ...Object.values(job.translations ?? {}).flatMap((translation) => [translation.title, translation.description]), job.location, job.department, job.employmentType, job.workMode, job.company?.name].filter(Boolean).join(' ').normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('pt-BR').includes(query))),
   [jobs, location, companyFilter, modes, contracts, levels, onlySaved, onlyPcd, saved, query]);
   const pages = Math.max(1, Math.ceil(filtered.length / 12));
   const currentPage = Math.min(page, pages);
@@ -147,16 +150,18 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
             : !filtered.length ? <div className="rounded-2xl border border-dashed border-[#cfbde9] bg-white px-4 py-12 text-center"><Briefcase size={26} className="mx-auto text-[#7240da]" aria-hidden="true" /><h3 className="mt-3 font-semibold">{t('Nenhuma vaga por aqui… ainda.')}</h3><p className="mb-4 mt-2 text-xs text-[#736d80]">{jobs.length ? t('Tente outra palavra-chave ou remova os filtros.') : t('Nenhuma vaga aberta no momento. Volte em breve.')}</p>{hasFilter && <button type="button" onClick={clear} className="rounded-lg bg-[#7240da] px-5 py-3 text-[13px] font-semibold text-white">{t('Limpar filtros')}</button>}</div>
             : <ul className="grid gap-4">{filtered.slice((currentPage - 1) * 12, currentPage * 12).map(job => {
               const salary = publicSalaryLabel(job); const mode = workModeLabel(job.workMode); const isSaved = saved.includes(job.id);
+              const displayJob = translatedJob(job, language);
               const href = '/carreiras/' + encodeURIComponent(companyId || job.companyId) + '/' + encodeURIComponent(job.id);
               return <li key={job.id}><article className="rounded-[14px] border border-[#e9e5f0] bg-white p-5 transition hover:border-[#c7b0ed] hover:shadow-[0_8px_22px_#482d6b10] sm:p-6">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3 text-[11px] text-[#736d80]">{job.company ? <CareersLogo company={job.company} /> : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[9px] border border-[#e6dcf4] bg-[#f1ecfa] font-bold text-[#7240da]">{(job.company?.name ?? company.name).charAt(0)}</span>}<span className="truncate">{job.company?.name || company.name}</span></div>
-                  <button type="button" onClick={() => toggleSaved(job.id)} aria-pressed={isSaved} aria-label={t(isSaved ? 'Remover dos favoritos: ' : 'Salvar vaga: ') + job.title} className={'grid h-9 w-9 place-items-center rounded-lg ' + (isSaved ? 'bg-[#eee5fc] text-[#7240da]' : 'text-[#8b819b] hover:bg-[#f5f3f8]')}><Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} aria-hidden="true" /></button>
+                  <button type="button" onClick={() => toggleSaved(job.id)} aria-pressed={isSaved} aria-label={t(isSaved ? 'Remover dos favoritos: ' : 'Salvar vaga: ') + displayJob.title} className={'grid h-9 w-9 place-items-center rounded-lg ' + (isSaved ? 'bg-[#eee5fc] text-[#7240da]' : 'text-[#8b819b] hover:bg-[#f5f3f8]')}><Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} aria-hidden="true" /></button>
                 </div>
-                <h3 className="mb-2.5 mt-4 max-w-[610px] break-words text-[19px] font-semibold leading-snug tracking-tight"><Link href={href} className="hover:text-[#7240da]">{job.title}</Link></h3>
+                <h3 className="mb-2.5 mt-4 max-w-[610px] break-words text-[19px] font-semibold leading-snug tracking-tight"><Link href={href} className="hover:text-[#7240da]">{displayJob.title}</Link></h3>
                 <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#736d80]"><span className="inline-flex items-center gap-1"><MapPin size={13} aria-hidden="true" />{job.location || t('Local não informado')}</span><span className="inline-flex items-center gap-1"><Briefcase size={13} aria-hidden="true" />{t(employmentTypeLabel(job.employmentType))}</span></p>
                 <div className="my-4 flex flex-wrap gap-2">{mode && <span className={'rounded-md px-2 py-1 text-[11px] ' + (job.workMode === 'REMOTO' ? 'bg-[#eaf4ee] text-[#327450]' : 'bg-[#f0e8fd] text-[#7650ac]')}>{mode}</span>}{job.pcd && <span className="rounded-md bg-[#e8f1fb] px-2 py-1 text-[11px] font-semibold text-[#1f5a96]">{t('Vaga PCD')}</span>}{job.seniority && <span className={tag}>{t(job.seniority)}</span>}{job.department && <span className={tag}>{t(job.department)}</span>}</div>
-                <p className="line-clamp-3 max-w-[620px] text-xs leading-[1.7] text-[#736d80]">{job.description}</p>
+                {hasUntranslatedJobContent(job, language) && <p className="text-[11px] font-medium text-amber-800">{t('Tradução pendente')}</p>}
+                <p className="line-clamp-3 max-w-[620px] text-xs leading-[1.7] text-[#736d80]">{displayJob.description}</p>
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0edf5] pt-4">
                   <div className="text-[17px] font-bold">{salary || t('A combinar')}<small className="mt-1 block text-[10px] font-normal text-[#736d80]">{t('Remuneração informada na vaga')}</small></div>
                   <Link href={href} className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#f2ecfc] px-4 text-xs font-bold text-[#7240da] transition hover:bg-[#7240da] hover:text-white sm:w-auto">{t('Ver vaga e candidatar-se ↗')}</Link>

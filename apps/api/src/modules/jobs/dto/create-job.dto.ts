@@ -19,7 +19,50 @@ import {
 
 export const WORK_MODES = ['PRESENCIAL', 'HIBRIDO', 'REMOTO'] as const;
 
+class JobLanguageTranslationDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(12000)
+  description?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  @MaxLength(500, { each: true })
+  requirements?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  @MaxLength(500, { each: true })
+  benefits?: string[];
+}
+
+class JobTranslationsDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => JobLanguageTranslationDto)
+  en?: JobLanguageTranslationDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => JobLanguageTranslationDto)
+  es?: JobLanguageTranslationDto;
+}
+
 class JobFieldsDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => JobTranslationsDto)
+  translations?: JobTranslationsDto;
+
   @IsOptional()
   @IsString()
   @MaxLength(180)

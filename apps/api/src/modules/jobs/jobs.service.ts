@@ -132,6 +132,7 @@ export class JobsService {
     const copy = await this.repository.create(companyId, {
       title: `${job.title} (cópia)`,
       description: job.description,
+      translations: job.translations,
       location: job.location,
       employmentType: job.employmentType,
       salaryRange: job.salaryRange,
@@ -166,6 +167,7 @@ export class JobsService {
           type: question.type as any,
           required: question.required,
           options: question.options,
+          translations: question.translations as any,
           knockout: question.knockout as any,
           scoreRule: question.scoreRule as any,
         })),
@@ -512,6 +514,12 @@ export class JobsService {
     const { deadline, salaryMin, salaryMax, ...rest } = dto;
     // Campo apagado na edicao chega vazio/null e precisa limpar o banco (antes o valor antigo voltava).
     const optional = (value: string | null | undefined) => (value === undefined ? undefined : String(value ?? '').trim() || null);
+    const normalizeTranslation = (value: NonNullable<typeof dto.translations>['en']) => value && ({
+      ...(value.title !== undefined ? { title: value.title.trim() } : {}),
+      ...(value.description !== undefined ? { description: value.description.trim() } : {}),
+      ...(value.requirements !== undefined ? { requirements: value.requirements.map((item) => item.trim()).filter(Boolean) } : {}),
+      ...(value.benefits !== undefined ? { benefits: value.benefits.map((item) => item.trim()).filter(Boolean) } : {}),
+    });
     if (salaryMin != null && salaryMax != null && salaryMin > salaryMax) {
       throw new BadRequestException('A faixa salarial minima nao pode ser maior que a maxima.');
     }
@@ -519,6 +527,10 @@ export class JobsService {
       ...rest,
       title: dto.title?.trim(),
       description: dto.description?.trim(),
+      translations: dto.translations ? {
+        ...(dto.translations.en ? { en: normalizeTranslation(dto.translations.en) } : {}),
+        ...(dto.translations.es ? { es: normalizeTranslation(dto.translations.es) } : {}),
+      } : undefined,
       location: optional(dto.location),
       employmentType: optional(dto.employmentType),
       salaryRange: optional(dto.salaryRange),
