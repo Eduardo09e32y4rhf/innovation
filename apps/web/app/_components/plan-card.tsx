@@ -3,6 +3,7 @@
 import { Check } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { PublicPlatformPlan } from '@/app/lib/api';
+import { useI18n } from '@/app/contexts/I18nContext';
 
 export const brl = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 export const num = (value: unknown) => { const n = typeof value === 'number' ? value : Number(String(value ?? '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
@@ -27,26 +28,36 @@ export type PlanCardTone = 'dark' | 'light';
 
 /** Card de plano usado na landing e no cadastro: mesmo desenho nos dois lugares. */
 export function PlanCard({ plan, tone = 'dark', selected, onSelect, footer, disabled, disabledLabel = 'Em breve' }: { plan: PublicPlatformPlan; tone?: PlanCardTone; selected?: boolean; onSelect?: () => void; footer?: ReactNode; disabled?: boolean; disabledLabel?: string }) {
+  const { t, locale } = useI18n();
   const { price, features, extra } = planCardData(plan);
   const light = tone === 'light' || Boolean(plan.isRecommended);
-  const [reais, cents] = price.toFixed(2).split('.');
+  const priceParts = new Intl.NumberFormat(locale === 'en' ? 'en-US' : locale === 'es' ? 'es-ES' : 'pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).formatToParts(price);
+  const reais = priceParts.filter((part) => part.type === 'integer' || part.type === 'group').map((part) => part.value).join('');
+  const cents = priceParts.find((part) => part.type === 'fraction')?.value ?? '00';
   const interactive = Boolean(onSelect) && !disabled;
   const ring = selected ? 'ring-2 ring-[var(--color-brand)]' : '';
+  const featureLabel = (item: string) => {
+    const jobs = item.match(/^(\d+) vagas por mês inclusas$/);
+    if (jobs) return t('{count} jobs per month included', { count: jobs[1] });
+    const employees = item.match(/^(\d+) colaboradores inclusos$/);
+    if (employees) return t('{count} employees included', { count: employees[1] });
+    return t(item);
+  };
   const body = (
     <>
-      {disabled && <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-zinc-700 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">{disabledLabel}</span>}
-      {!disabled && plan.isRecommended && <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-200 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-900">⚡ Mais popular</span>}
-      <h3 className="text-xl font-bold">{plan.name}</h3>
-      {plan.description && <p className={`mt-1 text-xs ${light ? 'text-purple-600' : 'text-purple-200'}`}>{plan.description}</p>}
+      {disabled && <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-zinc-700 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">{t(disabledLabel)}</span>}
+      {!disabled && plan.isRecommended && <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-200 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-900">⚡ {t('Mais popular')}</span>}
+      <h3 className="text-xl font-bold">{t(plan.name)}</h3>
+      {plan.description && <p className={`mt-1 text-xs ${light ? 'text-purple-600' : 'text-purple-200'}`}>{t(plan.description)}</p>}
       <p className="mt-5 flex items-baseline gap-1 font-bold tabular-nums">
-        {plan.isFree ? <span className="text-4xl">Grátis</span> : (<><span className="text-sm">R$</span><span className="text-5xl">{reais},{cents}</span><span className={`text-xs font-medium ${light ? 'text-zinc-500' : 'text-white/60'}`}>/mês</span></>)}
+        {plan.isFree ? <span className="text-4xl">{t('Grátis')}</span> : (<><span className="text-sm">R$</span><span className="text-5xl">{reais},{cents}</span><span className={`text-xs font-medium ${light ? 'text-zinc-500' : 'text-white/60'}`}>{t('/mês')}</span></>)}
       </p>
-      {!plan.isFree && !disabled && <p className={`mt-2 text-xs font-semibold ${light ? 'text-emerald-700' : 'text-emerald-300'}`}>{plan.trialDays ? `${plan.trialDays} dias grátis` : 'Teste grátis'}, sem cartão. Depois, preço do plano.</p>}
+      {!plan.isFree && !disabled && <p className={`mt-2 text-xs font-semibold ${light ? 'text-emerald-700' : 'text-emerald-300'}`}>{plan.trialDays ? t('{days} dias grátis', { days: plan.trialDays }) : t('Teste grátis')}, {t('sem cartão. Depois, preço do plano.')}</p>}
       <hr className={`my-4 ${light ? 'border-zinc-200' : 'border-white/15'}`} />
       <ul className={`flex-1 space-y-2 text-sm ${light ? 'text-zinc-700' : 'text-white/85'}`}>
-        {features.map((item) => <li key={item} className="flex items-start gap-2"><Check size={16} className="mt-0.5 shrink-0 text-[var(--color-brand-400)]" aria-hidden="true" />{item}</li>)}
+        {features.map((item) => <li key={item} className="flex items-start gap-2"><Check size={16} className="mt-0.5 shrink-0 text-[var(--color-brand-400)]" aria-hidden="true" />{featureLabel(item)}</li>)}
       </ul>
-      {extra && <p className={`mt-5 rounded-lg px-3 py-2 text-xs ${light ? 'bg-purple-50 text-zinc-700' : 'bg-white/10 text-white/80'}`}>{extra.label}: <strong>{extra.text}</strong></p>}
+      {extra && <p className={`mt-5 rounded-lg px-3 py-2 text-xs ${light ? 'bg-purple-50 text-zinc-700' : 'bg-white/10 text-white/80'}`}>{t(extra.label)}: <strong>{extra.text.replace(`por ${extra.label === 'Vaga adicional' ? 'vaga' : 'colaborador'}`, t(extra.label === 'Vaga adicional' ? 'por vaga' : 'por colaborador'))}</strong></p>}
       {footer}
     </>
   );

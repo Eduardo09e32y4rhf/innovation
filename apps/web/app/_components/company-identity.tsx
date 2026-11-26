@@ -1,3 +1,7 @@
+ 'use client';
+
+import { useI18n } from '@/app/contexts/I18nContext';
+
 /** Quem é a empresa por trás do site (aparece na landing, no cadastro, nos termos e na privacidade). */
 export const GRUPO = {
   nome: 'Innovation',
@@ -7,10 +11,11 @@ export const GRUPO = {
 
 /** Linha curta para rodapés. `claro` = texto para fundo escuro. */
 export function CompanyIdentity({ claro = false, className = '' }: { claro?: boolean; className?: string }) {
+  const { t } = useI18n();
   return (
     <address className={`not-italic ${claro ? 'text-white/55' : 'text-zinc-500'} ${className}`}>
-      <p>Innovation RH Connect é uma plataforma do grupo <strong className={claro ? 'font-semibold text-white/80' : 'font-semibold text-zinc-700'}>{GRUPO.nome}</strong>.</p>
-      <p>CNPJ {GRUPO.cnpj} · {GRUPO.endereco}</p>
+      <p>{t('Innovation RH Connect é uma plataforma do grupo')} <strong className={claro ? 'font-semibold text-white/80' : 'font-semibold text-zinc-700'}>{GRUPO.nome}</strong>.</p>
+      <p>{t('CNPJ')} {GRUPO.cnpj} · {GRUPO.endereco}</p>
     </address>
   );
 }

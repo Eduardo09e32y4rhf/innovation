@@ -43,7 +43,7 @@ export function LoginForm() {
   async function run(action: () => Promise<void>) {
     if (busy) return;
     setBusy(true); setError('');
-    try { await action(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível concluir. Tente novamente.'); } finally { setBusy(false); }
+    try { await action(); } catch (cause) { setError(t(cause instanceof Error ? cause.message : 'Não foi possível concluir. Tente novamente.')); } finally { setBusy(false); }
   }
 
   const enter = (result: { token: string }) => { setCandidateToken(result.token); router.replace(next); };

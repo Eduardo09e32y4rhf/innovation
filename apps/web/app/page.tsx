@@ -15,6 +15,8 @@ import { Reveal } from './_components/landing/motion';
 import { trackVisit } from './lib/track-visit';
 import { onConsentChange, openConsentPreferences } from './lib/cookie-consent';
 import { CookieConsent } from './_components/cookie-consent';
+import { useI18n } from './contexts/I18nContext';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
 import './landing.css';
 
 const NAV = [['Portal de vagas', '/carreiras'], ['Recrutamento', '#vagas'], ['Gestão', '#gestao'], ['Ponto', '#ponto'], ['Planos', '#planos'], ['Dúvidas', '#faq']] as const;
@@ -58,6 +60,7 @@ const FAQ = [
 ];
 
 export default function Home() {
+  const { t } = useI18n();
   const [open, setOpen] = useState<number | null>(0);
   const [menu, setMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -79,24 +82,26 @@ export default function Home() {
       {/* ───────── Cabeçalho ───────── */}
       <header className={`sticky top-0 z-40 transition ${scrolled ? 'border-b border-white/10 bg-[var(--auth-bg-end)]/85 backdrop-blur-xl' : 'bg-transparent'}`}>
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2.5" aria-label="Innovation RH Connect — início">
+          <Link href="/" className="flex items-center gap-2.5" aria-label={t('Innovation RH Connect — início')}>
             <BrandLogo size={40} />
           </Link>
-          <nav aria-label="Seções" className="hidden items-center gap-7 text-sm text-white/75 lg:flex">
-            {NAV.map(([label, href]) => <a key={href} href={href} className="transition hover:text-white">{label}</a>)}
+          <nav aria-label={t('Seções')} className="hidden items-center gap-7 text-sm text-white/75 lg:flex">
+            {NAV.map(([label, href]) => <a key={href} href={href} className="transition hover:text-white">{t(label)}</a>)}
           </nav>
           <div className="flex items-center gap-2">
-            <Link href="/login" className="hidden min-h-10 items-center rounded-lg px-3 text-sm font-medium text-white/90 hover:bg-white/10 sm:inline-flex">Entrar</Link>
-            <Link href="/cadastro?perfil=empreendedor" className="inline-flex min-h-10 items-center rounded-lg bg-white px-4 text-sm font-semibold text-[var(--color-brand-800)] transition hover:bg-purple-50">Teste grátis</Link>
-            <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/10 lg:hidden" aria-expanded={menu} aria-controls="mobile-nav" aria-label={menu ? 'Fechar menu' : 'Abrir menu'} onClick={() => setMenu((v) => !v)}>
+            <div className="hidden sm:block"><LanguageSwitcher variant="dark" /></div>
+            <Link href="/login" className="hidden min-h-10 items-center rounded-lg px-3 text-sm font-medium text-white/90 hover:bg-white/10 sm:inline-flex">{t('Entrar')}</Link>
+            <Link href="/cadastro?perfil=empreendedor" className="inline-flex min-h-10 items-center rounded-lg bg-white px-4 text-sm font-semibold text-[var(--color-brand-800)] transition hover:bg-purple-50">{t('Teste grátis')}</Link>
+            <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-white/10 lg:hidden" aria-expanded={menu} aria-controls="mobile-nav" aria-label={t(menu ? 'Fechar menu' : 'Abrir menu')} onClick={() => setMenu((v) => !v)}>
               {menu ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
           </div>
         </div>
         {menu && (
-          <nav id="mobile-nav" aria-label="Menu" className="border-t border-white/10 bg-[var(--auth-bg-end)]/95 px-4 pb-4 backdrop-blur-xl lg:hidden">
-            {NAV.map(([label, href]) => <a key={href} href={href} onClick={() => setMenu(false)} className="block border-b border-white/5 py-3 text-white/85">{label}</a>)}
-            <Link href="/login" className="block py-3 font-semibold">Entrar</Link>
+          <nav id="mobile-nav" aria-label={t('Menu')} className="border-t border-white/10 bg-[var(--auth-bg-end)]/95 px-4 pb-4 backdrop-blur-xl lg:hidden">
+            {NAV.map(([label, href]) => <a key={href} href={href} onClick={() => setMenu(false)} className="block border-b border-white/5 py-3 text-white/85">{t(label)}</a>)}
+            <Link href="/login" className="block py-3 font-semibold">{t('Entrar')}</Link>
+            <div className="py-3"><LanguageSwitcher variant="dark" /></div>
           </nav>
         )}
       </header>
@@ -110,13 +115,13 @@ export default function Home() {
 
           <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-[1.05fr_.95fr] lg:pb-28">
             <div>
-              <Reveal><p className="inline-flex items-center gap-2 rounded-full border border-amber-200/30 bg-amber-200/10 px-3.5 py-1.5 text-xs font-semibold text-amber-100"><Sparkles size={14} aria-hidden="true" /> Vagas e gestão da empresa, juntas</p></Reveal>
-              <Reveal delay={80}><h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-6xl">A hora de <RotatingWord words={WORDS} /> <span className="block">chegou.</span></h1></Reveal>
-              <Reveal delay={160}><p className="mt-5 max-w-xl text-lg text-white/80">Abra vagas, encontre gente boa e conduza a contratação. Depois cuide da equipe: escalas, ponto, férias e fechamento. Uma plataforma só, do primeiro currículo ao último dia do mês.</p></Reveal>
+              <Reveal><p className="inline-flex items-center gap-2 rounded-full border border-amber-200/30 bg-amber-200/10 px-3.5 py-1.5 text-xs font-semibold text-amber-100"><Sparkles size={14} aria-hidden="true" /> {t('Vagas e gestão da empresa, juntas')}</p></Reveal>
+              <Reveal delay={80}><h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-6xl"><RotatingWord words={WORDS.map((word) => t('A hora de {verb} chegou.', { verb: t(word) }))} /></h1></Reveal>
+              <Reveal delay={160}><p className="mt-5 max-w-xl text-lg text-white/80">{t('Abra vagas, encontre gente boa e conduza a contratação. Depois cuide da equipe: escalas, ponto, férias e fechamento. Uma plataforma só, do primeiro currículo ao último dia do mês.')}</p></Reveal>
               <Reveal delay={240}>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link href="/cadastro?perfil=empreendedor" className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-300 to-pink-300 px-7 text-sm font-bold text-[#2e1065] shadow-[0_12px_40px_-8px_rgba(251,191,36,.5)] transition hover:-translate-y-0.5">Começar teste grátis <ArrowRight size={16} className="transition group-hover:translate-x-1" aria-hidden="true" /></Link>
-                  <Link href="/carreiras" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/30 px-7 text-sm font-semibold hover:bg-white/10">Procurar vagas</Link>
+                  <Link href="/cadastro?perfil=empreendedor" className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-300 to-pink-300 px-7 text-sm font-bold text-[#2e1065] shadow-[0_12px_40px_-8px_rgba(251,191,36,.5)] transition hover:-translate-y-0.5">{t('Começar teste grátis')} <ArrowRight size={16} className="transition group-hover:translate-x-1" aria-hidden="true" /></Link>
+                  <Link href="/carreiras" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/30 px-7 text-sm font-semibold hover:bg-white/10">{t('Procurar vagas')}</Link>
                 </div>
               </Reveal>
             </div>
@@ -128,11 +133,11 @@ export default function Home() {
                 <div className="relative drop-shadow-[0_0_60px_rgba(217,70,239,.7)]"><BrandMark size={200} /></div></div>
 
               <div className="lp-float-slow absolute left-0 top-4 rounded-xl border border-white/15 bg-[#120a2e]/90 px-3.5 py-2.5 text-xs shadow-xl backdrop-blur sm:-left-4">
-                <p className="flex items-center gap-2 font-semibold"><span className="lp-wiggle inline-block">📩</span> Nova candidatura</p><p className="mt-0.5 text-white/60">chegou pelo portal de carreiras</p></div>
+                <p className="flex items-center gap-2 font-semibold"><span className="lp-wiggle inline-block">📩</span> {t('Nova candidatura')}</p><p className="mt-0.5 text-white/60">{t('chegou pelo portal de carreiras')}</p></div>
               <div className="lp-float absolute right-0 top-1/2 rounded-xl border border-white/15 bg-[#120a2e]/90 px-3.5 py-2.5 text-xs shadow-xl backdrop-blur sm:-right-6" style={{ animationDelay: '1.2s' }}>
-                <p className="flex items-center gap-2 font-semibold"><span className="lp-wiggle inline-block">🎉</span> Contratação fechada</p><p className="mt-0.5 text-white/60">documentos recebidos por link</p></div>
+                <p className="flex items-center gap-2 font-semibold"><span className="lp-wiggle inline-block">🎉</span> {t('Contratação fechada')}</p><p className="mt-0.5 text-white/60">{t('documentos recebidos por link')}</p></div>
               <div className="lp-float-slow absolute -bottom-2 left-6 rounded-xl border border-white/15 bg-[#120a2e]/90 px-3.5 py-2.5 text-xs shadow-xl backdrop-blur" style={{ animationDelay: '2s' }}>
-                <p className="flex items-center gap-2 font-semibold"><CheckCircle2 size={14} className="text-emerald-300" aria-hidden="true" /> Troca de folga aprovada</p></div>
+                <p className="flex items-center gap-2 font-semibold"><CheckCircle2 size={14} className="text-emerald-300" aria-hidden="true" /> {t('Troca de folga aprovada')}</p></div>
             </Reveal>
           </div>
         </section>
@@ -140,16 +145,16 @@ export default function Home() {
         {/* ───────── Faixa em movimento ───────── */}
         <div className="overflow-hidden border-y border-white/10 bg-white/[0.03] py-4" aria-hidden="true">
           <div className="lp-marquee flex gap-10 whitespace-nowrap text-sm font-medium text-white/60">
-            {[...MARQUEE, ...MARQUEE].map((item, i) => <span key={i} className="flex items-center gap-10">{item}<i className="h-1.5 w-1.5 rounded-full bg-amber-300" /></span>)}
+            {[...MARQUEE, ...MARQUEE].map((item, i) => <span key={i} className="flex items-center gap-10">{t(item)}<i className="h-1.5 w-1.5 rounded-full bg-amber-300" /></span>)}
           </div>
         </div>
 
         {/* ───────── Vagas ───────── */}
         <section id="vagas" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
           <Reveal className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-amber-200">Vagas</p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-5xl">Contrate gente boa <span className="lp-text-warm">sem perder ninguém no caminho</span></h2>
-            <p className="mt-4 text-lg text-white/75">Cada candidatura tem um lugar, um responsável e um próximo passo. Chega de currículo perdido em e-mail e de candidato esperando resposta.</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-amber-200">{t('Vagas')}</p>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-5xl">{t('Contrate gente boa')} <span className="lp-text-warm">{t('sem perder ninguém no caminho')}</span></h2>
+            <p className="mt-4 text-lg text-white/75">{t('Cada candidatura tem um lugar, um responsável e um próximo passo. Chega de currículo perdido em e-mail e de candidato esperando resposta.')}</p>
           </Reveal>
 
           <Reveal delay={100} className="mt-12"><VagasBoard /></Reveal>
@@ -158,7 +163,7 @@ export default function Home() {
             {JOB_FEATURES.map(({ icon: Icon, title, text, tone }, i) => (
               <Reveal as="li" key={title} delay={i * 80} className="lp-card rounded-2xl border border-white/15 bg-white/5 p-6">
                 <span className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${tone} shadow-lg`}><Icon size={22} aria-hidden="true" /></span>
-                <h3 className="mt-5 text-lg font-semibold">{title}</h3><p className="mt-1.5 text-sm leading-relaxed text-white/70">{text}</p>
+                <h3 className="mt-5 text-lg font-semibold">{t(title)}</h3><p className="mt-1.5 text-sm leading-relaxed text-white/70">{t(text)}</p>
               </Reveal>
             ))}
           </ul>
@@ -168,13 +173,13 @@ export default function Home() {
         <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
           <Reveal className="relative isolate overflow-hidden rounded-3xl px-6 py-12 sm:px-12">
             <div aria-hidden="true" className="lp-gradient-bg absolute inset-0 -z-10" style={{ background: 'linear-gradient(120deg, #86198f, #6d28d9, #be185d, #6d28d9)' }} />
-            <h2 className="text-center text-3xl font-extrabold tracking-tight sm:text-4xl">Da vaga aberta ao mês fechado</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-center text-white/85">Quem você contrata já entra no sistema onde vai trabalhar. Nada de redigitar, nada de planilha no meio.</p>
+            <h2 className="text-center text-3xl font-extrabold tracking-tight sm:text-4xl">{t('Da vaga aberta ao mês fechado')}</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-center text-white/85">{t('Quem você contrata já entra no sistema onde vai trabalhar. Nada de redigitar, nada de planilha no meio.')}</p>
             <ol className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
               {JOURNEY.map((step, i) => (
                 <Reveal as="li" key={step.title} delay={i * 110} className="text-center">
                   <span className="lp-float mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 text-3xl shadow-lg backdrop-blur" style={{ animationDelay: `${i * 0.4}s` }} aria-hidden="true">{step.emoji}</span>
-                  <h3 className="mt-3 font-bold">{i + 1}. {step.title}</h3><p className="mt-1 text-sm text-white/80">{step.text}</p>
+                  <h3 className="mt-3 font-bold">{i + 1}. {t(step.title)}</h3><p className="mt-1 text-sm text-white/80">{t(step.text)}</p>
                 </Reveal>
               ))}
             </ol>
@@ -184,15 +189,15 @@ export default function Home() {
         {/* ───────── Gestão ───────── */}
         <section id="gestao" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6">
           <Reveal className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-widest text-pink-200">Gestão da empresa</p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-5xl">Depois de contratar, <span className="lp-text-warm">cuidar bem</span></h2>
-            <p className="mt-4 text-lg text-white/75">Tudo o que o RH e o gestor fazem no dia a dia, conectado ao mesmo cadastro.</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-pink-200">{t('Gestão da empresa')}</p>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-5xl">{t('Depois de contratar,')} <span className="lp-text-warm">{t('cuidar bem')}</span></h2>
+            <p className="mt-4 text-lg text-white/75">{t('Tudo o que o RH e o gestor fazem no dia a dia, conectado ao mesmo cadastro.')}</p>
           </Reveal>
           <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {MODULES.map(({ icon: Icon, title, text }, i) => (
               <Reveal as="li" key={title} delay={i * 70} className="lp-card group rounded-2xl border border-white/15 bg-white/5 p-6">
                 <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500 to-amber-400 shadow-lg shadow-fuchsia-900/40 transition group-hover:rotate-6 group-hover:scale-110"><Icon size={22} aria-hidden="true" /></span>
-                <h3 className="mt-5 text-lg font-semibold">{title}</h3><p className="mt-1.5 text-sm leading-relaxed text-white/70">{text}</p>
+                <h3 className="mt-5 text-lg font-semibold">{t(title)}</h3><p className="mt-1.5 text-sm leading-relaxed text-white/70">{t(text)}</p>
               </Reveal>
             ))}
           </ul>
@@ -202,12 +207,12 @@ export default function Home() {
         <section id="ponto" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <Reveal>
-              <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-amber-200"><HeartHandshake size={16} aria-hidden="true" /> Ponto</p>
-              <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">Um toque e está registrado. Teste aí do lado.</h2>
-              <p className="mt-4 text-white/75">Cada batida guarda o horário do servidor e a localização do momento. A empresa escolhe a regra: bloquear fora da cerca, aceitar com justificativa ou liberar o trabalho externo. Esqueceu de bater? O pedido de ajuste vai para o gestor aprovar.</p>
+              <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-amber-200"><HeartHandshake size={16} aria-hidden="true" /> {t('Ponto')}</p>
+              <h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">{t('Um toque e está registrado. Teste aí do lado.')}</h2>
+              <p className="mt-4 text-white/75">{t('Cada batida guarda o horário do servidor e a localização do momento. A empresa escolhe a regra: bloquear fora da cerca, aceitar com justificativa ou liberar o trabalho externo. Esqueceu de bater? O pedido de ajuste vai para o gestor aprovar.')}</p>
               <ul className="mt-6 grid gap-2.5 sm:grid-cols-2">
                 {['Cerca virtual por unidade', 'Sem reconhecimento facial', 'Pedido de ajuste com justificativa', 'Comprovante de cada batida'].map((item) => (
-                  <li key={item} className="flex items-center gap-2.5 text-sm text-white/85"><CheckCircle2 size={16} className="shrink-0 text-emerald-300" aria-hidden="true" />{item}</li>
+                  <li key={item} className="flex items-center gap-2.5 text-sm text-white/85"><CheckCircle2 size={16} className="shrink-0 text-emerald-300" aria-hidden="true" />{t(item)}</li>
                 ))}
               </ul>
             </Reveal>
@@ -223,13 +228,13 @@ export default function Home() {
 
         {/* ───────── FAQ ───────── */}
         <section id="faq" className="mx-auto max-w-3xl scroll-mt-20 px-4 py-16 sm:px-6">
-          <Reveal className="text-center"><h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Dúvidas frequentes</h2></Reveal>
+          <Reveal className="text-center"><h2 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('Dúvidas frequentes')}</h2></Reveal>
           <div className="mt-10 space-y-3">
             {FAQ.map((item, index) => (
               <Reveal key={item.q} delay={index * 50} className="overflow-hidden rounded-xl border border-white/15 bg-white/5">
                 <h3><button type="button" aria-expanded={open === index} aria-controls={`faq-${index}`} onClick={() => setOpen(open === index ? null : index)} className="flex min-h-12 w-full items-center justify-between gap-3 px-5 py-3.5 text-left font-semibold transition hover:bg-white/5">
-                  {item.q}<ChevronDown size={18} aria-hidden="true" className={`shrink-0 text-amber-200 transition-transform duration-300 ${open === index ? 'rotate-180' : ''}`} /></button></h3>
-                <div id={`faq-${index}`} className={`grid transition-all duration-300 ${open === index ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}><p className="overflow-hidden px-5 text-sm leading-relaxed text-white/75"><span className="block pb-4">{item.a}</span></p></div>
+                  {t(item.q)}<ChevronDown size={18} aria-hidden="true" className={`shrink-0 text-amber-200 transition-transform duration-300 ${open === index ? 'rotate-180' : ''}`} /></button></h3>
+                <div id={`faq-${index}`} className={`grid transition-all duration-300 ${open === index ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}><p className="overflow-hidden px-5 text-sm leading-relaxed text-white/75"><span className="block pb-4">{t(item.a)}</span></p></div>
               </Reveal>
             ))}
           </div>
@@ -240,11 +245,11 @@ export default function Home() {
           <Reveal className="relative isolate overflow-hidden rounded-3xl px-6 py-14 text-center sm:px-12">
             <div aria-hidden="true" className="lp-gradient-bg absolute inset-0 -z-10" style={{ background: 'linear-gradient(120deg, #c026d3, #7c3aed, #db2777, #c026d3)' }} />
             <div aria-hidden="true" className="lp-glow absolute -top-20 left-1/2 h-60 w-60 -translate-x-1/2 rounded-full bg-amber-200/40 blur-[90px]" />
-            <h2 className="relative mx-auto max-w-2xl text-3xl font-extrabold tracking-tight sm:text-5xl">Sua próxima contratação começa numa vaga aberta 🚀</h2>
-            <p className="relative mx-auto mt-4 max-w-xl text-white/90">Crie a empresa, publique a primeira vaga e conduza todo o caminho num lugar só.</p>
+            <h2 className="relative mx-auto max-w-2xl text-3xl font-extrabold tracking-tight sm:text-5xl">{t('Sua próxima contratação começa numa vaga aberta 🚀')}</h2>
+            <p className="relative mx-auto mt-4 max-w-xl text-white/90">{t('Crie a empresa, publique a primeira vaga e conduza todo o caminho num lugar só.')}</p>
             <div className="relative mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link href="/cadastro?perfil=empreendedor" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-8 text-sm font-bold text-[var(--color-brand-800)] transition hover:-translate-y-0.5">Começar teste grátis <ArrowRight size={16} aria-hidden="true" /></Link>
-              <Link href="/login" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/40 px-8 text-sm font-semibold hover:bg-white/10">Já tenho conta</Link>
+              <Link href="/cadastro?perfil=empreendedor" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-8 text-sm font-bold text-[var(--color-brand-800)] transition hover:-translate-y-0.5">{t('Começar teste grátis')} <ArrowRight size={16} aria-hidden="true" /></Link>
+              <Link href="/login" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/40 px-8 text-sm font-semibold hover:bg-white/10">{t('Já tenho conta')}</Link>
             </div>
           </Reveal>
         </section>
@@ -253,14 +258,14 @@ export default function Home() {
       {/* ───────── Rodapé ───────── */}
       <footer className="border-t border-white/10 bg-black/20">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
-          <div><Link href="/" className="inline-flex" aria-label="Innovation RH Connect — início"><BrandLogo size={40} /></Link><p className="mt-3 max-w-xs text-sm text-white/60">Vagas, escalas, ponto, férias e fechamento em uma plataforma só.</p></div>
-          <nav aria-label="Produto"><p className="text-sm font-semibold">Produto</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/carreiras" className="hover:text-white">Portal de vagas</Link></li><li><a href="#vagas" className="hover:text-white">Recrutamento</a></li><li><a href="#gestao" className="hover:text-white">Gestão</a></li><li><a href="#planos" className="hover:text-white">Planos</a></li></ul></nav>
-          <nav aria-label="Conta"><p className="text-sm font-semibold">Conta</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/login" className="hover:text-white">Entrar</Link></li><li><Link href="/cadastro?perfil=empreendedor" className="hover:text-white">Teste grátis</Link></li><li><Link href="/esqueci-senha" className="hover:text-white">Recuperar senha</Link></li></ul></nav>
-          <nav aria-label="Legal"><p className="text-sm font-semibold">Ajuda e legal</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/suporte" className="hover:text-white">Suporte</Link></li><li><Link href="/privacidade" className="hover:text-white">Privacidade</Link></li><li><Link href="/termos" className="hover:text-white">Termos de uso</Link></li><li><button type="button" onClick={openConsentPreferences} className="inline-flex min-h-11 items-center hover:text-white">Preferências de cookies</button></li></ul></nav>
+          <div><Link href="/" className="inline-flex" aria-label={t('Innovation RH Connect — início')}><BrandLogo size={40} /></Link><p className="mt-3 max-w-xs text-sm text-white/60">{t('Vagas, escalas, ponto, férias e fechamento em uma plataforma só.')}</p></div>
+          <nav aria-label={t('Produto')}><p className="text-sm font-semibold">{t('Produto')}</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/carreiras" className="hover:text-white">{t('Portal de vagas')}</Link></li><li><a href="#vagas" className="hover:text-white">{t('Recrutamento')}</a></li><li><a href="#gestao" className="hover:text-white">{t('Gestão')}</a></li><li><a href="#planos" className="hover:text-white">{t('Planos')}</a></li></ul></nav>
+          <nav aria-label={t('Conta')}><p className="text-sm font-semibold">{t('Conta')}</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/login" className="hover:text-white">{t('Entrar')}</Link></li><li><Link href="/cadastro?perfil=empreendedor" className="hover:text-white">{t('Teste grátis')}</Link></li><li><Link href="/esqueci-senha" className="hover:text-white">{t('Recuperar senha')}</Link></li></ul></nav>
+          <nav aria-label={t('Ajuda e legal')}><p className="text-sm font-semibold">{t('Ajuda e legal')}</p><ul className="mt-3 space-y-2 text-sm text-white/65"><li><Link href="/suporte" className="hover:text-white">{t('Suporte')}</Link></li><li><Link href="/privacidade" className="hover:text-white">{t('Privacidade')}</Link></li><li><Link href="/termos" className="hover:text-white">{t('Termos de uso')}</Link></li><li><button type="button" onClick={openConsentPreferences} className="inline-flex min-h-11 items-center hover:text-white">{t('Preferências de cookies')}</button></li></ul></nav>
         </div>
         <div className="border-t border-white/10 px-4 py-6 text-center text-xs leading-5">
           <CompanyIdentity claro />
-          <p className="mt-2 text-white/45">&copy; {new Date().getFullYear()} {GRUPO.nome} — CNPJ {GRUPO.cnpj}. Todos os direitos reservados.</p>
+          <p className="mt-2 text-white/45">&copy; {new Date().getFullYear()} {GRUPO.nome} — CNPJ {GRUPO.cnpj}. {t('Todos os direitos reservados.')}</p>
         </div>
       </footer>
       <CookieConsent />

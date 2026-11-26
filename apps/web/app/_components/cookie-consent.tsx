@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Cookie } from 'lucide-react';
 import { onConsentOpen, readConsent, saveConsent, type ConsentChoice } from '../lib/cookie-consent';
+import { useI18n } from '@/app/contexts/I18nContext';
 
 export function CookieConsent() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState<ConsentChoice | null>(null);
   const firstButton = useRef<HTMLButtonElement | null>(null);
@@ -34,17 +36,17 @@ export function CookieConsent() {
       <div className="flex items-start gap-3">
         <span className="mt-0.5 hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 sm:flex" aria-hidden="true"><Cookie size={18} /></span>
         <div className="min-w-0 flex-1">
-          <h2 id="cookie-title" className="text-base font-semibold">Cookies e privacidade</h2>
+          <h2 id="cookie-title" className="text-base font-semibold">{t('Cookies e privacidade')}</h2>
           <p id="cookie-text" className="mt-1 text-sm leading-relaxed text-white/75">
-            Usamos o que é essencial para o site funcionar com segurança, como lembrar a sua escolha e manter o login. Com o seu aceite, também contamos a sua visita de forma anônima, só com data, hora e lugar aproximado: não guardamos o seu IP e não identificamos você. Você pode mudar de ideia quando quiser em &quot;Preferências de cookies&quot;, no rodapé.{' '}
-            <Link href="/privacidade#cookies" className="font-medium text-white underline underline-offset-2 hover:text-white/90">Saiba mais</Link>
+            {t('Usamos o que é essencial para o site funcionar com segurança, como lembrar a sua escolha e manter o login. Com o seu aceite, também contamos a sua visita de forma anônima, só com data, hora e lugar aproximado: não guardamos o seu IP e não identificamos você. Você pode mudar de ideia quando quiser em "Preferências de cookies", no rodapé.')}{' '}
+            <Link href="/privacidade#cookies" className="font-medium text-white underline underline-offset-2 hover:text-white/90">{t('Saiba mais')}</Link>
           </p>
           <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button ref={firstButton} type="button" onClick={() => choose('declined')} className="min-h-11 rounded-xl border border-white/40 px-5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-              Recusar
+              {t('Recusar')}
             </button>
             <button type="button" onClick={() => choose('accepted')} className="min-h-11 rounded-xl bg-white px-5 text-sm font-semibold text-slate-900 transition hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-              Aceitar
+              {t('Aceitar')}
             </button>
           </div>
         </div>
