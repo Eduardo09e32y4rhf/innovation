@@ -1,0 +1,35 @@
+Incidente de inicialização da API — 27/11/2026
+
+Evidência: container reiniciando com exit=1, oom=false e ReferenceError:
+Cannot access 'QuestionTranslationsDto' before initialization.
+
+Causa: QuestionInputDto aparecia antes de QuestionTranslationsDto. O TypeScript
+aceita o tipo, mas emitDecoratorMetadata gera uma referência imediata à classe
+durante o carregamento do módulo CommonJS. A classe ainda não estava inicializada.
+
+Correção: declarar QuestionLanguageTranslationDto e QuestionTranslationsDto antes
+de QuestionInputDto, mantendo os validadores e a transformação das traduções.
+
+Script: node scripts/check-api-dto-runtime.cjs (depois de compilar a API).
+Ele carrega todos os arquivos *.dto.js de dist e verifica os metadados e a
+validação aninhada de traduções válidas e inválidas em inglês e espanhol.
+Não inicia o servidor nem conecta a banco/Redis.
+
+O script reproduziu o mesmo ReferenceError antes da correção. Agora integra
+npm run build:api, inclusive no Dockerfile existente, e a etapa types do
+scripts/verify-candidate-portal.cjs. Isso cobre a lacuna dos testes anteriores,
+que verificavam tipos e comportamento sem carregar esses metadados compilados.
+
+Resultado após a correção: npm run build:api terminou com código 0;
+121 arquivos DTO compilados carregados, validação aninhada aprovada.
+Ambiente local: Node 20.20.2. Docker/VPS usa Node 24; a imagem de produção
+não foi executada localmente, pois Docker não está disponível neste ambiente.
+
+Instrução de trabalho utilizada: reproduzir o erro do log no JavaScript emitido,
+corrigir a ordem das dependências dos DTOs, verificar o carregamento de todos
+os DTOs e preservar a validação aninhada; publicar a correção na main.
+
+Deploy na VPS: bash scripts/deploy/vps-update-bg.sh main
+Esse fluxo inclui backup, migrations pendentes e checagens de saúde.
+Build e teste local não comprovam a saúde da VPS. A confirmação operacional
+depende do término do deploy com 'Deploy saudável' e API/web disponíveis.

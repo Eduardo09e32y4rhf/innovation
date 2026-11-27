@@ -78,6 +78,32 @@ export class SavePipelineDto {
   stages!: StageInputDto[];
 }
 
+class QuestionLanguageTranslationDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  label?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(30)
+  @IsString({ each: true })
+  @MaxLength(300, { each: true })
+  options?: string[];
+}
+
+class QuestionTranslationsDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => QuestionLanguageTranslationDto)
+  en?: QuestionLanguageTranslationDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => QuestionLanguageTranslationDto)
+  es?: QuestionLanguageTranslationDto;
+}
+
 export class QuestionInputDto {
   @IsOptional()
   @IsUUID()
@@ -111,32 +137,6 @@ export class QuestionInputDto {
   @IsOptional()
   @IsObject()
   scoreRule?: Record<string, unknown> | null;
-}
-
-class QuestionLanguageTranslationDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  label?: string;
-
-  @IsOptional()
-  @IsArray()
-  @ArrayMaxSize(30)
-  @IsString({ each: true })
-  @MaxLength(300, { each: true })
-  options?: string[];
-}
-
-class QuestionTranslationsDto {
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => QuestionLanguageTranslationDto)
-  en?: QuestionLanguageTranslationDto;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => QuestionLanguageTranslationDto)
-  es?: QuestionLanguageTranslationDto;
 }
 
 export class SaveQuestionsDto {

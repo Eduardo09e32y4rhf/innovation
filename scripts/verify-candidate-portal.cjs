@@ -46,7 +46,8 @@ function run(name, file, args, cwd = root) {
 }
 if (selected.includes('types')) {
   run('tsc-web', 'apps/web/node_modules/typescript/bin/tsc', ['--noEmit', '-p', 'apps/web/tsconfig.json']);
-  run('tsc-api', 'node_modules/typescript/bin/tsc', ['--noEmit', '-p', 'apps/api/tsconfig.json']);
+  run('tsc-api', 'node_modules/typescript/bin/tsc', ['-p', 'apps/api/tsconfig.json']);
+  if (results.at(-1).exitCode === 0) run('api-dto-runtime', 'scripts/check-api-dto-runtime.cjs', []);
   run('prisma-validate', 'apps/api/node_modules/prisma/build/index.js', ['validate', '--schema', 'apps/api/prisma/schema.prisma']);
 }
 if (selected.includes('lint')) {
