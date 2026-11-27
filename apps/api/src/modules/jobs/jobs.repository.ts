@@ -43,10 +43,10 @@ const openJob = () => ({
 });
 
 /** Politica unica de disponibilidade: catalogo, empresa, detalhe e candidatura usam esta mesma condicao. */
-const availablePublicJob = () => ({ ...openJob(), isInternal: false, company: PUBLIC_JOB_COMPANY });
+const availablePublicJob = () => ({ ...openJob(), isInternal: false, isTest: false, company: PUBLIC_JOB_COMPANY });
 
 /** Vaga encerrada ha menos de 30 dias: continua visivel por link (sem aceitar candidatos) e no painel da empresa. */
-const recentlyClosedJob = () => ({ status: { in: ['CLOSED', 'FILLED'] as Array<'CLOSED' | 'FILLED'> }, confidential: false, isInternal: false, closedAt: { gte: new Date(Date.now() - 30 * 86_400_000) }, company: PUBLIC_JOB_COMPANY });
+const recentlyClosedJob = () => ({ status: { in: ['CLOSED', 'FILLED'] as Array<'CLOSED' | 'FILLED'> }, confidential: false, isInternal: false, isTest: false, closedAt: { gte: new Date(Date.now() - 30 * 86_400_000) }, company: PUBLIC_JOB_COMPANY });
 
 const PUBLIC_QUESTION_SELECT = { id: true, label: true, type: true, required: true, options: true, translations: true } satisfies Prisma.JobQuestionSelect;
 

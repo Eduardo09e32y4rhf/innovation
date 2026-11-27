@@ -88,6 +88,7 @@ export class CandidateUpdateProfileDto {
   @IsOptional() @IsString() @MaxLength(10) birthDate?: string;
   @IsOptional() @IsString() @MaxLength(120) profession?: string;
   @IsOptional() @IsArray() @ArrayMaxSize(15) skills?: string[];
+  @IsOptional() @IsArray() @ArrayMaxSize(10) @IsString({ each: true }) @MaxLength(60, { each: true }) languages?: string[];
   @IsOptional() @IsString() @MaxLength(1200) about?: string;
   @IsOptional() @IsArray() @ArrayMaxSize(10) experience?: Record<string, unknown>[];
   @IsOptional() @IsBoolean() hasDriverLicense?: boolean;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { candidateApi, type CandidateProfile } from '../../_lib/candidate-api';
+import { candidateApi, type CandidateProfile } from '@/app/carreiras/_lib/candidate-api';
 import { useI18n } from '@/app/contexts/I18nContext';
 
 /** RS-C-09: aviso fixo enquanto o e-mail da conta nao foi confirmado (codigo de 6 digitos enviado por e-mail). */

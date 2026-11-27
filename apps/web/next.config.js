@@ -64,6 +64,8 @@ const nextConfig = {
     const fichaAbas = [['general', 'geral'], ['subscription', 'assinatura'], ['finance', 'faturas'], ['users', 'usuarios'], ['documents', 'documentos'], ['support', 'suporte'], ['logs', 'auditoria']];
 
     return [
+      { source: '/carreiras/painel', destination: '/carreira', statusCode: 301 },
+      { source: '/carreiras/perfil', destination: '/carreira/perfil', statusCode: 301 },
       // ---- hub antigo: /platform?tab=...&sub=... ----
       ...fichaAbas.map(([old, nova]) => permanent(platform, `${clientes}/:company?aba=${nova}`, [...hubSub('dossie', old), { type: 'query', key: 'company', value: '(?<company>.+)' }])),
       permanent(platform, `${clientes}/:company?aba=geral`, [...hubTab('dossie'), { type: 'query', key: 'company', value: '(?<company>.+)' }]),

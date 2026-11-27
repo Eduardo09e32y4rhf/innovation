@@ -231,7 +231,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
       <a className="sr-only focus:not-sr-only focus:block focus:p-4" href="#application">{t('Ir para a candidatura')}</a>
       <header className="border-b border-[#e9e5f0]"><div className="mx-auto flex min-h-[64px] max-w-[1200px] flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:px-9">
         <CareersBrand company={company} companyId={companyId} compact />
-        <nav className="flex items-center gap-2 text-[13px]"><Link className="inline-flex min-h-11 items-center rounded-lg border border-[#e9e5f0] px-3 text-[#7240da] hover:border-[#c7b0ed]" href={companyPath}>← {t('Vagas')}</Link><Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 font-semibold text-white hover:bg-[#5b29be]" href={account ? '/carreiras/conta' : `/carreiras/conta/entrar?next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>{account ? t('Minha conta') : t('Login')}</Link><LanguageSwitcher /></nav>
+        <nav className="flex items-center gap-2 text-[13px]"><Link className="inline-flex min-h-11 items-center rounded-lg border border-[#e9e5f0] px-3 text-[#7240da] hover:border-[#c7b0ed]" href={companyPath}>← {t('Vagas')}</Link><Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 font-semibold text-white hover:bg-[#5b29be]" href={account ? '/carreira' : `/carreiras/conta/entrar?next=${encodeURIComponent(`/carreiras/${companyId}/${jobId}`)}`}>{account ? t('Minha conta') : t('Login')}</Link><LanguageSwitcher /></nav>
       </div></header>
 
       <main className="mx-auto max-w-[1200px] space-y-5 px-4 pb-28 pt-5 sm:px-9 sm:py-6 sm:pb-6">
@@ -279,7 +279,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
                 <h3 className="text-lg font-semibold text-emerald-800">{t('Candidatura recebida!')}</h3>
                 <p className="text-sm">{t(success)}</p>
                 <p className="text-sm text-fg-mut">{t('O RH analisará seu perfil e entrará em contato se houver aderência.')}</p>
-                <Link className="btn btn-outline" href={companyPath}>{t('Ver outras vagas desta empresa')}</Link>{' '}<Link className="btn btn-ghost" href="/carreiras">{t('Ver outras empresas')}</Link>{' '}<Link className="btn btn-ghost" href="/carreiras/conta">{t('Minhas candidaturas')}</Link>
+                <Link className="btn btn-outline" href={companyPath}>{t('Ver outras vagas desta empresa')}</Link>{' '}<Link className="btn btn-ghost" href="/carreiras">{t('Ver outras empresas')}</Link>{' '}<Link className="btn btn-ghost" href="/carreira">{t('Minhas candidaturas')}</Link>
               </div>
             ) : accountLoading ? (
               <p role="status" className="mt-5 rounded-xl bg-[#f7f4fb] p-4 text-sm">{t('Verificando sua conta…')}</p>
@@ -298,12 +298,12 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
                 <ul className="list-disc space-y-1 pl-5 text-sm text-amber-900">
                   {account.checklist.filter((item) => !item.done).map((item) => <li key={item.key}>{t(item.label)}</li>)}
                 </ul>
-                <Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 text-sm font-semibold text-white hover:bg-[#5b29be]" href="/carreiras/conta/perfil">{t('Completar meu perfil')}</Link>
+                <Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 text-sm font-semibold text-white hover:bg-[#5b29be]" href="/carreira/perfil">{t('Completar meu perfil')}</Link>
               </div>
             ) : !account.emailVerified ? (
               <div className="mt-5 space-y-3 rounded-xl bg-amber-50 p-4">
                 <p className="text-sm text-amber-900">{t('Confirme seu e-mail para enviar a candidatura. Você pode solicitar um código na sua área do candidato.')}</p>
-                <Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 text-sm font-semibold text-white hover:bg-[#5b29be]" href="/carreiras/conta">{t('Confirmar meu e-mail')}</Link>
+                <Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 text-sm font-semibold text-white hover:bg-[#5b29be]" href="/carreira">{t('Confirmar meu e-mail')}</Link>
               </div>
             ) : reuseReady && reuse === 'ask' ? (
               <div className="mt-5 space-y-4" role="group" aria-labelledby="reuse-title">

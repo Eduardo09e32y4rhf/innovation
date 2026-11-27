@@ -464,7 +464,7 @@ export function safeAccentColor(color?: string | null): string {
 }
 
 export function workModeLabel(mode?: string | null): string | null {
-  const labels: Record<string, string> = { PRESENCIAL: 'Presencial', HIBRIDO: 'Híbrido', REMOTO: 'Remoto' };
+  const labels: Record<string, string> = { PRESENCIAL: 'Presencial', ONSITE: 'Presencial', ON_SITE: 'Presencial', HIBRIDO: 'Híbrido', HYBRID: 'Híbrido', REMOTO: 'Remoto', REMOTE: 'Remoto' };
   return mode ? labels[mode.toUpperCase()] ?? mode : null;
 }
 

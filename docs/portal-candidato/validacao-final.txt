@@ -1,0 +1,36 @@
+VALIDAÇÃO FINAL — 27/11/2026
+
+Escopo implementado: fases 1 a 5 do portal do candidato.
+
+Resultados
+- tsc --noEmit -p apps/web/tsconfig.json: saída 0.
+- tsc --noEmit -p apps/api/tsconfig.json: saída 0.
+- prisma validate: saída 0.
+- ESLint completo do frontend: 0 erros, 204 avisos.
+- ESLint dos últimos ajustes de modalidade/contrato: saída 0.
+- Vitest: 5 arquivos, 46 testes aprovados.
+- Playwright: 8 testes aprovados, incluindo painel e perfil em 360, 390 e 1280 pixels.
+- Auditoria de codificação dos arquivos do portal: 0 suspeitas.
+- git diff --check: sem erros.
+- Nome da migration validado contra o formato de 14 dígitos do deploy.
+
+Cenários do navegador
+Painel/perfil sem overflow nas três larguras; ausência de nome completo repetido; resumo ausente limita perfil a 80; recomendação exclui match baixo; localização sem modalidade duplicada; tags desconhecidas ocultas; contratado sem funil; diálogo de match abre e fecha por ESC; aliases redirecionam; favorito removido desaparece; falha de gravação reverte favorito; idioma fecha por seleção, clique externo e ESC; cadastro retorna ao painel; portal autenticado não mostra Entrar; resumo salvo atualiza pontuação e confirmação.
+
+Correções realizadas durante a revisão
+Parêntese na normalização de CNH; teste antigo de CNH atualizado para o contrato já existente de lista; ciclo do diálogo compatível com StrictMode; botão de perfil ajustado em 360px; textos de edição corrigidos para UTF-8; sessão propagada por evento e sincronização entre abas; seletor de teste de alerta tornado específico; migration renomeada para ser reconhecida pelo script de deploy.
+
+Limites verificados
+Testes de navegador usam API interceptada, sem gravar dados no banco. A migration foi preparada e revisada, mas não aplicada ao banco da VPS. Não foi executado um build completo da imagem de produção nesta máquina. O ambiente local usa Node 20; a imagem de produção existente usa Node 24. O build e a verificação de saúde continuam sendo executados pelo fluxo habitual de implantação.
+Avisos de lint não foram convertidos em erros nem ocultados. A quantidade está registrada acima.
+Caches de build foram limpos após falta de espaço; Playwright passou com traces desligados e memória do servidor limitada a 1024 MB.
+
+Implantação pelo usuário, dentro do checkout da VPS
+bash scripts/deploy/vps-update-bg.sh
+
+Esse fluxo já faz pull, backup, aplica migrations, faz build/subida e verifica saúde. A nova migration é 20261127000100_candidate_portal_rules. Não substitua esse fluxo por prisma migrate deploy: a produção deste repositório controla migrations pelo script apply-migrations.sh.
+
+Reprodução e evidências locais
+node scripts/verify-candidate-portal.cjs
+Relatórios e capturas: storage/qa/portal-candidato.
+Prompt e decisões: docs/portal-candidato/prompt-utilizado.txt e contratos-e-execucao.txt.

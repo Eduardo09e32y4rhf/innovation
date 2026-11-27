@@ -1,0 +1,158 @@
+PROMPT DE TRABALHO — PORTAL DO CANDIDATO
+
+Registro do pedido do usuário e das decisões operacionais. Implementação feita diretamente neste checkout; este texto não foi enviado a outro modelo ou serviço.
+
+ORIENTAÇÕES POSTERIORES:
+Seguir todas as fases sem entregas intermediárias. Fazer varredura final, corrigir erros, repetir validações e entregar prompt e script com explicação.
+Depois, enviar a alteração para a main, para que o usuário faça a implantação na VPS.
+
+DECISÕES:
+Preservar stack e contratos, documentando campos adicionados.
+Avançado exige 85 pontos e resumo, conforme o critério mais restritivo.
+Missões correspondem aos oito itens reais, sem XP fictício.
+Testes não usam banco de produção. Não publicar nem aplicar migrations no banco conectado.
+Executar scripts/verify-candidate-portal.cjs e corrigir falhas antes do push.
+
+ESCOPO ORIGINAL:
+
+Copie tudo abaixo e envie ao GPT:
+
+---
+
+# ESCOPO: REFAZER O PORTAL DO CANDIDATO (`/carreira` e `/carreiras`) – Innovation RH Connect
+
+## 0. REGRAS DE EXECUÇÃO (OBRIGATÓRIAS)
+1. Stack: Next.js (monorepo) + NestJS + Prisma/PostgreSQL. Não trocar bibliotecas nem criar framework novo.
+2. ANTES de editar, liste os arquivos que você vai alterar e o que muda em cada um. Só depois edite.
+3. Não altere contratos de API existentes sem avisar. Se precisar de campo novo, crie e documente.
+4. Todo texto visível em português com acentos corretos, UTF-8. PROIBIDO texto sem acento ("comunicacao", "ingles") e mojibake ("Ã§").
+5. PROIBIDO dado fake/teste aparecer em produção (ver item 3.1).
+6. Ao final rode `tsc --noEmit` e ESLint e cole o resultado. Entregue por fase, uma fase por vez.
+7. Não invente funcionalidade fora deste escopo.
+
+## 1. PROBLEMAS A CORRIGIR (diagnóstico real da tela)
+- P1. Vagas da própria "Innovation S A" (Vendedor e Desenvolvedor Full Stack) aparecem para candidatos.
+- P2. "Remoto · Remoto" duplicado no card de vaga.
+- P3. Tags cruas do banco: "pede comunicacao", "pede ingles", "cargo: vendas".
+- P4. Match de 69% para Full Stack em perfil de Vendas/Excel/Atendimento. Match inflado.
+- P5. Candidatura com status "Contratado" mostra funil "Pessoas em cada etapa agora" e texto "Esta vaga foi encerrada".
+- P6. Etapa truncada "Contrata...".
+- P7. "Resumo profissional" aparece como label vazio, mas "Força do perfil" marca 85 "Avançado".
+- P8. Saudação "Bom dia, José" + nome completo logo abaixo (repetição).
+- P9. Quatro cards de métricas que repetem as seções abaixo; "Convites" tem texto extra e os outros não.
+- P10. Dois painéis com a mesma página de usuário (ver item 2).
+- P11. Bugs já conhecidos: botão de login reaparece após cadastro; menu de idioma não fecha; "Vagas salvas" fica fixo após salvar.
+- P12. Match "ideal" mesmo sem cumprir requisito (ex.: CNH A vs B; CNH A/B deve valer).
+
+## 2. FASE 1: UNIFICAR PAINÉIS (fazer primeiro)
+1. Faça auditoria: liste TODAS as rotas e componentes que renderizam perfil/painel do candidato (ex.: `/carreira`, `/carreiras/painel`, `/carreiras/perfil`, etc.). Mostre a lista antes de mudar.
+2. Defina UMA rota de painel (`/carreira`) e UMA rota de edição de perfil (`/carreira/perfil`).
+3. As demais viram redirect 301/`redirect()` para essas duas. Apague componentes duplicados.
+4. Um único componente `CandidateHeader`. Um único layout `CandidateLayout`.
+5. Critério de aceite: existe exatamente 1 página de painel e 1 de perfil; nenhum componente duplicado.
+
+## 3. FASE 2: DADOS E REGRAS (backend + front)
+
+### 3.1 Vagas de teste
+- Criar campo `isInternal`/`isTest` na vaga (Prisma). Endpoint público de vagas e o "Vagas para você" filtram `isTest = false`.
+- Vagas da empresa Innovation criadas para teste recebem `isTest = true` por migration.
+- Atenção: nome da migration SEM caracteres especiais.
+
+### 3.2 Local e modalidade
+- Um único campo de exibição: `Cidade/UF · Modalidade · Contrato`.
+- Modalidade só aparece UMA vez (Remoto, Híbrido ou Presencial). Deduplicar no front (função `uniqueBy`) e corrigir na origem.
+- Ex.: "São Paulo/SP · Remoto · PJ". Usar "PJ" ou "CLT", não "Pessoa jurídica" nos cards (mantém o card curto).
+
+### 3.3 Tags legíveis
+Criar mapa central `jobTagLabels.ts`, ÚNICO ponto de tradução:
+- `pede_comunicacao` → "Comunicação"
+- `pede_ingles` → "Inglês exigido"
+- `pede_equipe` → "Trabalho em equipe"
+- `pede_vendas` → "Experiência em vendas"
+- `cargo_vendas` → "Área: Vendas"
+- `remoto` → "Remoto"
+Tag desconhecida: NÃO exibir (nunca mostrar chave crua). Máximo 3 tags por card.
+
+### 3.4 Cálculo de match (regra clara)
+- Função única `calculateMatch(candidate, job)` no backend, retornando `{ score, met[], missing[], partial[] }`.
+- Pesos: requisitos obrigatórios 50%, competências 25%, experiência/cargo 15%, localização/modalidade 10%.
+- REGRA DURA: se faltar um requisito OBRIGATÓRIO, score máximo = 60%, e nunca recebe selo "Ideal".
+- Equivalências: CNH A/B vale para vaga que pede A ou B (qualquer categoria listada atende).
+- Área diferente da do candidato (Vendas vs Desenvolvimento) sem nenhuma competência em comum: score máximo 40%.
+- Retornar `met`, `missing` e `partial` para a tela de explicação.
+- Selos: ≥85% "Alta compatibilidade"; 70–84% "Boa compatibilidade"; abaixo de 70% NÃO aparece em "Vagas para você" (só em "Ver todas as vagas", com selo neutro).
+- % só aparece para candidato LOGADO com perfil. Deslogado não vê.
+- Testes unitários para: CNH A/B, requisito obrigatório faltando, área diferente.
+
+### 3.5 Força do perfil (cálculo transparente)
+Pontuação por item concluído, soma 100:
+- Foto/iniciais 5, Resumo profissional 20, Experiências 20, Formação 15, Competências 15, Idiomas 10, Currículo anexado 10, Contato/endereço 5.
+- Retornar lista `missingItems[]` ordenada por pontos. "Avançado" só com ≥85 E resumo preenchido.
+- Sem resumo: no máximo 80 e aparece o item "Adicione seu resumo profissional (+20)".
+
+### 3.6 Status de candidatura
+- Status válidos: Recebida, Em análise, Entrevista, Proposta, Contratado, Não selecionado, Vaga encerrada.
+- Retornar `isFinal: boolean`.
+
+## 4. FASE 3: NOVO LAYOUT DO PAINEL (`/carreira`)
+Mobile first (360px), depois desktop. Design: estilo startup tipo iFood (limpo, muito espaço branco, roxo `#5B2BD6` da marca, cantos 16px, sombras leves, fonte Inter). Sem poluição de texto.
+
+Ordem EXATA dos blocos, de cima para baixo:
+
+**Bloco A. Cabeçalho do candidato** (um só)
+- Avatar com iniciais + "Olá, {primeiroNome}" (só o primeiro nome) + cidade.
+- NÃO repetir nome completo. NÃO exibir "Resumo profissional" como label; mostrar o texto real do resumo (máx. 2 linhas) ou botão "Adicionar resumo".
+- Competências: máx. 4 chips + "+N".
+
+**Bloco B. Força do perfil**
+- Anel de progresso (número no centro), nível, e UM botão "Completar perfil".
+- Embaixo: até 3 itens que faltam com os pontos (+20 Resumo, etc.), cada um clicável.
+
+**Bloco C. Candidaturas ativas**
+- Se houver candidaturas em andamento: cards com barra de etapas (5 etapas, ícone + nome curto, sem truncar; no mobile mostrar só a etapa atual e "Etapa 3 de 5").
+- Sem candidatura: estado vazio com texto "Você ainda não se candidatou" + botão "Ver vagas".
+
+**Bloco D. Vagas para você**
+- Só vagas com match ≥70%, máximo 5, cards com: cargo, empresa (logo), Cidade · Modalidade · Contrato, selo de match, botão "Ver vaga".
+- Tocar no selo de match abre painel "Por que {X}%": lista "✔ Você tem" e "✖ Falta" (usar `met`/`missing`).
+- Sem vagas ≥70%: mensagem "Complete seu perfil para ver vagas melhores" + botão para o perfil.
+
+**Bloco E. Histórico**
+- Candidaturas finalizadas ficam aqui, recolhidas ("Histórico (N)").
+- Card finalizado: cargo, empresa, data, resultado em selo. SEM funil de pessoas, SEM texto "Esta vaga foi encerrada". Contratado: selo verde "Contratado 🎉".
+
+**REMOVER:** os 4 cards de métrica. Substituir por UMA linha de resumo no topo da seção Candidaturas: "1 candidatura · 0 em andamento".
+
+## 5. FASE 4: GAMIFICAÇÃO (leve, sem exagero)
+- Missões de perfil (checklist com barra: "3 de 6 concluídas") ligadas aos itens do 3.5.
+- Ao completar um item: animação curta (confete ou check, <1s) e o anel atualiza.
+- Nível: Iniciante (0–39), Intermediário (40–69), Avançado (70–89), Destaque RH (90–100).
+- Proibido: pontos fictícios, ranking entre candidatos, contagem falsa de "pessoas vendo seu perfil".
+
+## 6. FASE 5: BUGS DO PORTAL PÚBLICO (`/carreiras`)
+- Botão "Entrar" some quando logado; após cadastro, redireciona para `/carreira` (não volta ao login).
+- Menu de idioma fecha ao selecionar, ao clicar fora e com ESC.
+- "Vagas salvas": ao salvar, atualiza o estado na hora; o item some do bloco fixo quando removido; sem duplicar.
+- Card de vaga do portal segue o mesmo padrão do item 3.2/3.3.
+
+## 7. CRITÉRIOS DE ACEITE (checklist final)
+- [ ] Só 1 painel e 1 página de perfil; rotas antigas redirecionam.
+- [ ] Nenhuma vaga de teste aparece em produção.
+- [ ] Nenhuma tag sem acento ou com chave crua.
+- [ ] Nenhum "Remoto · Remoto".
+- [ ] Vaga fora da área do candidato nunca passa de 40%.
+- [ ] Vaga com requisito obrigatório faltando nunca passa de 60% e nunca é "Ideal".
+- [ ] CNH A/B atende vaga A ou B.
+- [ ] Sem resumo profissional o perfil não é "Avançado".
+- [ ] Candidatura "Contratado" não mostra funil nem "vaga encerrada".
+- [ ] Nome aparece uma vez só no topo.
+- [ ] Sem os 4 cards de métrica.
+- [ ] Testado em 360px, 390px e desktop 1280px.
+- [ ] `tsc --noEmit` e ESLint sem erros, resultado colado na resposta.
+
+## 8. FORMATO DA SUA RESPOSTA
+Por fase: (1) arquivos alterados, (2) diff resumido, (3) como testar, (4) resultado do tsc/eslint. Pare ao fim de cada fase e aguarde "PRÓXIMA".
+
+---
+
+Quando ele terminar a Fase 1, mande o print do outro painel e eu confiro se unificou direito.

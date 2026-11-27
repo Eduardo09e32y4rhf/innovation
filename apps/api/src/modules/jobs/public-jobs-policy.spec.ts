@@ -33,6 +33,7 @@ describe('vagas publicas: politica unica e allowlist', () => {
     expect(wheres).toHaveLength(6);
     for (const w of wheres) {
       expect(w.status).toBe('OPEN');
+      expect(w.isTest).toBe(false);
       expect(w.company).toEqual(expectedCompany);
       expect(w.OR).toBeDefined();
     }

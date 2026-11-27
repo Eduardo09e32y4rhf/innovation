@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { Button } from '@/app/components/ui/button';
-import { validateResume } from '../../_lib/public-jobs';
+import { validateResume } from '@/app/carreiras/_lib/public-jobs';
 import {
   candidateApi,
   EDUCATION_LEVELS,
@@ -11,9 +11,9 @@ import {
   type CandidateProfile,
   type EducationItem,
   type ExperienceItem,
-} from '../../_lib/candidate-api';
-import { profileStrength } from '../../_lib/profile-insights';
-import { useCandidateSession } from '../_components/account-shell';
+} from '@/app/carreiras/_lib/candidate-api';
+import { profileStrength } from '@/app/carreiras/_lib/profile-insights';
+import { useCandidateSession } from '../_components/candidate-layout';
 import { useConfirm } from '@/app/components/ui/confirm-provider';
 import { useGuard } from '@/app/hooks/use-action';
 import { useI18n } from '@/app/contexts/I18nContext';
@@ -175,6 +175,9 @@ export function ProfileForm() {
   const [education, setEducation] = useState<EducationItem[]>(profile.education ?? []);
   const [experience, setExperience] = useState<ExperienceItem[]>(profile.experience ?? []);
   const [skills, setSkills] = useState<string[]>(profile.skills ?? []);
+  const [languages, setLanguages] = useState((profile.languages ?? []).join(', '));
+  const [celebrate, setCelebrate] = useState(false);
+  useEffect(() => { if (!celebrate) return; const timer = setTimeout(() => setCelebrate(false), 800); return () => clearTimeout(timer); }, [celebrate]);
   const [skillDraft, setSkillDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -195,6 +198,7 @@ export function ProfileForm() {
       setEducation(profile.education ?? []);
       setExperience(profile.experience ?? []);
       setSkills(profile.skills ?? []);
+      setLanguages((profile.languages ?? []).join(', '));
       lastCep.current = digits(profile.cep ?? '');
       lastSyncedEmail.current = profile.email;
     }
@@ -213,15 +217,13 @@ export function ProfileForm() {
       profileStrength({
         ...profile,
         ...form,
-        cpf: digits(form.cpf),
         phone: normalizePhoneDigits(form.phone),
-        cep: digits(form.cep),
+        languages: languages.split(',').map(value => value.trim()).filter(Boolean),
         skills,
         education,
         experience,
-        hasDriverLicense: form.hasDriverLicense === '' ? null : form.hasDriverLicense === 'sim',
       }),
-    [profile, form, skills, education, experience],
+    [profile, form, skills, education, experience, languages],
   );
 
   const doneKeys = new Set(preview.items.filter((item) => item.done).map((item) => item.key));
@@ -268,9 +270,11 @@ export function ProfileForm() {
       setEducation(updated.education ?? education);
       setExperience(updated.experience ?? []);
       setSkills(updated.skills ?? skills);
+      setLanguages((updated.languages ?? []).join(', '));
       setDirty(false);
 
       const gained = profileStrength(updated).score - profileStrength(profile).score;
+      setCelebrate(gained > 0);
       setMessage({
         kind: 'ok',
         text: gained > 0 ? `Perfil salvo! Sua força subiu ${gained} pontos.` : 'Perfil salvo.',
@@ -308,6 +312,7 @@ export function ProfileForm() {
           profile.resume ?? { name: file.name, type: file.type, size: file.size },
       });
       setProfile(updated);
+      setCelebrate(profileStrength(updated).score > profileStrength(profile).score);
       setMessage({ kind: 'ok', text: `Currículo "${file.name}" enviado e salvo com sucesso.` });
     } catch (cause) {
       setMessage({
@@ -421,18 +426,20 @@ export function ProfileForm() {
     );
 
   const nav = [
-    { id: 'resumo', label: 'Resumo profissional', done: doneKeys.has('profession') && doneKeys.has('about') },
+    { id: 'resumo', label: 'Resumo profissional', done: doneKeys.has('about') },
     { id: 'experiencia', label: 'Experiência', done: doneKeys.has('experience') },
     { id: 'formacao', label: 'Formação', done: doneKeys.has('education') },
     { id: 'competencias', label: 'Competências', done: doneKeys.has('skills') },
+    { id: 'idiomas', label: 'Idiomas', done: doneKeys.has('languages') },
     { id: 'curriculo', label: 'Currículo', done: doneKeys.has('resume') },
     { id: 'dados', label: 'Dados pessoais', done: doneKeys.has('contact') },
-    { id: 'endereco', label: 'Endereço', done: doneKeys.has('address') },
+    { id: 'endereco', label: 'Endereço', done: doneKeys.has('contact') },
     { id: 'autorizacoes', label: 'Privacidade' },
   ];
 
   return (
     <main className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 sm:py-8">
+      {celebrate && <span role="status" className="fixed bottom-6 right-6 z-50 rounded-2xl bg-emerald-700 p-4 text-white motion-safe:animate-bounce">✓ Item do perfil concluído</span>}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-[#1e1145]">{t('Meu perfil profissional')}</h1>
@@ -495,7 +502,7 @@ export function ProfileForm() {
                 id="resumo"
                 title={t('Resumo profissional')}
                 description={t('Como você se apresenta para o RH.')}
-                done={doneKeys.has('profession') && doneKeys.has('about')}
+                done={doneKeys.has('about')}
               >
                 <div className="space-y-4">
                   <label className="block space-y-1">
@@ -792,6 +799,11 @@ export function ProfileForm() {
                     )}
                   </div>
                 </div>
+              </Section>
+              <Section id="idiomas" title="Idiomas" description="Separe os idiomas por vírgula. Ex.: Português, Inglês." done={doneKeys.has('languages')}>
+                <label className="block text-sm font-medium">Idiomas que voc? conhece
+                  <input value={languages} maxLength={600} onChange={event => { setLanguages(event.target.value); setDirty(true); }} className="input-v2 mt-2 min-h-11 w-full" placeholder="Português, Inglês" />
+                </label>
               </Section>
             </fieldset>
           </form>

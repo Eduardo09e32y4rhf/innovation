@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function CandidateApplicationsPage() {
-  redirect('/carreiras/conta#candidaturas');
+export default function LegacyCandidatePage() {
+  redirect('/carreira#candidaturas');
 }

@@ -1,6 +1,5 @@
-import { AccountShell } from './_components/account-shell';
-import { CareerHub } from './career-hub';
+import { redirect } from 'next/navigation';
 
-export default function CandidateApplicationsPage() {
-  return <AccountShell><CareerHub /></AccountShell>;
+export default function LegacyCandidatePage() {
+  redirect('/carreira');
 }

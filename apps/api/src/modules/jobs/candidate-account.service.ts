@@ -1,3 +1,4 @@
+import { candidateProfileStrength } from './candidate-profile-strength';
 import { ALLOW, inspectFile } from '../../common/utils/file-validation';
 import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -185,6 +186,8 @@ export class CandidateAccountService {
       neighborhood: account.neighborhood, city: account.city, state: account.state,
       birthDate: account.birthDate ? account.birthDate.toISOString().slice(0, 10) : null,
       profession: account.profession, skills: sanitizeSkills(account.skills),
+      languages: account.languages ?? [],
+      strength: candidateProfileStrength(account),
       about: account.about, experience: sanitizeExperience(account.experience),
       hasDriverLicense: account.hasDriverLicense, driverLicenseCategory: account.driverLicenseCategory,
       talentPoolConsent: Boolean(account.talentPoolConsentAt),
@@ -224,25 +227,8 @@ export class CandidateAccountService {
   }
 
   async missions(account: Account) {
-    const missions = [
-      { key: 'resume', title: 'Envie seu currículo', xp: 100, done: Boolean(account.resumeKey) },
-      { key: 'about', title: 'Conte sua história profissional', xp: 50, done: String(account.about ?? '').trim().length >= 40 },
-      { key: 'license', title: 'Informe sua CNH', xp: 30, done: Boolean(account.hasDriverLicense && account.driverLicenseCategory.length) },
-    ];
-    for (const mission of missions.filter((item) => item.done)) {
-      try {
-        await this.prisma.$transaction(async (tx) => {
-          await tx.candidateMissionLog.create({ data: { accountId: account.id, missionKey: mission.key, xpEarned: mission.xp } });
-          await tx.candidateAccount.update({ where: { id: account.id }, data: { xp: { increment: mission.xp } } });
-        });
-      } catch (error: any) { if (error?.code !== 'P2002') throw error; }
-    }
-    const [logs, refreshed] = await Promise.all([
-      this.prisma.candidateMissionLog.findMany({ where: { accountId: account.id }, orderBy: { completedAt: 'desc' } }),
-      this.prisma.candidateAccount.findUnique({ where: { id: account.id }, select: { xp: true } }),
-    ]);
-    const completed = new Set(logs.map((row: any) => row.missionKey));
-    return { xp: refreshed?.xp ?? account.xp, missions: missions.map((item) => ({ ...item, done: completed.has(item.key) })) };
+    const strength = candidateProfileStrength(account);
+    return { xp: 0, missions: strength.items.map(item => ({ key: item.key, title: item.label, xp: 0, points: item.points, done: item.done, anchor: item.anchor })) };
   }
 
   async updateProfile(account: Account, dto: CandidateUpdateProfileDto, ctx: { ip?: string; userAgent?: string } = {}) {
@@ -269,6 +255,7 @@ export class CandidateAccountService {
       data.birthDate = birth;
     }
     if (dto.profession !== undefined) data.profession = text(dto.profession, 120);
+    if (dto.languages !== undefined) data.languages = [...new Set(dto.languages.map(value => value.trim()).filter(Boolean))];
     if (dto.skills !== undefined) data.skills = sanitizeSkills(dto.skills);
     if (dto.about !== undefined) data.about = dto.about.trim().slice(0, 1200) || null;
     if (dto.experience !== undefined) data.experience = sanitizeExperience(dto.experience);
@@ -342,7 +329,7 @@ export class CandidateAccountService {
       orderBy: { createdAt: 'desc' },
       take: 100,
       include: {
-        job: { select: { id: true, title: true, translations: true, confidential: true, company: { select: { name: true } } } },
+        job: { select: { id: true, title: true, translations: true, confidential: true, status: true, company: { select: { name: true } } } },
         stage: { select: { name: true } },
         events: { where: { type: { in: ['APPLIED', 'STAGE_CHANGED', 'REJECTED'] } }, orderBy: { createdAt: 'asc' }, select: { type: true, toStage: true, createdAt: true } },
         // So a entrevista que o candidato ja recebeu por e-mail (agendamento interno nao aparece).
@@ -365,13 +352,14 @@ export class CandidateAccountService {
         company: app.job.company.name,
         appliedAt: app.createdAt,
         status: app.status,
-        statusLabel: STAGE_LABEL_FOR_CANDIDATE[app.status] ?? app.status,
+        statusLabel: app.status === 'HIRED' ? 'Contratado' : app.status === 'REJECTED' ? 'Não selecionado' : ['CLOSED', 'FILLED'].includes(app.job.status) ? 'Vaga encerrada' : ({ APPLIED: 'Recebida', SCREENING: 'Em análise', INTERVIEW: 'Entrevista', OFFER: 'Proposta' } as Record<string, string>)[app.status] ?? 'Em análise',
+        isFinal: ['HIRED', 'REJECTED'].includes(app.status) || ['CLOSED', 'FILLED'].includes(app.job.status),
         stage: app.stage?.name ?? null,
-        closed: app.status === 'REJECTED' || app.status === 'HIRED',
+        closed: app.status === 'REJECTED' || app.status === 'HIRED' || ['CLOSED', 'FILLED'].includes(app.job.status),
         interview: app.status === 'REJECTED' || app.status === 'HIRED' ? null : (app.interviews?.[0] ?? null),
         timeline: app.events.map((event) => ({ at: event.createdAt, label: event.type === 'APPLIED' ? 'Candidatura recebida' : event.type === 'REJECTED' ? 'Processo encerrado para esta vaga' : `Etapa: ${event.toStage ?? ''}` })),
         // Só totais por etapa; abaixo de 5 vira "menos de 5". Vaga confidencial não mostra o funil.
-        funnel: app.job.confidential ? null : FUNNEL_STATUSES.map((status) => ({ status, stage: STAGE_LABEL_FOR_CANDIDATE[status] ?? status, ...funnelCount(counts.get(`${app.jobId}:${status}`) ?? 0) })),
+        funnel: app.job.confidential || ['HIRED', 'REJECTED'].includes(app.status) || ['CLOSED', 'FILLED'].includes(app.job.status) ? null : FUNNEL_STATUSES.map((status) => ({ status, stage: STAGE_LABEL_FOR_CANDIDATE[status] ?? status, ...funnelCount(counts.get(`${app.jobId}:${status}`) ?? 0) })),
       })),
       appliedJobIds: jobIds,
     };

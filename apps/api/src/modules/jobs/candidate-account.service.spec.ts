@@ -10,7 +10,7 @@ import { hashPassword, hashSecret } from './candidate-account.rules';
 
 function build(overrides: Record<string, any> = {}) {
   const prisma: any = {
-    candidateLoginCode: { count: vi.fn(async () => 0), create: vi.fn(async () => ({})), findFirst: vi.fn(async () => null), update: vi.fn(async () => ({})), deleteMany: vi.fn(async () => ({})) },
+    candidateLoginCode: { updateMany: vi.fn(async () => ({ count: 1 })), count: vi.fn(async () => 0), create: vi.fn(async () => ({})), findFirst: vi.fn(async () => null), update: vi.fn(async () => ({})), deleteMany: vi.fn(async () => ({})) },
     candidateAccount: { upsert: vi.fn(async ({ where }: any) => ({ id: 'acc-1', email: where.email })), update: vi.fn(async ({ data }: any) => ({ id: 'acc-1', email: 'c@x.com', ...data })), delete: vi.fn(async () => ({})) },
     candidateSession: { create: vi.fn(async () => ({})), findUnique: vi.fn(async () => null), deleteMany: vi.fn(async () => ({})) },
     application: { findMany: vi.fn(async () => []), groupBy: vi.fn(async () => []) },
@@ -127,11 +127,11 @@ describe('perfil mínimo', () => {
     const { svc, prisma } = build();
     await svc.updateProfile(account, { birthDate: '1990-05-17', profession: ' Contador ', skills: ['Excel', 'excel', 'SPED'], hasDriverLicense: true, driverLicenseCategory: 'b', talentPoolConsent: true });
     const data = prisma.candidateAccount.update.mock.calls[0][0].data;
-    expect(data).toMatchObject({ profession: 'Contador', skills: ['Excel', 'SPED'], hasDriverLicense: true, driverLicenseCategory: 'B' });
+    expect(data).toMatchObject({ profession: 'Contador', skills: ['Excel', 'SPED'], hasDriverLicense: true, driverLicenseCategory: ['B'] });
     expect(data.birthDate.toISOString().slice(0, 10)).toBe('1990-05-17');
     expect(data.talentPoolConsentAt).toBeInstanceOf(Date);
     await svc.updateProfile({ ...account, talentPoolConsentAt: new Date() }, { hasDriverLicense: false, talentPoolConsent: false });
-    expect(prisma.candidateAccount.update.mock.calls[1][0].data).toMatchObject({ hasDriverLicense: false, driverLicenseCategory: null, talentPoolConsentAt: null });
+    expect(prisma.candidateAccount.update.mock.calls[1][0].data).toMatchObject({ hasDriverLicense: false, driverLicenseCategory: [], talentPoolConsentAt: null });
   });
   it('recusa data de nascimento e categoria inválidas', async () => {
     const { svc } = build();
@@ -216,5 +216,22 @@ describe('candidatura reaproveitando o perfil', () => {
     expect(fields).toMatchObject({ name: 'Camila', email: 'c@x.com', phone: '(11) 91234-5678', consent: true, answers: '{}', source: 'telegram' });
     expect(file.filename).toBe('cv.pdf');
     expect(Buffer.isBuffer(file.buffer)).toBe(true);
+  });
+});
+
+
+describe('resultados finais do candidato', () => {
+  it.each([['HIRED', 'OPEN', 'Contratado'], ['REJECTED', 'OPEN', 'Não selecionado'], ['SCREENING', 'CLOSED', 'Vaga encerrada']])('finaliza %s com vaga %s sem funil', async (status, jobStatus, label) => {
+    const app = { id: 'app', jobId: 'job', status, createdAt: new Date(), stage: null, events: [], job: { title: 'Cargo', status: jobStatus, confidential: false, company: { name: 'Empresa' } } };
+    const { svc } = build({ application: { findMany: vi.fn(async () => [app]), groupBy: vi.fn(async () => []) } });
+    const item = (await svc.applications({ id: 'a', email: 'c@x.com' } as any)).applications[0];
+    expect(item).toMatchObject({ isFinal: true, statusLabel: label, funnel: null });
+  });
+  it('missões usam somente itens reais e não gravam XP', async () => {
+    const { svc, prisma } = build();
+    const result = await svc.missions({ name: 'Pessoa', about: 'Resumo' } as any);
+    expect(result.xp).toBe(0); expect(result.missions).toHaveLength(8);
+    expect(result.missions.find(item => item.key === 'about')).toMatchObject({ done: true, points: 20 });
+    expect(prisma.candidateAccount.update).not.toHaveBeenCalled();
   });
 });

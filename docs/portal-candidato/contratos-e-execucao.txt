@@ -1,0 +1,44 @@
+PORTAL DO CANDIDATO — CONTRATOS E EXECUÇÃO
+
+ROTAS
+Painel: /carreira. Edição: /carreira/perfil.
+Catálogo: /carreiras e /carreiras/vagas.
+/carreiras/conta, /carreiras/conta/perfil e /carreiras/conta/candidaturas usam redirect() do Next.
+/carreiras/painel e /carreiras/perfil usam 301.
+Um CandidateLayout e um CandidateHeader; o painel antigo ApplicationsView foi removido.
+
+BANCO — migration 20261127000100_candidate_portal_rules
+Job.isTest: boolean, false por padrão. A política compartilhada exclui vagas de teste das listas públicas, detalhes, candidatura e vagas recentemente encerradas. Favoritos e recomendações usam essa política.
+Somente Vendedor e Desenvolvedor Full Stack da empresa cujo nome normalizado é innovationsa recebem isTest=true. Nenhuma vaga é excluída.
+CandidateAccount.languages: lista de textos, vazia por padrão; edição aceita até 10 idiomas de até 60 caracteres.
+CandidateAccount.xp: default passa de 350 para 0; registros históricos não são apagados. XP não é usado na interface.
+A migration separa localizações compostas apenas por Remoto da modalidade REMOTE.
+Aplique a migration antes de iniciar a API atualizada, pelo processo habitual de implantação. A validação local não aplica essa migration ao banco conectado.
+
+API — mudanças aditivas, exceto a semântica das missões
+GET /candidate-portal/me: acrescenta languages e strength (score, level, items, missingItems e next). completeness e checklist mínimos continuam presentes, preservando a elegibilidade da candidatura.
+PUT /candidate-portal/me: aceita languages.
+GET /candidate-portal/applications: acrescenta isFinal. status técnico é preservado. statusLabel usa Recebida, Em análise, Entrevista, Proposta, Contratado, Não selecionado ou Vaga encerrada. Contratado prevalece sobre o encerramento da vaga. Funil não é retornado para candidaturas finais.
+GET /careers/jobs?withMatch=1 e endpoints de match/simulação: preservam score, level, requirements e missing; acrescentam met, partial, hasProfile e missingMandatory. Simulação usa calculateMatch e preserva os demais dados do perfil.
+GET /candidate-portal/missions: mantém xp e missions estruturalmente, mas xp passa a zero e não incrementa banco. Missões são os itens reais, com points e anchor adicionados. Esta mudança intencional de semântica elimina pontos fictícios.
+
+REGRAS E DECISÕES
+Match: 50/25/15/10; obrigatório ausente limita a 60; área diferente sem competência comum limita a 40. Sem perfil não há percentual.
+Sem requisitos explícitos, um perfil recebe a parcela de obrigatórios, mas não ganha competências sem evidência; partial informa a limitação.
+Sem resumo: máximo 80 e nível no máximo Intermediário. Avançado começa em 85; Destaque RH em 90. Prevalece o critério de aceite sobre a faixa conflitante de 70 no texto de gamificação.
+Missões usam oito itens porque a pontuação especifica oito itens; não há denominador fictício.
+Fonte Inter local, obtida de fonts.googleapis.com/fonts.gstatic.com, com licença SIL OFL do projeto rsms/inter incluída em public/fonts/inter.
+Cadastro termina em /carreira. Sessão e favoritos são compartilhados pelos componentes; falhas ao salvar revertem o estado otimista.
+
+SCRIPT UTILIZADO E MOTIVO
+node scripts/verify-candidate-portal.cjs
+Executa tsc --noEmit no frontend e na API, prisma validate, ESLint completo, testes unitários selecionados e Playwright. Detecta erros de tipos, contratos de dados, regras de negócio e navegação real.
+Pode repetir partes com --only=types,unit, --only=lint ou --only=browser.
+Relatórios e capturas: storage/qa/portal-candidato. Fixtures de navegador são interceptações HTTP exclusivas dos testes; nunca são gravadas no banco.
+O script não publica, não migra banco, não semeia dados e não envia mensagens.
+As edições foram realizadas com apply_patch e scripts pontuais Node/PowerShell. O script entregue reproduz a validação, sem reaplicar alterações sobre o código.
+O prompt de trabalho e o escopo original estão em prompt-utilizado.txt.
+
+CODIFICAÇÃO E AMBIENTE
+O arquivo local ignorado apps/web/updateTask3.js estava em UTF-16. Foi convertido para UTF-8 sem executar seu conteúdo, eliminando o erro de parsing do lint completo. Por ser ignorado pelo Git, não faz parte da alteração versionada.
+Os testes de navegador desativam traces pesados e mantêm capturas em 360, 390 e 1280 pixels, para reduzir uso de disco.

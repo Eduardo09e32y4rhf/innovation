@@ -13,7 +13,7 @@ type Mode = 'login' | 'register' | 'forgot' | 'reset';
 
 /** Só volta para caminhos do próprio portal (evita redirecionamento aberto). */
 function safeNext(value: string | null) {
-  return value && /^\/carreiras(\/|$)/.test(value) && !value.startsWith('//') ? value : '/carreiras/conta';
+  return value && /^\/carreiras?(\/|$)/.test(value) && !value.startsWith('//') ? value : '/carreira';
 }
 
 const TITLE: Record<Mode, string> = { login: 'Entrar', register: 'Criar minha conta', forgot: 'Esqueci minha senha', reset: 'Criar nova senha' };
@@ -46,7 +46,7 @@ export function LoginForm() {
     try { await action(); } catch (cause) { setError(t(cause instanceof Error ? cause.message : 'Não foi possível concluir. Tente novamente.')); } finally { setBusy(false); }
   }
 
-  const enter = (result: { token: string }) => { setCandidateToken(result.token); router.replace(next); };
+  const enter = (result: { token: string }) => { setCandidateToken(result.token); router.replace(mode === 'register' ? '/carreira' : next); };
 
   function submit(event: FormEvent) {
     event.preventDefault();

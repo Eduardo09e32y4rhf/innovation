@@ -43,8 +43,8 @@ export function PortalFooter() {
         <nav aria-label={t('Para candidatos')} className="flex flex-col">
           <span className="mb-1 text-[11px] font-bold uppercase tracking-[2px] text-[#a998d8]">{t('Candidatos')}</span>
           <Link href="/carreiras" className={link}>{t('Vagas abertas')}</Link>
-          <Link href="/carreiras/conta" className={link}>{t('Minhas candidaturas')}</Link>
-          <Link href="/carreiras/conta/perfil" className={link}>{t('Meu perfil')}</Link>
+          <Link href="/carreira" className={link}>{t('Minhas candidaturas')}</Link>
+          <Link href="/carreira/perfil" className={link}>{t('Meu perfil')}</Link>
         </nav>
         <nav aria-label={t('Informações')} className="flex flex-col">
           <span className="mb-1 text-[11px] font-bold uppercase tracking-[2px] text-[#a998d8]">{t('Informações')}</span>

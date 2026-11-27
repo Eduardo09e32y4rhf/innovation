@@ -1,14 +1,24 @@
 import { fetchPublic } from './public-jobs';
+import type { candidateProfileStrength } from '../../../../api/src/modules/jobs/candidate-profile-strength';
 import type { JobTranslations } from './job-translations';
 
 /** Cliente da Área do candidato (/candidate-portal). A sessão é separada do login de empresa. */
 const TOKEN_KEY = 'ir_candidate_token';
+export const CANDIDATE_SESSION_EVENT = 'candidate-session-change';
+let memoryToken: string | null = null;
+let memoryOnly = false;
 
 export function getCandidateToken(): string | null {
-  try { return window.localStorage.getItem(TOKEN_KEY); } catch { return null; }
+  if (memoryOnly) return memoryToken;
+  try { return window.localStorage.getItem(TOKEN_KEY); } catch { return memoryToken; }
 }
 export function setCandidateToken(token: string | null) {
-  try { if (token) window.localStorage.setItem(TOKEN_KEY, token); else window.localStorage.removeItem(TOKEN_KEY); } catch { /* navegação privada: sessão só nesta aba */ }
+  memoryToken = token;
+  try {
+    if (token) window.localStorage.setItem(TOKEN_KEY, token); else window.localStorage.removeItem(TOKEN_KEY);
+    memoryOnly = false;
+  } catch { memoryOnly = true; }
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(CANDIDATE_SESSION_EVENT));
 }
 
 export type EducationItem = { level: string; status: string; course: string; school: string };
@@ -27,10 +37,12 @@ export type CandidateProfile = {
   consent: boolean; admissionShareConsent: boolean;
   completeness: { percent: number; missing: string[]; complete: boolean };
   checklist: { key: string; label: string; done: boolean }[];
+  languages?: string[];
+  strength?: ReturnType<typeof candidateProfileStrength>;
   xp: number;
 };
 
-export type CareerMatch = { score: number; level: 'ideal' | 'warn' | 'bad'; missing: string[]; requirements: { label: string; must: boolean; met: boolean }[] };
+export type CareerMatch = { met: string[]; partial: string[]; hasProfile: boolean; missingMandatory: boolean; score: number; level: 'ideal' | 'warn' | 'bad'; missing: string[]; requirements: { label: string; must: boolean; met: boolean }[] };
 export type CareerJob = import('./public-jobs').PublicJob & { match: CareerMatch };
 
 export const LICENSE_CATEGORIES = ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE'] as const;
@@ -38,7 +50,7 @@ export const LICENSE_CATEGORIES = ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'A
 export type CandidateInvite = { id: string; status: 'SENT' | 'APPLIED' | 'DECLINED'; message: string | null; createdAt: string; jobId: string; companyId: string; job: string; translations?: JobTranslations | null; company: string; open: boolean };
 
 export type CandidateApplication = {
-  id: string; jobId: string; job: string; translations?: JobTranslations | null; company: string; appliedAt: string; status: string; statusLabel: string; stage: string | null; closed: boolean;
+  id: string; jobId: string; job: string; translations?: JobTranslations | null; company: string; appliedAt: string; status: string; statusLabel: string; stage: string | null; closed: boolean; isFinal: boolean;
   timeline: { at: string; label: string }[];
   funnel: { status: string; stage: string; count: number | null; label: string }[] | null;
   /** Proxima entrevista ja enviada por e-mail ao candidato. */
