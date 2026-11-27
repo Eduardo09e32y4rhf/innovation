@@ -1,14 +1,13 @@
 'use client';
 
-import { use } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/app/components/ProtectedRoute';
 import { Button } from '@/app/components/ui/button';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function PortalLayout(props: { children: React.ReactNode; params: Promise<{ tenant: string }> }) {
-  const params = use(props.params);
+  const params = useParams<{ tenant: string }>();
 
   const {
     children
