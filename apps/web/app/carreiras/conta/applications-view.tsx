@@ -123,7 +123,7 @@ function JobCard({ match, applied }: { match: JobMatch; applied: boolean }) {
   );
 }
 
-export function ApplicationsView() {
+export function ApplicationsView({ applicationsOnly = false }: { applicationsOnly?: boolean } = {}) {
   const { t } = useI18n();
   const { language } = useLanguage();
   const { profile, signOut } = useCandidateSession();
@@ -153,10 +153,11 @@ export function ApplicationsView() {
   }, [load]);
 
   useEffect(() => {
+    if (applicationsOnly) { setMatches([]); return; }
     let active = true;
     getPublicJobsCatalog().then(({ jobs }) => { if (active) setMatches(matchJobs(profile, jobs)); }).catch(() => { if (active) setMatches([]); });
     return () => { active = false; };
-  }, [profile]);
+  }, [profile, applicationsOnly]);
 
   async function decline(id: string) {
     try { await candidateApi.declineInvite(id); setInvites((list) => list.map((item) => (item.id === id ? { ...item, status: 'DECLINED' } : item))); } catch { /* tenta de novo no próximo ciclo */ }
@@ -177,6 +178,7 @@ export function ApplicationsView() {
 
   return (
     <main className="mx-auto max-w-[1200px] space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+      {applicationsOnly ? <header><h1 className="text-2xl font-bold tracking-tight">{t('Minhas candidaturas')}</h1><p className="mt-1 text-sm text-[#5b5473]">{t('Acompanhe o andamento dos seus processos seletivos.')}</p></header> : <>
       {/* Cabeçalho com a força do perfil */}
       <section className="relative overflow-hidden rounded-[24px] bg-[linear-gradient(120deg,#1e1145_0%,#3b1d8f_55%,#7240da_100%)] p-6 text-white sm:p-8">
         <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
@@ -203,15 +205,16 @@ export function ApplicationsView() {
           </div>
         </div>
       </section>
+      </>}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {!applicationsOnly && <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Candidaturas" value={items?.length ?? '–'} />
         <Stat label="Em andamento" value={items ? inProgress : '–'} />
         <Stat label="Convites" value={pendingInvites.length} hint={pendingInvites.length ? 'Empresas querem você' : 'Perfil completo atrai convites'} />
         <Stat label="Vagas para você" value={matches?.length ?? '–'} hint="Conforme seu perfil" />
-      </div>
+      </div>}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className={applicationsOnly ? 'space-y-6' : 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]'}>
         <div className="min-w-0 space-y-6">
           {pendingInvites.length > 0 && (
             <section aria-label={t('Convites')} className={`${card} space-y-3 border-[#d9ccf7] bg-[#faf7ff] p-5`}>
@@ -228,7 +231,7 @@ export function ApplicationsView() {
             </section>
           )}
 
-          <section aria-labelledby="para-voce" className="space-y-3">
+          {!applicationsOnly && <section aria-labelledby="para-voce" className="space-y-3">
             <div className="flex flex-wrap items-end justify-between gap-2">
               <div><h2 id="para-voce" className="text-lg font-bold">{t('Vagas para você')}</h2>
                 <p className="text-sm text-[#5b5473]">{t('Escolhidas pelo seu cargo, experiência, formação, competências e cidade.')}</p></div>
@@ -239,11 +242,11 @@ export function ApplicationsView() {
               <div className={`${card} p-6 text-sm text-[#5b5473]`}>{t('Ainda não encontramos vagas abertas que combinem com você. Adicione')} <Link className="font-semibold text-[#7240da] underline" href="/carreiras/conta/perfil#competencias">{t('competências')}</Link> {t('e')} <Link className="font-semibold text-[#7240da] underline" href="/carreiras/conta/perfil#experiencia">{t('experiências')}</Link> {t('para ampliar as recomendações.')}</div>
             )}
             {matches && matches.length > 0 && <div className="grid gap-3 sm:grid-cols-2">{matches.map((match) => <JobCard key={match.job.id} match={match} applied={appliedIds.includes(match.job.id)} />)}</div>}
-          </section>
+          </section>}
 
           <section aria-labelledby="minhas" className="space-y-3">
             <div className="flex flex-wrap items-end justify-between gap-2">
-              <h2 id="minhas" className="text-lg font-bold">{t('Minhas candidaturas')}</h2>
+              {!applicationsOnly && <h2 id="minhas" className="text-lg font-bold">{t('Minhas candidaturas')}</h2>}
               {updatedAt && <p className="text-xs text-[#7a7290]">{t('Atualizado às')} {updatedAt.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}</p>}
             </div>
             {error && <p role="alert" className="rounded-lg bg-rose-50 p-4 text-sm text-rose-800">{error} <button type="button" className="font-semibold underline" onClick={() => void load()}>{t('Tentar de novo')}</button></p>}
@@ -278,7 +281,7 @@ export function ApplicationsView() {
           </section>
         </div>
 
-        <aside className="space-y-4">
+        {!applicationsOnly && <aside className="space-y-4">
           <section className={`${card} p-5`} aria-labelledby="proximos">
             <h2 id="proximos" className="text-base font-bold">{t(strength.next.length ? 'Próximos passos' : 'Perfil completo 🎉')}</h2>
             <p className="mt-1 text-xs text-[#5b5473]">{t(strength.next.length ? 'Cada item aumenta a força do seu perfil e as vagas recomendadas.' : 'Mantenha suas experiências e competências sempre atualizadas.')}</p>
@@ -313,7 +316,7 @@ export function ApplicationsView() {
             <p className="font-bold">{t('Dica do RH')}</p>
             <p className="mt-1">{t('Recrutadores leem primeiro o título e a última experiência. Descreva resultados (“reduzi o tempo de fechamento em 2 dias”) em vez de só tarefas.')}</p>
           </section>
-        </aside>
+        </aside>}
       </div>
     </main>
   );

@@ -54,6 +54,14 @@ async function authed<T>(path: string, init: RequestInit = {}): Promise<T> {
   }) as Promise<T>;
 }
 
+async function careerAuthed<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = getCandidateToken();
+  return fetchPublic(path, {
+    ...init,
+    headers: { ...(init.body == null ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init.headers },
+  }) as Promise<T>;
+}
+
 export const candidateApi = {
   register: (email: string, password: string, name?: string) => authed<{ token: string; expiresAt: string }>('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name: name || undefined }) }),
   login: (email: string, password: string) => authed<{ token: string; expiresAt: string }>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
@@ -74,9 +82,9 @@ export const candidateApi = {
   saveJob: (id: string) => authed<{ saved: boolean }>(`/saved-jobs/${encodeURIComponent(id)}`, { method: 'POST' }),
   unsaveJob: (id: string) => authed<{ saved: boolean }>(`/saved-jobs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   missions: () => authed<{ xp: number; missions: { key: string; title: string; xp: number; done: boolean }[] }>('/missions'),
-  careerJobs: () => authed<{ jobs: CareerJob[] }>('/careers/jobs?withMatch=1'),
-  match: (id: string) => authed<CareerMatch>(`/careers/jobs/${encodeURIComponent(id)}/match`),
-  simulateMatch: (id: string, hypothetical: { edu?: string; cnh?: string[]; skills?: string[] }) => authed<CareerMatch>(`/careers/jobs/${encodeURIComponent(id)}/match/simulate`, { method: 'POST', body: JSON.stringify(hypothetical) }),
+  careerJobs: () => careerAuthed<{ jobs: CareerJob[] }>('/careers/jobs?withMatch=1'),
+  match: (id: string) => careerAuthed<CareerMatch>(`/careers/jobs/${encodeURIComponent(id)}/match`),
+  simulateMatch: (id: string, hypothetical: { edu?: string; cnh?: string[]; skills?: string[] }) => careerAuthed<CareerMatch>(`/careers/jobs/${encodeURIComponent(id)}/match/simulate`, { method: 'POST', body: JSON.stringify(hypothetical) }),
   withdraw: (applicationId: string) => authed<{ withdrawn: boolean }>(`/applications/${encodeURIComponent(applicationId)}/withdraw`, { method: 'POST' }),
   applyWithProfile: (jobId: string, input: { answers: Record<string, string | string[]>; coverLetter?: string; consent: boolean; source?: string }) =>
     authed<{ received: boolean; applicationId?: string }>(`/jobs/${encodeURIComponent(jobId)}/apply`, { method: 'POST', body: JSON.stringify(input) }),
