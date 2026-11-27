@@ -2,8 +2,8 @@
 # Atualiza somente API/web; banco e volumes nunca são recriados ou revertidos.
 # Uso: bash scripts/deploy/vps-update.sh [SHA|main] [--prebuilt]
 #   --prebuilt  usa o pacote .deploy/images.tar.gz enviado pelo CI (workflow Deploy). Nunca compila na VPS.
-#   (sem flag)  baixa a imagem pronta do GHCR (workflow "Imagens Docker"), esperando a publicação; se não
-#               houver a do SHA usa a última da main; só como último recurso compila na VPS (lento).
+#   (sem flag)  tenta baixar a imagem pronta do GHCR; se ainda nao existir,
+#               compila imediatamente na VPS o SHA solicitado, sem esperar ou usar imagem antiga.
 set -Eeuo pipefail
 cd "$(dirname "$0")/../.."
 TARGET="${1:-main}"
@@ -45,18 +45,13 @@ else
   use_tag "$TARGET"
   compose config --quiet
   PULLED=0
-  for i in $(seq 1 40); do
-    if compose pull -q api web 2>/dev/null; then PULLED=1; break; fi
-    echo "  imagem $TARGET ainda não publicada no GitHub ($i/40), aguardando 15s..."
-    sleep 15
-  done
-  if [ "$PULLED" = 0 ]; then
-    # Usa a última imagem publicada da main em vez de construir na VPS.
-    use_tag main
-    if compose pull -q api web 2>/dev/null; then PULLED=1; echo "  usando imagem da main (a do SHA não foi publicada)"; fi
+  if compose pull -q api web; then
+    PULLED=1
+  else
+    echo "AVISO: imagem do commit $TARGET ainda não está disponível no GHCR."
   fi
   if [ "$PULLED" = 0 ]; then
-    echo "AVISO: não baixou do GHCR; build local (lento, pode faltar memória)."
+    echo "Construindo localmente as imagens do commit $TARGET agora."
     use_tag "$TARGET"
     # Garante 4G de swap para o build não derrubar a VPS por falta de memória.
     if [ "$(swapon --show --noheadings | wc -l)" = 0 ] && [ ! -f /swapfile ]; then
