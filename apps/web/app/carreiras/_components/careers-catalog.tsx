@@ -10,14 +10,33 @@ import { useI18n } from '@/app/contexts/I18nContext';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 import { useLanguage } from '@/app/contexts/LanguageContext';
 import { hasUntranslatedJobContent, translatedJob } from '../_lib/job-translations';
+import { candidateApi, getCandidateToken } from '../_lib/candidate-api';
 
 const SAVED_KEY = 'innovation-careers-saved';
 const tag = 'rounded-md bg-[#f5f3f8] px-2 py-1 text-[11px] text-[#71667e]';
 
 function toggleIn(list: string[], value: string) { return list.includes(value) ? list.filter(item => item !== value) : [...list, value]; }
+function normalizeTag(value: string | null | undefined) {
+  const parts = (value ?? '').split(/[·|]/).map((part) => part.trim().replace(/^pede\s+/i, '')).filter(Boolean);
+  const unique = [...new Map(parts.map((part) => [part.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR'), part])).values()];
+  return unique.map((part) => part.charAt(0).toLocaleUpperCase('pt-BR') + part.slice(1)).join(' · ');
+}
+
+function CandidateHeaderAction() {
+  const { t } = useI18n();
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let active = true;
+    if (!getCandidateToken()) { setSignedIn(false); return () => { active = false; }; }
+    candidateApi.me().then(() => { if (active) setSignedIn(true); }).catch(() => { if (active) setSignedIn(false); });
+    return () => { active = false; };
+  }, []);
+  if (signedIn === null) return <span aria-hidden="true" className="inline-block h-11 w-[94px] animate-pulse rounded-lg bg-[#eeeaf4]" />;
+  return <Link href={signedIn ? '/carreiras/conta' : '/carreiras/conta/entrar'} className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 font-semibold text-white hover:bg-[#5b29be]">{t(signedIn ? 'Minha área' : 'Login')}</Link>;
+}
 
 /** Portal de vagas: papel claro, roxo Innovation, busca em destaque, filtros à esquerda e cartões de vaga. */
-export function CareersCatalog({ companyId }: { companyId?: string }) {
+export function CareersCatalog({ companyId, marketplace = false }: { companyId?: string; marketplace?: boolean }) {
   const { t } = useI18n();
   const { language } = useLanguage();
   const [company, setCompany] = useState<PublicCompany>({ id: companyId || '', name: companyId ? 'Portal de carreiras' : 'Innovation RH' });
@@ -41,13 +60,19 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
 
   useEffect(() => {
     try { const data = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); if (Array.isArray(data)) setSaved(data.filter(item => typeof item === 'string')); } catch { /* sem armazenamento: segue sem favoritos */ }
+    if (getCandidateToken()) candidateApi.savedJobs().then(({ jobs: items }) => setSaved(items.map((job) => job.id))).catch(() => undefined);
   }, []);
   function toggleSaved(id: string) {
+    const hadSaved = saved.includes(id);
     setSaved(current => {
       const next = toggleIn(current, id);
       try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch { /* ignora */ }
       return next;
     });
+    if (getCandidateToken()) {
+      const update = hadSaved ? candidateApi.unsaveJob(id) : candidateApi.saveJob(id);
+      void update.catch(() => setSaved((current) => hadSaved ? [...current, id] : current.filter((item) => item !== id)));
+    }
   }
 
   useEffect(() => {
@@ -98,7 +123,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
         <nav aria-label={t('Navegação')} className="flex items-center gap-4 text-[13px] sm:gap-7">
           <a href="#career-content" className="hidden text-[#7240da] sm:inline">{t('Explorar vagas')}</a>
           {companyId && <Link href="/carreiras" className="hidden sm:inline">{t('Todas as empresas')}</Link>}
-          <Link href="/carreiras/conta" className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 font-semibold text-white hover:bg-[#5b29be]">{t('Login')}</Link>
+          <CandidateHeaderAction />
           <LanguageSwitcher />
         </nav>
       </header>
@@ -148,7 +173,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
           {error ? <div className="space-y-3 rounded-2xl border border-[#e9e5f0] bg-white p-8 text-center"><p role="alert" className="text-sm">{t(error)}</p><button type="button" onClick={() => setReload(value => value + 1)} className="rounded-lg bg-[#7240da] px-5 py-3 text-sm font-semibold text-white">{t('Tentar novamente')}</button></div>
             : loading ? <div className="space-y-4" aria-hidden="true">{[0, 1, 2].map(i => <div key={i} className="h-44 animate-pulse rounded-2xl border border-[#e9e5f0] bg-white" />)}</div>
             : !filtered.length ? <div className="rounded-2xl border border-dashed border-[#cfbde9] bg-white px-4 py-12 text-center"><Briefcase size={26} className="mx-auto text-[#7240da]" aria-hidden="true" /><h3 className="mt-3 font-semibold">{t('Nenhuma vaga por aqui… ainda.')}</h3><p className="mb-4 mt-2 text-xs text-[#736d80]">{jobs.length ? t('Tente outra palavra-chave ou remova os filtros.') : t('Nenhuma vaga aberta no momento. Volte em breve.')}</p>{hasFilter && <button type="button" onClick={clear} className="rounded-lg bg-[#7240da] px-5 py-3 text-[13px] font-semibold text-white">{t('Limpar filtros')}</button>}</div>
-            : <ul className="grid gap-4">{filtered.slice((currentPage - 1) * 12, currentPage * 12).map(job => {
+            : <ul className={marketplace ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3' : 'grid gap-4'}>{filtered.slice((currentPage - 1) * 12, currentPage * 12).map(job => {
               const salary = publicSalaryLabel(job); const mode = workModeLabel(job.workMode); const isSaved = saved.includes(job.id);
               const displayJob = translatedJob(job, language);
               const href = '/carreiras/' + encodeURIComponent(companyId || job.companyId) + '/' + encodeURIComponent(job.id);
@@ -159,7 +184,7 @@ export function CareersCatalog({ companyId }: { companyId?: string }) {
                 </div>
                 <h3 className="mb-2.5 mt-4 max-w-[610px] break-words text-[19px] font-semibold leading-snug tracking-tight"><Link href={href} className="hover:text-[#7240da]">{displayJob.title}</Link></h3>
                 <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#736d80]"><span className="inline-flex items-center gap-1"><MapPin size={13} aria-hidden="true" />{job.location || t('Local não informado')}</span><span className="inline-flex items-center gap-1"><Briefcase size={13} aria-hidden="true" />{t(employmentTypeLabel(job.employmentType))}</span></p>
-                <div className="my-4 flex flex-wrap gap-2">{mode && <span className={'rounded-md px-2 py-1 text-[11px] ' + (job.workMode === 'REMOTO' ? 'bg-[#eaf4ee] text-[#327450]' : 'bg-[#f0e8fd] text-[#7650ac]')}>{mode}</span>}{job.pcd && <span className="rounded-md bg-[#e8f1fb] px-2 py-1 text-[11px] font-semibold text-[#1f5a96]">{t('Vaga PCD')}</span>}{job.seniority && <span className={tag}>{t(job.seniority)}</span>}{job.department && <span className={tag}>{t(job.department)}</span>}</div>
+              <div className="my-4 flex flex-wrap gap-2">{[mode && normalizeTag(mode), job.pcd && t('Vaga PCD'), job.seniority && normalizeTag(job.seniority), job.department && normalizeTag(job.department)].filter(Boolean).map((label, index, all) => all.findIndex((item) => item?.toLocaleLowerCase('pt-BR') === label?.toLocaleLowerCase('pt-BR')) === index ? <span key={label} className={tag}>{label}</span> : null)}</div>
                 {hasUntranslatedJobContent(job, language) && <p className="text-[11px] font-medium text-amber-800">{t('Tradução pendente')}</p>}
                 <p className="line-clamp-3 max-w-[620px] text-xs leading-[1.7] text-[#736d80]">{displayJob.description}</p>
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0edf5] pt-4">

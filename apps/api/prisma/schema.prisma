@@ -1467,6 +1467,7 @@ model Job {
   applications Application[]
   questions    JobQuestion[]
   criteria     JobCriterion[]
+  candidateSaves CandidateSavedJob[]
   recruiters   JobRecruiter[]
   sourceCosts  JobSourceCost[]
   /// Delegacao a uma empresa-freelancer (se a vaga foi repassada para recrutamento externo). Opcional e 1:1.
@@ -1575,6 +1576,9 @@ model JobCriterion {
   name     String
   weight   Int    @default(1)
   position Int    @default(0)
+  kind     String @default("SKILL")
+  value    String?
+  isMandatory Boolean @default(true)
 
   job         Job                     @relation(fields: [jobId], references: [id], onDelete: Cascade)
   evaluations ApplicationEvaluation[]
@@ -4017,7 +4021,8 @@ model CandidateAccount {
   /// [{ role, company, start: "AAAA-MM", end: "AAAA-MM" | null, current, description }]
   experience            Json?
   hasDriverLicense      Boolean?
-  driverLicenseCategory String?
+  driverLicenseCategory String[]  @default([])
+  xp                    Int       @default(350)
   /// Banco de talentos: so com este aceite o RH de outras empresas encontra o perfil (nome, profissao, cidade, formacao, curriculo).
   talentPoolConsentAt   DateTime?
   createdAt             DateTime  @default(now())
@@ -4026,8 +4031,36 @@ model CandidateAccount {
   sessions CandidateSession[]
   invites  CandidateInvite[]
   views    CandidateProfileView[]
+  savedJobs CandidateSavedJob[]
+  missionLogs CandidateMissionLog[]
 
   @@index([talentPoolConsentAt, city])
+}
+
+model CandidateSavedJob {
+  id        String   @id @default(uuid()) @db.Uuid
+  accountId String   @db.Uuid
+  jobId     String   @db.Uuid
+  savedAt   DateTime @default(now())
+
+  account CandidateAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  job     Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, jobId])
+  @@index([jobId])
+}
+
+model CandidateMissionLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  accountId   String   @db.Uuid
+  missionKey  String
+  xpEarned    Int
+  completedAt DateTime @default(now())
+
+  account CandidateAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, missionKey])
+  @@index([accountId, completedAt])
 }
 
 /// Convite do RH para um candidato do banco de talentos (reaproveitamento). O contato sai pela plataforma, nunca expoe e-mail/telefone.

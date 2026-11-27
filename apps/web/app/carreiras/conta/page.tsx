@@ -1,6 +1,6 @@
 import { AccountShell } from './_components/account-shell';
-import { ApplicationsView } from './applications-view';
+import { CareerHub } from './career-hub';
 
 export default function CandidateApplicationsPage() {
-  return <AccountShell><ApplicationsView /></AccountShell>;
+  return <AccountShell><CareerHub /></AccountShell>;
 }

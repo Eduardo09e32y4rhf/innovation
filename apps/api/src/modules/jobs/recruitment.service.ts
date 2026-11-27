@@ -223,7 +223,7 @@ export class RecruitmentService {
       const keep = dto.criteria.map((item) => item.id).filter(Boolean) as string[];
       await tx.jobCriterion.deleteMany({ where: { jobId, id: { in: current.map((item) => item.id).filter((id) => !keep.includes(id)) } } });
       for (const [position, item] of dto.criteria.entries()) {
-        const data = { name: item.name.trim(), weight: item.weight, position };
+        const data = { name: item.name.trim(), weight: item.weight, position, kind: item.kind || 'SKILL', value: item.value?.trim() || null, isMandatory: item.isMandatory ?? true };
         if (item.id && current.some((existing) => existing.id === item.id)) {
           await tx.jobCriterion.update({ where: { id: item.id }, data });
         } else {

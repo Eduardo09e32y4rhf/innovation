@@ -217,7 +217,7 @@ export const ageFrom =(birthDate: Date | null | undefined, now = new Date()) => 
   return age;
 };
 
-type TalentLike = ProfileLike & { id: string; birthDate?: Date | null; profession?: string | null; skills?: unknown; about?: string | null; experience?: unknown; hasDriverLicense?: boolean | null; driverLicenseCategory?: string | null; updatedAt?: Date };
+type TalentLike = ProfileLike & { id: string; birthDate?: Date | null; profession?: string | null; skills?: unknown; about?: string | null; experience?: unknown; hasDriverLicense?: boolean | null; driverLicenseCategory?: string[] | string | null; updatedAt?: Date };
 
 /**
  * O que o RH de OUTRA empresa enxerga de quem aceitou o banco de talentos.
@@ -239,7 +239,7 @@ export function talentCard(account: TalentLike, now = new Date()) {
     education,
     highestEducation: highestEducation(education),
     hasDriverLicense: account.hasDriverLicense ?? null,
-    driverLicenseCategory: account.hasDriverLicense ? account.driverLicenseCategory ?? null : null,
+    driverLicenseCategory: account.hasDriverLicense ? (Array.isArray(account.driverLicenseCategory) ? account.driverLicenseCategory.join(', ') : account.driverLicenseCategory ?? null) : null,
     hasResume: Boolean(account.resumeKey),
     updatedAt: account.updatedAt ?? null,
   };

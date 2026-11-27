@@ -111,7 +111,7 @@ function toForm(profile: CandidateProfile) {
         : profile.hasDriverLicense
           ? 'sim'
           : 'nao',
-    driverLicenseCategory: profile.driverLicenseCategory ?? '',
+    driverLicenseCategory: profile.driverLicenseCategory ?? [],
     consent: Boolean(profile.consent),
     admissionShareConsent: Boolean(profile.admissionShareConsent),
     talentPoolConsent: Boolean(profile.talentPoolConsent),
@@ -200,7 +200,7 @@ export function ProfileForm() {
     }
   }, [profile, dirty]);
 
-  const set = (key: keyof typeof form, value: string | boolean) => {
+  const set = (key: keyof typeof form, value: string | string[] | boolean) => {
     setForm((current) => ({ ...current, [key]: value }));
     setDirty(true);
   };
@@ -253,7 +253,7 @@ export function ProfileForm() {
         ...(form.hasDriverLicense
           ? {
               hasDriverLicense: form.hasDriverLicense === 'sim',
-              driverLicenseCategory: form.hasDriverLicense === 'sim' ? form.driverLicenseCategory : '',
+              driverLicenseCategory: form.hasDriverLicense === 'sim' ? form.driverLicenseCategory : [],
             }
           : {}),
         education,
@@ -781,16 +781,12 @@ export function ProfileForm() {
                     {form.hasDriverLicense === 'sim' && (
                       <label className="block space-y-1">
                         <span className={label}>{t('Categoria')}</span>
-                        <select
-                          className={input}
-                          value={form.driverLicenseCategory}
-                          onChange={(e) => set('driverLicenseCategory', e.target.value)}
-                        >
-                          <option value="">{t('Selecione')}</option>
-                          {LICENSE_CATEGORIES.map((category) => (
-                            <option key={category}>{category}</option>
-                          ))}
-                        </select>
+                        <div className="flex flex-wrap gap-2" role="group" aria-label={t('Categorias da CNH')}>
+                          {LICENSE_CATEGORIES.map((category) => {
+                            const selected = form.driverLicenseCategory.includes(category);
+                            return <button key={category} type="button" aria-pressed={selected} onClick={() => set('driverLicenseCategory', selected ? form.driverLicenseCategory.filter((item) => item !== category) : [...form.driverLicenseCategory, category])} className={`min-h-10 rounded-lg border px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6a3de0] ${selected ? 'border-[#6a3de0] bg-[#f0eafa] text-[#5b29be]' : 'border-[#e9e5f0] bg-white text-[#736d80]'}`}>{category}</button>;
+                          })}
+                        </div>
                         {err('driverLicenseCategory')}
                       </label>
                     )}

@@ -91,7 +91,7 @@ export class CandidateUpdateProfileDto {
   @IsOptional() @IsString() @MaxLength(1200) about?: string;
   @IsOptional() @IsArray() @ArrayMaxSize(10) experience?: Record<string, unknown>[];
   @IsOptional() @IsBoolean() hasDriverLicense?: boolean;
-  @IsOptional() @IsString() @MaxLength(3) driverLicenseCategory?: string;
+  @IsOptional() driverLicenseCategory?: string[] | string;
   @IsOptional() @IsBoolean() talentPoolConsent?: boolean;
   @IsOptional() @IsBoolean() consent?: boolean;
   @IsOptional() @IsBoolean() admissionShareConsent?: boolean;

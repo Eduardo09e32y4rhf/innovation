@@ -21,9 +21,9 @@ import { ScreeningEditor } from './screening-editor';
 import { JobSharePanel } from './share-dialog';
 import type { JobLocale } from '@/app/carreiras/_lib/job-translations';
 
-const STEPS = ['Tipo e cargo', 'Detalhes da vaga', 'Triagem', 'Etapas e avaliação', 'Publicar'] as const;
+const STEPS = ['Tipo e cargo', 'Detalhes da vaga', 'Triagem', 'Etapas e avaliaÃ§Ã£o', 'Publicar'] as const;
 const EMPLOYMENT_OPTIONS = ['CLT', 'PJ', 'ESTAGIO', 'TEMPORARIO', 'JOVEM_APRENDIZ'];
-const SENIORITY = ['Estágio', 'Júnior', 'Pleno', 'Sênior', 'Especialista', 'Liderança'];
+const SENIORITY = ['EstÃ¡gio', 'JÃºnior', 'Pleno', 'SÃªnior', 'Especialista', 'LideranÃ§a'];
 type Kind = 'EXTERNAL' | 'INTERNAL' | 'CONFIDENTIAL';
 
 interface Draft {
@@ -49,30 +49,30 @@ const EMPTY: Draft = {
 const lines = (text: string) => text.split('\n').map((line) => line.trim()).filter(Boolean);
 const KIND: Record<Kind, { title: string; text: string; icon: typeof Globe2 }> = {
   EXTERNAL: { title: 'Externa', text: 'Aparece no portal de vagas. Qualquer pessoa se candidata pelo link ou QR code.', icon: Globe2 },
-  INTERNAL: { title: 'Interna', text: 'Só funcionários. No link, a pessoa confirma matrícula + CPF e o sistema confere com o cadastro.', icon: Lock },
-  CONFIDENTIAL: { title: 'Confidencial', text: 'Não aparece no portal. Só quem recebe o link ou o QR code vê (reposição, substituição).', icon: EyeOff },
+  INTERNAL: { title: 'Interna', text: 'SÃ³ funcionÃ¡rios. No link, a pessoa confirma matrÃ­cula + CPF e o sistema confere com o cadastro.', icon: Lock },
+  CONFIDENTIAL: { title: 'Confidencial', text: 'NÃ£o aparece no portal. SÃ³ quem recebe o link ou o QR code vÃª (reposiÃ§Ã£o, substituiÃ§Ã£o).', icon: EyeOff },
 };
 const STAGE_HELP: Record<StageKind, string> = {
-  APPLIED: 'Candidatura chega e passa pela triagem automática (perguntas e nota).',
-  SCREENING: 'RH analisa currículos e respostas. Pode enviar teste técnico ou comportamental.',
-  INTERVIEW: 'Ao mover para cá, abre o agendamento: presencial ou online, convite por e-mail e lembrete.',
-  OFFER: 'Proposta digital: aprovação interna e aceite do candidato pelo link.',
-  HIRED: 'Contratar: vira funcionário em admissão (documentos e ASO).',
+  APPLIED: 'Candidatura chega e passa pela triagem automÃ¡tica (perguntas e nota).',
+  SCREENING: 'RH analisa currÃ­culos e respostas. Pode enviar teste tÃ©cnico ou comportamental.',
+  INTERVIEW: 'Ao mover para cÃ¡, abre o agendamento: presencial ou online, convite por e-mail e lembrete.',
+  OFFER: 'Proposta digital: aprovaÃ§Ã£o interna e aceite do candidato pelo link.',
+  HIRED: 'Contratar: vira funcionÃ¡rio em admissÃ£o (documentos e ASO).',
   REJECTED: 'Reprovado: o candidato recebe um retorno educado por e-mail.',
 };
 
 function validate(draft: Draft): { step: number; message: string }[] {
   const issues: { step: number; message: string }[] = [];
-  if (!draft.title.trim()) issues.push({ step: 0, message: 'Informe o cargo / título da vaga.' });
+  if (!draft.title.trim()) issues.push({ step: 0, message: 'Informe o cargo / tÃ­tulo da vaga.' });
   if (!draft.description.trim()) issues.push({ step: 1, message: 'Descreva a vaga.' });
   const min = toWholeReais(draft.salaryMin) ?? null;
   const max = toWholeReais(draft.salaryMax) ?? null;
-  if (min !== null && max !== null && min > max) issues.push({ step: 1, message: 'O salário mínimo não pode ser maior que o máximo.' });
+  if (min !== null && max !== null && min > max) issues.push({ step: 1, message: 'O salÃ¡rio mÃ­nimo nÃ£o pode ser maior que o mÃ¡ximo.' });
   draft.questions.forEach((question, index) => {
-    if (!question.label.trim()) issues.push({ step: 2, message: `A pergunta ${index + 1} está sem texto.` });
-    if (['SELECT', 'MULTI'].includes(question.type) && question.options.length < 2) issues.push({ step: 2, message: `A pergunta ${index + 1} precisa de ao menos 2 opções.` });
+    if (!question.label.trim()) issues.push({ step: 2, message: `A pergunta ${index + 1} estÃ¡ sem texto.` });
+    if (['SELECT', 'MULTI'].includes(question.type) && question.options.length < 2) issues.push({ step: 2, message: `A pergunta ${index + 1} precisa de ao menos 2 opÃ§Ãµes.` });
   });
-  draft.criteria.forEach((criterion, index) => { if (!criterion.name.trim()) issues.push({ step: 3, message: `O critério ${index + 1} está sem nome.` }); });
+  draft.criteria.forEach((criterion, index) => { if (!criterion.name.trim()) issues.push({ step: 3, message: `O critÃ©rio ${index + 1} estÃ¡ sem nome.` }); });
   return issues;
 }
 
@@ -133,7 +133,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
         };
         setDraft(loaded); baseline.current = JSON.stringify(loaded);
       })
-      .catch((cause) => active && setLoadError(cause instanceof ApiError ? cause.message : 'Não foi possível carregar a vaga.'))
+      .catch((cause) => active && setLoadError(cause instanceof ApiError ? cause.message : 'NÃ£o foi possÃ­vel carregar a vaga.'))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [jobId]);
@@ -205,14 +205,14 @@ export function JobWizard({ jobId }: { jobId?: string }) {
       await jobsApi.saveQuestions(result.id, draft.questions);
       await jobsApi.saveCriteria(result.id, draft.criteria);
       baseline.current = JSON.stringify(draft);
-      if (result.status === 'PENDING_APPROVAL') toast.info('A vaga foi para aprovação. O link funciona depois de aprovada.');
+      if (result.status === 'PENDING_APPROVAL') toast.info('A vaga foi para aprovaÃ§Ã£o. O link funciona depois de aprovada.');
       setSaved(result);
     } catch (cause) {
-      toast.error(cause instanceof ApiError ? cause.message : 'Não foi possível salvar a vaga.');
+      toast.error(cause instanceof ApiError ? cause.message : 'NÃ£o foi possÃ­vel salvar a vaga.');
     } finally { savingRef.current = false; setSaving(false); }
   }
 
-  if (loading) return <LoadingState label="Carregando vaga…" />;
+  if (loading) return <LoadingState label="Carregando vagaâ€¦" />;
   if (loadError) return <div className="p-6"><ErrorState message={loadError} /><Link href={base} className="btn btn-outline btn-md mt-3 inline-flex">Voltar</Link></div>;
 
   if (saved) {
@@ -221,8 +221,8 @@ export function JobWizard({ jobId }: { jobId?: string }) {
       <div className="mx-auto w-full max-w-2xl space-y-5 p-4 sm:p-6">
         <div className="space-y-2 text-center">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><Check size={28} aria-hidden="true" /></span>
-          <h1 className="text-2xl font-bold text-fg">{published ? 'Vaga publicada!' : saved.status === 'PENDING_APPROVAL' ? 'Vaga enviada para aprovação' : 'Vaga salva como rascunho'}</h1>
-          <p className="text-sm text-fg-sub">{saved.title}{published ? ' · divulgue o link ou o QR code abaixo.' : ' · o link passa a funcionar quando a vaga for publicada.'}</p>
+          <h1 className="text-2xl font-bold text-fg">{published ? 'Vaga publicada!' : saved.status === 'PENDING_APPROVAL' ? 'Vaga enviada para aprovaÃ§Ã£o' : 'Vaga salva como rascunho'}</h1>
+          <p className="text-sm text-fg-sub">{saved.title}{published ? ' Â· divulgue o link ou o QR code abaixo.' : ' Â· o link passa a funcionar quando a vaga for publicada.'}</p>
         </div>
         <ShareInline job={saved} />
         <div className="flex flex-wrap justify-center gap-2">
@@ -240,7 +240,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
 
   return (
     <div className="mx-auto w-full max-w-[1300px] space-y-5 p-4 sm:p-6">
-      <PageHeader title={jobId ? 'Editar vaga' : 'Nova vaga'} subtitle="Escolha o cargo e o sistema monta a vaga para você revisar."
+      <PageHeader title={jobId ? 'Editar vaga' : 'Nova vaga'} subtitle="Escolha o cargo e o sistema monta a vaga para vocÃª revisar."
         actions={<Button variant="outline" onClick={() => (dirty ? setLeaveOpen(true) : router.push(base))}><ArrowLeft size={16} aria-hidden="true" /> Voltar</Button>} />
 
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_300px]">
@@ -259,7 +259,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
         <div className="min-w-0 space-y-5">
           {autoFilled && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-900">
-              <span className="flex items-center gap-2"><Sparkles size={16} aria-hidden="true" /> Preenchemos descrição, requisitos, benefícios, perguntas, critérios e roteiro com o modelo <strong>{autoFilled.template.label}</strong>. Revise e ajuste.</span>
+              <span className="flex items-center gap-2"><Sparkles size={16} aria-hidden="true" /> Preenchemos descriÃ§Ã£o, requisitos, benefÃ­cios, perguntas, critÃ©rios e roteiro com o modelo <strong>{autoFilled.template.label}</strong>. Revise e ajuste.</span>
               <button type="button" className="inline-flex min-h-9 items-center gap-1 font-semibold underline" onClick={() => { setDraft(autoFilled.before); setAutoFilled(null); }}><Undo2 size={14} aria-hidden="true" /> Desfazer</button>
             </div>
           )}
@@ -281,12 +281,12 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                     );
                   })}
                 </div>
-                {jobId && <p className="text-xs text-fg-sub">Você pode mudar o público a qualquer momento. O link muda junto (divulgue o novo link/QR code) e quem já se candidatou continua no processo.</p>}
+                {jobId && <p className="text-xs text-fg-sub">VocÃª pode mudar o pÃºblico a qualquer momento. O link muda junto (divulgue o novo link/QR code) e quem jÃ¡ se candidatou continua no processo.</p>}
               </SectionCard>
 
-              <SectionCard title="Cargo" description="Digite ou escolha. Cargos conhecidos já trazem descrição, perguntas e critérios prontos.">
-                <Field label="Cargo / título da vaga" required>
-                  <input className={inputClass} list="job-title-options" value={draft.title} maxLength={160} placeholder="Ex.: Vendedor, Auxiliar Administrativo, Motorista…"
+              <SectionCard title="Cargo" description="Digite ou escolha. Cargos conhecidos jÃ¡ trazem descriÃ§Ã£o, perguntas e critÃ©rios prontos.">
+                <Field label="Cargo / tÃ­tulo da vaga" required>
+                  <input className={inputClass} list="job-title-options" value={draft.title} maxLength={160} placeholder="Ex.: Vendedor, Auxiliar Administrativo, Motoristaâ€¦"
                     onChange={(event) => set('title', event.target.value)} />
                   <datalist id="job-title-options">{suggestions.slice(0, 400).map((title) => <option key={title} value={title} />)}</datalist>
                 </Field>
@@ -298,7 +298,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                 )}
                 {!draft.title.trim() && (
                   <div>
-                    <p className="mb-2 text-sm font-medium text-fg">Ou comece por uma área:</p>
+                    <p className="mb-2 text-sm font-medium text-fg">Ou comece por uma Ã¡rea:</p>
                     <div className="flex flex-wrap gap-2">
                       {ROLE_TEMPLATES.map((item) => <button key={item.id} type="button" className="min-h-9 rounded-full border border-border px-3 text-sm hover:border-purple-400 hover:bg-purple-50" onClick={() => fillFromTemplate(item, item.titles[0])}>{item.label}</button>)}
                     </div>
@@ -309,7 +309,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                     <p className="mb-2 text-sm font-medium text-fg">Modelos salvos pela sua empresa:</p>
                     <div className="flex flex-wrap gap-2">
                       {savedTemplates.data!.map((row) => <button key={row.id} type="button" className="min-h-9 rounded-full border border-border px-3 text-sm hover:bg-bg-sub" onClick={async () => {
-                        try { const created = await workflowApi.useTemplate(row.id); toast.success('Vaga criada a partir do modelo. Revise e publique.'); router.push(`${base}/${created.id}/edit`); } catch (cause) { toast.error(cause instanceof ApiError ? cause.message : 'Não foi possível usar o modelo.'); }
+                        try { const created = await workflowApi.useTemplate(row.id); toast.success('Vaga criada a partir do modelo. Revise e publique.'); router.push(`${base}/${created.id}/edit`); } catch (cause) { toast.error(cause instanceof ApiError ? cause.message : 'NÃ£o foi possÃ­vel usar o modelo.'); }
                       }}>{row.name}</button>)}
                     </div>
                   </div>
@@ -319,37 +319,37 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                     <datalist id="job-department-options">{[...new Set([...(titles.data?.titles ?? []).map((item) => item.department).filter(Boolean) as string[], ...ROLE_TEMPLATES.map((item) => item.department)])].map((item) => <option key={item} value={item} />)}</datalist></Field>
                   <Field label="Quantidade de vagas"><input type="number" min={1} className={inputClass} value={draft.openings} onChange={(event) => set('openings', Number(event.target.value))} /></Field>
                   <Field label="Senioridade" className="sm:col-span-2">
-                    <div className="flex flex-wrap gap-1.5">{['', ...SENIORITY].map((item) => <button key={item || 'none'} type="button" aria-pressed={draft.seniority === item} onClick={() => set('seniority', item)} className={`min-h-9 rounded-full border px-3 text-sm ${draft.seniority === item ? 'border-purple-600 bg-purple-600 text-white' : 'border-border hover:bg-bg-sub'}`}>{item || 'Não informar'}</button>)}</div>
+                    <div className="flex flex-wrap gap-1.5">{['', ...SENIORITY].map((item) => <button key={item || 'none'} type="button" aria-pressed={draft.seniority === item} onClick={() => set('seniority', item)} className={`min-h-9 rounded-full border px-3 text-sm ${draft.seniority === item ? 'border-purple-600 bg-purple-600 text-white' : 'border-border hover:bg-bg-sub'}`}>{item || 'NÃ£o informar'}</button>)}</div>
                   </Field>
                   <Field label="Local"><input className={inputClass} value={draft.location} maxLength={180} placeholder="Cidade - UF, bairro ou remoto" onChange={(event) => set('location', event.target.value)} /></Field>
-                  <Field label="Modalidade"><select className={inputClass} value={draft.workMode} onChange={(event) => set('workMode', event.target.value)}><option value="">Não informar</option>{Object.entries(WORK_MODE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
-                  <Field label="Contratação"><select className={inputClass} value={draft.employmentType} onChange={(event) => set('employmentType', event.target.value)}>{EMPLOYMENT_OPTIONS.map((value) => <option key={value} value={value}>{EMPLOYMENT_TYPE_LABEL[value]}</option>)}</select></Field>
+                  <Field label="Modalidade"><select className={inputClass} value={draft.workMode} onChange={(event) => set('workMode', event.target.value)}><option value="">NÃ£o informar</option>{Object.entries(WORK_MODE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
+                  <Field label="ContrataÃ§Ã£o"><select className={inputClass} value={draft.employmentType} onChange={(event) => set('employmentType', event.target.value)}>{EMPLOYMENT_OPTIONS.map((value) => <option key={value} value={value}>{EMPLOYMENT_TYPE_LABEL[value]}</option>)}</select></Field>
                 </div>
               </SectionCard>
             </>
           )}
 
           {step === 1 && (
-            <SectionCard title="Detalhes da vaga" description="O que aparece para o candidato. Já vem preenchido quando o cargo é reconhecido.">
+            <SectionCard title="Detalhes da vaga" description="O que aparece para o candidato. JÃ¡ vem preenchido quando o cargo Ã© reconhecido.">
               {template && !draft.description.trim() && <Button variant="outline" size="sm" onClick={() => fillFromTemplate(template)}><Sparkles size={14} aria-hidden="true" /> Gerar texto para {draft.title || template.label}</Button>}
-              <Field label="Descrição da vaga" required hint={`${draft.description.length} / 12.000 caracteres`}>
+              <Field label="DescriÃ§Ã£o da vaga" required hint={`${draft.description.length} / 12.000 caracteres`}>
                 <textarea className={`${inputClass} min-h-48`} maxLength={12000} value={draft.description} onChange={(event) => set('description', event.target.value)} />
               </Field>
               <Field label="Requisitos" hint="Um por linha."><textarea className={`${inputClass} min-h-24`} value={draft.requirementsText} onChange={(event) => set('requirementsText', event.target.value)} /></Field>
-              <Field label="Benefícios" hint="Clique para adicionar ou escreva um por linha.">
+              <Field label="BenefÃ­cios" hint="Clique para adicionar ou escreva um por linha.">
                 <div className="mb-2 flex flex-wrap gap-1.5">{BENEFIT_SUGGESTIONS.map((item) => {
                   const on = benefits.some((benefit) => benefit.toLowerCase() === item.toLowerCase());
-                  return <button key={item} type="button" aria-pressed={on} onClick={() => set('benefitsText', on ? benefits.filter((benefit) => benefit.toLowerCase() !== item.toLowerCase()).join('\n') : [...benefits, item].join('\n'))} className={`min-h-8 rounded-full border px-2.5 text-xs font-medium ${on ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-border text-fg-sub hover:bg-bg-sub'}`}>{on ? '✓ ' : '+ '}{item}</button>;
+                  return <button key={item} type="button" aria-pressed={on} onClick={() => set('benefitsText', on ? benefits.filter((benefit) => benefit.toLowerCase() !== item.toLowerCase()).join('\n') : [...benefits, item].join('\n'))} className={`min-h-8 rounded-full border px-2.5 text-xs font-medium ${on ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-border text-fg-sub hover:bg-bg-sub'}`}>{on ? 'âœ“ ' : '+ '}{item}</button>;
                 })}</div>
-                <textarea aria-label="Benefícios da vaga, um por linha" className={`${inputClass} min-h-24`} value={draft.benefitsText} onChange={(event) => set('benefitsText', event.target.value)} />
+                <textarea aria-label="BenefÃ­cios da vaga, um por linha" className={`${inputClass} min-h-24`} value={draft.benefitsText} onChange={(event) => set('benefitsText', event.target.value)} />
               </Field>
               <details className="rounded-xl border border-border bg-bg-sub/40 p-4">
-                <summary className="min-h-10 cursor-pointer content-center font-semibold">Versões em inglês e espanhol (opcional)</summary>
-                <p className="mb-4 text-sm text-fg-sub">As traduções são informadas pela empresa e exibidas quando o candidato selecionar esse idioma. Campos sem tradução aparecem no idioma original.</p>
+                <summary className="min-h-10 cursor-pointer content-center font-semibold">VersÃµes em inglÃªs e espanhol (opcional)</summary>
+                <p className="mb-4 text-sm text-fg-sub">As traduÃ§Ãµes sÃ£o informadas pela empresa e exibidas quando o candidato selecionar esse idioma. Campos sem traduÃ§Ã£o aparecem no idioma original.</p>
                 {(['en', 'es'] as const).map((locale) => {
                   const labels = locale === 'en'
-                    ? { title: 'Título em inglês', description: 'Descrição em inglês', requirements: 'Requisitos em inglês', benefits: 'Benefícios em inglês' }
-                    : { title: 'Título em espanhol', description: 'Descrição em espanhol', requirements: 'Requisitos em espanhol', benefits: 'Benefícios em espanhol' };
+                    ? { title: 'TÃ­tulo em inglÃªs', description: 'DescriÃ§Ã£o em inglÃªs', requirements: 'Requisitos em inglÃªs', benefits: 'BenefÃ­cios em inglÃªs' }
+                    : { title: 'TÃ­tulo em espanhol', description: 'DescriÃ§Ã£o em espanhol', requirements: 'Requisitos em espanhol', benefits: 'BenefÃ­cios em espanhol' };
                   const value = draft.translations[locale];
                   const update = (key: keyof typeof value, next: string) => set('translations', {
                     ...draft.translations,
@@ -357,7 +357,7 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                   });
                   return (
                     <fieldset key={locale} className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
-                      <legend className="px-1 text-sm font-bold">{locale === 'en' ? 'English' : 'Español'}</legend>
+                      <legend className="px-1 text-sm font-bold">{locale === 'en' ? 'English' : 'EspaÃ±ol'}</legend>
                       <Field label={labels.title}><input className={inputClass} maxLength={160} value={value.title} onChange={(event) => update('title', event.target.value)} /></Field>
                       <Field label={labels.description} className="sm:col-span-2"><textarea className={`${inputClass} min-h-32`} maxLength={12000} value={value.description} onChange={(event) => update('description', event.target.value)} /></Field>
                       <Field label={labels.requirements} hint="Um por linha."><textarea className={`${inputClass} min-h-24`} value={value.requirementsText} onChange={(event) => update('requirementsText', event.target.value)} /></Field>
@@ -367,24 +367,24 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                 })}
               </details>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Salário de (R$)"><input inputMode="decimal" className={inputClass} placeholder="2.000" value={draft.salaryMin} onChange={(event) => set('salaryMin', event.target.value)} /></Field>
-                <Field label="até (R$)"><input inputMode="decimal" className={inputClass} placeholder="2.500" value={draft.salaryMax} onChange={(event) => set('salaryMax', event.target.value)} /></Field>
-                <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" className="h-4 w-4" checked={draft.salaryHidden} onChange={(event) => set('salaryHidden', event.target.checked)} /> Não mostrar o salário (aparece &quot;A combinar&quot;)</label>
-                <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" className="h-4 w-4" checked={draft.pcd} onChange={(event) => set('pcd', event.target.checked)} /> Vaga afirmativa para pessoas com deficiência (PCD): mostra o selo &quot;Vaga PCD&quot; na página pública</label>
-                {canSeeCost && <Field label="Custo do recrutamento (R$)" hint="Anúncios, agência, testes. Usado no custo por contratação dos relatórios. Só RH e administradores veem."><input inputMode="decimal" className={inputClass} placeholder="1.500,00" value={draft.costAmount} onChange={(event) => set('costAmount', event.target.value)} /></Field>}
-                <Field label="Inscrições até" hint="Depois desta data a vaga para de receber candidaturas. Em branco = sem prazo."><input type="date" className={inputClass} value={draft.deadline} onChange={(event) => set('deadline', event.target.value)} /></Field>
+                <Field label="SalÃ¡rio de (R$)"><input inputMode="decimal" className={inputClass} placeholder="2.000" value={draft.salaryMin} onChange={(event) => set('salaryMin', event.target.value)} /></Field>
+                <Field label="atÃ© (R$)"><input inputMode="decimal" className={inputClass} placeholder="2.500" value={draft.salaryMax} onChange={(event) => set('salaryMax', event.target.value)} /></Field>
+                <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" className="h-4 w-4" checked={draft.salaryHidden} onChange={(event) => set('salaryHidden', event.target.checked)} /> NÃ£o mostrar o salÃ¡rio (aparece &quot;A combinar&quot;)</label>
+                <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" className="h-4 w-4" checked={draft.pcd} onChange={(event) => set('pcd', event.target.checked)} /> Vaga afirmativa para pessoas com deficiÃªncia (PCD): mostra o selo &quot;Vaga PCD&quot; na pÃ¡gina pÃºblica</label>
+                {canSeeCost && <Field label="Custo do recrutamento (R$)" hint="AnÃºncios, agÃªncia, testes. Usado no custo por contrataÃ§Ã£o dos relatÃ³rios. SÃ³ RH e administradores veem."><input inputMode="decimal" className={inputClass} placeholder="1.500,00" value={draft.costAmount} onChange={(event) => set('costAmount', event.target.value)} /></Field>}
+                <Field label="InscriÃ§Ãµes atÃ©" hint="Depois desta data a vaga para de receber candidaturas. Em branco = sem prazo."><input type="date" className={inputClass} value={draft.deadline} onChange={(event) => set('deadline', event.target.value)} /></Field>
               </div>
             </SectionCard>
           )}
 
           {step === 2 && (
-            <SectionCard title="Triagem automática" description="Perguntas que o candidato responde ao se candidatar. O sistema dá uma nota de 0 a 100% e separa quem não atende.">
+            <SectionCard title="Triagem automÃ¡tica" description="Perguntas que o candidato responde ao se candidatar. O sistema dÃ¡ uma nota de 0 a 100% e separa quem nÃ£o atende.">
               <ScreeningEditor questions={draft.questions} suggested={template?.questions ?? []} minScore={draft.screeningMinScore} action={draft.screeningAction}
                 onChange={(next) => set('questions', next)} onMinScore={(value) => set('screeningMinScore', value)} onAction={(value) => set('screeningAction', value)} />
               {draft.questions.length > 0 && (
                 <details className="rounded-xl border border-border bg-bg-sub/40 p-4">
-                  <summary className="min-h-10 cursor-pointer content-center font-semibold">Traduções das perguntas para candidatos</summary>
-                  <p className="mb-4 text-sm text-fg-sub">Preencha as versões em inglês e espanhol. As respostas continuam vinculadas às opções originais da triagem.</p>
+                  <summary className="min-h-10 cursor-pointer content-center font-semibold">TraduÃ§Ãµes das perguntas para candidatos</summary>
+                  <p className="mb-4 text-sm text-fg-sub">Preencha as versÃµes em inglÃªs e espanhol. As respostas continuam vinculadas Ã s opÃ§Ãµes originais da triagem.</p>
                   {draft.questions.map((question, index) => (
                     <section key={question.id ?? index} className="space-y-3 border-t border-border py-4">
                       <p className="text-sm font-semibold">{index + 1}. {question.label || 'Pergunta sem texto'}</p>
@@ -397,9 +397,9 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                         )));
                         return (
                           <fieldset key={locale} className="grid gap-3 sm:grid-cols-2">
-                            <legend className="text-xs font-bold">{locale === 'en' ? 'English' : 'Español'}</legend>
+                            <legend className="text-xs font-bold">{locale === 'en' ? 'English' : 'EspaÃ±ol'}</legend>
                             <Field label="Pergunta"><input className={inputClass} maxLength={300} value={translation.label ?? ''} onChange={(event) => update({ label: event.target.value })} /></Field>
-                            {question.options.length > 0 && <Field label="Opções, na mesma ordem" hint="Uma opção por linha."><textarea className={`${inputClass} min-h-20`} value={translation.options?.join('\n') ?? ''} onChange={(event) => update({ options: event.target.value.split('\n').map((option) => option.trim()) })} /></Field>}
+                            {question.options.length > 0 && <Field label="OpÃ§Ãµes, na mesma ordem" hint="Uma opÃ§Ã£o por linha."><textarea className={`${inputClass} min-h-20`} value={translation.options?.join('\n') ?? ''} onChange={(event) => update({ options: event.target.value.split('\n').map((option) => option.trim()) })} /></Field>}
                           </fieldset>
                         );
                       })}
@@ -412,8 +412,8 @@ export function JobWizard({ jobId }: { jobId?: string }) {
 
           {step === 3 && (
             <>
-              <SectionCard title="Etapas do processo" description="O caminho de cada candidato nesta vaga. Você move pelo quadro de candidatos e o sistema faz o resto.">
-                {pipeline.loading && <p className="text-sm text-fg-sub">Carregando etapas…</p>}
+              <SectionCard title="Etapas do processo" description="O caminho de cada candidato nesta vaga. VocÃª move pelo quadro de candidatos e o sistema faz o resto.">
+                {pipeline.loading && <p className="text-sm text-fg-sub">Carregando etapasâ€¦</p>}
                 <ol className="space-y-2">
                   {(pipeline.data?.stages ?? []).map((stage, index) => (
                     <li key={stage.id} className="flex items-start gap-3 rounded-xl border border-border p-3">
@@ -425,40 +425,42 @@ export function JobWizard({ jobId }: { jobId?: string }) {
                 <p className="text-xs text-fg-sub">Quer mudar os nomes ou a ordem das etapas? <Link href={`${base}/settings`} className="font-semibold text-brand-700 underline">Configurar funil</Link> (vale para todas as vagas).</p>
               </SectionCard>
 
-              <SectionCard title="Critérios para avaliar o candidato" description="Usados por quem entrevista (notas de 1 a 5). O peso vira a porcentagem de cada critério na nota final.">
+              <SectionCard title="CritÃ©rios para avaliar o candidato" description="Usados por quem entrevista (notas de 1 a 5). O peso vira a porcentagem de cada critÃ©rio na nota final.">
                 <div className="flex flex-wrap gap-1.5">{CRITERIA_LIBRARY.map((item) => {
                   const on = draft.criteria.some((criterion) => criterion.name.toLowerCase() === item.name.toLowerCase());
-                  return <button key={item.name} type="button" disabled={!on && draft.criteria.length >= 12} aria-pressed={on} onClick={() => set('criteria', on ? draft.criteria.filter((criterion) => criterion.name.toLowerCase() !== item.name.toLowerCase()) : [...draft.criteria, { ...item }])} className={`min-h-8 rounded-full border px-2.5 text-xs font-medium ${on ? 'border-purple-500 bg-purple-50 text-purple-800' : 'border-border text-fg-sub hover:bg-bg-sub'}`}>{on ? '✓ ' : '+ '}{item.name}</button>;
+                  return <button key={item.name} type="button" disabled={!on && draft.criteria.length >= 12} aria-pressed={on} onClick={() => set('criteria', on ? draft.criteria.filter((criterion) => criterion.name.toLowerCase() !== item.name.toLowerCase()) : [...draft.criteria, { ...item }])} className={`min-h-8 rounded-full border px-2.5 text-xs font-medium ${on ? 'border-purple-500 bg-purple-50 text-purple-800' : 'border-border text-fg-sub hover:bg-bg-sub'}`}>{on ? 'âœ“ ' : '+ '}{item.name}</button>;
                 })}</div>
                 <ul className="space-y-2">
                   {draft.criteria.map((criterion, index) => (
-                    <li key={criterion.id ?? index} className="grid grid-cols-[1fr_150px_56px_auto] items-center gap-2">
-                      <input className={inputClass} aria-label={`Critério ${index + 1}`} value={criterion.name} maxLength={80} onChange={(event) => set('criteria', draft.criteria.map((item, i) => (i === index ? { ...item, name: event.target.value } : item)))} />
-                      <select className={inputClass} aria-label={`Peso do critério ${index + 1}`} value={criterion.weight} onChange={(event) => set('criteria', draft.criteria.map((item, i) => (i === index ? { ...item, weight: Number(event.target.value) } : item)))}>{[[1, 'Peso baixo'], [2, 'Peso médio'], [3, 'Peso alto']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+                    <li key={criterion.id ?? index} className="grid grid-cols-1 items-center gap-2 rounded-lg border border-border p-2 sm:grid-cols-[minmax(120px,1fr)_130px_minmax(120px,1fr)_140px_110px_56px_auto]">
+                      <input className={inputClass} aria-label={`CritÃ©rio ${index + 1}`} value={criterion.name} maxLength={80} onChange={(event) => set('criteria', draft.criteria.map((item, i) => (i === index ? { ...item, name: event.target.value } : item)))} />
+                      <select className={inputClass} aria-label={`Tipo do critério ${index + 1}`} value={criterion.kind ?? 'SKILL'} onChange={(event) => set('criteria', draft.criteria.map((item, i) => (i === index ? { ...item, kind: event.target.value as Criterion['kind'] } : item)))}><option value="SKILL">Conhecimento</option><option value="EDUCATION">Escolaridade</option><option value="CNH">CNH</option></select>
+                      <input className={inputClass} aria-label={`Valor ou categorias aceitas ${index + 1}`} placeholder={(criterion.kind ?? 'SKILL') === 'CNH' ? 'A, B, AB' : (criterion.kind ?? 'SKILL') === 'EDUCATION' ? 'Ensino médio' : 'Termo a identificar'} value={criterion.value ?? ''} maxLength={100} onChange={(event) => set('criteria', draft.criteria.map((item, i) => (i === index ? { ...item, value: event.target.value } : item)))} />
+                      <label className="flex min-h-10 items-center gap-2 text-xs"><input type="checkbox" checked={criterion.isMandatory ?? true} onChange={(event) => set('criteria', draft.criteria.map((item, i) => (i === index ? { ...item, isMandatory: event.target.checked } : item)))} className="h-4 w-4 accent-purple-600" />Obrigatório</label>                      <select className={inputClass} aria-label={`Peso do critÃ©rio ${index + 1}`} value={criterion.weight} onChange={(event) => set('criteria', draft.criteria.map((item, i) => (i === index ? { ...item, weight: Number(event.target.value) } : item)))}>{[[1, 'Peso baixo'], [2, 'Peso mÃ©dio'], [3, 'Peso alto']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
                       <span className="text-right text-sm font-semibold tabular-nums text-purple-700">{criteriaTotal ? Math.round(((Number(criterion.weight) || 0) / criteriaTotal) * 100) : 0}%</span>
-                      <button type="button" className="btn-icon text-rose-600" aria-label="Remover critério" onClick={() => set('criteria', draft.criteria.filter((_, i) => i !== index))}><Trash2 size={16} /></button>
+                      <button type="button" className="btn-icon text-rose-600" aria-label="Remover critÃ©rio" onClick={() => set('criteria', draft.criteria.filter((_, i) => i !== index))}><Trash2 size={16} /></button>
                     </li>
                   ))}
                 </ul>
-                <Button variant="ghost" size="sm" disabled={draft.criteria.length >= 12} onClick={() => set('criteria', [...draft.criteria, { name: '', weight: 2 }])}><Plus size={15} aria-hidden="true" /> Critério próprio</Button>
+                <Button variant="ghost" size="sm" disabled={draft.criteria.length >= 12} onClick={() => set('criteria', [...draft.criteria, { name: '', weight: 2 }])}><Plus size={15} aria-hidden="true" /> CritÃ©rio prÃ³prio</Button>
                 {draft.criteria.length > 0 && <p className="text-xs text-fg-sub">Os pesos somam sempre 100%.</p>}
               </SectionCard>
 
               <SectionCard title="Roteiro de entrevista" description="Perguntas que quem entrevista deve fazer (uma por linha). Aparecem na ficha do candidato e na hora de avaliar.">
                 {!draft.interviewGuideText.trim() && <Button variant="outline" size="sm" onClick={() => set('interviewGuideText', (template ?? ROLE_TEMPLATES[2]).guide.join('\n'))}><Sparkles size={14} aria-hidden="true" /> Usar roteiro pronto</Button>}
                 <textarea className={`${inputClass} min-h-32`} aria-label="Roteiro de entrevista" value={draft.interviewGuideText} onChange={(event) => set('interviewGuideText', event.target.value)} />
-                <p className="text-sm text-fg-sub">Teste técnico com nota de corte: {jobId ? <Link className="font-semibold text-brand-700 underline" href={`${base}/${jobId}/teste`}>montar o teste desta vaga</Link> : 'monte depois de salvar a vaga (botão Teste técnico).'} O questionário comportamental já está pronto na ficha do candidato.</p>
+                <p className="text-sm text-fg-sub">Teste tÃ©cnico com nota de corte: {jobId ? <Link className="font-semibold text-brand-700 underline" href={`${base}/${jobId}/teste`}>montar o teste desta vaga</Link> : 'monte depois de salvar a vaga (botÃ£o Teste tÃ©cnico).'} O questionÃ¡rio comportamental jÃ¡ estÃ¡ pronto na ficha do candidato.</p>
               </SectionCard>
 
-              <SectionCard title="Documentos da admissão" description="Documentos que o candidato escolhido precisa enviar. Sem seleção, usamos o kit do tipo de contrato (CLT, PJ, estágio, aprendiz ou temporário).">
+              <SectionCard title="Documentos da admissÃ£o" description="Documentos que o candidato escolhido precisa enviar. Sem seleÃ§Ã£o, usamos o kit do tipo de contrato (CLT, PJ, estÃ¡gio, aprendiz ou temporÃ¡rio).">
                 <DocumentPicker value={draft.requiredDocuments} onChange={(items) => set('requiredDocuments', items)} />
-                {draft.requiredDocuments.length === 0 && <p className="text-xs text-fg-sub">Nenhum documento escolhido: será usado o kit do contrato {draft.employmentType || 'CLT'}.</p>}
+                {draft.requiredDocuments.length === 0 && <p className="text-xs text-fg-sub">Nenhum documento escolhido: serÃ¡ usado o kit do contrato {draft.employmentType || 'CLT'}.</p>}
               </SectionCard>
             </>
           )}
 
           {step === 4 && (
-            <SectionCard title="Revisar e publicar" description="Ao publicar, você recebe o link e o QR code da vaga.">
+            <SectionCard title="Revisar e publicar" description="Ao publicar, vocÃª recebe o link e o QR code da vaga.">
               {issues.length > 0 && (
                 <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
                   <p className="font-semibold">Corrija antes de publicar:</p>
@@ -467,16 +469,16 @@ export function JobWizard({ jobId }: { jobId?: string }) {
               )}
               <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <div><dt className="text-fg-sub">Tipo</dt><dd className="font-medium">{KIND[draft.kind].title}</dd></div>
-                <div><dt className="text-fg-sub">Cargo</dt><dd className="font-medium">{draft.title || '—'}{draft.openings > 1 ? ` · ${draft.openings} vagas` : ''}</dd></div>
-                <div><dt className="text-fg-sub">Departamento / Local</dt><dd className="font-medium">{[draft.department, draft.location].filter(Boolean).join(' · ') || '—'}</dd></div>
-                <div><dt className="text-fg-sub">Salário</dt><dd className="font-medium">{salaryLabel({ salaryMin: toWholeReais(draft.salaryMin) ?? null, salaryMax: toWholeReais(draft.salaryMax) ?? null, salaryRange: null, salaryHidden: draft.salaryHidden })}</dd></div>
-                <div><dt className="text-fg-sub">Triagem</dt><dd className="font-medium">{draft.questions.length} pergunta(s) · {draft.screeningMinScore ? `nota mínima ${draft.screeningMinScore}%` : 'sem nota mínima'} · {draft.questions.filter((q) => q.knockout).length} eliminatória(s)</dd></div>
-                <div><dt className="text-fg-sub">Quem não passa</dt><dd className="font-medium">{draft.screeningAction === 'REJECT' ? 'Reprovado automaticamente (retorno em 24h)' : 'Marcado para o RH decidir'}</dd></div>
-                <div><dt className="text-fg-sub">Critérios de avaliação</dt><dd className="font-medium">{draft.criteria.length || 'Nenhum'}</dd></div>
+                <div><dt className="text-fg-sub">Cargo</dt><dd className="font-medium">{draft.title || 'â€”'}{draft.openings > 1 ? ` Â· ${draft.openings} vagas` : ''}</dd></div>
+                <div><dt className="text-fg-sub">Departamento / Local</dt><dd className="font-medium">{[draft.department, draft.location].filter(Boolean).join(' Â· ') || 'â€”'}</dd></div>
+                <div><dt className="text-fg-sub">SalÃ¡rio</dt><dd className="font-medium">{salaryLabel({ salaryMin: toWholeReais(draft.salaryMin) ?? null, salaryMax: toWholeReais(draft.salaryMax) ?? null, salaryRange: null, salaryHidden: draft.salaryHidden })}</dd></div>
+                <div><dt className="text-fg-sub">Triagem</dt><dd className="font-medium">{draft.questions.length} pergunta(s) Â· {draft.screeningMinScore ? `nota mÃ­nima ${draft.screeningMinScore}%` : 'sem nota mÃ­nima'} Â· {draft.questions.filter((q) => q.knockout).length} eliminatÃ³ria(s)</dd></div>
+                <div><dt className="text-fg-sub">Quem nÃ£o passa</dt><dd className="font-medium">{draft.screeningAction === 'REJECT' ? 'Reprovado automaticamente (retorno em 24h)' : 'Marcado para o RH decidir'}</dd></div>
+                <div><dt className="text-fg-sub">CritÃ©rios de avaliaÃ§Ã£o</dt><dd className="font-medium">{draft.criteria.length || 'Nenhum'}</dd></div>
                 <div><dt className="text-fg-sub">Prazo</dt><dd className="font-medium">{draft.deadline ? new Date(`${draft.deadline}T12:00:00`).toLocaleDateString('pt-BR') : 'Sem prazo'}</dd></div>
               </dl>
               <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-                <Button isLoading={saving} onClick={() => save('OPEN')}>{jobId && draft.status === 'OPEN' ? 'Salvar alterações' : 'Publicar e gerar link'}</Button>
+                <Button isLoading={saving} onClick={() => save('OPEN')}>{jobId && draft.status === 'OPEN' ? 'Salvar alteraÃ§Ãµes' : 'Publicar e gerar link'}</Button>
                 {(!jobId || draft.status !== 'OPEN') && <Button variant="outline" isLoading={saving} onClick={() => save(jobId ? draft.status : 'DRAFT')}>Salvar {jobId ? '' : 'como '}rascunho</Button>}
               </div>
             </SectionCard>
@@ -484,28 +486,28 @@ export function JobWizard({ jobId }: { jobId?: string }) {
 
           <div className="flex justify-between">
             <Button variant="outline" disabled={step === 0} onClick={() => setStep(step - 1)}><ArrowLeft size={16} aria-hidden="true" /> Anterior</Button>
-            {!last && <Button onClick={() => setStep(step + 1)}>Próxima <ArrowRight size={16} aria-hidden="true" /></Button>}
+            {!last && <Button onClick={() => setStep(step + 1)}>PrÃ³xima <ArrowRight size={16} aria-hidden="true" /></Button>}
           </div>
         </div>
 
-        <aside aria-label="Prévia" className="hidden lg:block">
+        <aside aria-label="PrÃ©via" className="hidden lg:block">
           <div className="card-v2 sticky top-4 space-y-3 p-5">
-            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-fg-sub">{draft.kind === 'INTERNAL' ? <><Users size={13} aria-hidden="true" /> Vaga interna</> : draft.kind === 'CONFIDENTIAL' ? <><EyeOff size={13} aria-hidden="true" /> Confidencial</> : <><Building2 size={13} aria-hidden="true" /> Prévia no portal</>}</p>
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-fg-sub">{draft.kind === 'INTERNAL' ? <><Users size={13} aria-hidden="true" /> Vaga interna</> : draft.kind === 'CONFIDENTIAL' ? <><EyeOff size={13} aria-hidden="true" /> Confidencial</> : <><Building2 size={13} aria-hidden="true" /> PrÃ©via no portal</>}</p>
             <h3 className="text-lg font-semibold text-fg">{draft.title || 'Cargo'}</h3>
-            <p className="text-sm text-fg-sub">{[draft.department, draft.location, draft.workMode && WORK_MODE_LABEL[draft.workMode], draft.employmentType && EMPLOYMENT_TYPE_LABEL[draft.employmentType]].filter(Boolean).join(' · ') || 'Local · Modalidade · Contrato'}</p>
+            <p className="text-sm text-fg-sub">{[draft.department, draft.location, draft.workMode && WORK_MODE_LABEL[draft.workMode], draft.employmentType && EMPLOYMENT_TYPE_LABEL[draft.employmentType]].filter(Boolean).join(' Â· ') || 'Local Â· Modalidade Â· Contrato'}</p>
             <div className="flex flex-wrap gap-1.5">
               <Pill tone="brand">{salaryLabel({ salaryMin: toWholeReais(draft.salaryMin) ?? null, salaryMax: toWholeReais(draft.salaryMax) ?? null, salaryRange: null, salaryHidden: draft.salaryHidden })}</Pill>
               {draft.seniority && <Pill>{draft.seniority}</Pill>}
               {draft.openings > 1 && <Pill>{draft.openings} vagas</Pill>}
             </div>
-            <p className="line-clamp-6 whitespace-pre-line text-sm text-fg-sub">{draft.description || 'A descrição aparece aqui.'}</p>
+            <p className="line-clamp-6 whitespace-pre-line text-sm text-fg-sub">{draft.description || 'A descriÃ§Ã£o aparece aqui.'}</p>
             {benefits.length > 0 && <ul className="flex flex-wrap gap-1.5">{benefits.slice(0, 6).map((item) => <li key={item}><Pill tone="success">{item}</Pill></li>)}</ul>}
-            <p className="border-t border-border pt-3 text-xs text-fg-sub">{draft.questions.length} pergunta(s) na triagem{draft.screeningMinScore ? ` · corte em ${draft.screeningMinScore}%` : ''}</p>
+            <p className="border-t border-border pt-3 text-xs text-fg-sub">{draft.questions.length} pergunta(s) na triagem{draft.screeningMinScore ? ` Â· corte em ${draft.screeningMinScore}%` : ''}</p>
           </div>
         </aside>
       </div>
 
-      <ConfirmDialog isOpen={leaveOpen} onClose={() => setLeaveOpen(false)} onConfirm={() => router.push(base)} title="Descartar alterações?" description="Você tem alterações não salvas nesta vaga." confirmText="Descartar e sair" cancelText="Continuar editando" />
+      <ConfirmDialog isOpen={leaveOpen} onClose={() => setLeaveOpen(false)} onConfirm={() => router.push(base)} title="Descartar alteraÃ§Ãµes?" description="VocÃª tem alteraÃ§Ãµes nÃ£o salvas nesta vaga." confirmText="Descartar e sair" cancelText="Continuar editando" />
     </div>
   );
 }

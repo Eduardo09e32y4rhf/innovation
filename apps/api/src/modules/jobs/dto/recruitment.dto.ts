@@ -160,6 +160,15 @@ export class CriterionInputDto {
   @Min(1)
   @Max(5)
   weight!: number;
+
+  @IsOptional() @IsString() @MaxLength(20)
+  kind?: string;
+
+  @IsOptional() @IsString() @MaxLength(100)
+  value?: string;
+
+  @IsOptional() @IsBoolean()
+  isMandatory?: boolean;
 }
 
 export class SaveCriteriaDto {

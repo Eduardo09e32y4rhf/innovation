@@ -14,7 +14,7 @@ export const questionPayload = ({ id, label, type, required, options, knockout, 
   scoreRule: scoreRule ?? null,
 });
 
-export const criterionPayload = ({ id, name, weight }: Criterion) => ({ ...(id ? { id } : {}), name: name.trim(), weight });
+export const criterionPayload = ({ id, name, weight, kind, value, isMandatory }: Criterion) => ({ ...(id ? { id } : {}), name: name.trim(), weight, kind: kind ?? 'SKILL', value: value?.trim() || null, isMandatory: isMandatory ?? true });
 
 /** "4500", "4500.50" ou "4.500,50" viram reais inteiros (a API guarda inteiro); vazio ou inválido = não informado. */
 export function toWholeReais(value: string): number | undefined {

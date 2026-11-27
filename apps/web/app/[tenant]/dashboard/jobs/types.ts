@@ -134,6 +134,9 @@ export interface Criterion {
   id?: string;
   name: string;
   weight: number;
+  kind?: 'SKILL' | 'EDUCATION' | 'CNH';
+  value?: string | null;
+  isMandatory?: boolean;
 }
 
 export interface Tag {

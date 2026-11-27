@@ -14,6 +14,16 @@ export const LanguageSwitcher: React.FC<{ variant?: 'light' | 'dark'; compactOnM
   const { language, setLanguage } = useLanguage();
   const { t } = useI18n();
   const [isOpen, setIsOpen] = React.useState(false);
+  const rootRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const closeOutside = (event: PointerEvent) => { if (!rootRef.current?.contains(event.target as Node)) setIsOpen(false); };
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setIsOpen(false); };
+    document.addEventListener('pointerdown', closeOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => { document.removeEventListener('pointerdown', closeOutside); document.removeEventListener('keydown', closeOnEscape); };
+  }, [isOpen]);
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
@@ -23,7 +33,7 @@ export const LanguageSwitcher: React.FC<{ variant?: 'light' | 'dark'; compactOnM
   const currentLanguage = languages.find(l => l.code === language);
 
   return (
-    <div className="relative">
+    <div className="relative" ref={rootRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

@@ -194,7 +194,55 @@ export class CandidateAccountService {
       admissionShareConsent: account.admissionShareConsent,
       completeness: profileCompleteness(account),
       checklist: profileChecklist(account),
+      xp: account.xp,
     };
+  }
+
+  async savedJobs(account: Account) {
+    const rows = await this.prisma.candidateSavedJob.findMany({ where: { accountId: account.id }, select: { jobId: true }, orderBy: { savedAt: 'desc' } });
+    const publicJobs = await Promise.all(rows.map(async (row: { jobId: string }) => {
+      try {
+        const result = await this.jobs.publicJobById(row.jobId);
+        const publicJob = result.job as typeof result.job & { closed?: boolean; acceptsApplications?: boolean };
+        return publicJob.closed || publicJob.acceptsApplications === false ? null : result.job;
+      } catch { return null; }
+    }));
+    return { jobs: publicJobs.filter(Boolean) };
+  }
+
+  async saveJob(account: Account, jobId: string) {
+    const result = await this.jobs.publicJobById(jobId);
+    const publicJob = result.job as typeof result.job & { closed?: boolean; acceptsApplications?: boolean };
+    if (publicJob.closed || publicJob.acceptsApplications === false) throw new NotFoundException('Vaga indisponível.');
+    await this.prisma.candidateSavedJob.upsert({ where: { accountId_jobId: { accountId: account.id, jobId } }, create: { accountId: account.id, jobId }, update: {} });
+    return { saved: true };
+  }
+
+  async unsaveJob(account: Account, jobId: string) {
+    await this.prisma.candidateSavedJob.deleteMany({ where: { accountId: account.id, jobId } });
+    return { saved: false };
+  }
+
+  async missions(account: Account) {
+    const missions = [
+      { key: 'resume', title: 'Envie seu currículo', xp: 100, done: Boolean(account.resumeKey) },
+      { key: 'about', title: 'Conte sua história profissional', xp: 50, done: String(account.about ?? '').trim().length >= 40 },
+      { key: 'license', title: 'Informe sua CNH', xp: 30, done: Boolean(account.hasDriverLicense && account.driverLicenseCategory.length) },
+    ];
+    for (const mission of missions.filter((item) => item.done)) {
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.candidateMissionLog.create({ data: { accountId: account.id, missionKey: mission.key, xpEarned: mission.xp } });
+          await tx.candidateAccount.update({ where: { id: account.id }, data: { xp: { increment: mission.xp } } });
+        });
+      } catch (error: any) { if (error?.code !== 'P2002') throw error; }
+    }
+    const [logs, refreshed] = await Promise.all([
+      this.prisma.candidateMissionLog.findMany({ where: { accountId: account.id }, orderBy: { completedAt: 'desc' } }),
+      this.prisma.candidateAccount.findUnique({ where: { id: account.id }, select: { xp: true } }),
+    ]);
+    const completed = new Set(logs.map((row: any) => row.missionKey));
+    return { xp: refreshed?.xp ?? account.xp, missions: missions.map((item) => ({ ...item, done: completed.has(item.key) })) };
   }
 
   async updateProfile(account: Account, dto: CandidateUpdateProfileDto, ctx: { ip?: string; userAgent?: string } = {}) {
@@ -226,12 +274,14 @@ export class CandidateAccountService {
     if (dto.experience !== undefined) data.experience = sanitizeExperience(dto.experience);
     if (dto.hasDriverLicense !== undefined) {
       data.hasDriverLicense = dto.hasDriverLicense;
-      if (!dto.hasDriverLicense) data.driverLicenseCategory = null;
+      if (!dto.hasDriverLicense) data.driverLicenseCategory = [];
     }
     if (dto.driverLicenseCategory !== undefined && dto.hasDriverLicense !== false) {
-      const category = String(dto.driverLicenseCategory ?? '').trim().toUpperCase();
-      if (category && !(DRIVER_LICENSE_CATEGORIES as readonly string[]).includes(category)) throw new BadRequestException({ message: 'Categoria de habilitação inválida.', fields: { driverLicenseCategory: 'Categoria inválida' } });
-      data.driverLicenseCategory = category || null;
+      const categories = (Array.isArray(dto.driverLicenseCategory) ? dto.driverLicenseCategory : [dto.driverLicenseCategory])
+        .map((item) => String(item ?? '').trim().toUpperCase()).filter(Boolean);
+      const unique = [...new Set(categories)];
+      if (unique.some((category) => !(DRIVER_LICENSE_CATEGORIES as readonly string[]).includes(category))) throw new BadRequestException({ message: 'Categoria de habilitação inválida.', fields: { driverLicenseCategory: 'Categoria inválida' } });
+      data.driverLicenseCategory = unique;
     }
     if (dto.talentPoolConsent !== undefined) {
       if (dto.talentPoolConsent && !account.talentPoolConsentAt) { data.talentPoolConsentAt = new Date(); await this.consents?.recordAccountChange(account, 'TALENT_POOL', true, ctx); }

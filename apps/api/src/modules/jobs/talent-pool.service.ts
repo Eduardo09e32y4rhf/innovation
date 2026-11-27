@@ -34,7 +34,7 @@ export class TalentPoolService {
     if (filters.license === 'sim') where.hasDriverLicense = true;
     if (filters.license === 'nao') where.hasDriverLicense = false;
     const category = filters.category?.trim().toUpperCase();
-    if (category && (DRIVER_LICENSE_CATEGORIES as readonly string[]).includes(category)) { where.hasDriverLicense = true; where.driverLicenseCategory = category; }
+    if (category && (DRIVER_LICENSE_CATEGORIES as readonly string[]).includes(category)) { where.hasDriverLicense = true; where.driverLicenseCategory = { has: category }; }
 
     const rows = await this.prisma.candidateAccount.findMany({ where: where as never, orderBy: { updatedAt: 'desc' }, take: SEARCH_WINDOW });
     const q = fold(filters.q).trim();
@@ -146,7 +146,7 @@ export class CandidateAdminService {
         profession: row.profession,
         city: row.city, state: row.state,
         highestEducation: highestEducation(sanitizeEducation(row.education)),
-        hasDriverLicense: row.hasDriverLicense, driverLicenseCategory: row.hasDriverLicense ? row.driverLicenseCategory : null,
+        hasDriverLicense: row.hasDriverLicense, driverLicenseCategory: row.hasDriverLicense ? row.driverLicenseCategory.join(', ') || null : null,
         hasResume: Boolean(row.resumeKey), hasPassword: Boolean(row.passwordHash),
         talentPool: Boolean(row.talentPoolConsentAt),
         applications: countByEmail.get(row.email.toLowerCase()) ?? 0,

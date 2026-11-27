@@ -122,6 +122,22 @@ export class CandidateAccountController {
   }
 
   @UseGuards(CandidateAuthGuard)
+  @Get('saved-jobs')
+  savedJobs(@Req() request: any) { return this.service.savedJobs(request.candidateAccount); }
+
+  @UseGuards(CandidateAuthGuard)
+  @Post('saved-jobs/:jobId')
+  saveJob(@Req() request: any, @Param('jobId', ParseUUIDPipe) jobId: string) { return this.service.saveJob(request.candidateAccount, jobId); }
+
+  @UseGuards(CandidateAuthGuard)
+  @Delete('saved-jobs/:jobId')
+  unsaveJob(@Req() request: any, @Param('jobId', ParseUUIDPipe) jobId: string) { return this.service.unsaveJob(request.candidateAccount, jobId); }
+
+  @UseGuards(CandidateAuthGuard)
+  @Get('missions')
+  missions(@Req() request: any) { return this.service.missions(request.candidateAccount); }
+
+  @UseGuards(CandidateAuthGuard)
   @Post('applications/:id/withdraw')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   withdraw(@Req() request: any, @Param('id', ParseUUIDPipe) id: string) {

@@ -20,14 +20,18 @@ export type ExperienceItem = { role: string; company: string; start: string | nu
 export type CandidateProfile = {
   email: string; emailVerified: boolean; name: string | null; cpf: string | null; phone: string | null;
   cep: string | null; street: string | null; streetNumber: string | null; addressComplement: string | null; neighborhood: string | null; city: string | null; state: string | null;
-  birthDate: string | null; profession: string | null; skills: string[]; hasDriverLicense: boolean | null; driverLicenseCategory: string | null; talentPoolConsent: boolean;
+  birthDate: string | null; profession: string | null; skills: string[]; hasDriverLicense: boolean | null; driverLicenseCategory: string[]; talentPoolConsent: boolean;
   education: EducationItem[];
   about: string | null; experience: ExperienceItem[];
   resume: { name: string | null; type: string | null; size: number | null } | null;
   consent: boolean; admissionShareConsent: boolean;
   completeness: { percent: number; missing: string[]; complete: boolean };
   checklist: { key: string; label: string; done: boolean }[];
+  xp: number;
 };
+
+export type CareerMatch = { score: number; level: 'ideal' | 'warn' | 'bad'; missing: string[]; requirements: { label: string; must: boolean; met: boolean }[] };
+export type CareerJob = import('./public-jobs').PublicJob & { match: CareerMatch };
 
 export const LICENSE_CATEGORIES = ['A', 'B', 'AB', 'C', 'D', 'E', 'AC', 'AD', 'AE'] as const;
 
@@ -66,6 +70,13 @@ export const candidateApi = {
   invites: () => authed<CandidateInvite[]>('/invites'),
   declineInvite: (id: string) => authed<{ ok: boolean }>(`/invites/${encodeURIComponent(id)}/decline`, { method: 'POST' }),
   applications: () => authed<{ applications: CandidateApplication[]; appliedJobIds: string[] }>('/applications'),
+  savedJobs: () => authed<{ jobs: import('./public-jobs').PublicJob[] }>('/saved-jobs'),
+  saveJob: (id: string) => authed<{ saved: boolean }>(`/saved-jobs/${encodeURIComponent(id)}`, { method: 'POST' }),
+  unsaveJob: (id: string) => authed<{ saved: boolean }>(`/saved-jobs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  missions: () => authed<{ xp: number; missions: { key: string; title: string; xp: number; done: boolean }[] }>('/missions'),
+  careerJobs: () => authed<{ jobs: CareerJob[] }>('/careers/jobs?withMatch=1'),
+  match: (id: string) => authed<CareerMatch>(`/careers/jobs/${encodeURIComponent(id)}/match`),
+  simulateMatch: (id: string, hypothetical: { edu?: string; cnh?: string[]; skills?: string[] }) => authed<CareerMatch>(`/careers/jobs/${encodeURIComponent(id)}/match/simulate`, { method: 'POST', body: JSON.stringify(hypothetical) }),
   withdraw: (applicationId: string) => authed<{ withdrawn: boolean }>(`/applications/${encodeURIComponent(applicationId)}/withdraw`, { method: 'POST' }),
   applyWithProfile: (jobId: string, input: { answers: Record<string, string | string[]>; coverLetter?: string; consent: boolean; source?: string }) =>
     authed<{ received: boolean; applicationId?: string }>(`/jobs/${encodeURIComponent(jobId)}/apply`, { method: 'POST', body: JSON.stringify(input) }),
