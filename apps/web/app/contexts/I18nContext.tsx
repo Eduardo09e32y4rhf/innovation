@@ -7,6 +7,12 @@ export type Locale = 'pt' | 'en' | 'es';
 
 const LITERAL_MESSAGES = {
   en: {
+    'Vamos encontrar seu próximo passo profissional.': 'Let’s find your next career move.', 'Perfil em destaque': 'Standout profile', 'Vamos fortalecer seu perfil': 'Let’s strengthen your profile.',
+    'Resumo da conta': 'Account summary', 'No total': 'Overall', 'Processos ativos': 'Active applications', 'De empresas': 'From employers',
+    'Ordenadas pela compatibilidade do seu perfil.': 'Sorted by your profile match.', 'Jornada profissional': 'Career journey',
+    'Cada etapa fortalece seu perfil e aumenta suas chances.': 'Each step strengthens your profile and improves your chances.',
+    'Mostrar menos': 'Show less', 'Mantenha suas experiências e competências atualizadas para receber recomendações melhores.': 'Keep your experience and skills up to date for better recommendations.',
+    'Revisar meu perfil': 'Review my profile',
     'Não foi possível carregar seu painel.': 'Could not load your dashboard.', 'Cargo, empresa ou cidade': 'Job title, company, or city',
     'Boa compatibilidade': 'Strong match', 'Compatibilidade do perfil': 'Profile match', 'Obrigatório': 'Required', 'Diferencial': 'Preferred',
     'Olá, {name}': 'Hello, {name}', 'candidato': 'candidate', 'Suas oportunidades favoritas': 'Your saved opportunities',
@@ -660,6 +666,12 @@ const LITERAL_MESSAGES = {
     'Corrija o arquivo e valide novamente.': 'Fix the file and validate it again.',
   },
   es: {
+    'Vamos encontrar seu próximo passo profissional.': 'Busquemos tu próximo paso profesional.', 'Perfil em destaque': 'Perfil destacado', 'Vamos fortalecer seu perfil': 'Vamos a fortalecer tu perfil.',
+    'Resumo da conta': 'Resumen de la cuenta', 'No total': 'En total', 'Processos ativos': 'Procesos activos', 'De empresas': 'De empresas',
+    'Ordenadas pela compatibilidade do seu perfil.': 'Ordenadas por compatibilidad con tu perfil.', 'Jornada profissional': 'Trayectoria profesional',
+    'Cada etapa fortalece seu perfil e aumenta suas chances.': 'Cada paso fortalece tu perfil y mejora tus posibilidades.',
+    'Mostrar menos': 'Mostrar menos', 'Mantenha suas experiências e competências atualizadas para receber recomendações melhores.': 'Mantén actualizadas tus experiencias y habilidades para recibir mejores recomendaciones.',
+    'Revisar meu perfil': 'Revisar mi perfil',
     'Não foi possível carregar seu painel.': 'No se pudo cargar tu panel.', 'Cargo, empresa ou cidade': 'Puesto, empresa o ciudad',
     'Boa compatibilidade': 'Buena compatibilidad', 'Compatibilidade do perfil': 'Compatibilidad del perfil', 'Obrigatório': 'Obligatorio', 'Diferencial': 'Valorado',
     'Olá, {name}': 'Hola, {name}', 'candidato': 'candidato', 'Suas oportunidades favoritas': 'Tus oportunidades guardadas',

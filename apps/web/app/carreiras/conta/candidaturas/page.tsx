@@ -1,6 +1,5 @@
-import { AccountShell } from '../_components/account-shell';
-import { ApplicationsView } from '../applications-view';
+import { redirect } from 'next/navigation';
 
 export default function CandidateApplicationsPage() {
-  return <AccountShell><ApplicationsView applicationsOnly /></AccountShell>;
+  redirect('/carreiras/conta#candidaturas');
 }
