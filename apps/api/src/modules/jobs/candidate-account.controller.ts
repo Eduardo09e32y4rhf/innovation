@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Req, UseGuards } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { clientIp } from '../../common/http/client-ip';
 import { lookupCep } from '../lookup/lookup.controller';
 import { TurnstileGuard } from '../../common/turnstile/turnstile.guard';
@@ -26,6 +26,7 @@ export class CandidateAccountController {
   @Post('auth/login')
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @SkipThrottle({ ip: true })
   login(@Body() dto: CandidateLoginDto) {
     return this.service.login(dto.email, dto.password);
   }

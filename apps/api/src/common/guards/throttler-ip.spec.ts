@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Controller, Post, UseGuards } from '@nestjs/common';
+import { Controller, Post, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { SkipThrottle, Throttle, ThrottlerModule } from '@nestjs/throttler';
@@ -7,6 +7,14 @@ import { Test } from '@nestjs/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 import { UserThrottlerGuard } from './user-throttler.guard';
 import { buildThrottlerOptions } from './throttler.config';
+import { AuthController } from '../../modules/auth/auth.controller';
+import { AuthService } from '../../modules/auth/auth.service';
+import { MfaService } from '../../modules/auth/mfa.service';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../../database/prisma.service';
+import { TurnstileGuard } from '../turnstile/turnstile.guard';
+import { JwtAuthGuard as RealJwtAuthGuard } from './jwt-auth.guard';
+import { RolesGuard } from './roles.guard';
 
 class JwtAuthGuard { canActivate() { return true; } }
 class CandidateAuthGuard { canActivate() { return true; } }
@@ -16,6 +24,8 @@ class DemoController {
   open() { return { ok: true }; }
   priv() { return { ok: true }; }
   candidate() { return { ok: true }; }
+  mfa() { return { ok: true }; }
+  token() { return { ok: true }; }
   hook() { return { ok: true }; }
 }
 /** O transformador do Vitest nao compila a sintaxe @: aplica os decorators por chamada. */
@@ -30,6 +40,8 @@ UseGuards(JwtAuthGuard as any)(DemoController.prototype, 'priv', Object.getOwnPr
 decorate('priv', Throttle({ default: { limit: 5, ttl: 60000 } }), Post('private/thing'));
 UseGuards(CandidateAuthGuard as any)(DemoController.prototype, 'candidate', Object.getOwnPropertyDescriptor(DemoController.prototype, 'candidate')!);
 decorate('candidate', Throttle({ default: { limit: 5, ttl: 60000 } }), Post('candidate-portal/probe'));
+decorate('mfa', Throttle({ default: { limit: 5, ttl: 60000 } }), Post('auth/mfa/verify'));
+decorate('token', Throttle({ default: { limit: 5, ttl: 60000 } }), Post('public/candidate-documents/:token/verify'));
 decorate('hook', SkipThrottle(), Post('finance/webhook/asaas'));
 
 async function build(storage?: any): Promise<NestFastifyApplication> {
@@ -64,6 +76,37 @@ describe('SEG-05: limite por IP alem da conta', () => {
     }
   });
 
+  it('no controlador real, exceder o login de uma conta não bloqueia outras contas no mesmo IP', async () => {
+    expect(Reflect.getMetadata('THROTTLER:SKIPip', AuthController.prototype.login)).toBe(true);
+    const moduleRef = await Test.createTestingModule({
+      imports: [ThrottlerModule.forRoot(buildThrottlerOptions())],
+      controllers: [AuthController],
+      providers: [
+        { provide: AuthService, useValue: { login: vi.fn(async () => { throw new UnauthorizedException('Credenciais inválidas.'); }) } },
+        { provide: MfaService, useValue: {} },
+        { provide: APP_GUARD, useClass: UserThrottlerGuard },
+        { provide: TurnstileGuard, useValue: { canActivate: () => true } },
+        { provide: RealJwtAuthGuard, useValue: { canActivate: () => true } },
+        { provide: RolesGuard, useValue: { canActivate: () => true } },
+        { provide: JwtService, useValue: {} },
+        { provide: PrismaService, useValue: {} },
+      ],
+    })
+      .overrideGuard(TurnstileGuard).useValue({ canActivate: () => true })
+      .overrideGuard(RealJwtAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard).useValue({ canActivate: () => true })
+      .compile();
+    const authApp = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    await authApp.init(); await authApp.getHttpAdapter().getInstance().ready();
+    try {
+      for (let i = 0; i < 5; i++) expect((await post(authApp, '/auth/login', { email: 'locked@example.test', password: 'wrong' }, '10.0.0.1')).statusCode).toBe(401);
+      expect((await post(authApp, '/auth/login', { email: 'locked@example.test', password: 'wrong' }, '10.0.0.1')).statusCode).toBe(429);
+      for (let i = 0; i < 50; i++) {
+        expect((await post(authApp, '/auth/login', { email: `person-${i}@example.test`, password: 'wrong' }, '10.0.0.1')).statusCode).toBe(401);
+      }
+    } finally { await authApp.close(); }
+  });
+
   it('bloqueia apenas o e-mail que excedeu o limite; outra conta no mesmo IP continua entrando', async () => {
     app = await build();
     for (let i = 0; i < 5; i++) expect((await post(app, '/auth/login', { email: 'a@x.com' }, '10.0.0.1')).statusCode).toBe(201);
@@ -82,6 +125,24 @@ describe('SEG-05: limite por IP alem da conta', () => {
     app = await build();
     for (let i = 0; i < 6; i++) await post(app, '/auth/login', {}, '10.0.0.1');
     expect((await post(app, '/auth/login', { email: 'valido@x.com' }, '10.0.0.1')).statusCode).toBe(201);
+  });
+
+  it('desafios MFA no mesmo IP têm limites separados por mfaToken', async () => {
+    app = await build();
+    for (let i = 0; i < 50; i++) {
+      expect((await post(app, '/auth/mfa/verify', { mfaToken: `challenge-${i}` }, '10.0.0.1')).statusCode).toBe(201);
+    }
+    for (let i = 0; i < 4; i++) expect((await post(app, '/auth/mfa/verify', { mfaToken: 'challenge-0' }, '10.0.0.1')).statusCode).toBe(201);
+    expect((await post(app, '/auth/mfa/verify', { mfaToken: 'challenge-0' }, '10.0.0.1')).statusCode).toBe(429);
+  });
+
+  it('links de documento no mesmo IP têm limites separados por token', async () => {
+    app = await build();
+    for (let i = 0; i < 50; i++) {
+      expect((await post(app, `/public/candidate-documents/token-${i}/verify`, { code: '000000' }, '10.0.0.1')).statusCode).toBe(201);
+    }
+    for (let i = 0; i < 4; i++) expect((await post(app, '/public/candidate-documents/token-0/verify', { code: '000000' }, '10.0.0.1')).statusCode).toBe(201);
+    expect((await post(app, '/public/candidate-documents/token-0/verify', { code: '000000' }, '10.0.0.1')).statusCode).toBe(429);
   });
 
   it('IPs diferentes nao se afetam, mas a mesma conta continua limitada entre IPs', async () => {

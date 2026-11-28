@@ -131,3 +131,21 @@ scripts/test/candidate-load.cjs em homologação com métricas do servidor antes
 estimar o limite de usuários simultâneos. Docker/PostgreSQL não disponíveis localmente.
 O Next informa que React 18 não é suportado a partir do Next 17; a dependência
 atual usa Next 16. Planejar a migração de React 19 antes de atualizar para Next 17.
+
+CORREÇÃO COMPLEMENTAR — 28/11/2026
+A resposta 429 genérica da captura vinha do limitador HTTP, além do bloqueio de
+senha já gravado individualmente por userId/conta candidata. Os limites default
+continuam por identidade (e-mail, documento ou credencial); agora e-mail e CPF
+são armazenados como hashes nas chaves Redis. Os logins empresarial e candidato
+dispensam explicitamente apenas o throttler por IP, preservando o limite por
+identidade e o bloqueio de senha da conta. Rotas de MFA e tokens públicos usam
+uma chave derivada do token; payloads sem identidade permanecem limitados em
+escopo anônimo da rota.
+Teste de integração com AuthController real: 5 tentativas falhas em uma conta,
+429 na 6ª, seguidas de 50 e-mails diferentes no mesmo IP, todos chegando à
+autenticação normal (401 de credenciais incorretas, sem 429). Também passaram os
+testes de rate limit por token, MFA, sessão, IP e webhook; `npm run build:api`
+carregou os 122 DTOs compilados.
+
+Reproduzir somente a verificação do limitador:
+node node_modules/vitest/vitest.mjs run --maxWorkers=1 apps/api/src/common/guards/throttler-ip.spec.ts

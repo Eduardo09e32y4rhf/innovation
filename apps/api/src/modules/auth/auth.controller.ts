@@ -11,7 +11,7 @@ import {
   Req,
   Res,
   UseGuards, HttpCode } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { JwtUser } from '../../common/types/auth.types';
@@ -57,6 +57,7 @@ export class AuthController {
   }
 
   @Throttle({ default: { limit: 5, ttl: 900000 } })
+  @SkipThrottle({ ip: true })
   @UseGuards(TurnstileGuard)
   @HttpCode(200)
   @Post('login')

@@ -21,11 +21,28 @@ export function isWebhookRequest(context: ExecutionContext): boolean {
   return /\/webhooks?(\/|$|\?)/.test(url);
 }
 
-/** O login já tem limite por identificador; um segundo limite por IP derruba todas as contas atrás do mesmo proxy/NAT. */
-export function isAccountScopedLoginRequest(context: ExecutionContext): boolean {
+/** Fluxos cuja credencial já é contada por e-mail ou token; o IP compartilhado não deve bloquear outras contas. */
+export function isIdentityScopedRoute(req: Record<string, any>): boolean {
+  const path = String(req.routeOptions?.url ?? req.routerPath ?? req.url ?? '').split('?')[0].replace(/^\/api(?=\/)/, '');
+  const method = String(req.method ?? '').toUpperCase();
+  if ((path.startsWith('/public/') && path.includes('/:token')) || path === '/commercial/email/trial-token/:token') return true;
+  if (method === 'POST' && (
+    /^\/auth\/(?:login|register-company|mfa\/verify|verify-email|password-reset\/(?:request|validate-code|confirm))$/.test(path)
+    || /^\/candidate-portal\/auth\/(?:register|login|forgot-password|reset-password)$/.test(path)
+    || /^\/public\/(?:candidate-requests(?:\/confirm)?|consents\/(?:confirm|revoke))$/.test(path)
+    || /^\/public\/candidate-documents\/:token(?:\/(?:code|verify|upload))?$/.test(path)
+  )) return true;
+  return method === 'GET' && /^\/public\/(?:candidate-status|candidate-documents)\/:token$/.test(path);
+}
+
+export function isIdentityScopedRequest(context: ExecutionContext): boolean {
   const req = request(context);
-  const url = String(req.routeOptions?.url ?? req.routerPath ?? req.url ?? '').split('?')[0];
-  return String(req.method ?? '').toUpperCase() === 'POST' && /(?:^|\/)auth\/login$/.test(url);
+  const body = req.body ?? {};
+  const hasAccount = [body.email, body.username, body.document, body.cpf]
+    .some((value) => typeof value === 'string' && value.trim());
+  const hasCredential = [body.mfaToken, body.challengeToken, body.resetToken, body.verificationToken, body.token, req.params?.token, req.query?.token]
+    .some((value) => typeof value === 'string' && value.trim());
+  return isIdentityScopedRoute(req) && (hasAccount || hasCredential);
 }
 
 /** Rotas com sessão própria limitam por token; não bloqueiam outras pessoas no mesmo IP/NAT. */
@@ -62,7 +79,7 @@ export function buildThrottlerOptions(storage?: any): ThrottlerModuleOptions {
         ttl: (ctx) => (isWebhookRequest(ctx) ? GLOBAL_TTL_MS : routeValue(ctx, THROTTLER_TTL) ?? GLOBAL_TTL_MS),
         limit: (ctx) => (isWebhookRequest(ctx) ? WEBHOOK_LIMIT : Math.ceil((routeValue(ctx, THROTTLER_LIMIT) ?? GLOBAL_LIMIT) * ipFactor())),
         getTracker: (req) => `ip:${req.ip || 'unknown'}`,
-        skipIf: (ctx) => !isWebhookRequest(ctx) && (isJwtGuarded(ctx) || isAccountScopedLoginRequest(ctx)),
+        skipIf: (ctx) => !isWebhookRequest(ctx) && (isJwtGuarded(ctx) || isIdentityScopedRequest(ctx)),
       },
     ],
   };
