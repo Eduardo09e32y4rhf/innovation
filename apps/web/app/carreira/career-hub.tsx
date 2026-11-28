@@ -89,6 +89,8 @@ export function CareerHub() {
       <div className="mt-3 flex flex-wrap gap-2">{profile.skills.slice(0, 4).map(skill => <span key={skill} className="rounded-full bg-slate-100 px-3 py-1 text-sm">{skill}</span>)}{profile.skills.length > 4 && <span className="rounded-full bg-slate-100 px-3 py-1 text-sm">+{profile.skills.length - 4}</span>}</div>
     </section>
 
+    <section className={card}><h2 className="text-lg font-bold">Avaliações obrigatórias</h2><p className="mt-2 text-sm text-slate-600">Conclua português, matemática e redação para liberar o envio de candidaturas.</p><Link href="/carreira/avaliacoes" className={`${button} mt-4`}>Acessar avaliações</Link></section>
+
     <section aria-labelledby="strength-title" className={card}>
       <div className="flex flex-wrap items-center gap-4">
         <div role="progressbar" aria-label="Força do perfil" aria-valuenow={strength.score} aria-valuemin={0} aria-valuemax={100} className="relative h-20 w-20 shrink-0">

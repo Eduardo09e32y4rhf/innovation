@@ -4,6 +4,7 @@ import { clientIp } from '../../common/http/client-ip';
 import { lookupCep } from '../lookup/lookup.controller';
 import { TurnstileGuard } from '../../common/turnstile/turnstile.guard';
 import { CandidateAuthGuard } from './candidate-account.guard';
+import { CandidateApplicationGuard } from './candidate-application.guard';
 import { CandidateAccountService } from './candidate-account.service';
 import { CandidateApplyDto, CandidateVerifyEmailDto, CandidateEmailDto, CandidateLoginDto, CandidateRegisterDto, CandidateResetPasswordDto, CandidateUpdateProfileDto } from './dto/candidate-account.dto';
 
@@ -171,7 +172,7 @@ export class CandidateAccountController {
   }
 
   /** "Sim, reutilizar meus dados": envia o perfil salvo + respostas das perguntas da vaga (se houver). */
-  @UseGuards(CandidateAuthGuard)
+  @UseGuards(CandidateAuthGuard, CandidateApplicationGuard)
   @Post('jobs/:jobId/apply')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   apply(@Req() request: any, @Param('jobId', new ParseUUIDPipe()) jobId: string, @Body() dto: CandidateApplyDto) {

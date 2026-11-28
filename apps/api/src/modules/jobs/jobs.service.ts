@@ -39,6 +39,7 @@ const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 export type ApplyContext = {
   /** Conta do candidato com e-mail verificado: so ela pode atualizar nome/telefone de um cadastro existente e ver o 409 de duplicidade. */
   ownerVerified?: boolean;
+  portalAccountId?: string;
   /** IP (clientIp) e user agent da requisicao: prova de consentimento e trilha de upload (RS-D-06, RS-D-19). */
   ip?: string;
   userAgent?: string;
@@ -431,7 +432,7 @@ export class JobsService {
       const result = await this.repository.apply(
         job.companyId,
         job.id,
-        { ...dto, phone: normalizeInternationalPhone(dto.phone), source: normalizeSource(dto.source), name: safeName, email: normalizedEmail, ownerVerified: Boolean(context.ownerVerified) },
+        { ...dto, phone: normalizeInternationalPhone(dto.phone), source: normalizeSource(dto.source), name: safeName, email: normalizedEmail, ownerVerified: Boolean(context.ownerVerified), portalAccountId: context.ownerVerified ? context.portalAccountId : undefined },
         {
           key: storageKey,
           name: this.safeFileName(file.filename, format.extension),

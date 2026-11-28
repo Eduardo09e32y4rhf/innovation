@@ -1746,6 +1746,8 @@ model Candidate {
 }
 
 model Application {
+  portalAccountId String? @db.Uuid
+  portalAccount CandidateAccount? @relation(fields: [portalAccountId], references: [id], onDelete: SetNull)
   id              String            @id @default(uuid()) @db.Uuid
   companyId       String            @db.Uuid
   candidateId     String            @db.Uuid
@@ -4035,8 +4037,30 @@ model CandidateAccount {
   views    CandidateProfileView[]
   savedJobs CandidateSavedJob[]
   missionLogs CandidateMissionLog[]
+  assessments CandidatePortalAssessment[]
+  portalApplications Application[]
 
   @@index([talentPoolConsentAt, city])
+}
+
+model CandidatePortalAssessment {
+  id          String   @id @default(uuid()) @db.Uuid
+  accountId   String   @db.Uuid
+  kind        String
+  bankVersion Int      @default(1)
+  questions   Json
+  answers     Json
+  essay       String   @default("")
+  status      String   @default("IN_PROGRESS")
+  revision    Int      @default(0)
+  score       Int?
+  shareConsent Boolean @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  account CandidateAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, kind])
 }
 
 model CandidateSavedJob {

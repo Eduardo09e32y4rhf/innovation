@@ -14,17 +14,17 @@ function request(email: string, ip: string) {
     { type: 'field', fieldname: 'email', value: email },
     { type: 'file', fieldname: 'resume', filename: 'cv.pdf', mimetype: 'application/pdf', file: { truncated: false }, toBuffer: async () => pdf },
   ];
-  return { ip, isMultipart: () => true, parts: () => (async function* () { for (const part of parts) yield part; })() };
+  return { ip, candidateAccount: { id: email, email, verifiedAt: new Date() }, isMultipart: () => true, parts: () => (async function* () { for (const part of parts) yield part; })() };
 }
 
 describe('candidatura pública: anti-spam', () => {
-  it('50 candidaturas do mesmo IP em poucos segundos: só as primeiras passam, o resto leva 429', async () => {
+  it('50 contas verificadas no mesmo IP não bloqueiam umas às outras', async () => {
     const apply = vi.fn().mockResolvedValue({ received: true });
     const controller = new PublicJobsController({ apply } as any);
     const results = await Promise.all(Array.from({ length: 50 }, (_, i) => controller.apply('job-1', request(`bot${i}@spam.com`, '203.0.113.9')).then(() => 200, (e: HttpException) => e.getStatus())));
-    expect(results.filter((r) => r === 200)).toHaveLength(APPLY_LIMITS.perIp.limit);
-    expect(results.filter((r) => r === 429)).toHaveLength(50 - APPLY_LIMITS.perIp.limit);
-    expect(apply).toHaveBeenCalledTimes(APPLY_LIMITS.perIp.limit);
+    expect(results.filter((r) => r === 200)).toHaveLength(50);
+    expect(results.filter((r) => r === 429)).toHaveLength(0);
+    expect(apply).toHaveBeenCalledTimes(50);
   });
 
   it('outro IP não é afetado pelo bloqueio do primeiro', async () => {

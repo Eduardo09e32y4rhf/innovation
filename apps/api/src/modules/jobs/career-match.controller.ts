@@ -33,7 +33,11 @@ export class CareerMatchController {
   async list(@Req() req: any, @Query('withMatch') withMatch?: string) {
     const { jobs } = await this.jobs.allPublicJobs();
     if (withMatch !== '1') return { jobs };
-    return { jobs: await Promise.all(jobs.map(async (job: any) => ({ ...job, match: await this.result(job.id, req.candidateAccount) }))) };
+    if (!jobs.length) return { jobs: [] };
+    const criteria = await this.prisma.jobCriterion.findMany({ where: { jobId: { in: jobs.map(job => job.id) } }, orderBy: { position: 'asc' } });
+    const byJob = new Map<string, typeof criteria>();
+    for (const criterion of criteria) { const rows = byJob.get(criterion.jobId) ?? []; rows.push(criterion); byJob.set(criterion.jobId, rows); }
+    return { jobs: jobs.map(job => ({ ...job, match: calculateMatch(req.candidateAccount, { ...job, criteria: byJob.get(job.id) ?? [] }) })) };
   }
 
   @Get(':id/match')

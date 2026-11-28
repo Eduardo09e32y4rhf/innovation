@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomInt, scrypt, scryptSync, timingSafeEqual } from 'node:crypto';
 
 /** Regras puras da Área do candidato (sem banco), para testar sem mock. */
 
@@ -146,6 +146,21 @@ export function verifyPassword(password: string, stored: string | null | undefin
   const expected = Buffer.from(hashHex, 'hex');
   const actual = scryptSync(password, Buffer.from(saltHex, 'hex'), expected.length);
   return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+// Request handlers use the worker pool instead of blocking Node's event loop.
+const derivePassword = (password: string, salt: Buffer) => new Promise<Buffer>((resolve, reject) => {
+  scrypt(password, salt, 64, (error, key) => error ? reject(error) : resolve(key));
+});
+export async function hashPasswordAsync(password: string): Promise<string> {
+  const salt = randomBytes(16);
+  return `scrypt$${salt.toString('hex')}$${(await derivePassword(password, salt)).toString('hex')}`;
+}
+export async function verifyPasswordAsync(password: string, stored: string | null | undefined): Promise<boolean> {
+  const [scheme, salt, hash] = String(stored ?? '').split('$');
+  if (scheme !== 'scrypt' || !/^[a-f0-9]{32}$/.test(salt ?? '') || !/^[a-f0-9]{128}$/.test(hash ?? '')) return false;
+  const actual = await derivePassword(password, Buffer.from(salt, 'hex'));
+  return timingSafeEqual(actual, Buffer.from(hash, 'hex'));
 }
 
 /** Devolve a mensagem de erro, ou null se a senha serve. */

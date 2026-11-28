@@ -250,6 +250,7 @@ export function ProfileForm() {
         birthDate: form.birthDate,
         profession: form.profession.trim(),
         about: form.about.trim(),
+        languages: [...new Set(languages.split(',').map(value => value.trim()).filter(Boolean))],
         skills,
         experience: experience.filter((item) => item.role.trim()),
         ...(form.hasDriverLicense
@@ -801,7 +802,7 @@ export function ProfileForm() {
                 </div>
               </Section>
               <Section id="idiomas" title="Idiomas" description="Separe os idiomas por vírgula. Ex.: Português, Inglês." done={doneKeys.has('languages')}>
-                <label className="block text-sm font-medium">Idiomas que voc? conhece
+                <label className="block text-sm font-medium">Idiomas que você conhece
                   <input value={languages} maxLength={600} onChange={event => { setLanguages(event.target.value); setDirty(true); }} className="input-v2 mt-2 min-h-11 w-full" placeholder="Português, Inglês" />
                 </label>
               </Section>

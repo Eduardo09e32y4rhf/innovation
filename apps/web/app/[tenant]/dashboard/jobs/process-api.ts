@@ -22,6 +22,7 @@ export interface AssessmentResult {
 }
 
 export const processApi = {
+  portalAssessments: (id: string) => request<{ kind: string; title: string; score: number | null; essay: string | null; rubric: string[]; preferences: { text: string; answer: string }[] }[]>(`/jobs/applications/${enc(id)}/portal-assessments`),
   slotOffers: (id: string) => request<SlotOffer[]>(`/jobs/applications/${enc(id)}/slot-offers`),
   createSlotOffer: (id: string, body: { slots: string[]; mode: 'PRESENCIAL' | 'ONLINE'; location?: string; meetingUrl?: string; durationMinutes?: number; interviewerRole?: 'RH' | 'GESTOR'; interviewer?: string; candidateMessage?: string; validDays?: number }) =>
     request<{ id: string; emailed: boolean }>(`/jobs/applications/${enc(id)}/slot-offers`, { method: 'POST', body }),

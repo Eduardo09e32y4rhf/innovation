@@ -14,6 +14,7 @@ import { AssessmentsService } from './assessments.service';
 import { InterviewFollowupService } from './interview-followup.service';
 import { JobOfferService } from './job-offer.service';
 import { JobScopeService } from './job-scope.service';
+import { CandidateAssessmentsService } from './candidate-assessments.service';
 
 class SlotOfferDto {
   @IsArray() @ArrayMinSize(1) @ArrayMaxSize(8) @IsDateString({}, { each: true }) slots!: string[];
@@ -74,9 +75,16 @@ export class CandidateActionsController {
     private readonly offers: JobOfferService,
     private readonly assessments: AssessmentsService,
     private readonly scope: JobScopeService,
+    private readonly portalAssessments: CandidateAssessmentsService,
   ) {}
 
   // autoagendamento
+  @Get('applications/:id/portal-assessments')
+  async portalResults(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string) {
+    await this.scope.assertApplication(companyId, actor, id);
+    return this.portalAssessments.sharedForApplication(companyId, id);
+  }
+
   @Roles('DEV', 'ADMIN', 'RH', 'RH_RS')
   @Post('applications/:id/slot-offers')
   async slotOffer(@CurrentCompany() companyId: string, @CurrentUser() actor: JwtUser, @Param('id', ParseUUIDPipe) id: string, @Body() dto: SlotOfferDto) {

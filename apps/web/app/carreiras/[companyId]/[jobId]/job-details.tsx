@@ -102,6 +102,9 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
   const [dragging, setDragging] = useState(false);
   const [account, setAccount] = useState<CandidateProfile | null>(null);
   const [accountLoading, setAccountLoading] = useState(true);
+  const [assessmentsComplete, setAssessmentsComplete] = useState(false);
+  const [assessmentError, setAssessmentError] = useState('');
+  const [accountReload, setAccountReload] = useState(0);
   const [reuse, setReuse] = useState<'ask' | 'yes' | 'no'>('ask');
   const [reuseConsent, setReuseConsent] = useState(false);
   const pending = useRef(false);
@@ -122,10 +125,10 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
   }, [companyId, jobId, reload]);
   useEffect(() => {
     if (!getCandidateToken()) { setAccountLoading(false); return; }
-    let active = true;
-    candidateApi.me().then((result) => { if (active) setAccount(result); }).catch(() => { /* sessão inválida: oferece entrar novamente */ }).finally(() => { if (active) setAccountLoading(false); });
+    let active = true; setAccountLoading(true); setAssessmentError('');
+    candidateApi.me().then((result) => { if (active) setAccount(result); return candidateApi.assessments(); }).then(rows => { if (active) setAssessmentsComplete(['PORTUGUESE', 'MATH', 'ESSAY'].every(kind => rows.some(row => row.kind === kind && row.status === 'COMPLETED'))); }).catch(() => { if (active) { setAssessmentsComplete(false); setAssessmentError('Não foi possível verificar as avaliações. Tente novamente.'); } }).finally(() => { if (active) setAccountLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [accountReload]);
   useEffect(() => { setReuse('ask'); setReuseConsent(false); }, [companyId, jobId]);
   useEffect(() => { setForm(EMPTY); setAnswers({}); setResume(null); setSuccess(''); setFileError(''); setError(''); setFieldErrors({}); }, [companyId, jobId]);
   useEffect(() => { if (success) successRef.current?.focus(); }, [success]);
@@ -172,7 +175,7 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
 
     pending.current = true; setSubmitting(true);
     try {
-      const result = await applyToPublicJob(job.id, { ...form, resume, answers, source: readTrafficSource(window.location.search) });
+      const result = await applyToPublicJob(job.id, { ...form, resume, answers, source: readTrafficSource(window.location.search) }, getCandidateToken());
       setSuccess(result.message); setForm(EMPTY); setAnswers({}); setResume(null);
       if (fileInput.current) fileInput.current.value = '';
     } catch (cause) {
@@ -304,6 +307,13 @@ export function JobDetails({ companyId, jobId }: { companyId: string; jobId: str
               <div className="mt-5 space-y-3 rounded-xl bg-amber-50 p-4">
                 <p className="text-sm text-amber-900">{t('Confirme seu e-mail para enviar a candidatura. Você pode solicitar um código na sua área do candidato.')}</p>
                 <Link className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 text-sm font-semibold text-white hover:bg-[#5b29be]" href="/carreira">{t('Confirmar meu e-mail')}</Link>
+              </div>
+            ) : !assessmentsComplete ? (
+              <div className="mt-5 space-y-3 rounded-xl bg-amber-50 p-4">
+                <p className="text-sm font-semibold text-amber-900">Conclua português, matemática e redação antes de enviar a candidatura.</p>
+                {assessmentError && <p role="alert" className="text-sm">{assessmentError}</p>}
+                <Link href="/carreira/avaliacoes" className="inline-flex min-h-11 items-center rounded-lg bg-[#7240da] px-4 text-sm font-semibold text-white">Concluir avaliações obrigatórias</Link>
+                <Button variant="outline" onClick={() => setAccountReload(value => value + 1)}>Verificar novamente</Button>
               </div>
             ) : reuseReady && reuse === 'ask' ? (
               <div className="mt-5 space-y-4" role="group" aria-labelledby="reuse-title">

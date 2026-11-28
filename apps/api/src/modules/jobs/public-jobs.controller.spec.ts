@@ -3,6 +3,7 @@ import { PublicJobsController } from './public-jobs.controller';
 
 function multipartRequest(parts: any[]) {
   return {
+    candidateAccount: { id: 'account-1', email: 'maria@example.test', verifiedAt: new Date() },
     isMultipart: () => true,
     parts: () => (async function* () { for (const part of parts) yield part; })(),
   };
@@ -16,14 +17,16 @@ describe('PublicJobsController.apply', () => {
 
     await controller.apply('job-1', multipartRequest([
       { type: 'field', fieldname: 'name', value: 'Maria' },
+      { type: 'field', fieldname: 'email', value: 'maria@example.test' },
       { type: 'field', fieldname: 'consent', value: 'true' },
       { type: 'file', fieldname: 'resume', filename: 'cv.pdf', mimetype: 'application/pdf', file: { truncated: false }, toBuffer: async () => pdf },
     ]));
 
     const [, fields, file] = apply.mock.calls[0];
-    expect(fields).toEqual({ name: 'Maria', consent: 'true' });
+    expect(fields).toEqual({ name: 'Maria', email: 'maria@example.test', consent: 'true' });
     expect(fields).not.toHaveProperty('resume');
     expect(file).toMatchObject({ buffer: pdf, filename: 'cv.pdf' });
+    expect(apply.mock.calls[0][3]).toMatchObject({ portalAccountId: 'account-1', ownerVerified: true });
   });
 
   it('rejeita arquivo maior que 5 MB com mensagem clara', async () => {
@@ -31,5 +34,10 @@ describe('PublicJobsController.apply', () => {
     await expect(controller.apply('job-1', multipartRequest([
       { type: 'file', fieldname: 'resume', filename: 'cv.pdf', file: { truncated: true }, toBuffer: async () => Buffer.alloc(10) },
     ]))).rejects.toThrow(/5 MB/);
+  });
+  it('não permite usar avaliações da conta para candidatar outro e-mail', async () => {
+    const apply = vi.fn(); const controller = new PublicJobsController({ apply } as any);
+    await expect(controller.apply('job-1', multipartRequest([{ type: 'field', fieldname: 'email', value: 'outra@example.test' }]))).rejects.toThrow('Use o e-mail');
+    expect(apply).not.toHaveBeenCalled();
   });
 });

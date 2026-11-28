@@ -21,13 +21,20 @@ export function isWebhookRequest(context: ExecutionContext): boolean {
   return /\/webhooks?(\/|$|\?)/.test(url);
 }
 
-/** Rota protegida por JwtAuthGuard (classe ou metodo): ali o limite por IP prejudicaria empresas atras de NAT. */
+/** O login já tem limite por identificador; um segundo limite por IP derruba todas as contas atrás do mesmo proxy/NAT. */
+export function isAccountScopedLoginRequest(context: ExecutionContext): boolean {
+  const req = request(context);
+  const url = String(req.routeOptions?.url ?? req.routerPath ?? req.url ?? '').split('?')[0];
+  return String(req.method ?? '').toUpperCase() === 'POST' && /(?:^|\/)auth\/login$/.test(url);
+}
+
+/** Rotas com sessão própria limitam por token; não bloqueiam outras pessoas no mesmo IP/NAT. */
 export function isJwtGuarded(context: ExecutionContext): boolean {
   const guards = [
     ...((Reflect.getMetadata('__guards__', context.getHandler()) as any[]) ?? []),
     ...((Reflect.getMetadata('__guards__', context.getClass()) as any[]) ?? []),
   ];
-  return guards.some((g) => g?.name === 'JwtAuthGuard');
+  return guards.some((g) => g?.name === 'JwtAuthGuard' || g?.name === 'CandidateAuthGuard');
 }
 
 /** Multiplicador do limite por IP em relacao ao limite da rota (padrao 1 = igual ao da rota; aumente atras de NAT). */
@@ -43,7 +50,7 @@ function routeValue(context: ExecutionContext, key: string): number | undefined 
 
 /**
  * Dois limitadores: `default` (por conta/identificador ou token, limites do @Throttle da rota) e `ip`
- * (so rotas sem JwtAuthGuard; usa o limite do @Throttle da rota x THROTTLE_IP_FACTOR, ou o global).
+ * (rotas sem JwtAuthGuard/CandidateAuthGuard; usa o limite da rota x THROTTLE_IP_FACTOR).
  */
 export function buildThrottlerOptions(storage?: any): ThrottlerModuleOptions {
   return {
@@ -55,7 +62,7 @@ export function buildThrottlerOptions(storage?: any): ThrottlerModuleOptions {
         ttl: (ctx) => (isWebhookRequest(ctx) ? GLOBAL_TTL_MS : routeValue(ctx, THROTTLER_TTL) ?? GLOBAL_TTL_MS),
         limit: (ctx) => (isWebhookRequest(ctx) ? WEBHOOK_LIMIT : Math.ceil((routeValue(ctx, THROTTLER_LIMIT) ?? GLOBAL_LIMIT) * ipFactor())),
         getTracker: (req) => `ip:${req.ip || 'unknown'}`,
-        skipIf: (ctx) => !isWebhookRequest(ctx) && isJwtGuarded(ctx),
+        skipIf: (ctx) => !isWebhookRequest(ctx) && (isJwtGuarded(ctx) || isAccountScopedLoginRequest(ctx)),
       },
     ],
   };

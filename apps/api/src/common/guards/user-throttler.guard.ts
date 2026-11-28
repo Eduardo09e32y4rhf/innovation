@@ -17,6 +17,9 @@ export class UserThrottlerGuard extends ThrottlerGuard {
 
     if (email) return `email:${email}`;
     if (document) return `doc:${document}`;
+    // Corpo de login inválido não deve consumir o contador compartilhado com logins válidos do mesmo IP.
+    const path = String(req.routeOptions?.url ?? req.routerPath ?? req.url ?? '').split('?')[0];
+    if (String(req.method ?? '').toUpperCase() === 'POST' && /(?:^|\/)auth\/login$/.test(path)) return `login:missing:${ip}`;
 
     const auth = String(req.headers?.authorization ?? '');
     if (auth.startsWith('Bearer ')) {

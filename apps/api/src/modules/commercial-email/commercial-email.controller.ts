@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AnyAuthenticated } from '../../common/decorators/any-authenticated.decorator';
 import type { JwtUser } from '../../common/types/auth.types';
 import { CreateCampaignDto, CreateNoticeDto, PreviewRecipientsDto } from './dto/create-campaign.dto';
 import { CommercialEmailService } from './commercial-email.service';
@@ -34,9 +35,9 @@ export class CommercialEmailController {
   @Post('notices') @UseGuards(JwtAuthGuard, RolesGuard) @Roles('DEV', 'CEO', 'COMERCIAL')
   createNotice(@CurrentUser() actor: JwtUser, @Body() dto: CreateNoticeDto) { return this.service.createPlatformNotice(actor.sub, dto); }
 
-  @Get('notices') @UseGuards(JwtAuthGuard)
+  @Get('notices') @UseGuards(JwtAuthGuard, RolesGuard) @AnyAuthenticated()
   notices(@CurrentUser() actor: JwtUser) { return this.service.listNoticesForAdmin(actor.sub); }
 
-  @Post('notices/:id/ack') @UseGuards(JwtAuthGuard)
+  @Post('notices/:id/ack') @UseGuards(JwtAuthGuard, RolesGuard) @AnyAuthenticated()
   acknowledge(@Param('id') id: string, @CurrentUser() actor: JwtUser, @Req() req: any) { return this.service.acknowledgeNotice(id, actor.sub, actor.companyId, req.ip); }
 }

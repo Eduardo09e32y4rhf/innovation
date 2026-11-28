@@ -1,0 +1,22 @@
+Instrução consolidada executada nesta revisão:
+
+Corrigir o texto corrompido do campo de idiomas e investigar a persistência do
+perfil. Criar testes de navegador que salvem e recarreguem os dados. Revisar
+concorrência, segurança e privacidade do portal, tratando achados concretos.
+
+Implementar área de avaliações integrada à conta do candidato. Criar banco
+original de 500 questões de português/matemática, cinco alternativas A–E e
+gabarito somente no servidor. Aplicar uma seleção menor por prova, persistir
+rascunhos, validar todas as respostas, impedir sobrescrita e reenvio concorrente.
+Disponibilizar redação com critérios de revisão humana. Bloquear candidaturas
+até concluir português, matemática e redação, conforme decisão explícita do usuário.
+
+Adicionar questionários opcionais de preferências culturais e rotina profissional,
+sem apresentar o conteúdo como diagnóstico ou avaliação psicológica validada.
+Solicitar os dados do profissional/instrumento para a etapa psicológica formal.
+
+Proteger compartilhamento com recrutadores por consentimento, empresa/vaga e
+vínculo com a conta autenticada. Medir concorrência local e fornecer script de
+carga reproduzível, distinguindo simulação local de capacidade real da VPS.
+Exportar o banco com gabarito para revisão privada e registrar comandos, resultados,
+limitações e instruções de deploy. Publicar uma versão consolidada após verificar.

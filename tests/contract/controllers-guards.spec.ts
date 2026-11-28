@@ -36,6 +36,9 @@ const ALLOWED: Record<string, Allowed> = {
   'POST /auth/password-reset/validate-code': PUBLICA('valida codigo emitido pelo RH; 5 tentativas'),
   'POST /auth/password-reset/confirm': PUBLICA('confirma com token de uso unico'),
   // webhooks (autenticados por assinatura/token do provedor dentro do controller)
+  'GET /commercial/email/trial-token/:token': PUBLICA('convite por token com hash, vencimento e status conferidos no servico'),
+  'GET /commercial/email/unsubscribe': PUBLICA('descadastro de comunicacoes comerciais; nao retorna dados pessoais'),
+  'POST /commercial/email/webhooks/resend': PUBLICA('assinatura HMAC Svix com janela de cinco minutos validada no servico'),
   'POST /finance/webhook/asaas': PUBLICA('webhook Asaas; token do provedor; limite por IP'),
   'POST /finance/webhook/mercadopago': PUBLICA('webhook Mercado Pago; assinatura x-signature; limite por IP'),
   // suporte publico
@@ -75,6 +78,17 @@ const ALLOWED: Record<string, Allowed> = {
   'POST /public/jobs/:jobId/apply': GUARD_PROPRIO('TurnstileGuard', 'candidatura externa'),
   'POST /public/internal-jobs/:jobId/apply': GUARD_PROPRIO('TurnstileGuard', 'candidatura interna'),
   'GET /candidate-portal/consents': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
+  'GET /candidate-portal/assessments': GUARD_PROPRIO('CandidateAuthGuard', 'somente avaliacoes da propria conta'),
+  'GET /candidate-portal/saved-jobs': GUARD_PROPRIO('CandidateAuthGuard', 'favoritos da propria conta'),
+  'POST /candidate-portal/saved-jobs/:jobId': GUARD_PROPRIO('CandidateAuthGuard', 'salva favorito da propria conta'),
+  'DELETE /candidate-portal/saved-jobs/:jobId': GUARD_PROPRIO('CandidateAuthGuard', 'remove favorito da propria conta'),
+  'GET /candidate-portal/missions': GUARD_PROPRIO('CandidateAuthGuard', 'progresso do proprio perfil'),
+  'GET /careers/jobs': GUARD_PROPRIO('CandidateAuthGuard', 'catalogo com compatibilidade do candidato autenticado'),
+  'GET /careers/jobs/:id/match': GUARD_PROPRIO('CandidateAuthGuard', 'compatibilidade do proprio perfil'),
+  'POST /careers/jobs/:id/match/simulate': GUARD_PROPRIO('CandidateAuthGuard', 'simulacao do proprio perfil sem gravar dados'),
+  'POST /candidate-portal/assessments/:kind/start': GUARD_PROPRIO('CandidateAuthGuard', 'inicia ou retoma a propria prova'),
+  'PUT /candidate-portal/assessments/:kind': GUARD_PROPRIO('CandidateAuthGuard', 'rascunho e conclusao por conta com revisao atomica'),
+  'PUT /candidate-portal/assessments/:kind/sharing': GUARD_PROPRIO('CandidateAuthGuard', 'autoriza ou revoga compartilhamento da propria prova'),
   'POST /candidate-portal/consents/:id/revoke': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'POST /candidate-portal/auth/logout': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
   'POST /candidate-portal/auth/verify-email': GUARD_PROPRIO('CandidateAuthGuard', 'sessao do candidato'),
@@ -97,6 +111,8 @@ const ALLOWED: Record<string, Allowed> = {
  * (10 com RolesGuard: notificacoes do proprio usuario, empresa propria, permissoes proprias; 10 de autosservico em /auth).
  */
 const LOGGED_IN_ONLY = new Set([
+  'GET /commercial/email/notices',
+  'POST /commercial/email/notices/:id/ack',
   'GET /companies/me',
   'GET /faturas/permissoes/minhas',
   'GET /notifications',

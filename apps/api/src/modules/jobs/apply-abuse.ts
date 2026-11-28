@@ -32,9 +32,9 @@ export const APPLY_LIMITS = {
 } as const;
 
 /** Anti-spam da candidatura pública: IP, e-mail e e-mail+vaga. Lança 429 em pt-BR ao estourar qualquer limite. */
-export async function assertApplyAllowed(limiter: ApplyLimiter, ip: string, jobId: string, email: unknown): Promise<void> {
+export async function assertApplyAllowed(limiter: ApplyLimiter, ip: string, jobId: string, email: unknown, verifiedAccountId?: string): Promise<void> {
   const normalized = String(email ?? '').trim().toLowerCase().slice(0, 200);
-  const checks: Array<[string, { limit: number; windowSec: number }]> = [[`ip:${ip}`, APPLY_LIMITS.perIp]];
+  const checks: Array<[string, { limit: number; windowSec: number }]> = [[verifiedAccountId ? `account:${verifiedAccountId}` : `ip:${ip}`, APPLY_LIMITS.perIp]];
   if (normalized) {
     checks.push([`email:${normalized}`, APPLY_LIMITS.perEmail], [`email-job:${normalized}:${jobId}`, APPLY_LIMITS.perEmailJob]);
   }

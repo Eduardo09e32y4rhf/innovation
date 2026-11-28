@@ -22,6 +22,8 @@ export function setCandidateToken(token: string | null) {
 }
 
 export type EducationItem = { level: string; status: string; course: string; school: string };
+export type PortalAssessmentSummary = { kind: string; title: string; required: boolean; status: string; score?: number | null; shareConsent?: boolean };
+export type PortalAssessment = PortalAssessmentSummary & { id: string; revision: number; questions: { id: string; text: string; options: string[] }[]; answers: Record<string, number>; essay: string; prompt: string | null; rubric: string[] };
 export const EDUCATION_LEVELS = ['Ensino fundamental', 'Ensino médio', 'Técnico', 'Superior', 'Pós-graduação'] as const;
 export const EDUCATION_STATUS = ['Completo', 'Cursando', 'Incompleto'] as const;
 
@@ -75,6 +77,10 @@ async function careerAuthed<T>(path: string, init: RequestInit = {}): Promise<T>
 }
 
 export const candidateApi = {
+  assessments: () => authed<PortalAssessmentSummary[]>('/assessments'),
+  startAssessment: (kind: string) => authed<PortalAssessment>(`/assessments/${encodeURIComponent(kind)}/start`, { method: 'POST' }),
+  saveAssessment: (kind: string, data: { revision: number; answers: Record<string, number>; essay: string; complete: boolean; shareConsent: boolean }) => authed<PortalAssessment>(`/assessments/${encodeURIComponent(kind)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  shareAssessment: (kind: string, shareConsent: boolean) => authed<{ shareConsent: boolean }>(`/assessments/${encodeURIComponent(kind)}/sharing`, { method: 'PUT', body: JSON.stringify({ shareConsent }) }),
   register: (email: string, password: string, name?: string) => authed<{ token: string; expiresAt: string }>('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name: name || undefined }) }),
   login: (email: string, password: string) => authed<{ token: string; expiresAt: string }>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   forgotPassword: (email: string) => authed<{ sent: boolean }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),

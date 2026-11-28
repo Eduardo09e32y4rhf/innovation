@@ -5,6 +5,8 @@ import { RedisService } from '../../common/redis/redis.service';
 import { clientIp } from '../../common/http/client-ip';
 import { ApplyLimiter, assertApplyAllowed } from './apply-abuse';
 import { JobsService } from './jobs.service';
+import { CandidateAuthGuard } from './candidate-account.guard';
+import { CandidateApplicationGuard } from './candidate-application.guard';
 
 @Controller('public/jobs')
 export class PublicJobsController {
@@ -47,13 +49,15 @@ export class PublicJobsController {
   }
 
   @Post(':jobId/apply')
-  @UseGuards(TurnstileGuard)
+  @UseGuards(CandidateAuthGuard, CandidateApplicationGuard, TurnstileGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   async apply(@Param('jobId', ParseUUIDPipe) jobId: string, @Req() request: any) {
     const ip = String(request.ip ?? 'unknown');
-    const context = { ip: clientIp(request), userAgent: typeof request.headers?.['user-agent'] === 'string' ? request.headers['user-agent'] : undefined };
+    const context = { ownerVerified: true, portalAccountId: request.candidateAccount.id, ip: clientIp(request), userAgent: typeof request.headers?.['user-agent'] === 'string' ? request.headers['user-agent'] : undefined };
+    const assertEmail = (value: unknown) => { if (String(value ?? '').trim().toLowerCase() !== request.candidateAccount.email.toLowerCase()) throw new BadRequestException('Use o e-mail da sua conta para enviar a candidatura.'); };
     if (!request.isMultipart?.()) {
-      await assertApplyAllowed(this.limiter, ip, jobId, request.body?.email);
+      assertEmail(request.body?.email);
+      await assertApplyAllowed(this.limiter, ip, jobId, request.body?.email, request.candidateAccount.id);
       return this.service.apply(jobId, request.body || {}, undefined, context);
     }
     const fields: Record<string, unknown> = {};
@@ -77,7 +81,8 @@ export class PublicJobsController {
       }
       throw new BadRequestException('Nao foi possivel ler o formulario enviado. Tente novamente.');
     }
-    await assertApplyAllowed(this.limiter, ip, jobId, fields.email);
+    assertEmail(fields.email);
+    await assertApplyAllowed(this.limiter, ip, jobId, fields.email, request.candidateAccount.id);
     return this.service.apply(jobId, fields, file, context);
   }
 }

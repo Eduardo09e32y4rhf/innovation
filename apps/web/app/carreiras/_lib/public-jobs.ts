@@ -397,6 +397,7 @@ export async function getPublicJob(companyId: string, jobId: string): Promise<Pu
 export async function applyToPublicJob(
   jobId: string,
   input: JobApplicationInput,
+  token?: string | null,
 ): Promise<{ message: string }> {
   const formData = new FormData();
   formData.append('name', input.name.trim());
@@ -423,6 +424,7 @@ export async function applyToPublicJob(
 
   const payload = await fetchPublic(`/public/jobs/${encodeURIComponent(jobId)}/apply`, {
     method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData,
   });
   const record = asRecord(payload);

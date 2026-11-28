@@ -1,0 +1,133 @@
+REVISÃO DO PORTAL — 27/11/2026
+
+Solicitação: corrigir português e perfil; testar usabilidade, múltiplos usuários,
+segurança e privacidade; disponibilizar 500 questões A–E, redação, português,
+matemática e fit cultural; esclarecer a etapa de avaliação psicológica.
+Decisão explícita posterior: bloquear a candidatura até concluir português,
+matemática e redação. A nota não provoca reprovação automática.
+
+CORREÇÕES E COMPORTAMENTO
+- “Idiomas que voc? conhece” corrigido para “Idiomas que você conhece”.
+- Idiomas agora integram o payload de salvamento. Validação de até 10 idiomas,
+  remoção de vazios/duplicados, teste de gravação e recarregamento da página.
+- Login/cadastro/recuperação usam scrypt assíncrono; formato de senhas preservado.
+- Compatibilidade das vagas busca critérios em lote, eliminando consultas por vaga.
+- Rotas autenticadas do candidato usam o limite por sessão, preservando a proteção
+  por IP dos endpoints sem autenticação. Candidaturas autenticadas têm limite por
+  conta, e-mail e e-mail/vaga; usuários da mesma rede não dividem esse limite.
+- /carreira/avaliacoes inclui 3 avaliações obrigatórias e 2 questionários opcionais.
+- CandidateAuthGuard seguido de CandidateApplicationGuard protege ambos os POSTs
+  externos: /candidate-portal/jobs/:jobId/apply e /public/jobs/:jobId/apply.
+  E-mail confirmado e as três avaliações concluídas são necessários. Um envio
+  multipart usa o token da sessão e não pode declarar outro e-mail.
+- O bloqueio vale para novas candidaturas pelo portal. Não altera candidaturas
+  já recebidas nem transforma questionários opcionais em requisito eliminatório.
+
+BANCO DE QUESTÕES, VERSÃO 1
+500 itens originais, sem copiar instrumentos proprietários:
+- Português: 50 questões de ortografia, acentuação, concordância, crase, porquês,
+  classes de palavras, verbos, coesão e semântica; 200 de interpretação (40 avisos,
+  5 perguntas por aviso). Os avisos variam contextos de trabalho, pessoas e datas.
+- Matemática: 250 itens, 25 modelos didáticos com 10 variações numéricas cada.
+  Inclui operações, porcentagens, descontos, médias, medidas, equações, frações,
+  juros simples, probabilidade, sequência e produtividade.
+São 500 enunciados distintos; não representam 500 competências independentes.
+O conteúdo é introdutório, sem alegação de calibração psicométrica ou de validade
+para prever desempenho profissional. Há revisão estrutural automatizada; uma
+revisão pedagógica humana independente continua recomendada antes de usar notas
+como critério classificatório. Nenhuma nota mínima foi configurada.
+
+Cada prova objetiva seleciona 20 questões com diversidade de assuntos. Questões
+e alternativas são embaralhadas no servidor e a seleção fica persistida na conta.
+Gabarito e explicações nunca integram o DTO público. A pontuação usa o snapshot
+gravado pelo servidor, sem aceitar nota ou gabarito enviados pelo navegador.
+
+Redação: 150–600 palavras, texto livre. Não há alternativas A–E para redação.
+Critérios: tema, clareza/organização, argumentação, coesão e correção linguística.
+O sistema confirma o envio e o tamanho; não atribui nota de qualidade automática.
+O recrutador autorizado lê a redação e registra a revisão nas notas da candidatura.
+
+PRIVACIDADE E CONCORRÊNCIA
+- Índice único por conta/tipo impede provas duplicadas em inícios simultâneos.
+- Revisão incremental e updateMany condicional rejeitam sobrescritas de outra aba.
+- Provas concluídas não podem ser reescritas; compartilhamento pode ser revogado.
+- Rascunhos privados, sem localStorage de redações ou respostas. Salvamento pelo
+  botão e ao navegar entre questões; sair com alterações não salvas exige cuidado.
+- Compartilhamento desmarcado por padrão. Resultados só aparecem para recrutadores
+  autorizados na empresa/vaga e em candidaturas vinculadas à conta autenticada.
+  Coincidência de e-mail em uma candidatura enviada por terceiro não libera acesso.
+- Exclusão da conta remove provas por FK CASCADE. Cópias eventualmente feitas nas
+  notas de uma candidatura seguem o fluxo de retenção daquela empresa.
+- Nenhuma resposta de avaliação é usada para diagnóstico, exclusão automática,
+  exposição pública ou divulgação do gabarito.
+- O inventário de guards também foi atualizado. As rotas de comunicados gerais
+  existentes receberam a marca explícita de usuário autenticado e RolesGuard.
+
+FIT CULTURAL E PSICOLOGIA
+Fit cultural: 12 preferências de ambiente de trabalho, escala A–E. Rotina profissional:
+12 frequências autorrelatadas, escala A–E. Sem gabarito, nota de compatibilidade
+universal, rótulo clínico ou laudo. O recrutador discute respostas no contexto da vaga.
+Uma avaliação psicológica profissional NÃO foi inventada ou simulada. Integração
+depende de psicólogo responsável e instrumento autorizado para aplicação online.
+Fonte consultada: Conselho Federal de Psicologia,
+https://site.cfp.org.br/cfp-orienta-psicologas-sobre-o-uso-de-testes-psicologicos-nas-modalidades-informatizada-e-online/
+
+SCRIPTS E MOTIVO
+1. node scripts/verify-candidate-portal.cjs
+   Auditoria de textos, tipos, DTOs compilados, Prisma, lint, testes e navegador.
+2. node scripts/test/candidate-assessments-http.cjs (após npm run build:api)
+   Servidor Nest/Fastify local real com persistência simulada. Exercita autenticação,
+   validação HTTP, revisão concorrente e isolamento de 50 contas, além do bloqueio
+   de candidatura até a conclusão das três provas.
+   Não é benchmark de PostgreSQL, Redis ou VPS; não inclui o limitador global.
+3. node scripts/export-candidate-question-bank.cjs (após npm run build:api)
+   Gera storage/qa/portal-candidato/banco-500-gabarito-v1.csv para revisão privada.
+   Não copie esse arquivo para public/ nem para o bundle do navegador.
+4. node scripts/test/candidate-load.cjs --url=http://127.0.0.1:3333 --users=5 --rounds=10
+   Medição HTTP somente leitura. Use primeiro homologação equivalente à VPS.
+   Para tráfego autenticado, --tokens-file=<arquivo-json> com uma sessão de conta
+   de teste distinta por usuário. Não usar contas reais nem enviar tokens no chat.
+   Registra p95/p99, erros e códigos HTTP. 429 é limitação, não prova de capacidade.
+   Aumente gradualmente e acompanhe CPU, RAM, conexões PostgreSQL e Redis.
+5. node scripts/test/production-dependencies.cjs
+   Verifica os usos reais de UUID pelo timer do Bull e pela escrita/leitura de
+   planilha ExcelJS, o servidor de arquivos Fastify e o carregamento do Sentry
+   com telemetria desabilitada. Não conecta Redis nem envia eventos externos.
+
+DEPENDÊNCIAS DE PRODUÇÃO
+A primeira consulta npm audit --omit=dev encontrou 8 alertas moderados, nenhum
+alto/crítico. Foram atualizados @fastify/static 10.1.12 e @sentry/node 11.20.0;
+uuid 11.1.1 foi fixado especificamente nas dependências de Bull e ExcelJS,
+preservando suas versões principais. Os usos encontrados nesses consumidores
+são v4, que mantém a interface CommonJS. O lockfile acompanha a alteração.
+Referência do alerta UUID: https://github.com/advisories/GHSA-w5hq-g745-h8pq
+O resultado da nova consulta e os testes constam no relatório final desta revisão.
+
+LIMITES DA VERIFICAÇÃO
+O ambiente local não tem Docker/PostgreSQL de teste disponíveis. A migration não
+foi aplicada em banco real aqui. A capacidade da VPS, seu hardware e a saúde após
+deploy exigem medição no ambiente de destino. Não há garantia de ausência total
+de vulnerabilidades nem certificação de conformidade com a LGPD.
+
+DEPLOY
+Inclui a migration 20261127000200_candidate_assessments. Use o fluxo com backup e
+aplicação de migrations: bash scripts/deploy/vps-update-bg.sh main
+Só considerar o serviço disponível após as checagens de saúde do deploy.
+
+VERIFICAÇÃO FINAL — 28/11/2026
+node scripts/verify-candidate-portal.cjs: auditoria textual 0 suspeitas; tsc web/API,
+cheque de carregamento dos 122 DTOs compilados, Prisma, ESLint (0 erros/205 avisos),
+16 arquivos de testes unitários (126 testes), HTTP (50 contas, 264 pedidos) e teste
+de compatibilidade de dependências passaram. O teste Redis real é condicional à
+presença do binário local e não estava disponível no Windows.
+Playwright: 14/14 passaram, incluindo o perfil em 360/390/1280 px, gravação e
+recarga de idiomas, seis fluxos de avaliações, redação, conflito entre abas e
+bloqueio de candidatura. Após corrigir a cor e semântica da barra, 2/2 testes
+adicionais da tela passaram em 360 e 1280 px.
+npm audit --omit=dev: 0 vulnerabilidades conhecidas no lockfile atual.
+O teste HTTP simula persistência; 50 contas/1.270 ms e p95 de 344 ms não medem
+PostgreSQL/Redis reais, tráfego sustentado nem capacidade da VPS. É preciso rodar
+scripts/test/candidate-load.cjs em homologação com métricas do servidor antes de
+estimar o limite de usuários simultâneos. Docker/PostgreSQL não disponíveis localmente.
+O Next informa que React 18 não é suportado a partir do Next 17; a dependência
+atual usa Next 16. Planejar a migração de React 19 antes de atualizar para Next 17.

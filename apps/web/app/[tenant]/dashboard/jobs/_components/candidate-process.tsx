@@ -295,6 +295,7 @@ const PROFILE_COLOR: Record<string, string> = { EXECUTOR: '#dc2626', COMUNICADOR
 
 export function AssessmentsPanel({ applicationId, canSend, closed, onChanged }: { applicationId: string; canSend: boolean; closed: boolean; onChanged: () => void }) {
   const list = useQuery(() => processApi.assessments(applicationId), [applicationId]);
+  const portal = useQuery(() => processApi.portalAssessments(applicationId), [applicationId]);
   const [busy, setBusy] = useState<string | null>(null);
   async function act(key: string, action: () => Promise<unknown>, success: string) {
     setBusy(key);
@@ -303,6 +304,15 @@ export function AssessmentsPanel({ applicationId, canSend, closed, onChanged }: 
   const items: AssessmentResult[] = list.data ?? [];
   return (
     <div className="space-y-4">
+      <section className="space-y-3 rounded-xl border border-border p-4">
+        <h3 className="font-semibold">Avaliações compartilhadas pelo candidato</h3>
+        <p className="text-sm text-fg-sub">Resultados das candidaturas enviadas com o perfil autenticado, somente com autorização do candidato. Redação: revisão humana pelos critérios abaixo. Preferências não são diagnóstico nem critério automático de exclusão.</p>
+        {portal.loading && <p role="status">Carregando…</p>}
+        {portal.error && <p role="alert" className="text-sm text-red-700">Não foi possível carregar as avaliações compartilhadas. Tente atualizar.</p>}
+        {(portal.data ?? []).map(item => <details key={item.kind} className="rounded-lg border p-3"><summary className="cursor-pointer font-semibold">{item.title}{item.score != null ? ` · ${item.score}/100` : ''}</summary>{item.essay && <><p className="mt-3 whitespace-pre-wrap break-words">{item.essay}</p><p className="mt-3 text-sm">Critérios: {item.rubric.join('; ')}. Registre sua revisão nas notas desta candidatura.</p></>}{item.preferences.map((answer, index) => <p key={index} className="mt-2 text-sm"><strong>{answer.text}</strong> {answer.answer}</p>)}</details>)}
+        {!portal.loading && portal.data?.length === 0 && <p className="text-sm text-fg-sub">Nenhuma avaliação compartilhada disponível.</p>}
+        <Button variant="outline" onClick={() => portal.refetch()}>Atualizar avaliações compartilhadas</Button>
+      </section>
       {canSend && !closed && (
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => act('TECHNICAL', () => processApi.sendAssessment(applicationId, 'TECHNICAL'), 'Teste técnico enviado por e-mail.')} isLoading={busy === 'TECHNICAL'}>Enviar teste técnico</Button>

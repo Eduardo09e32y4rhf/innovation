@@ -1,4 +1,5 @@
 import { candidateProfileStrength } from './candidate-profile-strength';
+import { hashPasswordAsync, verifyPasswordAsync } from './candidate-account.rules';
 import { ALLOW, inspectFile } from '../../common/utils/file-validation';
 import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -15,7 +16,7 @@ import { candidateEmailVerificationEmail, candidatePasswordResetEmail } from './
 import { PRIVACY_VERSION, STAGE_LABEL_FOR_CANDIDATE } from './recruitment-privacy';
 import {
   DRIVER_LICENSE_CATEGORIES, funnelCount, generateLoginCode, hashPassword, hashSecret, isEmail, isValidCpf, LOGIN_CODE_MAX_ATTEMPTS, LOGIN_CODE_TTL_MINUTES, LOGIN_LOCK_MINUTES, LOGIN_MAX_FAILURES,
-  normalizeEmail, onlyDigits, parseBirthDate, passwordProblem, profileChecklist, profileCompleteness, safeEqualHex, sanitizeEducation, sanitizeExperience, sanitizeSkills, SESSION_TTL_DAYS, verifyPassword,
+  normalizeEmail, onlyDigits, parseBirthDate, passwordProblem, profileChecklist, profileCompleteness, safeEqualHex, sanitizeEducation, sanitizeExperience, sanitizeSkills, SESSION_TTL_DAYS,
 } from './candidate-account.rules';
 import type { CandidateApplyDto, CandidateUpdateProfileDto } from './dto/candidate-account.dto';
 
@@ -60,7 +61,7 @@ export class CandidateAccountService {
     const existing = await this.prisma.candidateAccount.findUnique({ where: { email } });
     if (existing) throw new ConflictException({ message: 'Este e-mail já tem conta. Entre com sua senha ou use "Esqueci minha senha".', fields: { email: 'E-mail já cadastrado' } });
     const account = await this.prisma.candidateAccount.create({
-      data: { email, name: name?.replace(/\s+/g, ' ').trim().slice(0, 180) || null, passwordHash: hashPassword(password), lastLoginAt: new Date() },
+      data: { email, name: name?.replace(/\s+/g, ' ').trim().slice(0, 180) || null, passwordHash: await hashPasswordAsync(password), lastLoginAt: new Date() },
     });
     // RS-C-09: a conta nasce NAO verificada; o codigo de 6 digitos vai por e-mail (falha de envio nao derruba o cadastro: ha reenvio).
     await this.issueVerificationCode(email).catch((error) => this.logger.error(`Falha ao enviar codigo de verificacao: ${error instanceof Error ? error.message : error}`));
@@ -107,11 +108,11 @@ export class CandidateAccountService {
     const account = isEmail(email) ? await this.prisma.candidateAccount.findUnique({ where: { email } }) : null;
     if (!account?.passwordHash) {
       // Mesmo custo de uma conta real: não dá para descobrir quais e-mails existem pelo tempo da resposta.
-      verifyPassword(password, DUMMY_HASH);
+      await verifyPasswordAsync(password, DUMMY_HASH);
       throw fail;
     }
     if (account.lockedUntil && account.lockedUntil > new Date()) throw new HttpException('Muitas tentativas. Aguarde alguns minutos ou use "Esqueci minha senha".', HttpStatus.TOO_MANY_REQUESTS);
-    if (!verifyPassword(password, account.passwordHash)) {
+    if (!(await verifyPasswordAsync(password, account.passwordHash))) {
       const failures = account.failedLoginCount + 1;
       await this.prisma.candidateAccount.update({
         where: { id: account.id },
@@ -157,7 +158,7 @@ export class CandidateAccountService {
     await this.prisma.candidateLoginCode.update({ where: { id: row.id }, data: { usedAt: new Date() } });
     const account = await this.prisma.candidateAccount.update({
       where: { email },
-      data: { passwordHash: hashPassword(password), failedLoginCount: 0, lockedUntil: null, verifiedAt: new Date(), lastLoginAt: new Date() },
+      data: { passwordHash: await hashPasswordAsync(password), failedLoginCount: 0, lockedUntil: null, verifiedAt: new Date(), lastLoginAt: new Date() },
     });
     // Trocou a senha: derruba as sessões abertas em qualquer aparelho.
     await this.prisma.candidateSession.deleteMany({ where: { accountId: account.id } });
@@ -255,9 +256,12 @@ export class CandidateAccountService {
       data.birthDate = birth;
     }
     if (dto.profession !== undefined) data.profession = text(dto.profession, 120);
-    if (dto.languages !== undefined) data.languages = [...new Set(dto.languages.map(value => value.trim()).filter(Boolean))];
+    if (dto.languages !== undefined) {
+      if (!Array.isArray(dto.languages) || dto.languages.length > 10 || dto.languages.some(value => typeof value !== 'string' || value.length > 60)) throw new BadRequestException('Informe até 10 idiomas, com no máximo 60 caracteres cada.');
+      data.languages = [...new Set(dto.languages.map(value => value.trim()).filter(Boolean))];
+    }
     if (dto.skills !== undefined) data.skills = sanitizeSkills(dto.skills);
-    if (dto.about !== undefined) data.about = dto.about.trim().slice(0, 1200) || null;
+    if (dto.about !== undefined) data.about = (dto.about ?? '').trim().slice(0, 1200) || null;
     if (dto.experience !== undefined) data.experience = sanitizeExperience(dto.experience);
     if (dto.hasDriverLicense !== undefined) {
       data.hasDriverLicense = dto.hasDriverLicense;
@@ -414,7 +418,7 @@ export class CandidateAccountService {
         answers: JSON.stringify(dto.answers ?? {}),
       },
       { buffer, filename: account.resumeName || 'curriculo.pdf', mimetype: account.resumeType || undefined },
-      { ownerVerified: Boolean(account.verifiedAt), ip: ctx.ip, userAgent: ctx.userAgent },
+      { ownerVerified: Boolean(account.verifiedAt), portalAccountId: account.id, ip: ctx.ip, userAgent: ctx.userAgent },
     );
     // Se veio de um convite do RH, o convite passa a "candidatou".
     await this.prisma.candidateInvite.updateMany({ where: { accountId: account.id, jobId, status: 'SENT' }, data: { status: 'APPLIED' } }).catch(() => undefined);

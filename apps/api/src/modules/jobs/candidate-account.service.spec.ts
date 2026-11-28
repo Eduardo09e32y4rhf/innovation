@@ -215,12 +215,19 @@ describe('candidatura reaproveitando o perfil', () => {
     expect(jobId).toBe('j1');
     expect(fields).toMatchObject({ name: 'Camila', email: 'c@x.com', phone: '(11) 91234-5678', consent: true, answers: '{}', source: 'telegram' });
     expect(file.filename).toBe('cv.pdf');
+    expect(jobs.apply.mock.calls[0][3]).toMatchObject({ portalAccountId: 'acc-1', ownerVerified: true });
     expect(Buffer.isBuffer(file.buffer)).toBe(true);
   });
 });
 
 
 describe('resultados finais do candidato', () => {
+  it('salva idiomas, remove vazios e duplicados, e rejeita formato inválido', async () => {
+    const { svc, prisma } = build();
+    await svc.updateProfile({ id: 'a', email: 'c@x.com' } as any, { languages: [' Português ', '', 'Português', 'Inglês'] });
+    expect(prisma.candidateAccount.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ languages: ['Português', 'Inglês'] }) }));
+    await expect(svc.updateProfile({ id: 'a' } as any, { languages: null } as any)).rejects.toThrow('Informe até');
+  });
   it.each([['HIRED', 'OPEN', 'Contratado'], ['REJECTED', 'OPEN', 'Não selecionado'], ['SCREENING', 'CLOSED', 'Vaga encerrada']])('finaliza %s com vaga %s sem funil', async (status, jobStatus, label) => {
     const app = { id: 'app', jobId: 'job', status, createdAt: new Date(), stage: null, events: [], job: { title: 'Cargo', status: jobStatus, confidential: false, company: { name: 'Empresa' } } };
     const { svc } = build({ application: { findMany: vi.fn(async () => [app]), groupBy: vi.fn(async () => []) } });

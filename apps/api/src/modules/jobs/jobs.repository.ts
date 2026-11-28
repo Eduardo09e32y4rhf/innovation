@@ -295,6 +295,7 @@ export class JobsRepository {
         data: {
           companyId,
           candidateId: candidate.id,
+          portalAccountId: data.ownerVerified ? data.portalAccountId ?? null : null,
           jobId,
           status: 'APPLIED',
           source: data.source ?? 'CAREERS_PORTAL',

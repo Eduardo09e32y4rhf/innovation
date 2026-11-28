@@ -6,7 +6,7 @@ const { spawnSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const output = path.join(root, 'storage/qa/portal-candidato');
 fs.mkdirSync(output, { recursive: true });
-const selected = (process.argv.find(arg => arg.startsWith('--only='))?.slice(7) || 'audit,types,lint,unit,browser').split(',');
+const selected = (process.argv.find(arg => arg.startsWith('--only='))?.slice(7) || 'audit,types,lint,unit,http,compat,browser').split(',');
 const results = [];
 if (selected.includes('audit')) {
   const ts = require(path.join(root, 'node_modules/typescript'));
@@ -16,7 +16,7 @@ if (selected.includes('audit')) {
       return entry.isDirectory() ? sources(file) : /\.(ts|tsx)$/.test(file) ? [file] : [];
     });
   }
-  const files = [...sources('apps/web/app/carreira'), ...sources('apps/web/app/carreiras'), ...['calculate-match.ts', 'candidate-profile-strength.ts', 'candidate-account.service.ts', 'career-match.controller.ts'].map(file => `apps/api/src/modules/jobs/${file}`)];
+  const files = [...sources('apps/web/app/carreira'), ...sources('apps/web/app/carreiras'), ...['calculate-match.ts', 'candidate-profile-strength.ts', 'candidate-account.service.ts', 'career-match.controller.ts', 'candidate-question-bank.ts', 'candidate-assessment.rules.ts', 'candidate-assessments.service.ts', 'candidate-application.guard.ts'].map(file => `apps/api/src/modules/jobs/${file}`)];
   const findings = [];
   for (const file of files) {
     const source = fs.readFileSync(path.join(root, file), 'utf8');
@@ -24,7 +24,7 @@ if (selected.includes('audit')) {
     function visit(node) {
       if (ts.isStringLiteralLike(node) || ts.isJsxText(node)) {
         const text = node.text;
-        if (!text.startsWith('/') && !text.includes('://') && /[a-zA-Z]\?{1,2}[a-zA-Z]| \?[a-zA-Z]|[a-zA-Z] \? [a-zA-Z]|\uFFFD|\u00c3[\u0080-\u00bf]/.test(text)) findings.push({ file, line: tree.getLineAndCharacterOfPosition(node.getStart()).line + 1, text });
+        if (!text.startsWith('/') && !text.includes('://') && /[a-zA-Z]\?{1,2}[a-zA-Z]|\bvoc\?| \?[a-zA-Z]|[a-zA-Z] \? [a-zA-Z]|\uFFFD|\u00c3[\u0080-\u00bf]/.test(text)) findings.push({ file, line: tree.getLineAndCharacterOfPosition(node.getStart()).line + 1, text });
       }
       ts.forEachChild(node, visit);
     }
@@ -37,7 +37,7 @@ if (selected.includes('audit')) {
 }
 function run(name, file, args, cwd = root) {
   console.log(`Executando ${name}…`);
-  const result = spawnSync(process.execPath, [path.join(root, file), ...args], { cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, windowsHide: true, env: { ...process.env, FORCE_COLOR: '0' } });
+  const result = spawnSync(process.execPath, [path.isAbsolute(file) ? file : path.join(root, file), ...args], { cwd, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, windowsHide: true, env: { ...process.env, FORCE_COLOR: '0' } });
   const log = (result.stdout || '') + (result.stderr || '') + (result.error?.message || '');
   fs.writeFileSync(path.join(output, `${name}.log`), log);
   results.push({ name, command: [process.execPath, file, ...args], exitCode: result.status ?? 1 });
@@ -45,13 +45,13 @@ function run(name, file, args, cwd = root) {
   if (result.status !== 0 && name !== 'eslint') console.log(log.slice(-6000));
 }
 if (selected.includes('types')) {
-  run('tsc-web', 'apps/web/node_modules/typescript/bin/tsc', ['--noEmit', '-p', 'apps/web/tsconfig.json']);
+  run('tsc-web', require.resolve('typescript/bin/tsc', { paths: [path.join(root, 'apps/web')] }), ['--noEmit', '-p', 'apps/web/tsconfig.json']);
   run('tsc-api', 'node_modules/typescript/bin/tsc', ['-p', 'apps/api/tsconfig.json']);
   if (results.at(-1).exitCode === 0) run('api-dto-runtime', 'scripts/check-api-dto-runtime.cjs', []);
   run('prisma-validate', 'apps/api/node_modules/prisma/build/index.js', ['validate', '--schema', 'apps/api/prisma/schema.prisma']);
 }
 if (selected.includes('lint')) {
-  run('eslint', 'apps/web/node_modules/eslint/bin/eslint.js', ['.', '--format', 'json', '--output-file', path.join(output, 'eslint.json')], path.join(root, 'apps/web'));
+  run('eslint', path.join(path.dirname(require.resolve('eslint/package.json', { paths: [path.join(root, 'apps/web')] })), 'bin/eslint.js'), ['.', '--format', 'json', '--output-file', path.join(output, 'eslint.json')], path.join(root, 'apps/web'));
   const file = path.join(output, 'eslint.json');
   if (fs.existsSync(file)) {
     const lint = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -61,7 +61,9 @@ if (selected.includes('lint')) {
     for (const item of lint.filter(item => item.errorCount)) console.log(item.filePath, item.messages.filter(message => message.severity === 2));
   }
 }
-if (selected.includes('unit')) run('unit', 'node_modules/vitest/vitest.mjs', ['run', '--config', 'vitest.config.ts', 'apps/api/src/modules/jobs/calculate-match.spec.ts', 'apps/api/src/modules/jobs/candidate-profile-strength.spec.ts', 'apps/api/src/modules/jobs/public-jobs-policy.spec.ts', 'apps/api/src/modules/jobs/candidate-account.service.spec.ts', 'tests/unit/candidate-job-presentation.spec.ts']);
+if (selected.includes('unit')) run('unit', 'node_modules/vitest/vitest.mjs', ['run', '--maxWorkers=1', '--config', 'vitest.config.ts', 'apps/api/src/modules/jobs/calculate-match.spec.ts', 'apps/api/src/modules/jobs/candidate-profile-strength.spec.ts', 'apps/api/src/modules/jobs/public-jobs-policy.spec.ts', 'apps/api/src/modules/jobs/candidate-account.service.spec.ts', 'apps/api/src/modules/jobs/candidate-assessments.spec.ts', 'apps/api/src/modules/jobs/apply-privacy.spec.ts', 'apps/api/src/modules/jobs/candidate-documents-security.spec.ts', 'apps/api/src/modules/jobs/recruitment-privacy.spec.ts', 'apps/api/src/modules/jobs/recruitment-privacy-withdraw.spec.ts', 'apps/api/src/modules/jobs/public-jobs.controller.spec.ts', 'apps/api/src/modules/jobs/recruitment-hardening.spec.ts', 'apps/api/src/modules/jobs/career-match.controller.spec.ts', 'apps/api/src/common/guards/throttler-ip.spec.ts', 'apps/api/src/common/guards/throttle-sensitive-routes.spec.ts', 'tests/contract/controllers-guards.spec.ts', 'tests/unit/candidate-job-presentation.spec.ts']);
+if (selected.includes('http')) run('http', 'scripts/test/candidate-assessments-http.cjs', []);
+if (selected.includes('compat')) run('dependency-compatibility', 'scripts/test/production-dependencies.cjs', []);
 if (selected.includes('browser')) run('browser', 'tests-e2e/node_modules/@playwright/test/cli.js', ['test', '--config', 'tests-e2e/playwright.candidate.config.ts']);
 fs.writeFileSync(path.join(output, `verification-${selected.join('-')}.json`), JSON.stringify({ checkedAt: new Date().toISOString(), results }, null, 2));
 process.exitCode = results.some(result => result.exitCode !== 0) ? 1 : 0;
